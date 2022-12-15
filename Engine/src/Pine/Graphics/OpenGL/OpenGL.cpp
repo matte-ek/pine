@@ -1,17 +1,18 @@
 #include "OpenGL.hpp"
+#include "Pine/Graphics/OpenGL/VertexArray/GLVertexArray.hpp"
 #include <GL/glew.h>
 
-const char *Pine::Graphics::OpenGL::GetName()
+const char *Pine::Graphics::OpenGL::GetName() const
 {
     return "OpenGL";
 }
 
-const char *Pine::Graphics::OpenGL::GetVersionString()
+const char *Pine::Graphics::OpenGL::GetVersionString() const
 {
     return m_VersionString.c_str();
 }
 
-const char *Pine::Graphics::OpenGL::GetGraphicsAdapter()
+const char *Pine::Graphics::OpenGL::GetGraphicsAdapter() const
 {
     return m_GraphicsAdapter.c_str();
 }
@@ -55,3 +56,16 @@ bool Pine::Graphics::OpenGL::Setup()
 void Pine::Graphics::OpenGL::Shutdown()
 {
 }
+
+Pine::Graphics::IVertexArray* Pine::Graphics::OpenGL::CreateVertexArray()
+{
+    return new GLVertexArray();
+}
+
+void Pine::Graphics::OpenGL::DestroyVertexArray(Pine::Graphics::IVertexArray* array)
+{
+    array->Dispose();
+
+    delete array;
+}
+

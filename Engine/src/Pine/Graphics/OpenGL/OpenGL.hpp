@@ -15,12 +15,15 @@ namespace Pine::Graphics
         bool Setup() override;
         void Shutdown() override;
 
-        const char* GetName() override;
-        const char* GetVersionString() override;
-        const char* GetGraphicsAdapter() override;
+        const char* GetName() const override;
+        const char* GetVersionString() const override;
+        const char* GetGraphicsAdapter() const override;
 
         void ClearBuffers(Buffers buffers) override;
         void ClearColor(Color color) override;
+
+        IVertexArray* CreateVertexArray() override;
+        void DestroyVertexArray(IVertexArray* array) override;
     };
 
 }
