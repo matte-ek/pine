@@ -1,6 +1,7 @@
 #pragma once
 
-#include "IVertexArray.h"
+#include "ITexture.hpp"
+#include "IVertexArray.hpp"
 #include "Pine/Core/Color/Color.hpp"
 
 namespace Pine::Graphics
@@ -36,6 +37,9 @@ namespace Pine::Graphics
 
         virtual IVertexArray* CreateVertexArray() = 0;
         virtual void DestroyVertexArray(IVertexArray* array) = 0;
+
+        virtual ITexture* CreateTexture() = 0;
+        virtual void DestroyTexture(ITexture* texture) = 0;
 
     };
 

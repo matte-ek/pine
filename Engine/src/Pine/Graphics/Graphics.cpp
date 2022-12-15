@@ -32,6 +32,8 @@ void Pine::Graphics::Shutdown()
     }
 
     m_GraphicsAPI->Shutdown();
+
+    delete m_GraphicsAPI;
 }
 
 Pine::Graphics::IGraphicsAPI *Pine::Graphics::GetGraphicsAPI()

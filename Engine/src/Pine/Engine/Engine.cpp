@@ -97,6 +97,8 @@ void Pine::Engine::Shutdown()
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
 
+    Graphics::Shutdown();
+
     WindowManager::Internal::DestroyWindow();
 
     glfwTerminate();

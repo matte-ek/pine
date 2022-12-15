@@ -1,4 +1,5 @@
 #include "OpenGL.hpp"
+#include "Pine/Graphics/OpenGL/Texture/GLTexture.hpp"
 #include "Pine/Graphics/OpenGL/VertexArray/GLVertexArray.hpp"
 #include <GL/glew.h>
 
@@ -69,3 +70,14 @@ void Pine::Graphics::OpenGL::DestroyVertexArray(Pine::Graphics::IVertexArray* ar
     delete array;
 }
 
+Pine::Graphics::ITexture* Pine::Graphics::OpenGL::CreateTexture()
+{
+    return new GLTexture();
+}
+
+void Pine::Graphics::OpenGL::DestroyTexture(Pine::Graphics::ITexture* texture)
+{
+    texture->Dispose();
+
+    delete texture;
+}

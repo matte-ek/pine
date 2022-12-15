@@ -24,6 +24,9 @@ namespace Pine::Graphics
 
         IVertexArray* CreateVertexArray() override;
         void DestroyVertexArray(IVertexArray* array) override;
+
+        ITexture* CreateTexture() override;
+        void DestroyTexture(ITexture* texture) override;
     };
 
 }

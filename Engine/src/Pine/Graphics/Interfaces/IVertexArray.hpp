@@ -4,8 +4,6 @@
 namespace Pine::Graphics
 {
 
-    using Buffer = void*;
-
     class IVertexArray
     {
     private:
@@ -21,6 +19,8 @@ namespace Pine::Graphics
         virtual void StoreFloatArrayBuffer(const std::vector<float>& vec, int binding, int vecSize) = 0;
         virtual void StoreIntArrayBuffer(const std::vector<int>& vec, int binding, int vecSize) = 0;
 
+        // The element array buffer (of index buffer) is an array that specifies the order
+        // of how vertices should be rendered, allowing you to save on vertex data.
         virtual void StoreElementArrayBuffer(const std::vector<int>& vec) = 0;
     };
 
