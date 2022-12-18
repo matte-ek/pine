@@ -1,11 +1,20 @@
 #include "Texture2D.hpp"
+#include "Pine/Core/Log/Log.hpp"
 #include "Pine/Graphics/Graphics.hpp"
-#include <stb_image.h>
 #include <stdexcept>
 
-void Pine::Texture2D::PrepareGpuData()
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+Pine::Texture2D::Texture2D()
 {
-    if (m_PreparedGpuData != nullptr)
+    m_Type = Pine::AssetType::Texture2D;
+    m_LoadMode = Pine::AssetLoadMode::MultiThreadPrepare;
+}
+
+bool Pine::Texture2D::PrepareGpuData()
+{
+    if (m_PreparedTextureData != nullptr)
     {
         throw std::runtime_error("Texture2D::PrepareGpuData() called before loading was finished.");
     }
@@ -17,7 +26,7 @@ void Pine::Texture2D::PrepareGpuData()
     if (data == nullptr)
     {
         stbi_image_free(data);
-        return;
+        return false;
     }
 
     m_Width = width;
@@ -38,13 +47,15 @@ void Pine::Texture2D::PrepareGpuData()
         break;
     }
 
-    m_PreparedGpuData = data;
-    m_GpuAssetLoadState = GPUAssetLoadStage::Upload;
+    m_PreparedTextureData = data;
+    m_State = AssetState::Preparing;
+
+    return true;
 }
 
 void Pine::Texture2D::UploadGpuData()
 {
-    if (m_PreparedGpuData == nullptr)
+    if (m_PreparedTextureData == nullptr)
     {
         throw std::runtime_error("Texture2D::UploadGpuData() called before preparing");
     }
@@ -52,22 +63,28 @@ void Pine::Texture2D::UploadGpuData()
     m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
 
     m_Texture->Bind();
-    m_Texture->UploadTextureData(m_Width, m_Height, m_Format, m_PreparedGpuData);
+    m_Texture->UploadTextureData(m_Width, m_Height, m_Format, m_PreparedTextureData);
 
-    stbi_image_free(m_PreparedGpuData);
+    //Log::Information("Loaded texture '" + m_FileName + "' successfully.");
 
-    m_PreparedGpuData = nullptr;
+    stbi_image_free(m_PreparedTextureData);
 
-    m_GpuAssetLoadState = GPUAssetLoadStage::Ready;
+    m_PreparedTextureData = nullptr;
+
     m_State = AssetState::Loaded;
 }
 
 void Pine::Texture2D::Dispose()
 {
-    if (m_PreparedGpuData != nullptr)
+    if (m_PreparedTextureData != nullptr)
     {
-        stbi_image_free(m_PreparedGpuData);
-        m_PreparedGpuData = nullptr;
+        stbi_image_free(m_PreparedTextureData);
+        m_PreparedTextureData = nullptr;
+    }
+
+    if (m_Texture != nullptr)
+    {
+        m_Texture->Dispose();
     }
 }
 
@@ -84,4 +101,29 @@ int Pine::Texture2D::GetHeight() const
 Pine::Graphics::TextureFormat Pine::Texture2D::GetFormat() const
 {
     return m_Format;
+}
+
+Pine::Graphics::ITexture* Pine::Texture2D::GetGraphicsTexture() const
+{
+    return m_Texture;
+}
+
+bool Pine::Texture2D::LoadFromFile(Pine::AssetLoadStage stage)
+{
+    switch (stage)
+    {
+    case AssetLoadStage::Prepare:
+        return PrepareGpuData();
+    case AssetLoadStage::Finish:
+        UploadGpuData();
+        return true;
+    case AssetLoadStage::Default:
+        if (PrepareGpuData())
+        {
+            UploadGpuData();
+            return true;
+        }
+    }
+
+    return false;
 }

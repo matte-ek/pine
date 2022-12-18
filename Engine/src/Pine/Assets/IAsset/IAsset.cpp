@@ -1,5 +1,7 @@
 #include "IAsset.hpp"
 
+#include <utility>
+
 const std::string& Pine::IAsset::GetFileName() const
 {
     return m_FileName;
@@ -13,6 +15,7 @@ Pine::AssetType Pine::IAsset::GetType() const
 void Pine::IAsset::SetPath(const std::string& path)
 {
     m_Path = path;
+    m_FileName = std::filesystem::path(path).filename().string();
 }
 
 const std::string& Pine::IAsset::GetPath() const
@@ -20,9 +23,10 @@ const std::string& Pine::IAsset::GetPath() const
     return m_Path;
 }
 
-void Pine::IAsset::SetFilePath(std::filesystem::path path)
+void Pine::IAsset::SetFilePath(const std::filesystem::path& path)
 {
     m_FilePath = path;
+    m_HasFile = true;
 }
 
 const std::filesystem::path& Pine::IAsset::GetFilePath() const
@@ -40,8 +44,17 @@ bool Pine::IAsset::SaveToFile()
     return false;
 }
 
-bool Pine::IAsset::LoadFromFile()
+Pine::AssetLoadMode Pine::IAsset::GetLoadMode() const
+{
+    return m_LoadMode;
+}
+
+bool Pine::IAsset::LoadFromFile(AssetLoadStage stage) // NOLINT(google-default-arguments)
 {
     return false;
 }
 
+bool Pine::IAsset::HasFile() const
+{
+    return m_HasFile;
+}

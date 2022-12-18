@@ -9,12 +9,15 @@ namespace Pine::Graphics
     class GLTexture : public ITexture
     {
     private:
-        std::uint32_t m_Id;
+        std::uint32_t m_Id = 0;
     public:
         GLTexture();
 
         void Bind() override;
         void Dispose() override;
+
+        TextureType GetType() override;
+        void SetType(TextureType type) override;
 
         void UploadTextureData(int width, int height, TextureFormat format, void* data) override;
 

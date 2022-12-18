@@ -1,8 +1,9 @@
 #include "Engine.hpp"
 
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 #include "Pine/Graphics/Graphics.hpp"
-#include "Pine/Core/Log/Log.hpp"
 
 #include <GLFW/glfw3.h>
 #include <stdexcept>
@@ -51,7 +52,7 @@ bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfigur
     }
 
     // At this point we should be safe to start initializing parts of the engine
-
+    Assets::Setup();
 
     // Finish initialization
     m_IsInitialized = true;
@@ -97,6 +98,7 @@ void Pine::Engine::Shutdown()
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
 
+    Assets::Shutdown();
     Graphics::Shutdown();
 
     WindowManager::Internal::DestroyWindow();

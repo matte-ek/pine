@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "google-default-arguments"
 #pragma once
 #include <string>
 #include <filesystem>
@@ -45,7 +47,22 @@ namespace Pine
     enum class AssetState
     {
         Unloaded, // The engine knows about the asset's existence, but hasn't loaded it at all.
+        Preparing, // If the asset is in the process of being loaded, probably used with `MultiThreadPrepare`
         Loaded // The asset has been loaded and is ready for use.
+    };
+
+    enum class AssetLoadMode
+    {
+        SingleThread, // Loads the asset in order on the main thread
+        MultiThread, // Allows the asset to be loaded in its own thread concurrently.
+        MultiThreadPrepare // Used for GPU assets, uploads data to GPU in main thread only.
+    };
+
+    enum class AssetLoadStage
+    {
+        Default,
+        Prepare,
+        Finish
     };
 
     template <class T>
@@ -55,6 +72,7 @@ namespace Pine
     {
     protected:
         std::string m_FileName;
+
         AssetType m_Type = AssetType::Invalid;
 
         // The asset's fake path within the engine, does not exactly mean
@@ -67,6 +85,8 @@ namespace Pine
         std::filesystem::path m_FilePath;
 
         AssetState m_State = AssetState::Unloaded;
+
+        AssetLoadMode m_LoadMode = AssetLoadMode::SingleThread;
 
         int m_ReferenceCount = 0;
         bool m_IsDeleted = false;
@@ -82,12 +102,15 @@ namespace Pine
         void SetPath(const std::string& path);
         const std::string& GetPath() const;
 
-        void SetFilePath(std::filesystem::path path);
+        void SetFilePath(const std::filesystem::path& path);
         const std::filesystem::path& GetFilePath() const;
 
-        AssetState GetState() const;
+        bool HasFile() const;
 
-        virtual bool LoadFromFile();
+        AssetState GetState() const;
+        AssetLoadMode GetLoadMode() const;
+
+        virtual bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default);
         virtual bool SaveToFile();
 
         virtual void Dispose() = 0;
@@ -100,6 +123,7 @@ namespace Pine
 
         T Get() const
         {
+            // Make sure to remove any pending deletion assets
             if (m_Asset)
             {
                 if (reinterpret_cast<IAsset*>(m_Asset)->m_IsDeleted)
@@ -135,3 +159,5 @@ namespace Pine
 
 
 }
+
+#pragma clang diagnostic pop

@@ -3,6 +3,24 @@
 #include <GL/glew.h>
 #include <stdexcept>
 
+namespace
+{
+
+    std::uint32_t TranslateTextureType(Pine::Graphics::TextureType type)
+    {
+        switch (type)
+        {
+        case Pine::Graphics::TextureType::Texture2D:
+            return GL_TEXTURE_2D;
+        case Pine::Graphics::TextureType::Cubemap:
+            return GL_TEXTURE_CUBE_MAP;
+        default:
+            throw std::runtime_error("Unsupported texture type.");
+        }
+    }
+
+}
+
 Pine::Graphics::GLTexture::GLTexture()
 {
     glGenTextures(1, &m_Id);
@@ -10,7 +28,7 @@ Pine::Graphics::GLTexture::GLTexture()
 
 void Pine::Graphics::GLTexture::Bind()
 {
-    glBindTexture(GL_TEXTURE_2D, m_Id);
+    glBindTexture(TranslateTextureType(m_Type), m_Id);
 }
 
 void Pine::Graphics::GLTexture::Dispose()
@@ -20,7 +38,7 @@ void Pine::Graphics::GLTexture::Dispose()
 
 void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, TextureFormat format, void* data)
 {
-    int openglFormat = 0;
+    int openglFormat;
 
     switch (format)
     {
@@ -37,10 +55,24 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
         throw std::runtime_error("Unsupported texture format.");
     }
 
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, openglFormat, GL_FLOAT, data );
+    const auto openglType = TranslateTextureType(m_Type);
 
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+    glTexImage2D(openglType, 0, openglFormat, width, height, 0, openglFormat, GL_UNSIGNED_BYTE, data);
+
+    // TODO: This shouldn't be hard coded.
+
+    glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(openglType, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(openglType, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
+
+Pine::Graphics::TextureType Pine::Graphics::GLTexture::GetType()
+{
+    return m_Type;
+}
+
+void Pine::Graphics::GLTexture::SetType(Pine::Graphics::TextureType type)
+{
+    m_Type = type;
 }
