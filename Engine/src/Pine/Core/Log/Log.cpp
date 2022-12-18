@@ -63,9 +63,9 @@ void Pine::Log::Verbose(const std::string &str)
     PrintMessage("Verbose", ConsoleColor::DarkGray, str.c_str());
 }
 
-void Pine::Log::Information(const std::string &str)
+void Pine::Log::Message(const std::string &str)
 {
-    PrintMessage("Information", ConsoleColor::White, str.c_str());
+    PrintMessage("Message", ConsoleColor::White, str.c_str());
 }
 
 void Pine::Log::Warning(const std::string &str)

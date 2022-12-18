@@ -2,6 +2,7 @@
 #include "Pine/Assets/InvalidAsset/InvalidAsset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/String/String.hpp"
+#include "Pine/Engine/Engine.hpp"
 #include <cmath>
 #include <stdexcept>
 #include <thread>
@@ -66,9 +67,9 @@ namespace
 
         auto filePath = path.string();
 
-        if (Pine::String::StartsWith(filePath, rootPath))
+        if (Pine::String::StartsWith(filePath, rootPath + "/"))
         {
-            return filePath.substr(rootPath.size());
+            return filePath.substr(rootPath.size() + 1);
         }
 
         return filePath;
@@ -98,6 +99,8 @@ namespace
         return asset;
     }
 
+    // More or less which thread we're currently on, SingleThread in this context means
+    // only the main thread, i.e. the thread that the OpenGL context is on.
     enum class LoadThreadingModeContext
     {
         SingleThread,
@@ -159,23 +162,17 @@ Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, cons
             return nullptr;
     }
 
+    m_Assets[asset->GetPath()] = asset;
+
     return asset;
 }
 
-//Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, const std::string& mapPath)
-//{
-//    return LoadFromFile(path, "", mapPath);
-//}
-
 int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativePath)
 {
-    constexpr int LOAD_THREAD_COUNT = 6;
-
     if (!std::filesystem::exists(path))
         return -1;
 
     // First gather a list of everything we need to load
-
     std::vector<IAsset*> loadPool;
 
     for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(path))
@@ -191,7 +188,6 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     }
 
     // Sort everything
-
     std::vector<IAsset*> singleThreadLoadAssets;
     std::vector<IAsset*> multiThreadLoadAssets;
 
@@ -213,8 +209,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
 
     // Make sure we're not overdoing it, but if this is true
     // we're probably overdoing it anyway.
-
-    int threadAmount = LOAD_THREAD_COUNT;
+    int threadAmount = Engine::GetEngineConfiguration().m_AssetsLoadThreadCount;
     if (threadAmount > multiThreadAssetCount)
     {
         threadAmount = multiThreadAssetCount;
@@ -223,10 +218,10 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     std::vector<std::thread> loadThreads;
 
     // Maybe "multiThreadLoadAssets" could be passed through the capture list instead (?)
-
-    const auto loadThread = [](const std::vector<IAsset*>& multiThreadLoadAssets, int startCount, int endCount)
+    // Important part is that it's marked as const
+    const auto loadThread = [](const std::vector<IAsset*>& multiThreadLoadAssets, int startIndex, int endIndex)
     {
-        for (int i = startCount;i < endCount;i++)
+        for (int i = startIndex;i < endIndex;i++)
         {
             auto asset = multiThreadLoadAssets[i];
 
@@ -239,30 +234,30 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
 
     // Attempt to split up the workload between the available threads
     // This obviously won't be perfect as some assets may require more time to load.
+    int threadProcessAmount = static_cast<int>(std::floor(multiThreadAssetCount / threadAmount));
 
-    int startCount = 0;
+    int startIndex = 0;
     for (int i = 0; i < threadAmount;i++)
     {
-        int processAmount = static_cast<int>(std::floor(multiThreadAssetCount / threadAmount));
-        int endCount = startCount + processAmount;
+        int endIndex = startIndex + threadProcessAmount;
 
+        // If it's the last thread, make sure to load the possibly
+        // remaining bit as well.
         if (i == threadAmount - 1)
-            endCount = multiThreadAssetCount;
+            endIndex = multiThreadAssetCount;
 
-        loadThreads.emplace_back(loadThread, std::cref(multiThreadLoadAssets), startCount, endCount);
+        loadThreads.emplace_back(loadThread, std::cref(multiThreadLoadAssets), startIndex, endIndex);
 
-        startCount += processAmount;
+        startIndex += threadProcessAmount;
     }
 
     // Start doing the single threaded load while we're waiting
-
     for (auto asset : singleThreadLoadAssets)
     {
         LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Default);
     }
 
     // Now we're forced to wait for the threads to exit before continuing
-
     for (auto& thread : loadThreads)
     {
         thread.join();
@@ -278,12 +273,33 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Finish);
     }
 
-    return 0;
+    int assetsLoaded = 0;
+    int assetsLoadErrors = 0;
+
+    // Finally, add all loaded assets to our asset map
+    for (auto asset : loadPool)
+    {
+        if (asset->GetState() != AssetState::Loaded)
+        {
+            assetsLoadErrors++;
+
+            continue;
+        }
+
+        assetsLoaded++;
+
+        m_Assets[asset->GetPath()] = asset;
+    }
+
+    if (assetsLoaded == 0)
+        return -1;
+
+    return assetsLoadErrors;
 }
 
 Pine::IAsset* Pine::Assets::GetAsset(const std::string& path)
 {
-    if (m_Assets.count(path))
+    if (m_Assets.count(path) == 0)
         return nullptr;
 
     return m_Assets[path];

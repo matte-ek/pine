@@ -11,8 +11,8 @@
 namespace
 {
     bool m_IsInitialized = false;
-    Pine::Engine::EngineConfiguration m_EngineConfiguration;
 
+    Pine::Engine::EngineConfiguration m_EngineConfiguration;
     Pine::Graphics::IGraphicsAPI* m_GraphicsAPI;
 }
 
@@ -54,12 +54,26 @@ bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfigur
     // At this point we should be safe to start initializing parts of the engine
     Assets::Setup();
 
+    // Load engine assets, order is important, we want the shaders ready
+    // before the other stuff.
+    if (Assets::LoadDirectory("Engine/Shaders", false) != 0
+        || Assets::LoadDirectory("Engine", false) != 0)
+    {
+        Log::Fatal("Failed to load engine assets.");
+
+        WindowManager::Internal::DestroyWindow();
+
+        glfwTerminate();
+
+        return false;
+    }
+
     // Finish initialization
     m_IsInitialized = true;
     m_EngineConfiguration = engineConfiguration;
     m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
-    Log::Information("Pine was successfully initialized.");
+    Log::Message("Pine was successfully initialized.");
 
     return true;
 }

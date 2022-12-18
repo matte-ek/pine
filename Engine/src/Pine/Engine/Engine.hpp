@@ -14,6 +14,10 @@ namespace Pine::Engine
         Math::Vector2i m_WindowSize = Math::Vector2i(1024, 768);
         std::string m_WindowTitle = "Pine";
 
+        // The maximum amount of threads the asset manager may use while
+        // loading assets from a directory.
+        int m_AssetsLoadThreadCount = 4;
+
         Graphics::GraphicsAPI m_GraphicsAPI = Graphics::GraphicsAPI::OpenGL;
     };
 

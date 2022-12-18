@@ -1,6 +1,5 @@
 #include "IAsset.hpp"
-
-#include <utility>
+#include "Pine/Core/String/String.hpp"
 
 const std::string& Pine::IAsset::GetFileName() const
 {
@@ -14,7 +13,8 @@ Pine::AssetType Pine::IAsset::GetType() const
 
 void Pine::IAsset::SetPath(const std::string& path)
 {
-    m_Path = path;
+    // For cross-platform compatibility, always use forward slash
+    m_Path = String::Replace(path, "\\", "/");
     m_FileName = std::filesystem::path(path).filename().string();
 }
 
