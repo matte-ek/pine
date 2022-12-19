@@ -18,6 +18,8 @@ namespace
 
 bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfiguration)
 {
+    m_EngineConfiguration = engineConfiguration;
+
     // Initially we need to initialize some core stuff, such as libraries
     // and a window (therefore graphics context) before initializing the rest
     // of the engine.
@@ -70,7 +72,6 @@ bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfigur
 
     // Finish initialization
     m_IsInitialized = true;
-    m_EngineConfiguration = engineConfiguration;
     m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
     Log::Message("Pine was successfully initialized.");
@@ -127,10 +128,5 @@ bool Pine::Engine::IsInitialized()
 
 const Pine::Engine::EngineConfiguration &Pine::Engine::GetEngineConfiguration()
 {
-    if (!m_IsInitialized)
-    {
-        throw std::runtime_error("Engine::GetEngineConfiguration(): Engine has not been initialized.");
-    }
-
     return m_EngineConfiguration;
 }

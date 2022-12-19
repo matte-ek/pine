@@ -27,6 +27,9 @@ namespace Pine::Graphics
 
         ITexture* CreateTexture() override;
         void DestroyTexture(ITexture* texture) override;
+
+        IShaderProgram* CreateShaderProgram() override;
+        void DestroyShaderProgram(IShaderProgram* program) override;
     };
 
 }

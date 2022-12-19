@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IShaderProgram.hpp"
 #include "ITexture.hpp"
 #include "IVertexArray.hpp"
 #include "Pine/Core/Color/Color.hpp"
@@ -41,6 +42,8 @@ namespace Pine::Graphics
         virtual ITexture* CreateTexture() = 0;
         virtual void DestroyTexture(ITexture* texture) = 0;
 
+        virtual IShaderProgram* CreateShaderProgram() = 0;
+        virtual void DestroyShaderProgram(IShaderProgram* program) = 0;
     };
 
 }

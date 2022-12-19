@@ -1,4 +1,5 @@
 #include "OpenGL.hpp"
+#include "Pine/Graphics/OpenGL/ShaderProgram/GLShaderProgram.hpp"
 #include "Pine/Graphics/OpenGL/Texture/GLTexture.hpp"
 #include "Pine/Graphics/OpenGL/VertexArray/GLVertexArray.hpp"
 #include <GL/glew.h>
@@ -80,4 +81,16 @@ void Pine::Graphics::OpenGL::DestroyTexture(Pine::Graphics::ITexture* texture)
     texture->Dispose();
 
     delete texture;
+}
+
+Pine::Graphics::IShaderProgram* Pine::Graphics::OpenGL::CreateShaderProgram()
+{
+    return new GLShaderProgram();
+}
+
+void Pine::Graphics::OpenGL::DestroyShaderProgram(Pine::Graphics::IShaderProgram* program)
+{
+    program->Dispose();
+
+    delete program;
 }

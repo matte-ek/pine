@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "../Math/Vector2/Vector2.hpp"
+#include "../Math/Math.hpp"
 
 // Handles OS window creation, modification etc.
 // Pine only supports one window at the time, don't see any reason
@@ -18,8 +18,8 @@ namespace Pine::WindowManager
         void* m_MonitorPointer = nullptr;
 
         // Position and size, position has an offset depending on the monitor location
-        Math::Vector2i m_Position;
-        Math::Vector2i m_Size;
+        Vector2i m_Position;
+        Vector2i m_Size;
 
         // Monitor string, example "Monitor #0"
         std::string m_Text;
@@ -42,7 +42,7 @@ namespace Pine::WindowManager
     // Functions that should be called by the engine itself only
     namespace Internal
     {
-        bool CreateWindow(Math::Vector2i position, Math::Vector2i size, const std::string& title, ScreenType type = ScreenType::Default);
+        bool CreateWindow(Vector2i position, Vector2i size, const std::string& title, ScreenType type = ScreenType::Default);
         void DestroyWindow();
     }
 
@@ -51,14 +51,14 @@ namespace Pine::WindowManager
 
     // Managing the window obviously requires IsWindowCreated() to return true.
 
-    void SetWindowPosition(Math::Vector2i position);
-    void SetWindowSize(Math::Vector2i size);
+    void SetWindowPosition(Vector2i position);
+    void SetWindowSize(Vector2i size);
     void SetWindowTitle(const std::string& title);
     void SetWindowVisible(bool visible);
     void SetWindowScreenType(ScreenType screenType);
 
-    Math::Vector2i GetWindowPosition();
-    Math::Vector2i GetWindowSize();
+    Vector2i GetWindowPosition();
+    Vector2i GetWindowSize();
     bool GetWindowVisible();
     const std::string& GetWindowTitle();
     ScreenType GetWindowScreenType();

@@ -18,7 +18,7 @@ namespace
 
 }
 
-bool Pine::WindowManager::Internal::CreateWindow(Pine::Math::Vector2i position, Pine::Math::Vector2i requestedSize,
+bool Pine::WindowManager::Internal::CreateWindow(Pine::Vector2i position, Pine::Vector2i requestedSize,
                                                  const std::string &title, Pine::WindowManager::ScreenType type)
 {
     glfwDefaultWindowHints();
@@ -36,7 +36,7 @@ bool Pine::WindowManager::Internal::CreateWindow(Pine::Math::Vector2i position, 
         glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
         glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
 
-        size = Math::Vector2i(videoMode->width, videoMode->height);
+        size = Vector2i(videoMode->width, videoMode->height);
     }
 
     m_Window = glfwCreateWindow(size.x, size.y, title.c_str(), type != ScreenType::Default ? targetMonitor : nullptr, nullptr);
@@ -72,7 +72,7 @@ bool Pine::WindowManager::IsWindowOpen()
     return !glfwWindowShouldClose(m_Window);
 }
 
-void Pine::WindowManager::SetWindowPosition(Pine::Math::Vector2i targetPosition)
+void Pine::WindowManager::SetWindowPosition(Pine::Vector2i targetPosition)
 {
     WINDOW_CHECK
 
@@ -91,7 +91,7 @@ void Pine::WindowManager::SetWindowPosition(Pine::Math::Vector2i targetPosition)
     glfwSetWindowPos(m_Window, position.x, position.y);
 }
 
-void Pine::WindowManager::SetWindowSize(Pine::Math::Vector2i size)
+void Pine::WindowManager::SetWindowSize(Pine::Vector2i size)
 {
     WINDOW_CHECK
 
@@ -137,7 +137,7 @@ void Pine::WindowManager::SetWindowScreenType(Pine::WindowManager::ScreenType sc
     glfwSetWindowMonitor(m_Window, nullptr, 100, 100, 1280, 720, videoMode->refreshRate);
 
     // I think centering the window here is a good default position
-    SetWindowPosition(Math::Vector2i(-1));
+    SetWindowPosition(Vector2i(-1));
 }
 
 void Pine::WindowManager::SetWindowVisible(bool visible)
@@ -147,22 +147,22 @@ void Pine::WindowManager::SetWindowVisible(bool visible)
     visible ? glfwShowWindow(m_Window) : glfwHideWindow(m_Window);
 }
 
-Pine::Math::Vector2i Pine::WindowManager::GetWindowPosition()
+Pine::Vector2i Pine::WindowManager::GetWindowPosition()
 {
     WINDOW_CHECK
 
-    Math::Vector2i ret;
+    Vector2i ret;
 
     glfwGetWindowPos(m_Window, &ret.x, &ret.y);
 
     return ret;
 }
 
-Pine::Math::Vector2i Pine::WindowManager::GetWindowSize()
+Pine::Vector2i Pine::WindowManager::GetWindowSize()
 {
     WINDOW_CHECK
 
-    Math::Vector2i ret;
+    Vector2i ret;
 
     glfwGetWindowSize(m_Window, &ret.x, &ret.y);
 
