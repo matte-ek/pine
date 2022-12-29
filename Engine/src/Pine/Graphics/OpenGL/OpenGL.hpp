@@ -11,6 +11,8 @@ namespace Pine::Graphics
         // We cache these in Setup()
         std::string m_VersionString;
         std::string m_GraphicsAdapter;
+
+        int m_SupportedTextureSlots = 0;
     public:
         bool Setup() override;
         void Shutdown() override;
@@ -28,8 +30,22 @@ namespace Pine::Graphics
         ITexture* CreateTexture() override;
         void DestroyTexture(ITexture* texture) override;
 
+        int GetSupportedTextureSlots() override;
+
+        void SetActiveTexture(int binding) override;
+
         IShaderProgram* CreateShaderProgram() override;
         void DestroyShaderProgram(IShaderProgram* program) override;
+
+        IFrameBuffer* CreateFrameBuffer() override;
+        void DestroyFrameBuffer(IFrameBuffer* buffer) override;
+        void BindFrameBuffer(IFrameBuffer* buffer) override;
+
+        void DrawArrays(RenderMode mode, int count) override;
+        void DrawElements(RenderMode mode, int count) override;
+
+        void DrawArraysInstanced(RenderMode mode, int count, int instanceCount) override;
+        void DrawElementsInstanced(RenderMode mode, int count, int instanceCount) override;
     };
 
 }

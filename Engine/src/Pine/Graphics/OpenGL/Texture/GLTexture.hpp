@@ -13,14 +13,15 @@ namespace Pine::Graphics
     public:
         GLTexture();
 
+        std::uint32_t GetId() const;
+
         void Bind() override;
         void Dispose() override;
 
         TextureType GetType() override;
         void SetType(TextureType type) override;
 
-        void UploadTextureData(int width, int height, TextureFormat format, void* data) override;
-
+        void UploadTextureData(int width, int height, TextureFormat format, TextureDataFormat dataFormat, void* data) override;
     };
 
 }

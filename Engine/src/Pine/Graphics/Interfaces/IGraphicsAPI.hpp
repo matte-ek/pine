@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IFrameBuffer.hpp"
 #include "IShaderProgram.hpp"
 #include "ITexture.hpp"
 #include "IVertexArray.hpp"
@@ -8,11 +9,10 @@
 namespace Pine::Graphics
 {
 
-    enum Buffers
+    enum class RenderMode
     {
-        ColorBuffer = (1 << 0),
-        DepthBuffer = (1 << 1),
-        StencilBuffer = (1 << 2)
+        Triangles,
+        LineLoop
     };
 
     class IGraphicsAPI
@@ -42,8 +42,22 @@ namespace Pine::Graphics
         virtual ITexture* CreateTexture() = 0;
         virtual void DestroyTexture(ITexture* texture) = 0;
 
+        virtual int GetSupportedTextureSlots() = 0;
+
+        virtual void SetActiveTexture(int binding) = 0;
+
         virtual IShaderProgram* CreateShaderProgram() = 0;
         virtual void DestroyShaderProgram(IShaderProgram* program) = 0;
+
+        virtual IFrameBuffer* CreateFrameBuffer() = 0;
+        virtual void DestroyFrameBuffer(IFrameBuffer* buffer) = 0;
+        virtual void BindFrameBuffer(IFrameBuffer* buffer) = 0;
+
+        virtual void DrawArrays(RenderMode mode, int count) = 0;
+        virtual void DrawElements(RenderMode mode, int count) = 0;
+
+        virtual void DrawArraysInstanced(RenderMode mode, int count, int instanceCount) = 0;
+        virtual void DrawElementsInstanced(RenderMode mode, int count, int instanceCount) = 0;
     };
 
 }

@@ -1,8 +1,28 @@
 #include "OpenGL.hpp"
+#include "Pine/Graphics/OpenGL/FrameBuffer/GLFrameBuffer.hpp"
 #include "Pine/Graphics/OpenGL/ShaderProgram/GLShaderProgram.hpp"
 #include "Pine/Graphics/OpenGL/Texture/GLTexture.hpp"
 #include "Pine/Graphics/OpenGL/VertexArray/GLVertexArray.hpp"
 #include <GL/glew.h>
+#include <stdexcept>
+
+namespace
+{
+
+    std::uint32_t TranslateRenderMode(Pine::Graphics::RenderMode mode)
+    {
+        switch (mode)
+        {
+        case Pine::Graphics::RenderMode::Triangles:
+            return GL_TRIANGLES;
+        case Pine::Graphics::RenderMode::LineLoop:
+            return GL_LINE_LOOP;
+        default:
+            throw std::runtime_error("Unsupported rendering mode.");
+        }
+    }
+
+}
 
 const char *Pine::Graphics::OpenGL::GetName() const
 {
@@ -52,6 +72,14 @@ bool Pine::Graphics::OpenGL::Setup()
     m_VersionString = reinterpret_cast<const char*>(glGetString(GL_VERSION));
     m_GraphicsAdapter = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
 
+    glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &m_SupportedTextureSlots);
+
+    if (m_SupportedTextureSlots > 31)
+        m_SupportedTextureSlots = 31;
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     return true;
 }
 
@@ -80,7 +108,7 @@ void Pine::Graphics::OpenGL::DestroyTexture(Pine::Graphics::ITexture* texture)
 {
     texture->Dispose();
 
-    delete texture;
+    delete dynamic_cast<GLTexture*>(texture);
 }
 
 Pine::Graphics::IShaderProgram* Pine::Graphics::OpenGL::CreateShaderProgram()
@@ -92,5 +120,55 @@ void Pine::Graphics::OpenGL::DestroyShaderProgram(Pine::Graphics::IShaderProgram
 {
     program->Dispose();
 
-    delete program;
+    delete dynamic_cast<GLShaderProgram*>(program);
+}
+
+void Pine::Graphics::OpenGL::DrawArrays(Pine::Graphics::RenderMode mode, int count)
+{
+    glDrawArrays(TranslateRenderMode(mode), 0, count);
+}
+
+void Pine::Graphics::OpenGL::DrawElements(Pine::Graphics::RenderMode mode, int count)
+{
+    glDrawElements(TranslateRenderMode(mode), count, GL_UNSIGNED_INT, nullptr);
+}
+
+void Pine::Graphics::OpenGL::DrawArraysInstanced(Pine::Graphics::RenderMode mode, int count, int instanceCount)
+{
+    glDrawArraysInstanced(TranslateRenderMode(mode), 0, count, instanceCount);
+}
+
+void Pine::Graphics::OpenGL::DrawElementsInstanced(Pine::Graphics::RenderMode mode, int count, int instanceCount)
+{
+    glDrawElementsInstanced(TranslateRenderMode(mode), count, GL_UNSIGNED_INT, nullptr, instanceCount);
+}
+
+void Pine::Graphics::OpenGL::SetActiveTexture(int binding)
+{
+    glActiveTexture(GL_TEXTURE0 + binding);
+}
+
+int Pine::Graphics::OpenGL::GetSupportedTextureSlots()
+{
+    return m_SupportedTextureSlots;
+}
+
+Pine::Graphics::IFrameBuffer* Pine::Graphics::OpenGL::CreateFrameBuffer()
+{
+    return new GLFrameBuffer();
+}
+
+void Pine::Graphics::OpenGL::DestroyFrameBuffer(Pine::Graphics::IFrameBuffer* buffer)
+{
+    buffer->Dispose();
+
+    delete dynamic_cast<GLFrameBuffer*>(buffer);
+}
+
+void Pine::Graphics::OpenGL::BindFrameBuffer(Pine::Graphics::IFrameBuffer* buffer)
+{
+    if (buffer)
+        buffer->Bind();
+    else
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

@@ -1,4 +1,5 @@
 #include "GLTexture.hpp"
+#include "Pine/Core/Log/Log.hpp"
 
 #include <GL/glew.h>
 #include <stdexcept>
@@ -12,10 +13,23 @@ namespace
         {
         case Pine::Graphics::TextureType::Texture2D:
             return GL_TEXTURE_2D;
-        case Pine::Graphics::TextureType::Cubemap:
+        case Pine::Graphics::TextureType::CubeMap:
             return GL_TEXTURE_CUBE_MAP;
         default:
             throw std::runtime_error("Unsupported texture type.");
+        }
+    }
+
+    std::uint32_t TranslateTextureDataFormatType(Pine::Graphics::TextureDataFormat type)
+    {
+        switch (type)
+        {
+        case Pine::Graphics::TextureDataFormat::UnsignedByte:
+            return GL_UNSIGNED_BYTE;
+        case Pine::Graphics::TextureDataFormat::Float:
+            return GL_FLOAT;
+        default:
+            throw std::runtime_error("Unsupported texture data format type.");
         }
     }
 
@@ -36,9 +50,10 @@ void Pine::Graphics::GLTexture::Dispose()
     glDeleteTextures(1, &m_Id);
 }
 
-void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, TextureFormat format, void* data)
+void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, TextureFormat format, TextureDataFormat dataFormat, void* data)
 {
     int openglFormat;
+    int openglInternalFormat = 0;
 
     switch (format)
     {
@@ -51,13 +66,27 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
     case TextureFormat::RGBA:
         openglFormat = GL_RGBA;
         break;
+    case TextureFormat::RGB16F:
+        openglFormat = GL_RGB16F;
+        openglInternalFormat = GL_RGB;
+        break;
+    case TextureFormat::RGBA16F:
+        openglFormat = GL_RGBA16F;
+        openglInternalFormat = GL_RGBA;
+        break;
+    case TextureFormat::Depth:
+        openglFormat = GL_DEPTH_COMPONENT;
+        break;
     default:
         throw std::runtime_error("Unsupported texture format.");
     }
 
+    if (openglInternalFormat == 0)
+        openglInternalFormat = openglFormat;
+
     const auto openglType = TranslateTextureType(m_Type);
 
-    glTexImage2D(openglType, 0, openglFormat, width, height, 0, openglFormat, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(openglType, 0, openglInternalFormat, width, height, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
 
     // TODO: This shouldn't be hard coded.
 
@@ -75,4 +104,9 @@ Pine::Graphics::TextureType Pine::Graphics::GLTexture::GetType()
 void Pine::Graphics::GLTexture::SetType(Pine::Graphics::TextureType type)
 {
     m_Type = type;
+}
+
+std::uint32_t Pine::Graphics::GLTexture::GetId() const
+{
+    return m_Id;
 }

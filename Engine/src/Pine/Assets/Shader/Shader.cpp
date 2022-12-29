@@ -4,6 +4,8 @@
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Rendering/Rendering.hpp"
 
+#include <fstream>
+
 namespace
 {
 
@@ -11,9 +13,29 @@ namespace
                               Pine::Graphics::IShaderProgram* shader,
                               Pine::Graphics::ShaderType type)
     {
+        if (!std::filesystem::exists(filePath))
+        {
+            Pine::Log::Error("Failed to find file " + filePath);
+            return false;
+        }
 
+        std::ifstream stream(filePath);
 
+        if (!stream.is_open())
+        {
+            return false;
+        }
 
+        std::string src((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+
+        stream.close();
+
+        if (!shader->CompileAndLoadShader(src, type))
+        {
+            return false;
+        }
+
+        return true;
     }
 
 }
@@ -57,7 +79,7 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
     const auto getRelativePath = [&](const std::string& filePath) {
         const auto assetParentDirectory = m_FilePath.parent_path().string();
 
-        return assetParentDirectory + filePath;
+        return assetParentDirectory + "/" + filePath;
     };
 
     // Prepare graphics shader program
@@ -94,29 +116,30 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
         return false;
     }
 
+    m_ShaderProgram->Use();
+
     // Setup texture samplers
     if (j.contains("texture_samplers"))
     {
         for (const auto& item : j["texture_samplers"].items())
         {
-            auto uniformVariable = m_ShaderProgram->GetUniformVariable(item.value());
+            auto uniformVariable = m_ShaderProgram->GetUniformVariable(item.key());
 
             if (uniformVariable == nullptr)
             {
-                Log::Warning("Failed to find texture sampler " + item.value().get<std::string>() + ", " + m_FileName);
+                Log::Warning("Failed to find texture sampler " + item.key() + ", " + m_FileName);
                 continue;
             }
 
-            if (item.key() == "Diffuse")
-                uniformVariable->LoadInteger(static_cast<int>(Rendering::TextureSamplers::Diffuse));
-            if (item.key() == "Specular")
-                uniformVariable->LoadInteger(static_cast<int>(Rendering::TextureSamplers::Specular));
-            if (item.key() == "EnvMap")
-                uniformVariable->LoadInteger(static_cast<int>(Rendering::TextureSamplers::EnvironmentMap));
+            uniformVariable->LoadInteger(static_cast<int>(item.value().get<int>()));
+
+            Log::Message(item.key() + " -> " + std::to_string(item.value().get<int>()));
         }
     }
 
-    // Setup uniform buffers
+    // TODO: Setup uniform buffers
+
+    m_State = AssetState::Loaded;
 
     return true;
 }

@@ -1,6 +1,28 @@
 #include "GLVertexArray.hpp"
+#include "Pine/Graphics/OpenGL/VertexBuffer/GLVertexBuffer.hpp"
 
 #include <GL/glew.h>
+#include <stdexcept>
+
+namespace
+{
+
+    std::uint32_t TranslateBufferUsageHint(Pine::Graphics::BufferUsageHint hint)
+    {
+        switch (hint)
+        {
+        case Pine::Graphics::BufferUsageHint::StaticDraw:
+            return GL_STATIC_DRAW;
+        case Pine::Graphics::BufferUsageHint::StreamDraw:
+            return GL_STREAM_DRAW;
+        case Pine::Graphics::BufferUsageHint::DynamicDraw:
+            return GL_DYNAMIC_DRAW;
+        default:
+            throw std::runtime_error("Unsupported buffer usage hint.");
+        }
+    }
+
+}
 
 Pine::Graphics::GLVertexArray::GLVertexArray()
 {
@@ -14,20 +36,23 @@ void Pine::Graphics::GLVertexArray::Bind()
 
 void Pine::Graphics::GLVertexArray::Dispose()
 {
-    glDeleteBuffers(static_cast<int>(m_Buffers.size()), m_Buffers.data());
+    glDeleteBuffers(static_cast<int>(m_BuffersIndices.size()), m_BuffersIndices.data());
     glDeleteVertexArrays(1, &m_Id);
 
-    m_Buffers.clear();
+    m_BuffersIndices.clear();
+
+    for (auto buffer : m_Buffers)
+        delete buffer;
 }
 
-void Pine::Graphics::GLVertexArray::StoreFloatArrayBuffer(const std::vector<float>& vec, int binding, int vecSize)
+Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreFloatArrayBuffer(const std::vector<float>& vec, int binding, int vecSize, BufferUsageHint hint)
 {
-    StoreArrayBuffer(vec, binding, vecSize, GL_FLOAT);
+    return StoreArrayBuffer(vec, binding, vecSize, GL_FLOAT, hint);
 }
 
-void Pine::Graphics::GLVertexArray::StoreIntArrayBuffer(const std::vector<int>& vec, int binding, int vecSize)
+Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreIntArrayBuffer(const std::vector<int>& vec, int binding, int vecSize, BufferUsageHint hint)
 {
-    StoreArrayBuffer(vec, binding, vecSize, GL_INT);
+    return StoreArrayBuffer(vec, binding, vecSize, GL_INT, hint);
 }
 
 void Pine::Graphics::GLVertexArray::StoreElementArrayBuffer(const std::vector<int>& vec)
@@ -47,7 +72,7 @@ std::uint32_t Pine::Graphics::GLVertexArray::CreateBuffer()
 
     glGenBuffers(1, &buffer);
 
-    m_Buffers.push_back(buffer);
+    m_BuffersIndices.push_back(buffer);
 
     return buffer;
 }
@@ -57,18 +82,45 @@ std::uint32_t Pine::Graphics::GLVertexArray::GetId() const
     return m_Id;
 }
 
-template <typename T>
-void Pine::Graphics::GLVertexArray::StoreArrayBuffer(const std::vector<T>& vec, int binding, int vecSize, int type)
+Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::CreateFloatArrayBuffer(
+    size_t size, int binding, int vecSize, Pine::Graphics::BufferUsageHint usageHint)
+{
+    return CreateArrayBuffer(size, binding, vecSize, GL_FLOAT, usageHint);
+}
+
+Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::CreateIntegerArrayBuffer(
+    size_t size, int binding, int vecSize, Pine::Graphics::BufferUsageHint usageHint)
+{
+    return CreateArrayBuffer(size, binding, vecSize, GL_INT, usageHint);
+}
+
+Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::CreateArrayBuffer(size_t size, int binding, int vecSize, int type, Pine::Graphics::BufferUsageHint hint)
 {
     const auto buffer = CreateBuffer();
 
     // Bind and store the data
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(vec.size() * sizeof(T)), vec.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(size), nullptr, TranslateBufferUsageHint(hint));
 
     // Bind it to our VAO
     glVertexAttribPointer(binding, vecSize, type, false, 0, nullptr);
 
     // OpenGL remembers the current enabled buffers, so we'll just enable it once and leave it.
     glEnableVertexAttribArray(binding);
+
+    auto vertexBuffer = new GLVertexBuffer(buffer, binding);
+
+    m_Buffers.push_back(vertexBuffer);
+
+    return vertexBuffer;
+}
+
+template <typename T>
+Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::StoreArrayBuffer(const std::vector<T>& vec, int binding, int vecSize, int type, BufferUsageHint hint)
+{
+    auto vertexBuffer = CreateArrayBuffer(vec.size() * sizeof(T), binding, vecSize, type, hint);
+
+    vertexBuffer->UploadData(static_cast<const void*>(vec.data()), vec.size() * sizeof(T), 0);
+
+    return vertexBuffer;
 }

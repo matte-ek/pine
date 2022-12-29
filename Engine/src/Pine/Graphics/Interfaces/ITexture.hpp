@@ -7,13 +7,22 @@ namespace Pine::Graphics
     {
         SingleChannel,
         RGB,
-        RGBA
+        RGBA,
+        RGB16F,
+        RGBA16F,
+        Depth
     };
 
     enum class TextureType
     {
         Texture2D,
-        Cubemap
+        CubeMap
+    };
+
+    enum class TextureDataFormat
+    {
+        UnsignedByte,
+        Float
     };
 
     class ITexture
@@ -29,7 +38,7 @@ namespace Pine::Graphics
         virtual void SetType(TextureType type) = 0;
         virtual TextureType GetType() = 0;
 
-        virtual void UploadTextureData(int width, int height, TextureFormat format, void* data) = 0;
+        virtual void UploadTextureData(int width, int height, TextureFormat textureFormat, TextureDataFormat dataFormat, void* data) = 0;
     };
 
 }

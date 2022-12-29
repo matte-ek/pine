@@ -1,6 +1,8 @@
 #include "Assets.hpp"
 #include "Pine/Assets/InvalidAsset/InvalidAsset.hpp"
+#include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include <cmath>
@@ -28,7 +30,8 @@ namespace
     };
 
     std::vector<AssetFactory> m_AssetFactories = {
-        AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } )
+        AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
+        AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } )
     };
 
     // Attempts to find an asset factory with the file name extension (can be full path as well)
@@ -60,12 +63,12 @@ namespace
         if (!mapPath.empty())
             return mapPath;
 
+        auto filePath = Pine::String::Replace(path.string(), "\\", "/");
+
         // If we don't want to 'change' the relative directory,
         // we can just return the file path itself.
         if (rootPath.empty())
-            return path.string();
-
-        auto filePath = path.string();
+            return filePath;
 
         if (Pine::String::StartsWith(filePath, rootPath + "/"))
         {
@@ -75,12 +78,19 @@ namespace
         return filePath;
     }
 
-    Pine::IAsset* PrepareAssetFromFile(const std::filesystem::path& path, const std::string& rootPath, const std::string& mapPath)
+    Pine::IAsset* PrepareAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
     {
-        if (!std::filesystem::exists(path))
+        if (!std::filesystem::exists(filePath))
             return nullptr;
 
-        const auto factory = GetAssetFactoryFromFileName(path.filename());
+        const auto path = GetAssetMapPath(filePath, rootPath, mapPath);
+
+        if (m_Assets.count(path) != 0)
+            return nullptr;
+
+        Log::Verbose(path);
+
+        const auto factory = GetAssetFactoryFromFileName(filePath.filename());
 
         IAsset* asset;
 
@@ -93,8 +103,8 @@ namespace
             asset = new InvalidAsset();
         }
 
-        asset->SetFilePath(path);
-        asset->SetPath(GetAssetMapPath(path, rootPath, mapPath));
+        asset->SetFilePath(filePath);
+        asset->SetPath(path);
 
         return asset;
     }
@@ -232,26 +242,29 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         }
     };
 
-    // Attempt to split up the workload between the available threads
-    // This obviously won't be perfect as some assets may require more time to load.
-    int threadProcessAmount = static_cast<int>(std::floor(multiThreadAssetCount / threadAmount));
-
-    int startIndex = 0;
-    for (int i = 0; i < threadAmount;i++)
+    if (!multiThreadLoadAssets.empty())
     {
-        int endIndex = startIndex + threadProcessAmount;
+        // Attempt to split up the workload between the available threads
+        // This obviously won't be perfect as some assets may require more time to load.
+        int threadProcessAmount = static_cast<int>(std::floor(multiThreadAssetCount / threadAmount));
 
-        // If it's the last thread, make sure to load the possibly
-        // remaining bit as well.
-        if (i == threadAmount - 1)
-            endIndex = multiThreadAssetCount;
+        int startIndex = 0;
+        for (int i = 0; i < threadAmount;i++)
+        {
+            int endIndex = startIndex + threadProcessAmount;
 
-        loadThreads.emplace_back(loadThread, std::cref(multiThreadLoadAssets), startIndex, endIndex);
+            // If it's the last thread, make sure to load the possibly
+            // remaining bit as well.
+            if (i == threadAmount - 1)
+                endIndex = multiThreadAssetCount;
 
-        startIndex += threadProcessAmount;
+            loadThreads.emplace_back(loadThread, std::cref(multiThreadLoadAssets), startIndex, endIndex);
+
+            startIndex += threadProcessAmount;
+        }
     }
 
-    // Start doing the single threaded load while we're waiting
+    // Start doing the single threaded load while we're waiting (or not if there aren't any MT assets)
     for (auto asset : singleThreadLoadAssets)
     {
         LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Default);
@@ -279,7 +292,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     // Finally, add all loaded assets to our asset map
     for (auto asset : loadPool)
     {
-        if (asset->GetState() != AssetState::Loaded)
+        if (asset->GetType() != AssetType::Invalid && asset->GetState() != AssetState::Loaded)
         {
             assetsLoadErrors++;
 

@@ -21,7 +21,7 @@ bool Pine::Texture2D::PrepareGpuData()
 
     int width, height, channels;
 
-    const auto data = stbi_load(m_FilePath.string().c_str(), &width, &height, &channels, 4);
+    const auto data = stbi_load(m_FilePath.string().c_str(), &width, &height, &channels, 0);
 
     if (data == nullptr)
     {
@@ -63,9 +63,7 @@ void Pine::Texture2D::UploadGpuData()
     m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
 
     m_Texture->Bind();
-    m_Texture->UploadTextureData(m_Width, m_Height, m_Format, m_PreparedTextureData);
-
-    //Log::Information("Loaded texture '" + m_FileName + "' successfully.");
+    m_Texture->UploadTextureData(m_Width, m_Height, m_Format, Graphics::TextureDataFormat::UnsignedByte, m_PreparedTextureData);
 
     stbi_image_free(m_PreparedTextureData);
 

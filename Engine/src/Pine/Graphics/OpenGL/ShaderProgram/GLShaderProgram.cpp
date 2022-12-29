@@ -33,11 +33,6 @@ void Pine::Graphics::GLShaderProgram::Dispose()
         glDeleteShader(shader);
     }
 
-    for (const auto& [name, uniformVariable] : m_UniformVariables)
-    {
-        delete uniformVariable;
-    }
-
     if (m_Id != 0)
     {
         glDeleteProgram(m_Id);
