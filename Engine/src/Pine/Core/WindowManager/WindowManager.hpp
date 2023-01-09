@@ -7,7 +7,7 @@
 // Pine only supports one window at the time, don't see any reason
 // for there to be more windows at the moment.
 
-class GLFWwindow;
+struct GLFWwindow;
 
 namespace Pine::WindowManager
 {

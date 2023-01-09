@@ -11,7 +11,7 @@ namespace Pine::Engine
     {
         // Window setup
         Vector2i m_WindowPosition = Vector2i(-1); // -1 will center the window.
-        Vector2i m_WindowSize = Vector2i(1024, 1024);
+        Vector2i m_WindowSize = Vector2i(1280, 720);
         std::string m_WindowTitle = "Pine";
 
         // The maximum amount of threads the asset manager may use while

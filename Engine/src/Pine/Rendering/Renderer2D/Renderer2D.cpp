@@ -6,7 +6,8 @@
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
 #include <stdexcept>
 #include <vector>
-#include <unordered_set>
+#include <unordered_map>
+#include <stb_truetype.h>
 
 using namespace Pine;
 

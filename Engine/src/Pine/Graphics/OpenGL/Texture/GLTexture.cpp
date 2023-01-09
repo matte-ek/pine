@@ -77,6 +77,9 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
     case TextureFormat::Depth:
         openglFormat = GL_DEPTH_COMPONENT;
         break;
+    case TextureFormat::Alpha:
+        openglFormat = GL_ALPHA;
+        break;
     default:
         throw std::runtime_error("Unsupported texture format.");
     }

@@ -1,12 +1,12 @@
 #include "Engine.hpp"
 
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Components/Components.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
-#include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
-#include "Pine/Rendering/RenderingContext/RenderingContext.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
 #include <GLFW/glfw3.h>
 #include <stdexcept>
@@ -56,11 +56,11 @@ bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfigur
         return false;
     }
 
-    // At this point we should be safe to start initializing parts of the engine
-    Assets::Setup();
-
     // Load engine assets, order is important, we want the shaders ready
     // before the other stuff.
+
+    Assets::Setup();
+
     if (Assets::LoadDirectory("engine/shaders", false) != 0
         || Assets::LoadDirectory("engine", false) != 0)
     {
@@ -72,6 +72,10 @@ bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfigur
 
         return false;
     }
+
+    // At this point we should be safe to start initializing parts of the engine
+    Components::Setup();
+    RenderManager::Setup();
 
     // Finish initialization
     m_IsInitialized = true;
@@ -98,46 +102,17 @@ void Pine::Engine::Run()
     // So we'll have to restore it here.
     WindowManager::SetWindowVisible(true);
 
-    const auto context = new Pine::RenderingContext();
-
-    context->m_Size = WindowManager::GetWindowSize();
-
-    auto textureAtlas = Graphics::TextureAtlas(Vector2i(1024, 1024), 32);
-
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassMid.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassLeft.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassRight.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassCenter.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassHill_right.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassHill_left.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassHalf_right.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassHalf_left.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassHalf_mid.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassCorner_left.png")->GetGraphicsTexture());
-    textureAtlas.AddTexture(Pine::Assets::GetAsset<Pine::Texture2D>("grassCorner_right.png")->GetGraphicsTexture());
-
-    textureAtlas.Update();
-
     // The main rendering loop itself
     while (WindowManager::IsWindowOpen())
     {
+        glfwPollEvents();
+
         m_GraphicsAPI->ClearBuffers(Graphics::ColorBuffer);
         m_GraphicsAPI->ClearColor(Color(0, 0, 0, 255));
 
-        Renderer2D::PrepareFrame();
-
-        for (int y = 0; y < 32;y++)
-        {
-            for (int x = 0; x < 32;x++)
-            {
-                Renderer2D::AddTextureAtlasItem(Vector2f(x * 32.f, y * 32.f), &textureAtlas, y == 0 ? 0 : 3, Color(255, 255, 255, 255));
-            }
-        }
-
-        Renderer2D::RenderFrame(context);
+        RenderManager::Run();
 
         glfwSwapBuffers(windowPointer);
-        glfwPollEvents();
     }
 }
 
@@ -148,6 +123,8 @@ void Pine::Engine::Shutdown()
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
 
+    Components::Shutdown();
+    RenderManager::Shutdown();
     Assets::Shutdown();
     Graphics::Shutdown();
 

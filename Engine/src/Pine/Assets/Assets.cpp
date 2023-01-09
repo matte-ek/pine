@@ -1,14 +1,18 @@
 #include "Assets.hpp"
+
+#include "Pine/Assets/Font/Font.hpp"
 #include "Pine/Assets/InvalidAsset/InvalidAsset.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Engine/Engine.hpp"
+
 #include <cmath>
 #include <stdexcept>
 #include <thread>
 #include <unordered_map>
+#include <functional>
 
 using namespace Pine;
 
@@ -31,6 +35,7 @@ namespace
 
     std::vector<AssetFactory> m_AssetFactories = {
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
+        AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } )
     };
 

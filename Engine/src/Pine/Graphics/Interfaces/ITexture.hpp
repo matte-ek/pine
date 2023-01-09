@@ -10,7 +10,8 @@ namespace Pine::Graphics
         RGBA,
         RGB16F,
         RGBA16F,
-        Depth
+        Depth,
+        Alpha
     };
 
     enum class TextureType

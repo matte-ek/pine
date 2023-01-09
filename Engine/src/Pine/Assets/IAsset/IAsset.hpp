@@ -1,5 +1,3 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "google-default-arguments"
 #pragma once
 #include <string>
 #include <filesystem>
@@ -18,6 +16,7 @@ namespace Pine
         Shader,
         Texture2D,
         Texture3D,
+        Font,
         Count
     };
 
@@ -39,6 +38,8 @@ namespace Pine
             return "Texture2D";
         case AssetType::Texture3D:
             return "Texture3D";
+        case AssetType::Font:
+            return "Font";
         default:
             return "Unknown";
         }
@@ -159,5 +160,3 @@ namespace Pine
 
 
 }
-
-#pragma clang diagnostic pop
