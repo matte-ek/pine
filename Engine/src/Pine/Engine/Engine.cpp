@@ -1,12 +1,13 @@
 #include "Engine.hpp"
 
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Components/Components.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/World/Components/Components.hpp"
+#include "Pine/World/Entities/Entities.hpp"
 
 #include <GLFW/glfw3.h>
 #include <stdexcept>
@@ -62,7 +63,7 @@ bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfigur
     Assets::Setup();
 
     if (Assets::LoadDirectory("engine/shaders", false) != 0
-        || Assets::LoadDirectory("engine", false) != 0)
+     || Assets::LoadDirectory("engine", false) != 0)
     {
         Log::Fatal("Failed to load engine assets.");
 
@@ -75,6 +76,7 @@ bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfigur
 
     // At this point we should be safe to start initializing parts of the engine
     Components::Setup();
+    Entities::Setup();
     RenderManager::Setup();
 
     // Finish initialization
@@ -123,6 +125,7 @@ void Pine::Engine::Shutdown()
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
 
+    Entities::Shutdown();
     Components::Shutdown();
     RenderManager::Shutdown();
     Assets::Shutdown();

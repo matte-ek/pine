@@ -6,7 +6,6 @@ namespace Pine
 
     enum class ComponentType
     {
-        Invalid,
         Transform
     };
 
@@ -20,11 +19,11 @@ namespace Pine
         // If this component is part of the ECS or is just an object in memory.
         bool m_Standalone = false;
 
-        ComponentType m_Type = ComponentType::Invalid;
+        ComponentType m_Type = ComponentType::Transform;
 
         Entity* m_Parent = nullptr;
     public:
-        IComponent(Entity* parent, ComponentType type);
+        IComponent(ComponentType type);
         virtual ~IComponent() = default;
 
         void SetActive(bool value);
@@ -32,6 +31,9 @@ namespace Pine
 
         void SetStandalone(bool value);
         bool GetStandalone() const;
+
+        void SetParent(Entity* entity);
+        Entity* GetParent() const;
 
         ComponentType GetType() const;
 

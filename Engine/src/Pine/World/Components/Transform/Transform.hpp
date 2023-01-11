@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/IComponent/IComponent.hpp"
 
 namespace Pine
 {
@@ -9,7 +9,7 @@ namespace Pine
     {
     private:
     public:
-        explicit Transform(Entity* parent);
+        explicit Transform();
     };
 
 }

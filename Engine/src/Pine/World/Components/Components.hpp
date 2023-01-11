@@ -1,5 +1,5 @@
 #pragma once
-#include "IComponent/IComponent.hpp"
+#include "Pine/World/Components/IComponent/IComponent.hpp"
 
 #include <unordered_map>
 
@@ -138,7 +138,35 @@ namespace Pine::Components
     // Creation and deletion of components
     IComponent* CreateComponent(ComponentType type, bool standalone = false);
     IComponent* CopyComponent(IComponent* component, bool standalone = false);
-    void DestroyComponent(IComponent* component);
+    bool DestroyComponent(IComponent* component);
 
     // Iteration through component objects
+    ComponentDataBlock<IComponent>& GetComponentData(ComponentType type);
+
+    // Returns a ComponentType from a template type
+    template<typename T>
+    ComponentType GetComponentType()
+    {
+        static T ent;
+        static auto type = static_cast<IComponent*>(&ent)->GetType();
+
+        return type;
+    }
+
+    template<typename T>
+    T& CreateComponent()
+    {
+        static auto type = GetComponentType<T>();
+
+        return *dynamic_cast<T*>(CreateComponent(type));
+    }
+
+    template<typename T>
+    ComponentDataBlock<T>& GetComponents()
+    {
+        static auto type = GetComponentType<T>();
+
+        // Don't ask.
+        return *reinterpret_cast<ComponentDataBlock<T>*>(&GetComponentData(type));
+    }
 }

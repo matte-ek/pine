@@ -1,6 +1,6 @@
 #include "Components.hpp"
-#include "Pine/Components/Transform/Transform.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/World/Components/Transform/Transform.hpp"
 
 using namespace Pine;
 
@@ -72,7 +72,7 @@ namespace
     {
         auto block = new ComponentDataBlock<T>();
 
-        block->m_Component = new T(nullptr);
+        block->m_Component = new T();
 
         ResizeComponentDataBlock(reinterpret_cast<ComponentDataBlock<IComponent>*>(block), DefaultComponentBlockSize);
 
@@ -132,7 +132,6 @@ IComponent* Components::CreateComponent(ComponentType type, bool standalone)
             ResizeComponentDataBlock(componentDataBlock, componentDataBlock->m_ComponentArrayAllocatedCount + 128);
         }
 
-
         component = componentDataBlock->GetComponent(newTargetSlot);
 
         // Mark the index as occupied
@@ -146,4 +145,46 @@ IComponent* Components::CreateComponent(ComponentType type, bool standalone)
     component->OnCreated();
 
     return component;
+}
+
+IComponent* Components::CopyComponent(IComponent* component, bool standalone)
+{
+    return nullptr;
+}
+
+bool Components::DestroyComponent(IComponent* targetComponent)
+{
+    targetComponent->OnDestroyed();
+
+    // If the component is standalone (i.e. it isn't in the "ECS"), we can just free
+    // the memory and move on.
+    if (targetComponent->GetStandalone())
+    {
+        free(targetComponent);
+
+        return true;
+    }
+
+    auto& data = GetComponentData(targetComponent->GetType());
+
+    for (std::uint32_t i = 0; i < data.GetHighestComponentIndex();i++)
+    {
+        auto componentPointer = data.m_ComponentArray + data.m_ComponentSize * i;
+
+        if (componentPointer == targetComponent)
+        {
+            // We don't have to free any memory or anything, so marking the slot as "available"
+            // should be sufficient.
+            data.m_ComponentOccupationArray[i] = false;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+ComponentDataBlock<IComponent>& Components::GetComponentData(ComponentType type)
+{
+    return *m_ComponentDataBlocks[static_cast<int>(type)];
 }
