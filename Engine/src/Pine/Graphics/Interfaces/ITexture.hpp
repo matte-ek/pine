@@ -33,6 +33,9 @@ namespace Pine::Graphics
     public:
         virtual ~ITexture() = default;
 
+        // The type is up to the graphics API being used
+        virtual void* GetGraphicsIdentifier() = 0;
+
         virtual void Bind() = 0;
         virtual void Dispose() = 0;
 

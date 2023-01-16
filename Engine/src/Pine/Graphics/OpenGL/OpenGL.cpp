@@ -74,9 +74,6 @@ bool Pine::Graphics::OpenGL::Setup()
 
     glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &m_SupportedTextureSlots);
 
-    if (m_SupportedTextureSlots > 31)
-        m_SupportedTextureSlots = 31;
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -171,4 +168,9 @@ void Pine::Graphics::OpenGL::BindFrameBuffer(Pine::Graphics::IFrameBuffer* buffe
         buffer->Bind();
     else
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Pine::Graphics::OpenGL::SetViewport(Pine::Vector2i position, Pine::Vector2i size)
+{
+    glViewport(position.x, position.y, size.x, size.y);
 }

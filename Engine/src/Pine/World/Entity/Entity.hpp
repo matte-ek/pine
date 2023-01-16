@@ -41,7 +41,7 @@ namespace Pine
         template <typename T>
         T* AddComponent()
         {
-            auto& component = Components::CreateComponent<T>();
+            auto& component = Components::Create<T>();
 
             component.SetParent(this);
 

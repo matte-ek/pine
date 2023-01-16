@@ -4,13 +4,14 @@
 Pine::Entity::Entity(std::uint32_t id)
     : m_Id(id)
 {
+    AddComponent<Transform>();
 }
 
 Pine::Entity::~Entity()
 {
     for (auto component : m_Components)
     {
-        Components::DestroyComponent(component);
+        Components::Destroy(component);
     }
 
     for (auto child : m_Children)
@@ -61,7 +62,7 @@ Pine::Entity* Pine::Entity::GetParent() const
 
 Pine::IComponent* Pine::Entity::AddComponent(Pine::ComponentType type)
 {
-    auto component = Components::CreateComponent(type);
+    auto component = Components::Create(type);
 
     component->SetParent(this);
 
@@ -89,7 +90,7 @@ bool Pine::Entity::RemoveComponent(Pine::IComponent* targetComponent)
         {
             m_Components.erase(m_Components.begin() + i);
 
-            if (Components::DestroyComponent(component))
+            if (Components::Destroy(component))
                 return true;
         }
     }

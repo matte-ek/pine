@@ -1,3 +1,9 @@
+# Jetbrains IDE
 .idea/
+
+# Build files
 cmake-build-debug/
 cmake-build-release/
+
+# Game asset files
+game/

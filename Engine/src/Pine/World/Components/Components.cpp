@@ -1,19 +1,21 @@
 #include "Components.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Engine/Engine.hpp"
+#include "Pine/World/Components/Camera/Camera.hpp"
+#include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
+#include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
 
 using namespace Pine;
 
 namespace
 {
-    constexpr int DefaultComponentBlockSize = 512;
-
     std::vector<ComponentDataBlock<IComponent>*> m_ComponentDataBlocks;
 
     bool ResizeComponentDataBlock(ComponentDataBlock<IComponent>* block, std::uint32_t size)
     {
         // Allocate the new data
-        void* arrayData = malloc(block->m_ComponentArraySize * size);
+        void* arrayData = malloc(block->m_ComponentSize * size);
         bool* arrayOccupationData = new bool[size];
 
         if (!arrayData)
@@ -22,7 +24,7 @@ namespace
             return false;
         }
 
-        memset(arrayData, 0, block->m_ComponentArraySize * size);
+        memset(arrayData, 0, block->m_ComponentSize * size);
         memset(arrayOccupationData, 0, sizeof(bool) * size);
 
         void* oldArrayData = nullptr;
@@ -35,11 +37,11 @@ namespace
             size_t arrayBlockCopySize = block->m_ComponentArraySize;
             size_t occupationArrayCopySize = block->m_ComponentOccupationArraySize;
 
-            if (block->m_ComponentArraySize > block->m_ComponentArraySize * size)
+            if (block->m_ComponentArraySize > block->m_ComponentSize * size)
             {
                 Log::Warning("Smaller new buffer for component data block, data loss possible.");
 
-                arrayBlockCopySize = block->m_ComponentArraySize * size;
+                arrayBlockCopySize = block->m_ComponentSize * size;
                 occupationArrayCopySize = sizeof(bool) * size;
             }
 
@@ -52,7 +54,7 @@ namespace
 
         // Set the new array pointers
         block->m_ComponentArray = reinterpret_cast<IComponent*>(arrayData);
-        block->m_ComponentArraySize = block->m_ComponentArraySize * size;
+        block->m_ComponentArraySize = block->m_ComponentSize * size;
 
         block->m_ComponentOccupationArray = arrayOccupationData;
         block->m_ComponentOccupationArraySize = sizeof(bool) * size;
@@ -73,8 +75,9 @@ namespace
         auto block = new ComponentDataBlock<T>();
 
         block->m_Component = new T();
+        block->m_ComponentSize = sizeof(T);
 
-        ResizeComponentDataBlock(reinterpret_cast<ComponentDataBlock<IComponent>*>(block), DefaultComponentBlockSize);
+        ResizeComponentDataBlock(reinterpret_cast<ComponentDataBlock<IComponent>*>(block), Engine::GetEngineConfiguration().m_MaxObjectCount);
 
         m_ComponentDataBlocks.push_back(reinterpret_cast<ComponentDataBlock<IComponent>*>(block));
 
@@ -92,6 +95,18 @@ namespace
 void Pine::Components::Setup()
 {
     CreateComponentDataBlock<Transform>();
+    CreateComponentDataBlock<SpriteRenderer>();
+    CreateComponentDataBlock<TilemapRenderer>();
+    CreateComponentDataBlock<Camera>();
+
+    size_t totalSize = 0;
+
+    for (auto& block : m_ComponentDataBlocks)
+    {
+        totalSize += block->m_ComponentArraySize;
+    }
+
+    Log::Verbose("Total size allocated for components: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
 }
 
 void Pine::Components::Shutdown()
@@ -108,7 +123,7 @@ const std::vector<ComponentDataBlock<IComponent>*>& Pine::Components::GetCompone
     return m_ComponentDataBlocks;
 }
 
-IComponent* Components::CreateComponent(ComponentType type, bool standalone)
+IComponent* Components::Create(ComponentType type, bool standalone)
 {
     auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
 
@@ -136,6 +151,9 @@ IComponent* Components::CreateComponent(ComponentType type, bool standalone)
 
         // Mark the index as occupied
         componentDataBlock->m_ComponentOccupationArray[newTargetSlot] = true;
+
+        // Store the new highest index
+        componentDataBlock->m_HighestComponentIndex = componentDataBlock->GetHighestComponentIndex();
     }
 
     // Copy the data from the 'default' component object
@@ -147,12 +165,12 @@ IComponent* Components::CreateComponent(ComponentType type, bool standalone)
     return component;
 }
 
-IComponent* Components::CopyComponent(IComponent* component, bool standalone)
+IComponent* Components::Copy(IComponent* component, bool standalone)
 {
     return nullptr;
 }
 
-bool Components::DestroyComponent(IComponent* targetComponent)
+bool Components::Destroy(IComponent* targetComponent)
 {
     targetComponent->OnDestroyed();
 
@@ -165,7 +183,7 @@ bool Components::DestroyComponent(IComponent* targetComponent)
         return true;
     }
 
-    auto& data = GetComponentData(targetComponent->GetType());
+    auto& data = GetData(targetComponent->GetType());
 
     for (std::uint32_t i = 0; i < data.GetHighestComponentIndex();i++)
     {
@@ -177,6 +195,9 @@ bool Components::DestroyComponent(IComponent* targetComponent)
             // should be sufficient.
             data.m_ComponentOccupationArray[i] = false;
 
+            // Store the new highest index
+            data.m_HighestComponentIndex = data.GetHighestComponentIndex();
+
             return true;
         }
     }
@@ -184,7 +205,7 @@ bool Components::DestroyComponent(IComponent* targetComponent)
     return false;
 }
 
-ComponentDataBlock<IComponent>& Components::GetComponentData(ComponentType type)
+ComponentDataBlock<IComponent>& Components::GetData(ComponentType type)
 {
     return *m_ComponentDataBlocks[static_cast<int>(type)];
 }

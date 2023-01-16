@@ -1,11 +1,10 @@
 #include "Entities.hpp"
+#include "Pine/Engine/Engine.hpp"
 
 using namespace Pine;
 
 namespace
 {
-    constexpr std::uint32_t MaxEntityCount = 4096;
-
     // Incremental counter each time an entity is created, to make sure
     // each entity will have a unique id.
     std::uint32_t m_EntityId = 0;
@@ -15,11 +14,12 @@ namespace
 
 void Pine::Entities::Setup()
 {
-    m_Entities.reserve(MaxEntityCount);
+    m_Entities.reserve(Engine::GetEngineConfiguration().m_MaxObjectCount);
 }
 
 void Pine::Entities::Shutdown()
 {
+    m_Entities.clear();
 }
 
 Pine::Entity* Pine::Entities::Create()

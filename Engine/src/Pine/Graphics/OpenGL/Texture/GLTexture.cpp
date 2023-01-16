@@ -113,3 +113,8 @@ std::uint32_t Pine::Graphics::GLTexture::GetId() const
 {
     return m_Id;
 }
+
+void* Pine::Graphics::GLTexture::GetGraphicsIdentifier()
+{
+    return &m_Id;
+}

@@ -27,6 +27,9 @@ namespace Pine
         // The number of components the array currently can fit
         std::uint32_t m_ComponentArrayAllocatedCount = 0;
 
+        // Cached version of GetHighestComponentIndex(), should always be correct. Will however be -1 if empty.
+        int m_HighestComponentIndex = -1;
+
         ComponentDataBlockIterator<T> begin()
         {
             return ComponentDataBlockIterator<T>(0, this);
@@ -34,16 +37,16 @@ namespace Pine
 
         ComponentDataBlockIterator<T> end()
         {
-            return ComponentDataBlockIterator<T>(GetHighestComponentIndex(), this);
+            return ComponentDataBlockIterator<T>(m_HighestComponentIndex == -1 ? 0 : m_HighestComponentIndex + 1, this);
         }
 
-        __inline std::uint32_t GetHighestComponentIndex()
+        __inline int GetHighestComponentIndex()
         {
             // This kind of sucks as we're required to loop through the array m_ComponentOccupationArraySize times
             // each time we want to iterate through all components.
-            std::uint32_t highestIndex = 0;
+            int highestIndex = -1;
 
-            for (std::uint32_t i = 0; i < m_ComponentOccupationArraySize;i++)
+            for (int i = 0; i < m_ComponentOccupationArraySize;i++)
             {
                 if (m_ComponentOccupationArray[i])
                     highestIndex = i;
@@ -67,7 +70,7 @@ namespace Pine
         {
             // Don't wanna directly access the array here since T could be either
             // an IComponent or the component itself.
-            return reinterpret_cast<T*>(m_ComponentArray + m_ComponentSize * index);
+            return reinterpret_cast<T*>(std::uintptr_t(m_ComponentArray) + m_ComponentSize * index);
         }
 
         __inline bool ComponentIndexValid(std::uint32_t index)
@@ -101,6 +104,14 @@ namespace Pine
         {
             m_ComponentIndex++;
 
+            // If we've reached .end(), we just to stop
+            if (m_ComponentIndex == m_BlockParent->m_HighestComponentIndex + 1)
+            {
+                m_ComponentPtr = m_BlockParent->GetComponent(m_ComponentIndex);
+                return *this;
+            }
+
+            // Else start searching for the next component
             while (!m_BlockParent->m_ComponentOccupationArray[m_ComponentIndex])
                 m_ComponentIndex++;
 
@@ -136,16 +147,16 @@ namespace Pine::Components
     const std::vector<ComponentDataBlock<IComponent>*>& GetComponentTypes();
 
     // Creation and deletion of components
-    IComponent* CreateComponent(ComponentType type, bool standalone = false);
-    IComponent* CopyComponent(IComponent* component, bool standalone = false);
-    bool DestroyComponent(IComponent* component);
+    IComponent* Create(ComponentType type, bool standalone = false);
+    IComponent* Copy(IComponent* component, bool standalone = false);
+    bool Destroy(IComponent* component);
 
     // Iteration through component objects
-    ComponentDataBlock<IComponent>& GetComponentData(ComponentType type);
+    ComponentDataBlock<IComponent>& GetData(ComponentType type);
 
     // Returns a ComponentType from a template type
     template<typename T>
-    ComponentType GetComponentType()
+    ComponentType GetType()
     {
         static T ent;
         static auto type = static_cast<IComponent*>(&ent)->GetType();
@@ -154,19 +165,19 @@ namespace Pine::Components
     }
 
     template<typename T>
-    T& CreateComponent()
+    T& Create()
     {
-        static auto type = GetComponentType<T>();
+        static auto type = GetType<T>();
 
-        return *dynamic_cast<T*>(CreateComponent(type));
+        return *dynamic_cast<T*>(Create(type));
     }
 
     template<typename T>
-    ComponentDataBlock<T>& GetComponents()
+    ComponentDataBlock<T>& Get()
     {
-        static auto type = GetComponentType<T>();
+        static auto type = GetType<T>();
 
         // Don't ask.
-        return *reinterpret_cast<ComponentDataBlock<T>*>(&GetComponentData(type));
+        return *reinterpret_cast<ComponentDataBlock<T>*>(&GetData(type));
     }
 }

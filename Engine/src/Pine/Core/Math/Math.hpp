@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace Pine
 {
@@ -13,4 +14,6 @@ namespace Pine
     using Vector4f = glm::vec4;
 
     using Matrix4f = glm::mat4;
+
+    using Quaternion = glm::quat;
 }

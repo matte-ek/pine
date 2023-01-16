@@ -18,6 +18,9 @@ namespace Pine::Engine
         // loading assets from a directory.
         int m_AssetsLoadThreadCount = 4;
 
+        // Refers to both entity and component count
+        std::uint32_t m_MaxObjectCount = 2048;
+
         Graphics::GraphicsAPI m_GraphicsAPI = Graphics::GraphicsAPI::OpenGL;
     };
 

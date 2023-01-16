@@ -13,6 +13,7 @@ namespace Pine::Graphics
     public:
         GLTexture();
 
+        void* GetGraphicsIdentifier() override;
         std::uint32_t GetId() const;
 
         void Bind() override;

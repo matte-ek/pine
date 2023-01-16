@@ -93,8 +93,6 @@ namespace
         if (m_Assets.count(path) != 0)
             return nullptr;
 
-        Log::Verbose(path);
-
         const auto factory = GetAssetFactoryFromFileName(filePath.filename());
 
         IAsset* asset;
@@ -110,6 +108,8 @@ namespace
 
         asset->SetFilePath(filePath);
         asset->SetPath(path);
+
+        asset->LoadMetadata();
 
         return asset;
     }
@@ -205,9 +205,18 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     // Sort everything
     std::vector<IAsset*> singleThreadLoadAssets;
     std::vector<IAsset*> multiThreadLoadAssets;
+    std::vector<IAsset*> dependencyAssets;
 
     for (const auto& asset : loadPool)
     {
+        // If the asset has dependencies, we have to postpone loading the asset and load everything else
+        // and hope that it's dependencies has loaded.
+        if (asset->HasDependencies())
+        {
+            dependencyAssets.push_back(asset);
+            continue;
+        }
+
         switch (asset->GetLoadMode())
         {
         case AssetLoadMode::SingleThread:
@@ -294,7 +303,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     int assetsLoaded = 0;
     int assetsLoadErrors = 0;
 
-    // Finally, add all loaded assets to our asset map
+    // Finally, add all loaded assets (except dependencies) to our asset map
     for (auto asset : loadPool)
     {
         if (asset->GetType() != AssetType::Invalid && asset->GetState() != AssetState::Loaded)
@@ -309,8 +318,49 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         m_Assets[asset->GetPath()] = asset;
     }
 
+    // At this point we may now load the remaining assets that has dependencies.
+    for (auto asset : dependencyAssets)
+    {
+        auto dependencies = asset->GetDependencies();
+
+        for (const auto& dependency : dependencies)
+        {
+            if (GetAsset(dependency) != nullptr)
+            {
+                continue;
+            }
+
+            LoadFromFile(dependency);
+        }
+
+        if (asset->GetLoadMode() == AssetLoadMode::MultiThreadPrepare)
+        {
+            if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Prepare))
+                continue;
+            if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Finish))
+                continue;
+        }
+        else
+        {
+            if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Default))
+                continue;
+        }
+
+        if (asset->GetType() != AssetType::Invalid && asset->GetState() != AssetState::Loaded)
+        {
+            assetsLoadErrors++;
+            continue;
+        }
+
+        assetsLoaded++;
+
+        m_Assets[asset->GetPath()] = asset;
+    }
+
     if (assetsLoaded == 0)
         return -1;
+
+    Log::Verbose("Loaded " + std::to_string(assetsLoaded) + " assets from " + path.string());
 
     return assetsLoadErrors;
 }

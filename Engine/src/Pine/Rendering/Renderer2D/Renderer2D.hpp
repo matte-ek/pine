@@ -5,7 +5,7 @@
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/Color/Color.hpp"
 #include "Pine/Core/Math/Math.hpp"
-#include "Pine/Rendering/RenderingContext/RenderingContext.hpp"
+#include "Pine/Rendering/RenderingContext.hpp"
 
 namespace Pine::Graphics
 {
@@ -21,8 +21,8 @@ namespace Pine::Renderer2D
     void AddRectangle(Vector2f position, Vector2f size, Color color);
     void AddFilledRectangle(Vector2f position, Vector2f size, Color color);
 
-    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Texture2D* texture, Vector2f uvOffset = Vector2f(0.f), float uvScale = 1.f);
-    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Graphics::ITexture* texture, Vector2f uvOffset = Vector2f(0.f), float uvScale = 1.f);
+    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Texture2D* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
+    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Graphics::ITexture* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
 
     void AddFilledRoundedRectangle(Vector2f position, Vector2f size, float radius, Color color);
 

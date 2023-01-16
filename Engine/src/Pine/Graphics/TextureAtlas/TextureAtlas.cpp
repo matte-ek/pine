@@ -1,7 +1,7 @@
 #include "TextureAtlas.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
-#include "Pine/Rendering/RenderingContext/RenderingContext.hpp"
+#include "Pine/Rendering/RenderingContext.hpp"
 
 Pine::Graphics::TextureAtlas::TextureAtlas(Pine::Vector2i size, int tileSize) :
     m_Size(size),
@@ -48,6 +48,7 @@ void Pine::Graphics::TextureAtlas::Update()
 
     m_AtlasFrameBuffer->Bind();
 
+    Graphics::GetGraphicsAPI()->ClearColor(Color(0, 0, 0, 0));
     Graphics::GetGraphicsAPI()->ClearBuffers(Buffers::ColorBuffer);
 
     Renderer2D::PrepareFrame();
@@ -71,6 +72,11 @@ void Pine::Graphics::TextureAtlas::Update()
     Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
 }
 
+void Pine::Graphics::TextureAtlas::SetTileSize(int tileSize)
+{
+    m_TileSize = tileSize;
+}
+
 int Pine::Graphics::TextureAtlas::GetTileSize() const
 {
     return m_TileSize;
@@ -79,4 +85,22 @@ int Pine::Graphics::TextureAtlas::GetTileSize() const
 float Pine::Graphics::TextureAtlas::GetTextureUvScale() const
 {
     return static_cast<float>(m_TileSize) / static_cast<float>(m_Size.x);
+}
+
+void Pine::Graphics::TextureAtlas::Dispose()
+{
+    if (m_AtlasFrameBuffer)
+        Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_AtlasFrameBuffer);
+}
+
+void Pine::Graphics::TextureAtlas::RemoveTexture(std::uint32_t texture)
+{
+    m_Textures.erase(m_Textures.begin() + static_cast<int>(texture));
+    m_TextureUvOffsets.erase(m_TextureUvOffsets.begin() + static_cast<int>(texture));
+}
+
+void Pine::Graphics::TextureAtlas::RemoveAllTextures()
+{
+    m_Textures.clear();
+    m_TextureUvOffsets.clear();
 }

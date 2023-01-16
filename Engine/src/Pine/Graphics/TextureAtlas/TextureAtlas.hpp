@@ -22,16 +22,20 @@ namespace Pine::Graphics
     public:
         TextureAtlas(Vector2i size, int tileSize);
 
+        void SetTileSize(int tileSize);
         int GetTileSize() const;
 
         const Vector2f& GetTextureUvOffset(std::uint32_t itemId) const;
         float GetTextureUvScale() const;
 
+        std::uint32_t AddTexture(ITexture* texture);
+        void RemoveTexture(std::uint32_t texture);
+        void RemoveAllTextures();
+
         ITexture* GetColorBuffer() const;
 
-        std::uint32_t AddTexture(ITexture* texture);
-
         void Update();
+        void Dispose();
     };
 
 }

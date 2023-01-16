@@ -1,6 +1,7 @@
 #pragma once
-#include <string>
 #include <filesystem>
+#include <nlohmann/json.hpp>
+#include <string>
 
 namespace Pine
 {
@@ -17,6 +18,8 @@ namespace Pine
         Texture2D,
         Texture3D,
         Font,
+        Tileset,
+        Tilemap,
         Count
     };
 
@@ -40,6 +43,10 @@ namespace Pine
             return "Texture3D";
         case AssetType::Font:
             return "Font";
+        case AssetType::Tileset:
+            return "Tileset";
+        case AssetType::Tilemap:
+            return "Tilemap";
         default:
             return "Unknown";
         }
@@ -89,10 +96,17 @@ namespace Pine
 
         AssetLoadMode m_LoadMode = AssetLoadMode::SingleThread;
 
+        bool m_HasMetadata = false;
+        nlohmann::json m_Metadata;
+
+        bool m_HasDependencies = false;
+        std::vector<std::string> m_DependencyFiles;
+
         int m_ReferenceCount = 0;
         bool m_IsDeleted = false;
 
-        friend class AssetContainer<IAsset>;
+        template<typename>
+        friend class AssetContainer;
     public:
         virtual ~IAsset() = default;
 
@@ -107,9 +121,16 @@ namespace Pine
         const std::filesystem::path& GetFilePath() const;
 
         bool HasFile() const;
+        bool HasMetadata() const;
+        bool HasDependencies() const;
+
+        const std::vector<std::string>& GetDependencies() const;
 
         AssetState GetState() const;
         AssetLoadMode GetLoadMode() const;
+
+        void LoadMetadata();
+        void SaveMetadata();
 
         virtual bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default);
         virtual bool SaveToFile();
@@ -120,9 +141,11 @@ namespace Pine
     template <class T>
     class AssetContainer
     {
-        mutable T m_Asset = nullptr;
+    private:
+        mutable T* m_Asset = nullptr;
+    public:
 
-        T Get() const
+        T* Get() const
         {
             // Make sure to remove any pending deletion assets
             if (m_Asset)
@@ -138,13 +161,19 @@ namespace Pine
             return m_Asset;
         }
 
+        T* operator->()
+        {
+            return m_Asset;
+        }
+
         AssetContainer& operator=(IAsset* asset)
         {
             // Decrease the ref count on the asset we already have
-            reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount--;
+            if (m_Asset != nullptr)
+                reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount--;
 
             // Assign the new asset
-            m_Asset = static_cast<T>(asset);
+            m_Asset = static_cast<T*>(asset);
 
             // Make sure the new asset updates its reference count
             reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount++;

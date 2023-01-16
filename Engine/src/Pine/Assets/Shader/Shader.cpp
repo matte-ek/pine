@@ -132,8 +132,6 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
             }
 
             uniformVariable->LoadInteger(static_cast<int>(item.value().get<int>()));
-
-            Log::Message(item.key() + " -> " + std::to_string(item.value().get<int>()));
         }
     }
 

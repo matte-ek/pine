@@ -4,6 +4,7 @@
 #include "Pine/Graphics/Interfaces/IGraphicsAPI.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
+#include "Pine/World/Entity/Entity.hpp"
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
@@ -21,6 +22,8 @@ namespace
 
     // This default texture is a solid white pixel, that we treat as a "no-texture" texture.
     Graphics::ITexture* m_DefaultTexture = nullptr;
+
+    Vector2f m_CamPositionOffset;
 
     // Base properties that most rendering items require
     struct RenderItem
@@ -144,6 +147,8 @@ namespace
 
                 m_GraphicsAPI->SetActiveTexture(0);
                 m_DefaultTexture->Bind();
+
+                m_Shader->GetProgram()->GetUniformVariable("m_CamPositionOffset")->LoadVector2(m_CamPositionOffset);
 
                 int startIndex = 0;
                 while (startIndex < rects.size())
@@ -298,7 +303,6 @@ void Pine::Renderer2D::PrepareFrame()
         m_DefaultTexture = m_GraphicsAPI->CreateTexture();
 
         // Create a 1x1 solid white pixel texture
-
         auto* textureData = reinterpret_cast<std::uint8_t*>(malloc(sizeof(std::uint8_t) * 4));
 
         for (int i = 0; i < sizeof(std::uint8_t) * 4;i++)
@@ -324,7 +328,16 @@ void Pine::Renderer2D::RenderFrame(Pine::RenderingContext* context)
         throw std::runtime_error("Renderer2D::RenderFrame(): No rendering context provided");
     }
 
-    context->m_DrawCalls = 0;
+    m_GraphicsAPI->SetViewport(Vector2i(0, 0), context->m_Size);
+
+    if (context->m_Camera)
+    {
+        m_CamPositionOffset = (-Vector2f(context->m_Camera->GetParent()->GetTransform()->LocalPosition)) / context->m_Size;
+    }
+    else
+    {
+        m_CamPositionOffset = Vector2f(0.f);
+    }
 
     RectangleRenderer::RenderFrame(context);
 }
@@ -353,7 +366,7 @@ void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Texture2D* texture, Vector2f uvOffset, float uvScale)
+void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Texture2D* texture, Vector2f uvOffset, Vector2f uvScale)
 {
     RectangleItem rectangleItem =
     {
@@ -363,14 +376,14 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Co
         0.f,
         texture->GetGraphicsTexture(),
         uvOffset,
-        Vector2f(uvScale)
+        uvScale
     };
 
     m_FilledRectangles.push_back(rectangleItem);
 }
 
 void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Graphics::ITexture* texture,
-                                            Vector2f uvOffset, float uvScale)
+                                            Vector2f uvOffset, Vector2f uvScale)
 {
     RectangleItem rectangleItem =
     {
@@ -380,7 +393,7 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Co
         0.f,
         texture,
         uvOffset,
-        Vector2f(uvScale)
+        uvScale
     };
 
     m_FilledRectangles.push_back(rectangleItem);

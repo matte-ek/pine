@@ -24,6 +24,8 @@ namespace Pine::Graphics
         void ClearBuffers(Buffers buffers) override;
         void ClearColor(Color color) override;
 
+        void SetViewport(Vector2i position, Vector2i size) override;
+
         IVertexArray* CreateVertexArray() override;
         void DestroyVertexArray(IVertexArray* array) override;
 

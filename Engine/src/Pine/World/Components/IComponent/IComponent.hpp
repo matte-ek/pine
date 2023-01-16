@@ -6,7 +6,10 @@ namespace Pine
 
     enum class ComponentType
     {
-        Transform
+        Transform,
+        SpriteRenderer,
+        TilemapRenderer,
+        Camera
     };
 
     class Entity;
@@ -23,7 +26,7 @@ namespace Pine
 
         Entity* m_Parent = nullptr;
     public:
-        IComponent(ComponentType type);
+        explicit IComponent(ComponentType type);
         virtual ~IComponent() = default;
 
         void SetActive(bool value);

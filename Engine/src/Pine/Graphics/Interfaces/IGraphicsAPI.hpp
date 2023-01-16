@@ -36,6 +36,10 @@ namespace Pine::Graphics
         virtual void ClearBuffers(Buffers buffers) = 0;
         virtual void ClearColor(Color color) = 0;
 
+        virtual void SetViewport(Vector2i position, Vector2i size) = 0;
+
+        //virtual void SetBlendingEnabled(bool value) = 0;
+
         virtual IVertexArray* CreateVertexArray() = 0;
         virtual void DestroyVertexArray(IVertexArray* array) = 0;
 
