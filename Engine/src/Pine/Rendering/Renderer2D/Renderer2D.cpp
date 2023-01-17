@@ -23,6 +23,8 @@ namespace
     // This default texture is a solid white pixel, that we treat as a "no-texture" texture.
     Graphics::ITexture* m_DefaultTexture = nullptr;
 
+    Rendering::CoordinateSystem m_CoordinateSystem = Rendering::CoordinateSystem::Screen;
+
     Vector2f m_CamPositionOffset;
 
     // Base properties that most rendering items require
@@ -46,20 +48,32 @@ namespace
 
     Vector4f ComputePositionSize(RenderingContext* context, Vector2f position, Vector2f size)
     {
-        // Transform the screen coordinates to normalized (0-1) coordinates
-        float x = (position.x / context->m_Size.x) * 2.0f;
-        float y = (position.y / context->m_Size.y) * 2.0f;
-
-        // Same story with the size
+        // Compute width and height
         const float w = size.x / context->m_Size.x;
         const float h = size.y / context->m_Size.y;
 
-        // Move the origin to the top left of the screen
-        x += -1.0f + w;
-        y += -1.0f + h;
+        // Compute position
+        float x;
+        float y;
 
-        // Y also needs to be inverted.
-        y = -y;
+        if (m_CoordinateSystem == Rendering::CoordinateSystem::Screen)
+        {
+            // Transform the screen coordinates to normalized (0-1) coordinates
+            x = (position.x / context->m_Size.x) * 2.0f;
+            y = (position.y / context->m_Size.y) * 2.0f;
+
+            // Move the origin to the top left of the screen
+            x += -1.0f + w;
+            y += -1.0f + h;
+
+            // Y also needs to be inverted.
+            y = -y;
+        }
+        else
+        {
+            x = position.x;
+            y = position.y;
+        }
 
         return {x, y, w, h};
     }
@@ -332,7 +346,10 @@ void Pine::Renderer2D::RenderFrame(Pine::RenderingContext* context)
 
     if (context->m_Camera)
     {
-        m_CamPositionOffset = (-Vector2f(context->m_Camera->GetParent()->GetTransform()->LocalPosition)) / context->m_Size;
+        if (m_CoordinateSystem == Rendering::CoordinateSystem::Screen)
+            m_CamPositionOffset = (-Vector2f(context->m_Camera->GetParent()->GetTransform()->LocalPosition)) / context->m_Size;
+        else
+            m_CamPositionOffset = -Vector2f(context->m_Camera->GetParent()->GetTransform()->LocalPosition);
     }
     else
     {
@@ -434,4 +451,14 @@ void Renderer2D::AddTextureAtlasItem(Vector2f position, Graphics::TextureAtlas* 
     };
 
     m_FilledRectangles.push_back(rectangleItem);
+}
+
+void Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem coordinateSystem)
+{
+    m_CoordinateSystem = coordinateSystem;
+}
+
+Rendering::CoordinateSystem Renderer2D::GetCoordinateSystem()
+{
+    return m_CoordinateSystem;
 }

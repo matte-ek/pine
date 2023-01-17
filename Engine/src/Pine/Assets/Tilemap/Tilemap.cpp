@@ -61,11 +61,11 @@ void Pine::Tilemap::RemoveTile(const Pine::TileInstance& instance)
 
 const Pine::TileInstance* Pine::Tilemap::GetTileByPosition(Pine::Vector2i gridPosition) const
 {
-    for (int i = 0; i < m_Tiles.size();i++)
+    for (const auto & m_Tile : m_Tiles)
     {
-        if (m_Tiles[i].m_Position == gridPosition)
+        if (m_Tile.m_Position == gridPosition)
         {
-            return &m_Tiles[i];
+            return &m_Tile;
         }
     }
 

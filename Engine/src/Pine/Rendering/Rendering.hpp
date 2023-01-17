@@ -3,6 +3,12 @@
 namespace Pine::Rendering
 {
 
+    enum class CoordinateSystem
+    {
+        Screen,
+        World
+    };
+
     enum class TextureSamplers
     {
         Diffuse = 0,

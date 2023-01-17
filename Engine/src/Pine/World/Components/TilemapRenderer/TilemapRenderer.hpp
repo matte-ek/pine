@@ -20,6 +20,9 @@ namespace Pine
 
         void SetOrder(int order);
         int GetOrder() const;
+
+        void LoadData(const nlohmann::json& j) override;
+        void SaveData(nlohmann::json& j) override;
     };
 
 }

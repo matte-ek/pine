@@ -167,7 +167,16 @@ IComponent* Components::Create(ComponentType type, bool standalone)
 
 IComponent* Components::Copy(IComponent* component, bool standalone)
 {
-    return nullptr;
+    auto newComponent = Create(component->GetType(), standalone);
+
+    nlohmann::json buffer;
+
+    component->SaveData(buffer);
+    newComponent->LoadData(buffer);
+
+    newComponent->OnCopied();
+
+    return newComponent;
 }
 
 bool Components::Destroy(IComponent* targetComponent)

@@ -6,6 +6,12 @@
 #include "Pine/Core/Color/Color.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Rendering/RenderingContext.hpp"
+#include "Pine/Rendering/Rendering.hpp"
+
+namespace Pine
+{
+
+}
 
 namespace Pine::Graphics
 {
@@ -17,6 +23,9 @@ namespace Pine::Renderer2D
 
     void PrepareFrame();
     void RenderFrame(RenderingContext* context);
+
+    void SetCoordinateSystem(Rendering::CoordinateSystem coordinateSystem);
+    Rendering::CoordinateSystem GetCoordinateSystem();
 
     void AddRectangle(Vector2f position, Vector2f size, Color color);
     void AddFilledRectangle(Vector2f position, Vector2f size, Color color);

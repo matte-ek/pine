@@ -4,6 +4,18 @@
 #include <filesystem>
 #include <string>
 
+namespace Pine
+{
+
+    enum class AssetManagerState
+    {
+        Idle,
+        LoadFile,
+        LoadDirectory
+    };
+
+}
+
 namespace Pine::Assets
 {
     void Setup();
@@ -19,6 +31,10 @@ namespace Pine::Assets
     // behaviour with useAsRelativePath. Returns the amount of assets that it FAILED to load, or -1 if none were loaded.
     int LoadDirectory(const std::filesystem::path& directoryPath, bool startIndex = true);
 
+    // Resolve references are a way to reference assets that may not already have been loaded during the load stage.
+    // This allows the asset manager to load assets efficiently and take care of the loose ends at the end of everything.
+    void AddAssetResolveReference(const AssetResolveReference& resolveReference);
+
     // Attempts to find an already loaded asset with it's mapped path.
     IAsset* GetAsset(const std::string& path);
 
@@ -27,5 +43,9 @@ namespace Pine::Assets
     {
         return dynamic_cast<T*>(GetAsset(path));
     }
+
+    // Gets what state the asset manager is in, such as if we're in the process of loading a directory.
+    // Useful for parts of the engine to determine if assets can be added as an AssetResolveReference.
+    AssetManagerState GetState();
 
 }

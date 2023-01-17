@@ -1,4 +1,5 @@
 #include "SpriteRenderer.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::SpriteRenderer::SpriteRenderer() :
       IComponent(ComponentType::SpriteRenderer)
@@ -33,4 +34,18 @@ void Pine::SpriteRenderer::SetScalingMode(Pine::SpriteScalingMode scalingMode)
 Pine::SpriteScalingMode Pine::SpriteRenderer::GetScalingMode() const
 {
     return m_ScalingMode;
+}
+
+void Pine::SpriteRenderer::LoadData(const nlohmann::json& j)
+{
+    Serialization::LoadAsset(j, "tex", m_StaticTexture);
+    Serialization::LoadValue(j, "scl", m_ScalingMode);
+    Serialization::LoadValue(j, "odr", m_Order);
+}
+
+void Pine::SpriteRenderer::SaveData(nlohmann::json& j)
+{
+    j["tex"] = Serialization::StoreAsset(m_StaticTexture.Get());
+    j["scl"] = m_ScalingMode;
+    j["odr"] = m_Order;
 }

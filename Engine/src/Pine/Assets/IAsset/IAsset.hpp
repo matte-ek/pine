@@ -11,6 +11,8 @@ namespace Pine
     enum class AssetType
     {
         Invalid,
+        Blueprint,
+        Level,
         Material,
         Mesh,
         Model,
@@ -29,6 +31,10 @@ namespace Pine
         {
         case AssetType::Invalid:
             return "Invalid";
+        case AssetType::Blueprint:
+            return "Blueprint";
+        case AssetType::Level:
+            return "Level";
         case AssetType::Material:
             return "Material";
         case AssetType::Mesh:
@@ -96,9 +102,14 @@ namespace Pine
 
         AssetLoadMode m_LoadMode = AssetLoadMode::SingleThread;
 
+        // It's up to the asset to set this to true if needed. If it's true, the user may put any data
+        // into m_Metadata and the asset manager should take care of loading/saving the data automatically.
         bool m_HasMetadata = false;
         nlohmann::json m_Metadata;
 
+        // Setting this to true may be required if your asset needs to do processing on other assets, i.e. the other
+        // assets are required to have been loaded before loading this. Filling m_DependencyFiles is also up to the
+        // asset itself. If just a reference to an asset is required, consider looking into AssetResolveReference.
         bool m_HasDependencies = false;
         std::vector<std::string> m_DependencyFiles;
 
@@ -187,5 +198,9 @@ namespace Pine
         }
     };
 
-
+    struct AssetResolveReference
+    {
+        std::string m_Path;
+        AssetContainer<IAsset>* m_AssetContainer;
+    };
 }

@@ -99,7 +99,9 @@ void Pine::IAsset::LoadMetadata()
 
     // Load custom metadata set by the asset
     if (fileContentsJson.value().contains("data"))
+    {
         m_Metadata = fileContentsJson.value()["data"];
+    }
 }
 
 void Pine::IAsset::SaveMetadata()

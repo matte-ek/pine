@@ -18,9 +18,14 @@ using namespace Pine;
 
 namespace
 {
+    AssetManagerState m_State;
+
     // All assets currently registered by Pine, they don't have to be
     // valid assets, or loaded assets.
     std::unordered_map<std::string, IAsset*> m_Assets;
+
+    // Which assets paths we need to resolve to asset pointers during the end of an ongoing load
+    std::vector<AssetResolveReference> m_AssetResolveReferences;
 
     struct AssetFactory
     {
@@ -161,20 +166,34 @@ Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, cons
         return nullptr;
     }
 
+    m_State = AssetManagerState::LoadFile;
+
     if (asset->GetLoadMode() == AssetLoadMode::MultiThreadPrepare)
     {
         // Unlike LoadDirectory, we're only going to be doing single threaded asset load here.
 
         if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Prepare))
+        {
+            m_State = AssetManagerState::Idle;
+
             return nullptr;
+        }
 
         if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Finish))
+        {
+            m_State = AssetManagerState::Idle;
+
             return nullptr;
+        }
     }
     else
     {
         if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Default))
+        {
+            m_State = AssetManagerState::Idle;
+
             return nullptr;
+        }
     }
 
     m_Assets[asset->GetPath()] = asset;
@@ -186,6 +205,8 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
 {
     if (!std::filesystem::exists(path))
         return -1;
+
+    m_State = AssetManagerState::LoadDirectory;
 
     // First gather a list of everything we need to load
     std::vector<IAsset*> loadPool;
@@ -306,6 +327,11 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     // Finally, add all loaded assets (except dependencies) to our asset map
     for (auto asset : loadPool)
     {
+        if (asset->HasDependencies())
+        {
+            continue;
+        }
+
         if (asset->GetType() != AssetType::Invalid && asset->GetState() != AssetState::Loaded)
         {
             assetsLoadErrors++;
@@ -323,6 +349,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     {
         auto dependencies = asset->GetDependencies();
 
+        bool missingDependency = false;
         for (const auto& dependency : dependencies)
         {
             if (GetAsset(dependency) != nullptr)
@@ -330,20 +357,41 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
                 continue;
             }
 
-            LoadFromFile(dependency);
+            if (!LoadFromFile(dependency))
+            {
+                missingDependency = true;
+                break;
+            }
+        }
+
+        if (missingDependency)
+        {
+            Log::Error("Failed to import asset " + asset->GetPath() + ", missing dependency.");
+            assetsLoadErrors++;
+            continue;
         }
 
         if (asset->GetLoadMode() == AssetLoadMode::MultiThreadPrepare)
         {
             if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Prepare))
+            {
+                assetsLoadErrors++;
                 continue;
+            }
+
             if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Finish))
+            {
+                assetsLoadErrors++;
                 continue;
+            }
         }
         else
         {
             if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Default))
+            {
+                assetsLoadErrors++;
                 continue;
+            }
         }
 
         if (asset->GetType() != AssetType::Invalid && asset->GetState() != AssetState::Loaded)
@@ -357,6 +405,20 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         m_Assets[asset->GetPath()] = asset;
     }
 
+    // During the load of all assets, some assets may have created resolve references, for assets that may not have
+    // been loaded previously, but still needs its pointer set. Since all the loaded assets are in m_Assets now,
+    // we may attempt to resolve them to pointers now.
+    for (auto& assetResolveReference : m_AssetResolveReferences)
+    {
+        *assetResolveReference.m_AssetContainer = Assets::GetAsset(assetResolveReference.m_Path);
+    }
+
+    m_AssetResolveReferences.clear();
+
+    m_State = AssetManagerState::Idle;
+
+    // This is more to provide a warning, since assetsLoadErrors could still be 0, meaning nothing has really gone wrong
+    // however this is most likely not what the user wanted.
     if (assetsLoaded == 0)
         return -1;
 
@@ -365,10 +427,20 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     return assetsLoadErrors;
 }
 
+void Assets::AddAssetResolveReference(const AssetResolveReference& resolveReference)
+{
+    m_AssetResolveReferences.push_back(resolveReference);
+}
+
 Pine::IAsset* Pine::Assets::GetAsset(const std::string& path)
 {
     if (m_Assets.count(path) == 0)
         return nullptr;
 
     return m_Assets[path];
+}
+
+AssetManagerState Assets::GetState()
+{
+    return m_State;
 }

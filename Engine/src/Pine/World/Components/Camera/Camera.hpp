@@ -19,6 +19,9 @@ namespace Pine
 
         void OnRender(float) override;
 
+        void LoadData(const nlohmann::json& j) override;
+        void SaveData(nlohmann::json& j) override;
+
         const Matrix4f& GetProjectionMatrix() const;
         const Matrix4f& GetViewMatrix() const;
     };

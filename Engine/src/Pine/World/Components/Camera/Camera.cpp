@@ -30,6 +30,14 @@ void Pine::Camera::OnRender(float)
     BuildViewMatrix();
 }
 
+void Pine::Camera::LoadData(const nlohmann::json& j)
+{
+}
+
+void Pine::Camera::SaveData(nlohmann::json& j)
+{
+}
+
 const Pine::Matrix4f& Pine::Camera::GetProjectionMatrix() const
 {
     return m_ProjectionMatrix;

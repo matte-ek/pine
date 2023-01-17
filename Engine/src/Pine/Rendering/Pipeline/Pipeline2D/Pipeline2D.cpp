@@ -103,5 +103,11 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
         }
     }
 
+    auto oldCoordinateSystem = Renderer2D::GetCoordinateSystem();
+
+    Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::World);
+
     Renderer2D::RenderFrame(&context);
+
+    Renderer2D::SetCoordinateSystem(oldCoordinateSystem);
 }
