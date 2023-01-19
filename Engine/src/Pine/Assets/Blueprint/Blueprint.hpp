@@ -19,7 +19,21 @@ namespace Pine
     public:
         explicit Blueprint();
 
+        // If we currently have an entity stored as a blueprint
+        bool HasEntity() const;
 
+        // Create a copy of an existing entity in memory
+        void CreateFromEntity(Pine::Entity* entity);
+
+        // Spawns the stored entity in the world
+        void Spawn();
+
+        // Serializes or de-serializes the stored entity
+        void FromJson(const nlohmann::json& j);
+        nlohmann::json ToJson() const;
+
+        bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default) override;
+        bool SaveToFile() override;
 
         void Dispose() override;
     };

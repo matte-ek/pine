@@ -1,5 +1,6 @@
 #include "Assets.hpp"
 
+#include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Font/Font.hpp"
 #include "Pine/Assets/InvalidAsset/InvalidAsset.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
@@ -9,10 +10,10 @@
 #include "Pine/Engine/Engine.hpp"
 
 #include <cmath>
+#include <functional>
 #include <stdexcept>
 #include <thread>
 #include <unordered_map>
-#include <functional>
 
 using namespace Pine;
 
@@ -41,7 +42,8 @@ namespace
     std::vector<AssetFactory> m_AssetFactories = {
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
-        AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } )
+        AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
+        AssetFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } )
     };
 
     // Attempts to find an asset factory with the file name extension (can be full path as well)

@@ -1,10 +1,11 @@
 #include "Entity.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
-Pine::Entity::Entity(std::uint32_t id)
+Pine::Entity::Entity(std::uint32_t id, bool createTransform)
     : m_Id(id)
 {
-    AddComponent<Transform>();
+    if (createTransform)
+        AddComponent<Transform>();
 }
 
 Pine::Entity::~Entity()
@@ -96,6 +97,16 @@ bool Pine::Entity::RemoveComponent(Pine::IComponent* targetComponent)
     }
 
     return false;
+}
+
+void Pine::Entity::ClearComponents()
+{
+    for (auto component : m_Components)
+    {
+        Components::Destroy(component);
+    }
+
+    m_Components.clear();
 }
 
 Pine::Transform* Pine::Entity::GetTransform() const

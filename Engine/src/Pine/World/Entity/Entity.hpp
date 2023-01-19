@@ -23,7 +23,7 @@ namespace Pine
 
         Entity* m_Parent = nullptr;
     public:
-        explicit Entity(std::uint32_t id);
+        explicit Entity(std::uint32_t id, bool createTransform = true);
         ~Entity();
 
         std::uint32_t GetId() const;
@@ -76,6 +76,10 @@ namespace Pine
 
         // Removes the component with the provided pointer, returns false on failure.
         bool RemoveComponent(IComponent* component);
+
+        // Removes all components, including the Transform component, making this entity invalid, please re-add
+        // the Transform component as soon as possible.
+        void ClearComponents();
 
         // Returns the fist component with the specified type within the entity, or
         // nullptr if none is found.
