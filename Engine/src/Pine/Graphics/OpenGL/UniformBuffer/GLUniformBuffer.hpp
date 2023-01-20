@@ -15,8 +15,8 @@ namespace Pine::Graphics
         void Bind() override;
         void Dispose() override;
 
-        void Create(size_t size, int bindingIndex) override;
-        void UploadData(void* data, size_t size, size_t offset) override;
+        void Create(std::size_t size, int bindingIndex) override;
+        void UploadData(void* data, std::size_t size, std::size_t offset) override;
 
     };
 

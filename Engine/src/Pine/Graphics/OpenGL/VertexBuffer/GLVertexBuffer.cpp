@@ -12,7 +12,7 @@ void Pine::Graphics::GLVertexBuffer::Bind()
     glBindBuffer(GL_ARRAY_BUFFER, m_Id);
 }
 
-void Pine::Graphics::GLVertexBuffer::UploadData(const void* data, size_t size, size_t offset)
+void Pine::Graphics::GLVertexBuffer::UploadData(const void* data, std::size_t size, std::size_t offset)
 {
     glBufferSubData(GL_ARRAY_BUFFER, static_cast<std::int32_t>(offset), static_cast<std::int32_t>(size), data);
 }

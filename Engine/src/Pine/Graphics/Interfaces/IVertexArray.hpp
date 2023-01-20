@@ -23,8 +23,8 @@ namespace Pine::Graphics
         virtual void Dispose() = 0;
 
         // Pre-allocates a vertex buffer with a specified size
-        virtual IVertexBuffer* CreateFloatArrayBuffer(size_t size, int binding, int vecSize, BufferUsageHint usageHint) = 0;
-        virtual IVertexBuffer* CreateIntegerArrayBuffer(size_t size, int binding, int vecSize, BufferUsageHint usageHint) = 0;
+        virtual IVertexBuffer* CreateFloatArrayBuffer(std::size_t size, int binding, int vecSize, BufferUsageHint usageHint) = 0;
+        virtual IVertexBuffer* CreateIntegerArrayBuffer(std::size_t size, int binding, int vecSize, BufferUsageHint usageHint) = 0;
 
         // Stores an array in a vertex buffer object, then binds the object to the vertex array at the
         // specified binding index. vecSize is a hint that specifies the array dimension.

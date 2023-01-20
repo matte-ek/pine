@@ -11,7 +11,7 @@ void Pine::Graphics::GLUniformBuffer::Dispose()
     glDeleteBuffers(1, &m_Id);
 }
 
-void Pine::Graphics::GLUniformBuffer::Create(size_t size, int bindingIndex)
+void Pine::Graphics::GLUniformBuffer::Create(std::size_t size, int bindingIndex)
 {
     glGenBuffers(1, &m_Id);
 
@@ -20,7 +20,7 @@ void Pine::Graphics::GLUniformBuffer::Create(size_t size, int bindingIndex)
     glBindBufferBase(GL_UNIFORM_BUFFER, bindingIndex, m_Id);
 }
 
-void Pine::Graphics::GLUniformBuffer::UploadData(void* data, size_t size, size_t offset)
+void Pine::Graphics::GLUniformBuffer::UploadData(void* data, std::size_t size, std::size_t offset)
 {
     glBufferSubData(GL_UNIFORM_BUFFER, static_cast<std::int32_t>(offset), static_cast<std::int32_t>(size), data);
 }

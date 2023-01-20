@@ -14,15 +14,15 @@ namespace Pine
         // Pointer to an initialized component object
         // of this block's type.
         T* m_Component = nullptr;
-        size_t m_ComponentSize = sizeof(T);
+        std::size_t m_ComponentSize = sizeof(T);
 
         // The allocated data with all component objects
         T* m_ComponentArray = nullptr;
-        size_t m_ComponentArraySize = 0;
+        std::size_t m_ComponentArraySize = 0;
 
         // Data of which elements of the component array is occupied.
         bool* m_ComponentOccupationArray = nullptr;
-        size_t m_ComponentOccupationArraySize = 0;
+        std::size_t m_ComponentOccupationArraySize = 0;
 
         // The number of components the array currently can fit
         std::uint32_t m_ComponentArrayAllocatedCount = 0;

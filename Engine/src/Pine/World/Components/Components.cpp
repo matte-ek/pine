@@ -34,8 +34,8 @@ namespace
         if (block->m_ComponentArray != nullptr &&
             block->m_ComponentOccupationArray != nullptr)
         {
-            size_t arrayBlockCopySize = block->m_ComponentArraySize;
-            size_t occupationArrayCopySize = block->m_ComponentOccupationArraySize;
+            std::size_t arrayBlockCopySize = block->m_ComponentArraySize;
+            std::size_t occupationArrayCopySize = block->m_ComponentOccupationArraySize;
 
             if (block->m_ComponentArraySize > block->m_ComponentSize * size)
             {
@@ -99,7 +99,7 @@ void Pine::Components::Setup()
     CreateComponentDataBlock<TilemapRenderer>();
     CreateComponentDataBlock<Camera>();
 
-    size_t totalSize = 0;
+    std::size_t totalSize = 0;
 
     for (auto& block : m_ComponentDataBlocks)
     {

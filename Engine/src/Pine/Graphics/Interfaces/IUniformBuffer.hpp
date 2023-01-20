@@ -13,8 +13,8 @@ namespace Pine::Graphics
         virtual void Bind() = 0;
         virtual void Dispose() = 0;
 
-        virtual void Create(size_t size, int bindingIndex) = 0;
-        virtual void UploadData(void* data, size_t size, size_t offset) = 0;
+        virtual void Create(std::size_t size, int bindingIndex) = 0;
+        virtual void UploadData(void* data, std::size_t size, std::size_t offset) = 0;
     };
 
 }

@@ -18,7 +18,7 @@ std::vector<std::string> Pine::String::Split(const std::string& str, const std::
     // https://stackoverflow.com/a/37454181
 
     std::vector<std::string> tokens;
-    size_t prev = 0, pos = 0;
+    std::size_t prev = 0, pos = 0;
     do
     {
         pos = str.find(deli, prev);
@@ -35,7 +35,7 @@ std::string Pine::String::Replace(const std::string& str, const std::string& pat
     std::string s = str;
 
     if(!pattern.empty())
-        for(size_t pos = 0; (pos = s.find(pattern, pos)) != std::string::npos; pos += replacement.size())
+        for(std::size_t pos = 0; (pos = s.find(pattern, pos)) != std::string::npos; pos += replacement.size())
             s.replace(pos, pattern.size(), replacement);
 
     return s;

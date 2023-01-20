@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 #include <stdexcept>
 
+
 namespace
 {
     bool m_IsInitialized = false;

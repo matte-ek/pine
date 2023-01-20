@@ -18,7 +18,7 @@ namespace Pine::Graphics
 
         std::uint32_t CreateBuffer();
 
-        GLVertexBuffer* CreateArrayBuffer(size_t size, int binding, int vecSize, int type, BufferUsageHint hint);
+        GLVertexBuffer* CreateArrayBuffer(std::size_t size, int binding, int vecSize, int type, BufferUsageHint hint);
 
         template <typename T>
         GLVertexBuffer* StoreArrayBuffer(const std::vector<T>& vec, int binding, int vecSize, int type, BufferUsageHint hint);
@@ -28,8 +28,8 @@ namespace Pine::Graphics
         void Bind() override;
         void Dispose() override;
 
-        IVertexBuffer* CreateFloatArrayBuffer(size_t size, int binding, int vecSize, BufferUsageHint usageHint) override;
-        IVertexBuffer* CreateIntegerArrayBuffer(size_t size, int binding, int vecSize, BufferUsageHint usageHint) override;
+        IVertexBuffer* CreateFloatArrayBuffer(std::size_t size, int binding, int vecSize, BufferUsageHint usageHint) override;
+        IVertexBuffer* CreateIntegerArrayBuffer(std::size_t size, int binding, int vecSize, BufferUsageHint usageHint) override;
 
         IVertexBuffer* StoreFloatArrayBuffer(const std::vector<float>& vec, int binding, int vecSize, BufferUsageHint hint) override;
         IVertexBuffer* StoreIntArrayBuffer(const std::vector<int>& vec, int binding, int vecSize, BufferUsageHint hint) override;
