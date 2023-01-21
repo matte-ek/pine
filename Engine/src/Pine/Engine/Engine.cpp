@@ -46,7 +46,7 @@ bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfigur
         return false;
     }
 
-    // Set up our graphics API; psst we only support OpenGL for now.
+    // Set up our graphics API.
     if (!Graphics::Setup(engineConfiguration.m_GraphicsAPI))
     {
         Log::Fatal("Failed to setup graphics API");

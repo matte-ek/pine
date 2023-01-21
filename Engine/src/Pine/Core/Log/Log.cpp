@@ -36,6 +36,8 @@ namespace
 
     void SetConsoleColor(ConsoleColor colorCode)
     {
+        return;
+
         if (colorCode == ConsoleColor::None)
         {
             std::cout << "\033[;0m";
