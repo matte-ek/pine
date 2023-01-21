@@ -3,6 +3,7 @@
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Font/Font.hpp"
 #include "Pine/Assets/InvalidAsset/InvalidAsset.hpp"
+#include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/Log/Log.hpp"
@@ -43,7 +44,8 @@ namespace
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
-        AssetFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } )
+        AssetFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
+        AssetFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } )
     };
 
     // Attempts to find an asset factory with the file name extension (can be full path as well)

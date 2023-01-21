@@ -23,7 +23,7 @@ namespace Pine
         bool HasEntity() const;
 
         // Create a copy of an existing entity in memory
-        void CreateFromEntity(Pine::Entity* entity);
+        void CreateFromEntity(const Pine::Entity* entity);
 
         // Spawns the stored entity in the world
         void Spawn();

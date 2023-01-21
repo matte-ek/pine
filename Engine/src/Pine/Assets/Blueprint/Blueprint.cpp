@@ -101,7 +101,7 @@ bool Pine::Blueprint::HasEntity() const
     return m_Entity;
 }
 
-void Pine::Blueprint::CreateFromEntity(Pine::Entity* entity)
+void Pine::Blueprint::CreateFromEntity(const Pine::Entity* entity)
 {
     m_Entity = new Pine::Entity(0, false);
 
