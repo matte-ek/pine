@@ -9,24 +9,36 @@ namespace
     // each entity will have a unique id.
     std::uint32_t m_EntityId = 0;
 
+    // The vector where all the entity data is actually stored.
     std::vector<Entity> m_Entities;
+
+    // The outwards facing entity list vector, with pointers to m_Entities. This allows us to move
+    // pointers around in this list, without having to move entity data around.
+    std::vector<Entity*> m_EntityPointerList;
+
 }
 
 void Pine::Entities::Setup()
 {
     m_Entities.reserve(Engine::GetEngineConfiguration().m_MaxObjectCount);
+    m_EntityPointerList.reserve(Engine::GetEngineConfiguration().m_MaxObjectCount);
 }
 
 void Pine::Entities::Shutdown()
 {
     m_Entities.clear();
+    m_EntityPointerList.clear();
 }
 
 Pine::Entity* Pine::Entities::Create()
 {
     m_Entities.emplace_back(m_EntityId++);
 
-    return &m_Entities[m_Entities.size() - 1];
+    auto entityPtr = &m_Entities[m_Entities.size() - 1];
+
+    m_EntityPointerList.push_back(entityPtr);
+
+    return entityPtr;
 }
 
 Pine::Entity* Pine::Entities::Create(const std::string& name)
@@ -62,17 +74,38 @@ Entity* Entities::Find(std::uint32_t id)
 
 bool Entities::Delete(Entity* entity)
 {
+    bool foundEntity = false;
+
+    // First remove the entity data
     for (int i = 0; i < m_Entities.size();i++)
     {
         if (&m_Entities[i] == entity)
         {
             m_Entities.erase(m_Entities.begin() + i);
 
+            foundEntity = true;
+
+            break;
+        }
+    }
+
+    if (!foundEntity)
+    {
+        return false;
+    }
+
+    // Then remove the pointer from the pointer list
+    for (int i = 0; i < m_EntityPointerList.size();i++)
+    {
+        if (m_EntityPointerList[i] == entity)
+        {
+            m_EntityPointerList.erase(m_EntityPointerList.begin() + i);
+
             return true;
         }
     }
 
-    return false;
+    throw std::runtime_error("Failed to find entity pointer while removing entity.");
 }
 
 void Entities::DeleteAll(bool includeTemporary)
@@ -80,6 +113,7 @@ void Entities::DeleteAll(bool includeTemporary)
     if (includeTemporary)
     {
         m_Entities.clear();
+        m_EntityPointerList.clear();
         return;
     }
 
@@ -88,7 +122,7 @@ void Entities::DeleteAll(bool includeTemporary)
     }
 }
 
-const std::vector<Entity>& Entities::GetList()
+const std::vector<Entity*>& Entities::GetList()
 {
-    return m_Entities;
+    return m_EntityPointerList;
 }

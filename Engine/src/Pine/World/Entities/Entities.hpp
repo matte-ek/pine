@@ -17,6 +17,6 @@ namespace Pine::Entities
     bool Delete(Entity* entity);
     void DeleteAll(bool includeTemporary = false);
 
-    const std::vector<Entity>& GetList();
+    const std::vector<Entity*>& GetList();
 
 }
