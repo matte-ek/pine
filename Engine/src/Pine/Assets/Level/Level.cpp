@@ -18,6 +18,10 @@ void Pine::Level::CreateFromWorld()
         if (entity->GetParent() != nullptr)
             continue;
 
+        // See comment for m_Temporary
+        if (entity->GetTemporary())
+            continue;
+
         auto blueprint = new Blueprint();
 
         blueprint->CreateFromEntity(entity);

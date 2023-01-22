@@ -41,6 +41,26 @@ bool Pine::Entity::GetActive() const
     return m_Active;
 }
 
+void Pine::Entity::SetStatic(bool value)
+{
+    m_Static = value;
+}
+
+bool Pine::Entity::GetStatic() const
+{
+    return m_Static;
+}
+
+void Pine::Entity::SetTemporary(bool value)
+{
+    m_Temporary = value;
+}
+
+bool Pine::Entity::GetTemporary() const
+{
+    return m_Temporary;
+}
+
 void Pine::Entity::SetName(const std::string& name)
 {
     m_Name = name;

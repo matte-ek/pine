@@ -8,6 +8,7 @@ namespace
     {
         j["name"] = entity->GetName();
         j["active"] = entity->GetActive();
+        j["static"] = entity->GetStatic();
 
         for (auto component : entity->GetComponents())
         {
@@ -34,6 +35,7 @@ namespace
     {
         entity->SetName(j["name"]);
         entity->SetActive(j["active"]);
+        entity->SetStatic(j["static"]);
 
         for (const auto& componentData : j["components"])
         {
@@ -66,6 +68,7 @@ void Pine::Blueprint::CopyEntity(Pine::Entity* dst, const Pine::Entity* src, boo
 {
     dst->SetName(src->GetName());
     dst->SetActive(src->GetActive());
+    dst->SetStatic(src->GetStatic());
 
     dst->ClearComponents();
 

@@ -15,6 +15,11 @@ namespace Pine
         std::uint32_t m_Id = 0;
 
         bool m_Active = true;
+        bool m_Static = false;
+
+        // Temporary entities are entities that by default should not get stored into for example a Level,
+        // this could be used for in-game temporary stuff or an editor entity.
+        bool m_Temporary = false;
 
         std::string m_Name;
 
@@ -30,6 +35,12 @@ namespace Pine
 
         void SetActive(bool value);
         bool GetActive() const;
+
+        void SetStatic(bool value);
+        bool GetStatic() const;
+
+        void SetTemporary(bool value);
+        bool GetTemporary() const;
 
         void SetName(const std::string& name);
         const std::string& GetName() const;

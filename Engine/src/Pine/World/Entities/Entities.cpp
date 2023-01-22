@@ -94,7 +94,6 @@ bool Entities::Delete(Entity* entity)
         return false;
     }
 
-    // Then remove the pointer from the pointer list
     for (int i = 0; i < m_EntityPointerList.size();i++)
     {
         if (m_EntityPointerList[i] == entity)
@@ -104,6 +103,8 @@ bool Entities::Delete(Entity* entity)
             return true;
         }
     }
+
+    // If we've reached to this point, something has gone terribly wrong.
 
     throw std::runtime_error("Failed to find entity pointer while removing entity.");
 }
@@ -117,8 +118,41 @@ void Entities::DeleteAll(bool includeTemporary)
         return;
     }
 
+    std::vector<const Entity*> entityPointerKeepList;
+
     for (int i = 0; i < m_Entities.size();i++)
     {
+        const auto& entity = m_Entities[i];
+
+        if (entity.GetTemporary())
+        {
+            entityPointerKeepList.push_back(&entity);
+
+            continue;
+        }
+
+        m_Entities.erase(m_Entities.begin() + i);
+    }
+
+    for (int i = 0; i < m_EntityPointerList.size();i++)
+    {
+        bool ignoreEntity = false;
+
+        for (auto keepEntity : entityPointerKeepList)
+        {
+            if (m_EntityPointerList[i] == keepEntity)
+            {
+                ignoreEntity = true;
+                break;
+            }
+        }
+
+        if (ignoreEntity)
+        {
+            continue;
+        }
+
+        m_EntityPointerList.erase(m_EntityPointerList.begin() + i);
     }
 }
 
