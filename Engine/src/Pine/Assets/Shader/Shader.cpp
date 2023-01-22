@@ -152,6 +152,8 @@ void Pine::Shader::Dispose()
 
         m_ShaderProgram = nullptr;
     }
+
+    m_State = AssetState::Unloaded;
 }
 
 Pine::Graphics::IShaderProgram* Pine::Shader::GetProgram() const

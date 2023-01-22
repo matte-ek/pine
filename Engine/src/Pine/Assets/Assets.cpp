@@ -92,6 +92,16 @@ namespace
         return filePath;
     }
 
+    Pine::IAsset* FindExistingAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
+    {
+        const auto path = GetAssetMapPath(filePath, rootPath, mapPath);
+
+        if (m_Assets.count(path) == 0)
+            return nullptr;
+
+        return m_Assets[path];
+    }
+
     Pine::IAsset* PrepareAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
     {
         if (!std::filesystem::exists(filePath))
@@ -163,7 +173,23 @@ void Pine::Assets::Shutdown()
 Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, const std::string& rootPath,
                                          const std::string& mapPath)
 {
-    const auto asset = PrepareAssetFromFile(path, rootPath, mapPath);
+    IAsset* asset;
+
+    if (auto existingAsset = FindExistingAssetFromFile(path, rootPath, mapPath))
+    {
+        if (!existingAsset->HasFileBeenUpdated())
+        {
+            return existingAsset;
+        }
+
+        asset = existingAsset;
+
+        asset->Dispose();
+    }
+    else
+    {
+        asset = PrepareAssetFromFile(path, rootPath, mapPath);
+    }
 
     if (!asset)
     {
@@ -200,6 +226,8 @@ Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, cons
         }
     }
 
+    asset->UpdateFileReadTime();
+
     m_Assets[asset->GetPath()] = asset;
 
     return asset;
@@ -220,9 +248,28 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         if (dirEntry.is_directory())
             continue;
 
-        auto asset = PrepareAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", "");
+        IAsset* asset;
+
+        if (auto existingAsset = FindExistingAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", ""))
+        {
+            if (!existingAsset->HasFileBeenUpdated())
+            {
+                continue;
+            }
+
+            asset = existingAsset;
+
+            asset->Dispose();
+        }
+        else
+        {
+            asset = PrepareAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", "");
+        }
+
         if (asset == nullptr)
+        {
             continue;
+        }
 
         loadPool.push_back(asset);
     }
@@ -345,6 +392,8 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
 
         assetsLoaded++;
 
+        asset->UpdateFileReadTime();
+
         m_Assets[asset->GetPath()] = asset;
     }
 
@@ -405,6 +454,8 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         }
 
         assetsLoaded++;
+
+        asset->UpdateFileReadTime();
 
         m_Assets[asset->GetPath()] = asset;
     }

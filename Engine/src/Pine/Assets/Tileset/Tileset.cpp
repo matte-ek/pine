@@ -17,6 +17,8 @@ void Pine::Tileset::Dispose()
 
         m_TextureAtlas = nullptr;
     }
+
+    m_State = AssetState::Unloaded;
 }
 
 void Pine::Tileset::Build()

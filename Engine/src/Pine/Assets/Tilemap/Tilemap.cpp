@@ -22,6 +22,7 @@ const std::vector<Pine::TileInstance>& Pine::Tilemap::GetTiles() const
 
 void Pine::Tilemap::Dispose()
 {
+    m_State = AssetState::Unloaded;
 }
 
 void Pine::Tilemap::CreateTile(std::uint32_t index, Pine::Vector2i gridPosition)

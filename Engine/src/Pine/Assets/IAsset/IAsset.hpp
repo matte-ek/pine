@@ -98,6 +98,9 @@ namespace Pine
         bool m_HasFile = false;
         std::filesystem::path m_FilePath;
 
+        // Used to determine if an asset file has been updated on the disk since we last loaded it.
+        std::filesystem::file_time_type m_DiskWriteTime;
+
         AssetState m_State = AssetState::Unloaded;
 
         AssetLoadMode m_LoadMode = AssetLoadMode::SingleThread;
@@ -131,7 +134,11 @@ namespace Pine
         void SetFilePath(const std::filesystem::path& path);
         const std::filesystem::path& GetFilePath() const;
 
+        void UpdateFileReadTime();
+
         bool HasFile() const;
+        bool HasFileBeenUpdated() const;
+
         bool HasMetadata() const;
         bool HasDependencies() const;
 

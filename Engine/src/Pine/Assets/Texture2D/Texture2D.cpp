@@ -84,6 +84,8 @@ void Pine::Texture2D::Dispose()
     {
         m_Texture->Dispose();
     }
+
+    m_State = AssetState::Unloaded;
 }
 
 int Pine::Texture2D::GetWidth() const

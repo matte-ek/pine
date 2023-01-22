@@ -122,3 +122,18 @@ void Pine::IAsset::SaveMetadata()
 
     Serialization::SaveToFile(metadataFile, outputJson);
 }
+
+void Pine::IAsset::UpdateFileReadTime()
+{
+    if (!m_HasFile)
+    {
+        throw std::runtime_error("Attempted to update read time on non-existing file.");
+    }
+
+    m_DiskWriteTime = std::filesystem::last_write_time(m_FilePath);
+}
+
+bool Pine::IAsset::HasFileBeenUpdated() const
+{
+    return std::filesystem::last_write_time(m_FilePath) != m_DiskWriteTime;
+}
