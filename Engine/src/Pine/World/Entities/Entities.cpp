@@ -16,6 +16,15 @@ namespace
     // pointers around in this list, without having to move entity data around.
     std::vector<Entity*> m_EntityPointerList;
 
+    // See https://stackoverflow.com/a/57399634
+    template <typename t> void MoveElementInVector(std::vector<t>& v, size_t oldIndex, size_t newIndex)
+    {
+        if (oldIndex > newIndex)
+            std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
+        else
+            std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
+    }
+
 }
 
 void Pine::Entities::Setup()
@@ -159,4 +168,27 @@ void Entities::DeleteAll(bool includeTemporary)
 const std::vector<Entity*>& Entities::GetList()
 {
     return m_EntityPointerList;
+}
+
+void Entities::MoveEntity(Entity* entity, size_t newIndex)
+{
+    bool foundEntity = false;
+    size_t oldIndex;
+
+    for (size_t i = 0; i < m_EntityPointerList.size();i++)
+    {
+        if (m_EntityPointerList[i] == entity)
+        {
+            foundEntity = true;
+            oldIndex = i;
+            break;
+        }
+    }
+
+    if (!foundEntity)
+    {
+        throw std::runtime_error("MoveEntity() called on invalid entity pointer.");
+    }
+
+    MoveElementInVector(m_EntityPointerList, oldIndex, newIndex);
 }

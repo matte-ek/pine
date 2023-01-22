@@ -19,4 +19,8 @@ namespace Pine::Entities
 
     const std::vector<Entity*>& GetList();
 
+    // Allows you to move the specified entity.
+    // newIndex specifying the element index in the vector itself.
+    void MoveEntity(Entity* entity, size_t newIndex);
+
 }
