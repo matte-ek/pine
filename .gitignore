@@ -1,5 +1,5 @@
-# Jetbrains IDE
 .idea/
+ImGui/
 
 # Build files
 cmake-build-debug/
