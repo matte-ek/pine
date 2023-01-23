@@ -30,7 +30,7 @@ namespace Pine::Graphics
         virtual void Bind() = 0;
         virtual void Dispose() = 0;
 
-        virtual bool Create(int width, int height, Buffers buffers) = 0;
+        virtual bool Create(int width, int height, std::uint32_t buffers) = 0;
     };
 
 }

@@ -55,7 +55,7 @@ void Pine::Graphics::GLFrameBuffer::Dispose()
     }
 }
 
-bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, Pine::Graphics::Buffers buffers)
+bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t buffers)
 {
     // Create the frame buffer object itself
     glGenFramebuffers(1, &m_Id);

@@ -20,7 +20,7 @@ namespace Pine::Graphics
        void Bind() override;
        void Dispose() override;
 
-       bool Create(int width, int height, Buffers buffers) override;
+       bool Create(int width, int height, std::uint32_t buffers) override;
 
        Vector2i GetSize() override;
 
