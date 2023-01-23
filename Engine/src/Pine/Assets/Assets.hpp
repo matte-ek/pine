@@ -44,6 +44,9 @@ namespace Pine::Assets
         return dynamic_cast<T*>(GetAsset(path));
     }
 
+    // Saves all new asset data that has been modified to disk
+    void SaveAll();
+
     // Gets what state the asset manager is in, such as if we're in the process of loading a directory.
     // Useful for parts of the engine to determine if assets can be added as an AssetResolveReference.
     AssetManagerState GetState();

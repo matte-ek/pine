@@ -495,6 +495,20 @@ Pine::IAsset* Pine::Assets::GetAsset(const std::string& path)
     return m_Assets[path];
 }
 
+void Assets::SaveAll()
+{
+    for (const auto& [path, asset] : m_Assets)
+    {
+        if (!asset->HasFile())
+            continue;
+
+        // We currently have no way of knowing if an asset has actually been updated from the code.
+        // So for now save all assets
+
+        asset->SaveToFile();
+    }
+}
+
 AssetManagerState Assets::GetState()
 {
     return m_State;
