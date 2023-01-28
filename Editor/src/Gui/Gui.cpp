@@ -4,20 +4,49 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui.h"
+#include "IconsMaterialDesign.h"
 
-#include "Panels/Panels.hpp"
+#include "Panels/Properties/PropertiesPanel.hpp"
+#include "Panels/AssetBrowser/AssetBrowserPanel.hpp"
+#include "Panels/EntityList/EntityListPanel.hpp"
+#include "Panels/GameViewport/GameViewportPanel.hpp"
+#include "Panels/LevelViewport/LevelViewportPanel.hpp"
 
 namespace
 {
+    void SetTheme()
+    {
+        ImGui::StyleColorsLight();
+    }
+
+    void SetFonts()
+    {
+        ImGuiIO& io = ImGui::GetIO();
+
+        // Add normal font
+        io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Regular.ttf", 16.f);
+
+        // Merge in Material Icons
+        static const ImWchar icons_ranges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
+
+        ImFontConfig icons_config;
+
+        icons_config.MergeMode = true;
+        icons_config.PixelSnapH = true;
+
+        io.Fonts->AddFontFromFileTTF("editor/fonts/MaterialIcons-Regular.ttf", 16.0f, &icons_config, icons_ranges);
+    }
+
     void InitializeImGui()
     {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
 
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-        ImGui::StyleColorsDark();
+        SetFonts();
+        SetTheme();
 
         ImGui_ImplGlfw_InitForOpenGL(Pine::WindowManager::GetWindowPointer(), true);
         ImGui_ImplOpenGL3_Init("#version 130");
@@ -30,6 +59,31 @@ namespace
         ImGui::DestroyContext();
     }
 
+    void CreateDockSpace()
+    {
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+        // Force the window to be fullscreen
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x, viewport->WorkSize.y));
+        ImGui::SetNextWindowViewport(viewport->ID);
+
+        // Make sure to remove any other visual stuff
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+        ImGui::Begin("PineDockSpaceWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
+
+        ImGui::PopStyleVar(3);
+
+        const ImGuiID dockSpaceID = ImGui::GetID("DockSpace");
+
+        ImGui::DockSpace(dockSpaceID, ImVec2(0.0f, 0.f), 0);
+
+        ImGui::End();
+    }
+
     void OnPineRender(Pine::RenderStage stage)
     {
         if (stage != Pine::RenderStage::PostRender)
@@ -39,11 +93,15 @@ namespace
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        CreateDockSpace();
+
         ImGui::ShowDemoWindow();
 
-        Panels::ShowViewports();
-        Panels::ShowEntityList();
-        Panels::ShowViewports();
+        Panels::GameViewport::Render();
+        Panels::LevelViewport::Render();
+        Panels::EntityList::Render();
+        Panels::AssetBrowser::Render();
+        Panels::Properties::Render();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

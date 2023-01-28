@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ITexture.hpp"
+
 #include "Pine/Core/Math/Math.hpp"
 
 namespace Pine::Graphics
@@ -12,8 +14,6 @@ namespace Pine::Graphics
         StencilBuffer = (1 << 2),
         NormalBuffer = (1 << 3)
     };
-
-    class ITexture;
 
     class IFrameBuffer
     {

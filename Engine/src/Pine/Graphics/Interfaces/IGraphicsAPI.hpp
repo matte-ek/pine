@@ -33,7 +33,7 @@ namespace Pine::Graphics
         // The name of the GPU
         virtual const char* GetGraphicsAdapter() const = 0;
 
-        virtual void ClearBuffers(Buffers buffers) = 0;
+        virtual void ClearBuffers(std::uint32_t buffers) = 0;
         virtual void ClearColor(Color color) = 0;
 
         virtual void SetViewport(Vector2i position, Vector2i size) = 0;

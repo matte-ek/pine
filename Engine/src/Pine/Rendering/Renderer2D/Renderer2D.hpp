@@ -10,7 +10,6 @@
 
 namespace Pine
 {
-
 }
 
 namespace Pine::Graphics

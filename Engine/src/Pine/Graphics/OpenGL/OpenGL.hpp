@@ -21,7 +21,7 @@ namespace Pine::Graphics
         const char* GetVersionString() const override;
         const char* GetGraphicsAdapter() const override;
 
-        void ClearBuffers(Buffers buffers) override;
+        void ClearBuffers(std::uint32_t buffers) override;
         void ClearColor(Color color) override;
 
         void SetViewport(Vector2i position, Vector2i size) override;

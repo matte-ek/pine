@@ -110,8 +110,8 @@ void Pine::Engine::Run()
     {
         glfwPollEvents();
 
-        m_GraphicsAPI->ClearBuffers(Graphics::ColorBuffer);
         m_GraphicsAPI->ClearColor(Color(0, 0, 0, 255));
+        m_GraphicsAPI->ClearBuffers(Graphics::ColorBuffer);
 
         RenderManager::Run();
 

@@ -39,7 +39,7 @@ const char *Pine::Graphics::OpenGL::GetGraphicsAdapter() const
     return m_GraphicsAdapter.c_str();
 }
 
-void Pine::Graphics::OpenGL::ClearBuffers(Pine::Graphics::Buffers buffers)
+void Pine::Graphics::OpenGL::ClearBuffers(std::uint32_t buffers)
 {
     int clearBits = 0;
 

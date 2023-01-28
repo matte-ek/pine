@@ -7,5 +7,6 @@ namespace RenderHandler
     void Setup();
     void Shutdown();
 
-    Pine::Graphics::IFrameBuffer* GetRenderFrameBuffer();
+    Pine::Graphics::IFrameBuffer* GetGameFrameBuffer();
+    Pine::Graphics::IFrameBuffer* GetLevelFrameBuffer();
 }

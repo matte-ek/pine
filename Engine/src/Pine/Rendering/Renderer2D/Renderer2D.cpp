@@ -342,8 +342,6 @@ void Pine::Renderer2D::RenderFrame(Pine::RenderingContext* context)
         throw std::runtime_error("Renderer2D::RenderFrame(): No rendering context provided");
     }
 
-    m_GraphicsAPI->SetViewport(Vector2i(0, 0), context->m_Size);
-
     if (context->m_Camera)
     {
         if (m_CoordinateSystem == Rendering::CoordinateSystem::Screen)

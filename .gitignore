@@ -7,3 +7,6 @@ cmake-build-release/
 
 # Game asset files
 game/
+
+# Ignore font files for now
+fonts/

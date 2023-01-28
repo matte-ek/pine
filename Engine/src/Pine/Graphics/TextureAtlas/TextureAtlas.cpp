@@ -44,7 +44,7 @@ Pine::Vector2f Pine::Graphics::TextureAtlas::CalculateTextureUv(std::uint32_t it
 
 void Pine::Graphics::TextureAtlas::Update()
 {
-    RenderingContext renderingContext = { m_Size };
+    RenderingContext renderingContext = { true, m_Size };
 
     m_AtlasFrameBuffer->Bind();
 

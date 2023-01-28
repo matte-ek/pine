@@ -24,8 +24,16 @@ namespace Pine::RenderManager
     // render events shown in RenderStage
     void AddRenderCallback(const std::function<void(RenderStage)>& func);
 
-    void SetRenderingContext(RenderingContext* context);
-    RenderingContext* GetRenderingContext();
+    void SetPrimaryRenderingContext(RenderingContext* context);
+    RenderingContext* GetPrimaryRenderingContext();
+
+    // Pine supports multiple rendering contexts at the same time, and will redo the entire rendering on the other context.
+    // This could be used for example with an editor and game camera, rendered at the same time.
+    void AddRenderingContextPass(RenderingContext* context);
+    void RemoveRenderingContextPass(RenderingContext* context);
+
+    // The rendering context currently being used during rendering.
+    RenderingContext* GetCurrentRenderingContext();
 
     // The default rendering context's properties may be overwritten, but is generally used
     // as a 'reset' for the rendering pipeline.
