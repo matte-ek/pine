@@ -1,4 +1,5 @@
 #include "Entity.hpp"
+#include "Pine/Core/Log/Log.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
 Pine::Entity::Entity(std::uint32_t id, bool createTransform)
@@ -12,8 +13,13 @@ Pine::Entity::~Entity()
 {
     for (auto component : m_Components)
     {
-        Components::Destroy(component);
+        if (!Components::Destroy(component))
+        {
+            Log::Error("~Entity(): Error destroying component.");
+        }
     }
+
+    m_Components.clear();
 
     for (auto child : m_Children)
     {

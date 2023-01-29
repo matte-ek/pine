@@ -25,6 +25,9 @@ namespace
             std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
     }
 
+    // 'Hack' to make not attempt to remove entities during application shutdown, as m_Entities's de-constructor is getting ran.
+    bool m_ExitingApplication = false;
+
 }
 
 void Pine::Entities::Setup()
@@ -35,6 +38,8 @@ void Pine::Entities::Setup()
 
 void Pine::Entities::Shutdown()
 {
+    m_ExitingApplication = true;
+
     m_Entities.clear();
     m_EntityPointerList.clear();
 }
@@ -83,6 +88,11 @@ Entity* Entities::Find(std::uint32_t id)
 
 bool Entities::Delete(Entity* entity)
 {
+    if (m_ExitingApplication)
+    {
+        return true;
+    }
+
     bool foundEntity = false;
 
     // First remove the entity data

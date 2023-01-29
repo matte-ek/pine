@@ -37,7 +37,7 @@ namespace Pine
 
         ComponentDataBlockIterator<T> end()
         {
-            return ComponentDataBlockIterator<T>(m_HighestComponentIndex == -1 ? 0 : m_HighestComponentIndex + 1, this);
+            return ComponentDataBlockIterator<T>(m_HighestComponentIndex == -1 ? 0 : m_HighestComponentIndex, this);
         }
 
         __inline int GetHighestComponentIndex()
@@ -49,7 +49,7 @@ namespace Pine
             for (int i = 0; i < m_ComponentOccupationArraySize;i++)
             {
                 if (m_ComponentOccupationArray[i])
-                    highestIndex = i;
+                    highestIndex = i + 1;
             }
 
             return highestIndex;
@@ -105,7 +105,7 @@ namespace Pine
             m_ComponentIndex++;
 
             // If we've reached .end(), we just to stop
-            if (m_ComponentIndex == m_BlockParent->m_HighestComponentIndex + 1)
+            if (m_ComponentIndex == m_BlockParent->m_HighestComponentIndex)
             {
                 m_ComponentPtr = m_BlockParent->GetComponent(m_ComponentIndex);
                 return *this;

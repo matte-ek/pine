@@ -113,9 +113,11 @@ void Pine::Components::Shutdown()
 {
     for (const auto block : m_ComponentDataBlocks)
     {
-        free(block->m_ComponentArray);
-        free(block->m_ComponentOccupationArray);
+        free(reinterpret_cast<IComponent*>(block->m_ComponentArray));
+        delete[] block->m_ComponentOccupationArray;
     }
+
+    m_ComponentDataBlocks.clear();
 }
 
 const std::vector<ComponentDataBlock<IComponent>*>& Pine::Components::GetComponentTypes()
@@ -181,6 +183,13 @@ IComponent* Components::Copy(IComponent* component, bool standalone)
 
 bool Components::Destroy(IComponent* targetComponent)
 {
+    if (m_ComponentDataBlocks.empty())
+    {
+        // If the application is being closed, all the de-constructors in Entity will get called,
+        // therefore this method will get called, hence this check.
+        return true;
+    }
+
     targetComponent->OnDestroyed();
 
     // If the component is standalone (i.e. it isn't in the "ECS"), we can just free
@@ -196,7 +205,7 @@ bool Components::Destroy(IComponent* targetComponent)
 
     for (std::uint32_t i = 0; i < data.GetHighestComponentIndex();i++)
     {
-        auto componentPointer = data.m_ComponentArray + data.m_ComponentSize * i;
+        auto componentPointer = data.GetComponent(i);
 
         if (componentPointer == targetComponent)
         {
