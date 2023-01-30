@@ -16,7 +16,9 @@ namespace
 {
     void SetTheme()
     {
-        ImGui::StyleColorsLight();
+        // TODO: Do a nice green dark theme
+
+        ImGui::StyleColorsDark();
     }
 
     void SetFonts()
@@ -24,7 +26,7 @@ namespace
         ImGuiIO& io = ImGui::GetIO();
 
         // Add normal font
-        io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Regular.ttf", 16.f);
+        io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Regular.ttf", 17.f);
 
         // Merge in Material Icons
         static const ImWchar icons_ranges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
@@ -33,6 +35,7 @@ namespace
 
         icons_config.MergeMode = true;
         icons_config.PixelSnapH = true;
+        icons_config.GlyphOffset = ImVec2(0, 3.f);
 
         io.Fonts->AddFontFromFileTTF("editor/fonts/MaterialIcons-Regular.ttf", 16.0f, &icons_config, icons_ranges);
     }

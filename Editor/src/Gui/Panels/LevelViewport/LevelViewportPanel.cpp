@@ -1,6 +1,7 @@
 #include "LevelViewportPanel.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include "imgui.h"
+#include "IconsMaterialDesign.h"
 
 namespace
 {
@@ -32,7 +33,7 @@ Pine::Vector2i Panels::LevelViewport::GetSize()
 
 void Panels::LevelViewport::Render()
 {
-    if (!ImGui::Begin("Level", &m_Active))
+    if (!ImGui::Begin(ICON_MD_PUBLIC " Level", &m_Active))
     {
         m_Visible = false;
 

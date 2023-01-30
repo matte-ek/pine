@@ -1,4 +1,5 @@
 #include "Gui/Gui.hpp"
+#include "Pine/World/Entity/Entity.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include <Pine/Pine.hpp>
 
@@ -18,6 +19,9 @@ int main()
     // Setup Editor
     RenderHandler::Setup();
     Gui::Setup();
+
+    Pine::Entity::Create("Entity");
+    Pine::Entity::Create("Entity with child")->CreateChild();
 
     // Enter main loop
     Pine::Engine::Run();

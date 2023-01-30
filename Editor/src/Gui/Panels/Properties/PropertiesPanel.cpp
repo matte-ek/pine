@@ -1,5 +1,6 @@
 #include "PropertiesPanel.hpp"
 #include "imgui.h"
+#include "IconsMaterialDesign.h"
 
 namespace
 {
@@ -18,7 +19,7 @@ bool Panels::Properties::GetActive()
 
 void Panels::Properties::Render()
 {
-    if (!ImGui::Begin("Properties", &m_Active))
+    if (!ImGui::Begin(ICON_MD_BUILD " Properties", &m_Active))
     {
         ImGui::End();
 

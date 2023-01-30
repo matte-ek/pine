@@ -1,6 +1,7 @@
 #include "GameViewportPanel.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include "imgui.h"
+#include "IconsMaterialDesign.h"
 
 namespace
 {
@@ -32,7 +33,7 @@ Pine::Vector2i Panels::GameViewport::GetSize()
 
 void Panels::GameViewport::Render()
 {
-    if (!ImGui::Begin("Game", &m_Active))
+    if (!ImGui::Begin(ICON_MD_SPORTS_ESPORTS " Game", &m_Active))
     {
         m_Visible = false;
 

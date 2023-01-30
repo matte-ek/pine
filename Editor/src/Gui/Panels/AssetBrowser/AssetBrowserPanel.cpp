@@ -1,5 +1,6 @@
 #include "AssetBrowserPanel.hpp"
 #include "imgui.h"
+#include "IconsMaterialDesign.h"
 
 namespace
 {
@@ -18,7 +19,7 @@ bool Panels::AssetBrowser::GetActive()
 
 void Panels::AssetBrowser::Render()
 {
-    if (!ImGui::Begin("Asset Browser", &m_Active))
+    if (!ImGui::Begin(ICON_MD_FOLDER_OPEN " Asset Browser", &m_Active))
     {
         ImGui::End();
 
