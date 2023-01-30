@@ -26,7 +26,7 @@ namespace Pine
         void CreateFromEntity(const Pine::Entity* entity);
 
         // Spawns the stored entity in the world
-        void Spawn();
+        Pine::Entity* Spawn();
 
         // Serializes or de-serializes the stored entity
         void FromJson(const nlohmann::json& j);

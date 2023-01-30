@@ -111,7 +111,7 @@ void Pine::Blueprint::CreateFromEntity(const Pine::Entity* entity)
    CopyEntity(m_Entity, entity, false);
 }
 
-void Pine::Blueprint::Spawn()
+Pine::Entity* Pine::Blueprint::Spawn()
 {
    if (m_Entity == nullptr)
    {
@@ -121,6 +121,8 @@ void Pine::Blueprint::Spawn()
    auto entity = Entity::Create();
 
    CopyEntity(entity, m_Entity, true);
+
+   return entity;
 }
 
 void Pine::Blueprint::FromJson(const nlohmann::json& j)

@@ -21,7 +21,7 @@ namespace Pine
         // this could be used for in-game temporary stuff or an editor entity.
         bool m_Temporary = false;
 
-        std::string m_Name;
+        std::string m_Name = "Entity";
 
         std::vector<IComponent*> m_Components;
         std::vector<Entity*> m_Children;
