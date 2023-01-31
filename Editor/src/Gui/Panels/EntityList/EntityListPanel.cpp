@@ -19,6 +19,8 @@ namespace
     // popup from inside RenderEntity()
     bool m_OpenEntityContextMenu = false;
 
+    bool m_DidSelectEntity = false;
+
     void RenderEntity(Pine::Entity* entity)
     {
         // Add the id to the name after '##' (which ImGui won't render) to avoid duplicate id issues,
@@ -30,20 +32,14 @@ namespace
 
         if (entity->GetChildren().empty())
             flags |= ImGuiTreeNodeFlags_Leaf;
-        if (Selection::Get<Pine::Entity>() == entity)
+        if (Selection::IsSelected<Pine::Entity>(entity))
             flags |= ImGuiTreeNodeFlags_Selected;
 
         static const auto runEntityContextWidgets = [](Pine::Entity* entity)
         {
-            if (ImGui::IsItemClicked())
+            if (ImGui::IsItemHovered() && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right)))
             {
-                Selection::Select<Pine::Entity>(entity);
-            }
-
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-            {
-                Selection::Select<Pine::Entity>(entity);
-                m_OpenEntityContextMenu = true;
+                
             }
 
             if (ImGui::BeginDragDropTarget())
@@ -175,6 +171,7 @@ void Panels::EntityList::Render()
     }
 
     m_OpenEntityContextMenu = false;
+    m_DidSelectEntity = false;
 
     ImGui::PushItemWidth(-1.f);
     ImGui::InputTextWithHint("##EntitySearch", ICON_MD_SEARCH " Search...", m_SearchBuffer, IM_ARRAYSIZE(m_SearchBuffer));
@@ -223,7 +220,7 @@ void Panels::EntityList::Render()
 
     ImGui::PopStyleVar();
 
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !m_DidSelectEntity)
     {
         Selection::Clear();
     }
@@ -244,7 +241,7 @@ void Panels::EntityList::Render()
             {
                 auto entity = Pine::Entity::Create();
 
-                Selection::Select(entity);
+                Selection::Add(entity, true);
 
                 ImGui::CloseCurrentPopup();
             }
@@ -254,14 +251,15 @@ void Panels::EntityList::Render()
 
         ImGui::Separator();
 
-        auto selectedEntity = Selection::Get<Pine::Entity>();
-        const bool hasSelectedEntity = selectedEntity != nullptr;
+        const bool hasSelectedEntity = !Selection::GetSelectedEntities().empty();
+        Pine::Entity* primaryEntity = hasSelectedEntity ? Selection::GetSelectedEntities()[0] : nullptr;
 
         if (ImGui::MenuItem("Delete", nullptr, false, hasSelectedEntity))
         {
-            Selection::Clear();
+            for (auto entity : Selection::GetSelectedEntities())
+                entity->Delete();
 
-            selectedEntity->Delete();
+            Selection::Clear();
 
             ImGui::CloseCurrentPopup();
         }
@@ -273,29 +271,36 @@ void Panels::EntityList::Render()
 
         if (ImGui::MenuItem("Duplicate", nullptr, false, hasSelectedEntity))
         {
-            Pine::Blueprint temporaryBlueprint;
+            auto selectedEntities = Selection::GetSelectedEntities();
 
-            temporaryBlueprint.CreateFromEntity(selectedEntity);
+            Selection::Clear();
 
-            auto entity = temporaryBlueprint.Spawn();
+            for (auto selectedEntity : selectedEntities)
+            {
+                Pine::Blueprint temporaryBlueprint;
 
-            Selection::Select(entity);
+                temporaryBlueprint.CreateFromEntity(selectedEntity);
 
-            ImGui::CloseCurrentPopup();
-        }
+                auto entity = temporaryBlueprint.Spawn();
 
-        if (ImGui::MenuItem("Create child", nullptr, false, hasSelectedEntity))
-        {
-            auto newChild = selectedEntity->CreateChild();
-
-            Selection::Select(newChild);
+                Selection::Add(entity);
+            }
 
             ImGui::CloseCurrentPopup();
         }
 
-        if (ImGui::MenuItem("Unlink from parent", nullptr, false, hasSelectedEntity && selectedEntity->GetParent() != nullptr))
+        if (ImGui::MenuItem("Create child", nullptr, false, hasSelectedEntity) && hasSelectedEntity)
         {
-            selectedEntity->GetParent()->RemoveChild(selectedEntity);
+            auto newChild = primaryEntity->CreateChild();
+
+            Selection::Add(newChild);
+
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (ImGui::MenuItem("Unlink from parent", nullptr, false, hasSelectedEntity && primaryEntity->GetParent() != nullptr) && hasSelectedEntity)
+        {
+            primaryEntity->GetParent()->RemoveChild(primaryEntity);
 
             ImGui::CloseCurrentPopup();
         }
