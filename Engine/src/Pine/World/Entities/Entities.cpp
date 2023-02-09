@@ -50,7 +50,7 @@ namespace
     std::vector<Entity*> m_EntityPointerList;
 
     // See https://stackoverflow.com/a/57399634
-    template <typename t> void MoveElementInVector(std::vector<t>& v, size_t oldIndex, size_t newIndex)
+    template <typename t> void MoveElementInVector(std::vector<t>& v, std::size_t oldIndex, std::size_t newIndex)
     {
         if (oldIndex > newIndex)
             std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
@@ -240,12 +240,12 @@ const std::vector<Entity*>& Entities::GetList()
     return m_EntityPointerList;
 }
 
-void Entities::MoveEntity(Entity* entity, size_t newIndex)
+void Entities::MoveEntity(Entity* entity, std::size_t newIndex)
 {
     bool foundEntity = false;
-    size_t oldIndex;
+    std::size_t oldIndex;
 
-    for (size_t i = 0; i < m_EntityPointerList.size();i++)
+    for (std::size_t i = 0; i < m_EntityPointerList.size();i++)
     {
         if (m_EntityPointerList[i]->GetId() == entity->GetId())
         {

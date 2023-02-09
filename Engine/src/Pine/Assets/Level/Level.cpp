@@ -52,7 +52,7 @@ void Pine::Level::ClearBlueprints()
     m_Blueprints.clear();
 }
 
-size_t Pine::Level::GetBlueprintCount() const
+std::size_t Pine::Level::GetBlueprintCount() const
 {
     return m_Blueprints.size();
 }

@@ -1,4 +1,5 @@
 #include "String.hpp"
+#include <algorithm>
 
 bool Pine::String::StartsWith(const std::string& str, const std::string& start)
 {
@@ -39,4 +40,22 @@ std::string Pine::String::Replace(const std::string& str, const std::string& pat
             s.replace(pos, pattern.size(), replacement);
 
     return s;
+}
+
+std::string Pine::String::ToLower(const std::string& str)
+{
+    std::string ret = str;
+
+    std::transform(ret.begin(), ret.end(), ret.begin(), [](unsigned char c) { return std::tolower(c); });
+
+    return ret;
+}
+
+std::string Pine::String::ToUpper(const std::string& str)
+{
+    std::string ret = str;
+
+    std::transform(ret.begin(), ret.end(), ret.begin(), [](unsigned char c) { return std::toupper(c); });
+
+    return ret;
 }

@@ -17,7 +17,7 @@ namespace Pine
 
         void ClearBlueprints();
 
-        size_t GetBlueprintCount() const;
+        std::size_t GetBlueprintCount() const;
 
         bool LoadFromFile(AssetLoadStage stage) override;
         bool SaveToFile() override;

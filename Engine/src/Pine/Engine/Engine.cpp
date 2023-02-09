@@ -96,7 +96,7 @@ void Pine::Engine::Run()
         throw std::runtime_error("Engine::Run(): Engine has not been initialized.");
     }
 
-    const auto windowPointer = WindowManager::GetWindowPointer();
+    const auto windowPointer = reinterpret_cast<GLFWwindow*>(WindowManager::GetWindowPointer());
 
     // During the window setup, we've actually made the window to be invisible by default.
     // This is because:

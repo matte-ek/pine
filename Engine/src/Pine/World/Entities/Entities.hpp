@@ -21,6 +21,6 @@ namespace Pine::Entities
 
     // Allows you to move the specified entity.
     // newIndex specifying the element index in the vector itself.
-    void MoveEntity(Entity* entity, size_t newIndex);
+    void MoveEntity(Entity* entity, std::size_t newIndex);
 
 }

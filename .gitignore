@@ -3,9 +3,7 @@
 
 # Build files
 cmake-build*
-build/
 
 # Other
 fonts/
 ImGui/
-game/

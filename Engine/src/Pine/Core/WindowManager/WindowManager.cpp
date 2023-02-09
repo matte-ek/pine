@@ -194,7 +194,7 @@ void* Pine::WindowManager::GetWindowHandlePointer()
     return nullptr;
 }
 
-GLFWwindow *Pine::WindowManager::GetWindowPointer()
+void* Pine::WindowManager::GetWindowPointer()
 {
     return m_Window;
 }

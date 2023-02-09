@@ -2,6 +2,7 @@
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "IconsMaterialDesign.h"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
+#include "Pine/Core/String/String.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "imgui.h"
@@ -39,7 +40,26 @@ namespace
         {
             if (ImGui::IsItemHovered() && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right)))
             {
-                
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                {
+                    if (Selection::GetSelectedEntities().empty())
+                        Selection::Add(entity, true);
+
+                    m_OpenEntityContextMenu = true;
+                }
+                else
+                {
+                    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+                    {
+                        Selection::Add(entity);
+                    }
+                    else
+                    {
+                        Selection::Add(entity, true);
+                    }
+                }
+
+                m_DidSelectEntity = true;
             }
 
             if (ImGui::BeginDragDropTarget())
@@ -184,14 +204,7 @@ void Panels::EntityList::Render()
         RenderEntityMoveSeparator(0);
 
     bool hasSearchQuery = strlen(m_SearchBuffer) > 0;
-    std::string searchQuery;
-
-    if (hasSearchQuery)
-    {
-        searchQuery = m_SearchBuffer;
-
-        std::transform(searchQuery.begin(), searchQuery.end(), searchQuery.begin(), [](unsigned char c) { return std::tolower(c); });
-    }
+    std::string searchQuery = hasSearchQuery ? Pine::String::ToLower(m_SearchBuffer) : "";
 
     for (int i = 0; i < Pine::Entities::GetList().size();i++)
     {
@@ -204,11 +217,7 @@ void Panels::EntityList::Render()
 
         if (hasSearchQuery)
         {
-            std::string entityName = entity->GetName();
-
-            std::transform(entityName.begin(), entityName.end(), entityName.begin(), [](unsigned char c) { return std::tolower(c); });
-
-            if (entityName.find(searchQuery) == std::string::npos)
+            if (Pine::String::ToLower(entity->GetName()).find(searchQuery) == std::string::npos)
                 continue;
         }
 

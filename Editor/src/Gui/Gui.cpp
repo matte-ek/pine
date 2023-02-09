@@ -51,7 +51,7 @@ namespace
         SetFonts();
         SetTheme();
 
-        ImGui_ImplGlfw_InitForOpenGL(Pine::WindowManager::GetWindowPointer(), true);
+        ImGui_ImplGlfw_InitForOpenGL(reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
         ImGui_ImplOpenGL3_Init("#version 130");
     }
 

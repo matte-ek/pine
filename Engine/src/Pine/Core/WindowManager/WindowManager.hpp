@@ -7,8 +7,6 @@
 // Pine only supports one window at the time, don't see any reason
 // for there to be more windows at the moment.
 
-class GLFWwindow;
-
 namespace Pine::WindowManager
 {
     struct Monitor
@@ -68,6 +66,6 @@ namespace Pine::WindowManager
     void* GetWindowHandlePointer();
 
     // Pointer to the underlying GLFW window
-    GLFWwindow* GetWindowPointer();
+    void* GetWindowPointer();
 
 }
