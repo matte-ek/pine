@@ -12,6 +12,23 @@ namespace Pine
         Camera
     };
 
+    inline const char* ComponentTypeToString(ComponentType type)
+    {
+        switch (type)
+        {
+        case ComponentType::Transform:
+            return "Transform";
+        case ComponentType::SpriteRenderer:
+            return "Sprite Renderer";
+        case ComponentType::TilemapRenderer:
+            return "Tile-map Renderer";
+        case ComponentType::Camera:
+            return "Camera";
+        }
+
+        return "N/A";
+    }
+
     class Entity;
 
     class IComponent
