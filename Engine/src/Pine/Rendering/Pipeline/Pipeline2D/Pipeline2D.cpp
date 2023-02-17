@@ -66,6 +66,11 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
         {
             auto spriteRenderer = dynamic_cast<SpriteRenderer*>(renderItem.m_ComponentPointer);
 
+            if (spriteRenderer->GetTexture() == nullptr)
+            {
+                continue;
+            }
+
             auto uvScaling = Vector2f(1.f);
 
             if (spriteRenderer->GetScalingMode() == SpriteScalingMode::Repeat)
@@ -86,6 +91,12 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
         if (renderItem.m_Type == RenderItemType::TilemapRenderer)
         {
             auto tilemapRenderer = dynamic_cast<TilemapRenderer*>(renderItem.m_ComponentPointer);
+
+            if (tilemapRenderer->GetTilemap() == nullptr ||
+                tilemapRenderer->GetTilemap()->GetTileset() == nullptr)
+            {
+                continue;
+            }
 
             auto tileMap = tilemapRenderer->GetTilemap();
             auto textureAtlas = tileMap->GetTileset()->GetTextureAtlas();

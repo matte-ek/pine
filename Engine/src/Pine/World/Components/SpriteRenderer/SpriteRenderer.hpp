@@ -2,6 +2,7 @@
 
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/World/Components/IComponent/IComponent.hpp"
+
 namespace Pine
 {
 
