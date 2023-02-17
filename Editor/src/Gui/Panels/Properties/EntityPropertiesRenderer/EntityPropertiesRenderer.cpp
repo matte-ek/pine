@@ -1,7 +1,13 @@
 #include "EntityPropertiesRenderer.hpp"
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "IconsMaterialDesign.h"
+#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "imgui.h"
+#include "Pine/Core/String/String.hpp"
+#include <stdexcept>
 
 namespace
 {
@@ -27,6 +33,14 @@ namespace
             {
                 transform->LocalScale = scale;
             }
+        }
+
+        void RenderSpriteRenderer(Pine::SpriteRenderer* spriteRenderer)
+        {
+            auto [newStaticTextureSet, newStaticTexture] = Widgets::AssetPicker("Static Texture", reinterpret_cast<Pine::IAsset*>(spriteRenderer->GetTexture()));
+
+            if (newStaticTextureSet)
+                spriteRenderer->SetTexture(dynamic_cast<Pine::Texture2D*>(newStaticTexture));
         }
 
         void Render(Pine::IComponent* component, int index)
@@ -68,6 +82,9 @@ namespace
                 {
                 case Pine::ComponentType::Transform:
                     RenderTransform(dynamic_cast<Pine::Transform*>(component));
+                    break;
+                case Pine::ComponentType::SpriteRenderer:
+                    RenderSpriteRenderer(dynamic_cast<Pine::SpriteRenderer*>(component));
                     break;
                 default:
                     break;
@@ -114,7 +131,38 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
     }
 
     // Component creation
-    char componentSearchBuffer[64];
+    static char componentSearchBuffer[64];
+
+    static int selectedComponent = 0;
+    static std::vector<const char*> componentSearchBox;
+
+    static bool setKeyboardFocus = false;
+
+    static auto componentSearch = [&]() {
+        const auto& componentList = Pine::Components::GetComponentTypes();
+
+        componentSearchBox.clear();
+
+        for (const auto& component : componentList)
+        {
+            const char* componentName = Pine::ComponentTypeToString(component->m_Component->GetType());
+
+            // Do not allow multiple transform components.
+            if (component->m_Component->GetType() == Pine::ComponentType::Transform)
+                continue;
+
+            if (strlen(componentSearchBuffer) == 0)
+            {
+                componentSearchBox.push_back(componentName);
+                continue;
+            }
+
+            if (Pine::String::ToLower(std::string(componentName)).find(Pine::String::ToLower(std::string(componentSearchBuffer))) != std::string::npos)
+            {
+                componentSearchBox.push_back(componentName);
+            }
+        }
+    };
 
     ImGui::Separator();
     ImGui::Spacing();
@@ -123,16 +171,62 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
     {
         strcpy(componentSearchBuffer, "\0");
 
-        ImGui::OpenPopup("AddComponentPopup");
+        componentSearch();
 
-        ImGui::SetKeyboardFocusHere(0);
+        setKeyboardFocus = true;
+
+        ImGui::OpenPopup("AddComponentPopup");
     }
 
     if (ImGui::BeginPopup("AddComponentPopup"))
     {
-        ImGui::InputTextWithHint("##ComponentSearchBox", ICON_MD_SEARCH " Search...", componentSearchBuffer, 64);
+        if (setKeyboardFocus)
+        {
+            ImGui::SetKeyboardFocusHere();
 
+            setKeyboardFocus = false;
+        }
 
+        if (ImGui::InputTextWithHint("##ComponentSearchBox", ICON_MD_SEARCH " Search...", componentSearchBuffer, 64))
+        {
+            componentSearch();
+        }
+
+        ImGui::ListBox("##ComponentList", &selectedComponent, componentSearchBox.data(), componentSearchBox.size());
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::Button("Add", ImVec2(-1.f, 30.f)))
+        {
+            if (!componentSearchBox.empty())
+            {
+                // Find the component type from the selected string
+                const auto& componentList = Pine::Components::GetComponentTypes();
+                const auto selectedComponentStr = componentSearchBox[selectedComponent];
+                
+                Pine::ComponentType selectedComponentType;
+                bool foundComponentType = false;
+
+                for (const auto& component : componentList)
+                {
+                    const char* componentName = Pine::ComponentTypeToString(component->m_Component->GetType());
+
+                    if (strcmp(componentName, selectedComponentStr) == 0)
+                    {
+                        selectedComponentType = component->m_Component->GetType();
+                        foundComponentType = true;
+                        break;
+                    }
+                }
+
+                if (!foundComponentType)
+                {
+                    throw std::runtime_error("Failed to create component through gui, invalid component type.");
+                }
+
+                entity->AddComponent(selectedComponentType);
+            }
+
+            ImGui::CloseCurrentPopup();
+        }
 
         ImGui::EndPopup();
     }

@@ -1,5 +1,7 @@
 #include "Widgets.hpp"
+#include "imgui.h"
 #include "imgui_internal.h"
+#include <cstring>
 
 namespace
 {
@@ -76,4 +78,39 @@ bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector)
     FinishWidget();
 
     return xChanged || yChanged || zChanged;
+}
+
+AssetPickerResult Widgets::AssetPicker(const std::string& str, Pine::IAsset* asset, Pine::AssetType restrictedType)
+{
+    AssetPickerResult ret;
+
+    std::string assetFileName;
+
+    if (asset != nullptr)
+    {
+       assetFileName = asset->GetFileName();
+    }
+
+    if (assetFileName.size() > 128)
+    {
+        return ret;
+    }
+
+    PrepareWidget(str);
+
+    char buff[128];
+
+    strcpy(buff, assetFileName.c_str());
+
+    ImGui::InputText(std::string("##AssetPath" + str).c_str(), buff, 128, ImGuiInputTextFlags_::ImGuiInputTextFlags_ReadOnly);
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("..."))
+    {
+    }
+
+    FinishWidget();
+
+    return ret;
 }
