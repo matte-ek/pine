@@ -1,12 +1,11 @@
 .idea/
-ImGui/
+.vscode/
 
 # Build files
-cmake-build-debug/
-cmake-build-release/
+cmake-build*
+build/
 
-# Game asset files
-game/
-
-# Ignore font files for now
+# Other
 fonts/
+ImGui/
+game/

@@ -6,6 +6,8 @@
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Assets/Tilemap/Tilemap.hpp"
+#include "Pine/Assets/Tileset/Tileset.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Engine/Engine.hpp"
@@ -45,7 +47,9 @@ namespace
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
         AssetFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
-        AssetFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } )
+        AssetFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
+        AssetFactory( { { "tileset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
+        AssetFactory( { { "tilemap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } )
     };
 
     // Attempts to find an asset factory with the file name extension (can be full path as well)
@@ -506,6 +510,7 @@ void Assets::SaveAll()
         // So for now save all assets
 
         asset->SaveToFile();
+        asset->SaveMetadata();
     }
 }
 

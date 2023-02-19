@@ -48,7 +48,7 @@ Pine::Shader::Shader()
 bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
 {
     // Attempt to parse JSON
-    auto jsonOpt = Serialization::LoadFromFile(m_Path);
+    auto jsonOpt = Serialization::LoadFromFile(m_FilePath);
 
     if (!jsonOpt.has_value())
         return false;

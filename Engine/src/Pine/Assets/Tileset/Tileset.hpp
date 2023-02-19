@@ -15,6 +15,9 @@ namespace Pine
         // The index the renderer will use when rendering the tile from the texture atlas.
         std::uint32_t m_RenderIndex;
 
+        // Preset flags for this tile
+        std::uint32_t m_DefaultFlags = 0;
+
         Texture2D* m_Texture;
     };
 
@@ -33,7 +36,7 @@ namespace Pine
         void SetTileSize(int size);
         int GetTileSize() const;
 
-        void AddTile(Texture2D* texture);
+        void AddTile(Texture2D* texture, std::uint32_t defaultFlags = 0);
         void RemoveTile(const TileData& tile);
 
         TileData const* GetTileByIndex(std::uint32_t index) const;
@@ -44,6 +47,9 @@ namespace Pine
         Graphics::TextureAtlas* GetTextureAtlas() const;
 
         void Build();
+
+        bool LoadFromFile(AssetLoadStage stage) override;
+        bool SaveToFile() override;
 
         void Dispose() override;
     };

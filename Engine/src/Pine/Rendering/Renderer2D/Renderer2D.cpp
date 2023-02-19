@@ -354,6 +354,8 @@ void Pine::Renderer2D::RenderFrame(Pine::RenderingContext* context)
         m_CamPositionOffset = Vector2f(0.f);
     }
 
+    Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), context->m_Size);
+
     RectangleRenderer::RenderFrame(context);
 }
 

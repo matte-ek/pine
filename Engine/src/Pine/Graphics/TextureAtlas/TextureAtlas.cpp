@@ -67,6 +67,7 @@ void Pine::Graphics::TextureAtlas::Update()
                                                texture);
     }
 
+    Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::Screen);
     Renderer2D::RenderFrame(&renderingContext);
 
     Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
