@@ -17,6 +17,15 @@ namespace
     void SetTheme()
     {
         // TODO: Do a nice green dark theme
+        auto& io = ImGui::GetIO();
+        auto& style = ImGui::GetStyle();
+
+        style.WindowPadding = ImVec2(8, 8);
+        style.FramePadding = ImVec2(4, 3);
+        style.CellPadding = ImVec2(4, 2);
+        style.ItemSpacing = ImVec2(4, 5);
+        style.GrabMinSize = 8.f;
+        style.FrameRounding = 4.f;
 
         ImGui::StyleColorsDark();
     }

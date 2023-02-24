@@ -1,4 +1,5 @@
 #include "Gui/Gui.hpp"
+#include "Pine/Assets/Assets.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include <Pine/Pine.hpp>
@@ -15,6 +16,8 @@ int main()
     {
         return 0;
     }
+
+    Pine::Assets::LoadDirectory("editor", false);
 
     // Setup Editor
     RenderHandler::Setup();

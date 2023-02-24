@@ -20,7 +20,7 @@ namespace Selection
     template <typename T>
     void Add(T* item, bool limitOne = false)
     {
-        static_assert(std::is_same<T, Pine::Entity>::value || std::is_same<T, Pine::IAsset*>::value);
+        static_assert(std::is_same<T, Pine::Entity>::value || std::is_same<T, Pine::IAsset>::value);
 
         if (limitOne)
             Clear();

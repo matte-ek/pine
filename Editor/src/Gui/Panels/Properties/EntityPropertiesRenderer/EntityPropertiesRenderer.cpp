@@ -3,8 +3,10 @@
 #include "IconsMaterialDesign.h"
 #include "Pine/Assets/IAsset/IAsset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/World/Components/IComponent/IComponent.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
+#include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "imgui.h"
 #include "Pine/Core/String/String.hpp"
 #include <stdexcept>
@@ -37,10 +39,32 @@ namespace
 
         void RenderSpriteRenderer(Pine::SpriteRenderer* spriteRenderer)
         {
+            int scalingMode = static_cast<int>(spriteRenderer->GetScalingMode());
+            int order = spriteRenderer->GetOrder();
+
             auto [newStaticTextureSet, newStaticTexture] = Widgets::AssetPicker("Static Texture", reinterpret_cast<Pine::IAsset*>(spriteRenderer->GetTexture()));
 
             if (newStaticTextureSet)
                 spriteRenderer->SetTexture(dynamic_cast<Pine::Texture2D*>(newStaticTexture));
+
+            if (Widgets::Combobox("Scaling Mode", &scalingMode, "Stretch\0Repeat\0"))
+                spriteRenderer->SetScalingMode(static_cast<Pine::SpriteScalingMode>(scalingMode));
+
+            if (Widgets::InputInt("Order", &order))
+                spriteRenderer->SetOrder(order);
+        }
+
+        void RenderTilemapRenderer(Pine::TilemapRenderer* tilemapRenderer)
+        {
+            int order = tilemapRenderer->GetOrder();
+
+            auto [newTilemapSet, newTilemap] = Widgets::AssetPicker("Tile map", tilemapRenderer->GetTilemap());
+
+            if (newTilemapSet)
+                tilemapRenderer->SetTilemap(dynamic_cast<Pine::Tilemap*>(newTilemap));
+        
+            if (Widgets::InputInt("Order", &order))
+                tilemapRenderer->SetOrder(order);
         }
 
         void Render(Pine::IComponent* component, int index)
@@ -85,6 +109,9 @@ namespace
                     break;
                 case Pine::ComponentType::SpriteRenderer:
                     RenderSpriteRenderer(dynamic_cast<Pine::SpriteRenderer*>(component));
+                    break;
+                case Pine::ComponentType::TilemapRenderer:
+                    RenderTilemapRenderer(dynamic_cast<Pine::TilemapRenderer*>(component));
                     break;
                 default:
                     break;
