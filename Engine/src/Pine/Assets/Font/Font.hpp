@@ -9,11 +9,11 @@ namespace Pine
 
     struct FontData
     {
-        float m_Size;
+        float m_Size = 0.f;
 
         std::vector<stbtt_bakedchar> m_CharData;
 
-        Graphics::ITexture* m_TextureFontAtlas;
+        Graphics::ITexture* m_TextureFontAtlas = nullptr;
     };
 
     class Font : public IAsset

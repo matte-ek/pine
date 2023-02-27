@@ -63,7 +63,7 @@ namespace Pine
                     return i;
             }
 
-            return m_ComponentOccupationArraySize;
+            return static_cast<std::uint32_t>(m_ComponentOccupationArraySize);
         }
 
         __inline T* GetComponent(std::uint32_t index)

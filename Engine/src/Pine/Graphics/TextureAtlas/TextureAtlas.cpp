@@ -18,7 +18,7 @@ Pine::Graphics::ITexture* Pine::Graphics::TextureAtlas::GetColorBuffer() const
 
 std::uint32_t Pine::Graphics::TextureAtlas::AddTexture(Pine::Graphics::ITexture* texture)
 {
-    std::uint32_t itemId = m_Textures.size();
+	auto itemId = static_cast<std::uint32_t>(m_Textures.size());
 
     m_Textures.push_back(texture);
     m_TextureUvOffsets.push_back(CalculateTextureUv(itemId));
@@ -52,6 +52,7 @@ void Pine::Graphics::TextureAtlas::Update()
     Graphics::GetGraphicsAPI()->ClearBuffers(Buffers::ColorBuffer);
 
     Renderer2D::PrepareFrame();
+    Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::Screen);
 
     for (int i = 0; i < m_Textures.size();i++)
     {
@@ -67,7 +68,6 @@ void Pine::Graphics::TextureAtlas::Update()
                                                texture);
     }
 
-    Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::Screen);
     Renderer2D::RenderFrame(&renderingContext);
 
     Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);

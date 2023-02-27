@@ -6,7 +6,7 @@
 namespace Pine
 {
 
-    enum PineTileFlags
+    enum PineTileFlags : std::uint32_t
     {
         NoCollison = (1 << 0), 
         NoRender = (1 << 1)
@@ -20,7 +20,7 @@ namespace Pine
         // The index the renderer will use when rendering the tile from the texture atlas.
         std::uint32_t m_RenderIndex = 0;
 
-        // Flags for the tile, can be modifed per tile but will by default get set by the preset from the tilset.
+        // Flags for the tile, can be modified per tile but will by default get set by the preset from the tileset.
         // Custom flags may be used, as long as they don't collide with the engine flags specified in PineTileFlags
         std::uint32_t m_Flags = 0;
 

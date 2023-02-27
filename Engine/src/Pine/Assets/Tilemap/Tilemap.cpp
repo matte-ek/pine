@@ -99,6 +99,8 @@ bool Pine::Tilemap::LoadFromFile(AssetLoadStage stage)
         }
     }
 
+    m_State = AssetState::Loaded;
+
     return true;
 }
 
@@ -136,7 +138,7 @@ bool Pine::Tilemap::SaveToFile()
     if (m_Tileset.Get())
     {
         m_HasDependencies = true;
-        m_DependencyFiles.push_back(m_Tileset->GetFilePath());
+        m_DependencyFiles.push_back(m_Tileset->GetFilePath().string());
     }
 
     return true;

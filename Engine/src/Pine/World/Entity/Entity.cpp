@@ -11,7 +11,7 @@ Pine::Entity::Entity(std::uint32_t id, bool createTransform)
 
 Pine::Entity::~Entity()
 {
-    for (auto component : m_Components)
+    for (const auto component : m_Components)
     {
         if (!Components::Destroy(component))
         {
@@ -21,7 +21,7 @@ Pine::Entity::~Entity()
 
     m_Components.clear();
 
-    for (auto child : m_Children)
+    for (const auto child : m_Children)
     {
         Entities::Delete(child);
     }
@@ -89,7 +89,7 @@ Pine::Entity* Pine::Entity::GetParent() const
 
 Pine::IComponent* Pine::Entity::AddComponent(Pine::ComponentType type)
 {
-    auto component = Components::Create(type);
+    const auto component = Components::Create(type);
 
     component->SetParent(this);
 
@@ -107,7 +107,7 @@ Pine::IComponent* Pine::Entity::AddComponent(Pine::IComponent* component)
     return component;
 }
 
-bool Pine::Entity::RemoveComponent(Pine::IComponent* targetComponent)
+bool Pine::Entity::RemoveComponent(const Pine::IComponent* targetComponent)
 {
     for (int i = 0; i < m_Components.size();i++)
     {
@@ -127,7 +127,7 @@ bool Pine::Entity::RemoveComponent(Pine::IComponent* targetComponent)
 
 void Pine::Entity::ClearComponents()
 {
-    for (auto component : m_Components)
+    for (const auto component : m_Components)
     {
         Components::Destroy(component);
     }
@@ -152,7 +152,7 @@ const std::vector<Pine::IComponent*>& Pine::Entity::GetComponents() const
 
 Pine::Entity* Pine::Entity::CreateChild()
 {
-    auto entity = Entities::Create();
+    const auto entity = Entities::Create();
 
     AddChild(entity);
 

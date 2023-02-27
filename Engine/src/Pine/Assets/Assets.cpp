@@ -81,6 +81,7 @@ namespace
         if (!mapPath.empty())
             return mapPath;
 
+        // Remove Windows style seperators with a forward slash
         auto filePath = Pine::String::Replace(path.string(), "\\", "/");
 
         // If we don't want to 'change' the relative directory,
@@ -404,7 +405,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     // At this point we may now load the remaining assets that has dependencies.
     for (auto asset : dependencyAssets)
     {
-        auto dependencies = asset->GetDependencies();
+        const auto& dependencies = asset->GetDependencies();
 
         bool missingDependency = false;
         for (const auto& dependency : dependencies)

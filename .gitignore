@@ -1,6 +1,8 @@
 .idea/
 .vscode/
 .cache/
+.vs/
+x64/
 
 # Build files
 cmake-build*

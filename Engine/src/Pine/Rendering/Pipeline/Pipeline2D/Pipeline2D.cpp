@@ -57,6 +57,7 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
     std::sort(m_RenderItems.begin(), m_RenderItems.end(), renderItemSort);
 
     Renderer2D::PrepareFrame();
+    Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::World);
 
     for (const auto& renderItem : m_RenderItems)
     {
@@ -104,19 +105,24 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
 
             auto positionOffset = Vector2f(transform->GetPosition());
 
+            Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::Screen);
+
             for (auto& tile : tileMap->GetTiles())
             {
+                if (tile.m_Flags & NoRender)
+                    continue;
+
                 Pine::Renderer2D::AddTextureAtlasItem(positionOffset + Pine::Vector2f(tileSize * static_cast<float>(tile.m_Position.x), tileSize * static_cast<float>(tile.m_Position.y)),
                                                       textureAtlas,
                                                       tile.m_RenderIndex,
                                                       Pine::Color(255, 255, 255, 255));
             }
+
+            Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::World);
         }
     }
 
     auto oldCoordinateSystem = Renderer2D::GetCoordinateSystem();
-
-    Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::World);
 
     Renderer2D::RenderFrame(&context);
 

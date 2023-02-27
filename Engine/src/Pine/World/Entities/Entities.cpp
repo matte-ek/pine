@@ -64,8 +64,13 @@ void Pine::Entities::Setup()
 {
     m_MaxEntityCount = Engine::GetEngineConfiguration().m_MaxObjectCount;
 
-    m_Entities = static_cast<Entity*>(malloc(sizeof(Entity) * m_MaxEntityCount));
+    m_Entities = static_cast<Entity*>(malloc((sizeof(Entity) * m_MaxEntityCount) + 1));
     m_EntityOccupationArray = new bool[m_MaxEntityCount];
+
+    if (m_Entities == nullptr || m_MaxEntityCount == 0)
+    {
+        throw std::runtime_error("Failed to allocate entity data.");
+    }
 
     memset(static_cast<void*>(m_Entities), 0, sizeof(Entity) * m_MaxEntityCount);
     memset(static_cast<void*>(m_EntityOccupationArray), 0, sizeof(bool) * m_MaxEntityCount);
@@ -156,7 +161,7 @@ bool Entities::Delete(Entity* entity)
         return false;
     }
 
-    for (int i = 0; i < GetHighestEntityIndex();i++)
+    for (std::uint32_t i = 0; i < GetHighestEntityIndex();i++)
     {
         if (!m_EntityOccupationArray[i])
             continue;
@@ -179,7 +184,7 @@ void Entities::DeleteAll(bool includeTemporary)
 {
     if (includeTemporary)
     {
-        for (int i = 0; i < GetHighestEntityIndex();i++)
+        for (std::uint32_t i = 0; i < GetHighestEntityIndex();i++)
         {
             if (!m_EntityOccupationArray[i])
                 continue;
@@ -195,7 +200,7 @@ void Entities::DeleteAll(bool includeTemporary)
 
     std::vector<const Entity*> entityPointerKeepList;
 
-    for (int i = 0; i < GetHighestEntityIndex();i++)
+    for (std::uint32_t i = 0; i < GetHighestEntityIndex();i++)
     {
         if (!m_EntityOccupationArray[i])
             continue;

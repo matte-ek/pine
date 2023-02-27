@@ -74,6 +74,9 @@ bool Pine::Graphics::OpenGL::Setup()
 
     glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &m_SupportedTextureSlots);
 
+    // TODO: Figure out how this exactly works, using GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS doesn't work.
+    m_SupportedTextureSlots = 16;
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

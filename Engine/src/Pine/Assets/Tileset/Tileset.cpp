@@ -5,7 +5,7 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
 
-constexpr int TextureAtlasSize = 1024;
+constexpr int TextureAtlasSize = 512;
 
 Pine::Tileset::Tileset()
 {
@@ -142,7 +142,7 @@ bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
         if (tileData.contains("flags"))
             flags = tileData["flags"].get<std::uint32_t>();
 
-        Pine::Texture2D* tileTexture = Pine::Assets::GetAsset<Pine::Texture2D>(tileData["texture"]);
+        auto tileTexture = Pine::Assets::GetAsset<Pine::Texture2D>(tileData["texture"]);
 
         if (!tileTexture)
         {
@@ -159,6 +159,8 @@ bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
 
     Build();
 
+    m_State = AssetState::Loaded;
+
     return true;
 }
 
@@ -172,7 +174,7 @@ bool Pine::Tileset::SaveToFile()
     {
         nlohmann::json tileJson;
 
-        tileJson["texture"] = tile.m_Texture->GetFilePath().string();
+        tileJson["texture"] = tile.m_Texture->GetPath();
 
         if (tile.m_DefaultFlags != 0)
             tileJson["flags"] = tile.m_DefaultFlags;

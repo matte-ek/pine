@@ -46,7 +46,7 @@ std::uint32_t Pine::Font::Create(float fontSize)
 
         m_FontAtlas.push_back(data);
 
-        return m_FontAtlas.size() - 1;
+        return static_cast<std::uint32_t>(m_FontAtlas.size()) - 1;
     }
 
     return 0;

@@ -33,6 +33,7 @@ namespace
         Vector2f m_Position;
         Vector2f m_Size;
         Color m_Color;
+        Rendering::CoordinateSystem m_CoordinateSystem;
     };
 
     struct RectangleItem : RenderItem
@@ -46,7 +47,7 @@ namespace
     std::vector<RectangleItem> m_Rectangles;
     std::vector<RectangleItem> m_FilledRectangles;
 
-    Vector4f ComputePositionSize(RenderingContext* context, Vector2f position, Vector2f size)
+    Vector4f ComputePositionSize(const RenderingContext* context, Vector2f position, Vector2f size, Rendering::CoordinateSystem coordinateSystem)
     {
         // Compute width and height
         const float w = size.x / context->m_Size.x;
@@ -56,7 +57,7 @@ namespace
         float x;
         float y;
 
-        if (m_CoordinateSystem == Rendering::CoordinateSystem::Screen)
+        if (coordinateSystem == Rendering::CoordinateSystem::Screen)
         {
             // Transform the screen coordinates to normalized (0-1) coordinates
             x = (position.x / context->m_Size.x) * 2.0f;
@@ -85,10 +86,12 @@ namespace
         struct RectangleInstanceRenderContext
         {
             Graphics::IVertexArray* m_VertexArray = nullptr;
+
             Graphics::IVertexBuffer* m_PositionSizeBuffer = nullptr;
             Graphics::IVertexBuffer* m_UvRadiusBuffer = nullptr;
             Graphics::IVertexBuffer* m_ColorBuffer = nullptr;
             Graphics::IVertexBuffer* m_TextureBuffer = nullptr;
+
             Shader* m_Shader = nullptr;
 
             bool m_Ready = false;
@@ -154,7 +157,7 @@ namespace
                 m_Ready = true;
             }
 
-            void Render(RenderingContext* context, std::vector<RectangleItem>& rects) const
+            void Render(RenderingContext* context, const std::vector<RectangleItem>& rects) const
             {
                 m_Shader->GetProgram()->Use();
                 m_VertexArray->Bind();
@@ -173,7 +176,7 @@ namespace
                     std::vector<Vector4f> rectColorData;
                     std::vector<Vector2f> rectTextureIndexRadiusData;
 
-                    const int minSize = std::min(static_cast<int>(rects.size()) - startIndex, MaxInstanceCount);
+                	int minSize = std::min(static_cast<int>(rects.size()) - startIndex, MaxInstanceCount);
 
                     // To avoid re-allocations, we can fill out the vector directly
                     rectPositionSizeData.resize(minSize);
@@ -196,16 +199,18 @@ namespace
                         // If we've reached the instance count limit, hop out of the loop
                         if (vertexBufferIndex >= MaxInstanceCount)
                         {
+                            minSize = i - startIndex;
                             break;
                         }
 
                         // Or if we've reached the maximum amount of textures
-                        if (currentTextureSlot >= m_GraphicsAPI->GetSupportedTextureSlots()) // TODO: get this value from the graphics API
+                        if (currentTextureSlot >= m_GraphicsAPI->GetSupportedTextureSlots())
                         {
+                            minSize = i - startIndex;
                             break;
                         }
 
-                        rectPositionSizeData[vertexBufferIndex] = ComputePositionSize(context, rect.m_Position, rect.m_Size);
+                        rectPositionSizeData[vertexBufferIndex] = ComputePositionSize(context, rect.m_Position, rect.m_Size, rect.m_CoordinateSystem);
 
                         rectUvTransformData[vertexBufferIndex].x = rect.m_UvOffset.x;
                         rectUvTransformData[vertexBufferIndex].y = rect.m_UvOffset.y;
@@ -365,7 +370,8 @@ void Pine::Renderer2D::AddRectangle(Pine::Vector2f position, Pine::Vector2f size
     {
         position,
         size,
-        color
+        color,
+        m_CoordinateSystem
     };
 
     m_Rectangles.push_back(rectangleItem);
@@ -377,7 +383,8 @@ void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2
     {
         position,
         size,
-        color
+        color,
+        m_CoordinateSystem
     };
 
     m_FilledRectangles.push_back(rectangleItem);
@@ -390,6 +397,7 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Co
         position,
         size,
         color,
+        m_CoordinateSystem,
         0.f,
         texture->GetGraphicsTexture(),
         uvOffset,
@@ -407,6 +415,7 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Co
         position,
         size,
         color,
+    	m_CoordinateSystem,
         0.f,
         texture,
         uvOffset,
@@ -423,6 +432,7 @@ void Pine::Renderer2D::AddFilledRoundedRectangle(Pine::Vector2f position, Pine::
         position,
         size,
         color,
+        m_CoordinateSystem,
         radius
     };
 
@@ -444,6 +454,7 @@ void Renderer2D::AddTextureAtlasItem(Vector2f position, Graphics::TextureAtlas* 
         position,
         Vector2f(static_cast<float>(atlas->GetTileSize())),
         color,
+        m_CoordinateSystem,
         0.f,
         atlas->GetColorBuffer(),
         atlas->GetTextureUvOffset(itemId),

@@ -16,7 +16,7 @@ namespace
     {
         // Allocate the new data
         void* arrayData = malloc(block->m_ComponentSize * size);
-        bool* arrayOccupationData = new bool[size];
+        const auto arrayOccupationData = new bool[size];
 
         if (!arrayData)
         {
@@ -48,12 +48,12 @@ namespace
             memcpy(arrayData, (void*)block->m_ComponentArray, arrayBlockCopySize);
             memcpy(arrayOccupationData, (void*)block->m_ComponentOccupationArray, occupationArrayCopySize);
 
-            oldArrayData = (void*)block->m_ComponentArray;
-            oldOccupationArray = (void*)block->m_ComponentOccupationArray;
+            oldArrayData = static_cast<void*>(block->m_ComponentArray);
+            oldOccupationArray = static_cast<void*>(block->m_ComponentOccupationArray);
         }
 
         // Set the new array pointers
-        block->m_ComponentArray = reinterpret_cast<IComponent*>(arrayData);
+        block->m_ComponentArray = static_cast<IComponent*>(arrayData);
         block->m_ComponentArraySize = block->m_ComponentSize * size;
 
         block->m_ComponentOccupationArray = arrayOccupationData;
@@ -70,14 +70,19 @@ namespace
     }
 
     template<typename T>
-    ComponentDataBlock<T>* CreateComponentDataBlock()
+    ComponentDataBlock<T>* CreateComponentDataBlock(std::uint32_t overrideInstanceCount = 0)
     {
         auto block = new ComponentDataBlock<T>();
 
         block->m_Component = new T();
         block->m_ComponentSize = sizeof(T);
 
-        ResizeComponentDataBlock(reinterpret_cast<ComponentDataBlock<IComponent>*>(block), Engine::GetEngineConfiguration().m_MaxObjectCount);
+        std::uint32_t instanceCount = Engine::GetEngineConfiguration().m_MaxObjectCount;
+
+        if (overrideInstanceCount != 0)
+            instanceCount = overrideInstanceCount;
+
+        ResizeComponentDataBlock(reinterpret_cast<ComponentDataBlock<IComponent>*>(block), instanceCount);
 
         m_ComponentDataBlocks.push_back(reinterpret_cast<ComponentDataBlock<IComponent>*>(block));
 
@@ -97,11 +102,11 @@ void Pine::Components::Setup()
     CreateComponentDataBlock<Transform>();
     CreateComponentDataBlock<SpriteRenderer>();
     CreateComponentDataBlock<TilemapRenderer>();
-    CreateComponentDataBlock<Camera>();
+    CreateComponentDataBlock<Camera>(32);
 
     std::size_t totalSize = 0;
 
-    for (auto& block : m_ComponentDataBlocks)
+    for (const auto& block : m_ComponentDataBlocks)
     {
         totalSize += block->m_ComponentArraySize;
     }
@@ -158,6 +163,11 @@ IComponent* Components::Create(ComponentType type, bool standalone)
         componentDataBlock->m_HighestComponentIndex = componentDataBlock->GetHighestComponentIndex();
     }
 
+    if (component == nullptr)
+    {
+        throw std::runtime_error("Component allocation failure.");
+    }
+
     // Copy the data from the 'default' component object
     memcpy((void*)component, (void*)componentDataBlock->m_Component, componentDataBlock->m_ComponentSize);
 
@@ -169,7 +179,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
 
 IComponent* Components::Copy(IComponent* component, bool standalone)
 {
-    auto newComponent = Create(component->GetType(), standalone);
+    const auto newComponent = Create(component->GetType(), standalone);
 
     nlohmann::json buffer;
 
@@ -203,9 +213,9 @@ bool Components::Destroy(IComponent* targetComponent)
 
     auto& data = GetData(targetComponent->GetType());
 
-    for (std::uint32_t i = 0; i < data.GetHighestComponentIndex();i++)
+    for (int i = 0; i < data.GetHighestComponentIndex();i++)
     {
-        auto componentPointer = data.GetComponent(i);
+        const auto componentPointer = data.GetComponent(i);
 
         if (componentPointer == targetComponent)
         {

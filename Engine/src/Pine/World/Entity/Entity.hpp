@@ -86,7 +86,7 @@ namespace Pine
         }
 
         // Removes the component with the provided pointer, returns false on failure.
-        bool RemoveComponent(IComponent* component);
+        bool RemoveComponent(const IComponent* component);
 
         // Removes all components, including the Transform component, making this entity invalid, please re-add
         // the Transform component as soon as possible.
@@ -121,7 +121,7 @@ namespace Pine
         // Add existing entity as a child to this entity.
         void AddChild(Entity* entity);
 
-        // Unlinks the child from this entity, this will not remove the
+        // Unlink the child from this entity, this will not remove the
         // entity itself from the entity list.
         void RemoveChild(Entity* entity);
 

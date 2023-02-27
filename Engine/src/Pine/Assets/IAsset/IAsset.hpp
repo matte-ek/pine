@@ -188,13 +188,14 @@ namespace Pine
         {
             // Decrease the ref count on the asset we already have
             if (m_Asset != nullptr)
-                reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount--;
+                --reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount;
 
             // Assign the new asset
             m_Asset = static_cast<T*>(asset);
 
             // Make sure the new asset updates its reference count
-            reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount++;
+            if (asset != nullptr)
+				++reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount;
 
             return *this;
         }
