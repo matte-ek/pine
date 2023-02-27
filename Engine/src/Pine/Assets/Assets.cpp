@@ -415,7 +415,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
                 continue;
             }
 
-            if (!LoadFromFile(dependency))
+            if (!LoadFromFile(dependency, useAsRelativePath ? path.string() : "", ""))
             {
                 missingDependency = true;
                 break;

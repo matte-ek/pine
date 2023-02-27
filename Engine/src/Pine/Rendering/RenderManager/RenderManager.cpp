@@ -83,6 +83,8 @@ void Pine::RenderManager::Run()
         CallRenderCallback(RenderStage::Render2D);
 
         Pipeline2D::Run(*renderingContext);
+
+        CallRenderCallback(RenderStage::Render3D);
     }
 
     Pine::Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);

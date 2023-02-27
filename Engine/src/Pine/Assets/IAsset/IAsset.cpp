@@ -26,7 +26,7 @@ const std::string& Pine::IAsset::GetPath() const
 
 void Pine::IAsset::SetFilePath(const std::filesystem::path& path)
 {
-    m_FilePath = path;
+    m_FilePath = String::Replace(path.string(), "\\", "/");
     m_HasFile = true;
 }
 

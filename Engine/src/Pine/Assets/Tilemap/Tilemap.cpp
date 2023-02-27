@@ -89,7 +89,7 @@ bool Pine::Tilemap::LoadFromFile(AssetLoadStage stage)
 
     const auto j = jsonOpt.value();
 
-    Serialization::LoadAsset(j, "tileSet", m_Tileset);
+    Serialization::LoadAsset(j, "tileSet", m_Tileset, false);
 
     if (j.contains("tiles"))
     {

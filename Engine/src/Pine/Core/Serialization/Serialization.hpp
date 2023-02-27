@@ -28,7 +28,7 @@ namespace Pine::Serialization
 
     nlohmann::json StoreQuaternion(const Quaternion& quaternion);
 
-    nlohmann::json StoreAsset(IAsset* asset);
+    nlohmann::json StoreAsset(const IAsset* asset);
 
     /* Load */
 
