@@ -45,7 +45,7 @@ void Panels::GameViewport::Render()
     m_Visible = true;
 
     const auto avSize = ImGui::GetContentRegionAvail();
-    const auto id = *reinterpret_cast<std::uint32_t*>(RenderHandler::GetGameFrameBuffer()->GetColorBuffer()->GetGraphicsIdentifier());
+    const std::uint64_t id = *static_cast<std::uint32_t*>(RenderHandler::GetGameFrameBuffer()->GetColorBuffer()->GetGraphicsIdentifier());
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 

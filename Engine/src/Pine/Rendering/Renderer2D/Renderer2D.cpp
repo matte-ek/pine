@@ -322,8 +322,8 @@ void Pine::Renderer2D::PrepareFrame()
         m_DefaultTexture = m_GraphicsAPI->CreateTexture();
 
         // Create a 1x1 solid white pixel texture
-        auto* textureData = reinterpret_cast<std::uint8_t*>(malloc(sizeof(std::uint8_t) * 4));
-
+        auto* textureData = static_cast<std::uint8_t*>(malloc(sizeof(std::uint8_t) * 4));
+        
         for (int i = 0; i < sizeof(std::uint8_t) * 4;i++)
             textureData[i] = 255;
 

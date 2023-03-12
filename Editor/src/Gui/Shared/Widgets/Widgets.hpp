@@ -5,6 +5,11 @@
 #include "Pine/World/Entity/Entity.hpp"
 #include <string>
 
+namespace Pine
+{
+	class Tileset;
+}
+
 struct EntityPickerResult
 {
     bool hasResult = false;
@@ -29,9 +34,11 @@ namespace Widgets
 
     bool InputInt(const std::string& str, int* value);
 
-    AssetPickerResult AssetPicker(const std::string& str, Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
+    AssetPickerResult AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
 
-    bool Icon(const std::string& text, Pine::Texture2D* texture, bool showBackground, int size = 64);
+    bool Icon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, int size = 64);
+
+    void TilesetAtlas(Pine::Tileset* tileset, int& selectedItem);
 
     void PushDisabled();
     void PopDisabled();

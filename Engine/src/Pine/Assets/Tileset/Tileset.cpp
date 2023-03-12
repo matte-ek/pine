@@ -94,7 +94,7 @@ Pine::TileData const* Pine::Tileset::GetTileByIndex(std::uint32_t index) const
     return nullptr;
 }
 
-Pine::TileData const* Pine::Tileset::GetTileByTexture(Pine::Texture2D* texture) const
+Pine::TileData const* Pine::Tileset::GetTileByTexture(const Pine::Texture2D* texture) const
 {
     for (auto& tile : m_Tiles)
     {

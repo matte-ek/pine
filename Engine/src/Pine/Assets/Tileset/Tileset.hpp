@@ -40,7 +40,7 @@ namespace Pine
         void RemoveTile(const TileData& tile);
 
         TileData const* GetTileByIndex(std::uint32_t index) const;
-        TileData const* GetTileByTexture(Texture2D* texture) const;
+        TileData const* GetTileByTexture(const Texture2D* texture) const;
 
         const std::vector<TileData>& GetTileList();
 

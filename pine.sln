@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sandbox", "Sandbox\Sandbox.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Game", "Game\Game.vcxproj", "{749BF0C7-0D35-47C8-BBC4-74C56FF97C96}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Editor", "Editor\Editor.vcxproj", "{39EA184D-1107-4045-BA1C-F38D68EDC3D5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{749BF0C7-0D35-47C8-BBC4-74C56FF97C96}.Release|x64.Build.0 = Release|x64
 		{749BF0C7-0D35-47C8-BBC4-74C56FF97C96}.Release|x86.ActiveCfg = Release|Win32
 		{749BF0C7-0D35-47C8-BBC4-74C56FF97C96}.Release|x86.Build.0 = Release|Win32
+		{39EA184D-1107-4045-BA1C-F38D68EDC3D5}.Debug|x64.ActiveCfg = Debug|x64
+		{39EA184D-1107-4045-BA1C-F38D68EDC3D5}.Debug|x64.Build.0 = Debug|x64
+		{39EA184D-1107-4045-BA1C-F38D68EDC3D5}.Debug|x86.ActiveCfg = Debug|Win32
+		{39EA184D-1107-4045-BA1C-F38D68EDC3D5}.Debug|x86.Build.0 = Debug|Win32
+		{39EA184D-1107-4045-BA1C-F38D68EDC3D5}.Release|x64.ActiveCfg = Release|x64
+		{39EA184D-1107-4045-BA1C-F38D68EDC3D5}.Release|x64.Build.0 = Release|x64
+		{39EA184D-1107-4045-BA1C-F38D68EDC3D5}.Release|x86.ActiveCfg = Release|Win32
+		{39EA184D-1107-4045-BA1C-F38D68EDC3D5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

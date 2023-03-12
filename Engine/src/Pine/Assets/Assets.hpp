@@ -36,13 +36,17 @@ namespace Pine::Assets
     void AddAssetResolveReference(const AssetResolveReference& resolveReference);
 
     // Attempts to find an already loaded asset with it's mapped path.
-    IAsset* GetAsset(const std::string& path);
+    // includeFilePath allows you to find the asset by it's file path instead of fake engine path.
+    IAsset* Get(const std::string& path, bool includeFilePath = false);
 
     template<typename T>
     T* GetAsset(const std::string& path)
     {
         return dynamic_cast<T*>(GetAsset(path));
     }
+
+    // Returns the entire map used internally within the asset manager
+    const std::unordered_map<std::string, IAsset*>& GetAll();
 
     // Saves all new asset data that has been modified to disk
     void SaveAll();
@@ -51,4 +55,3 @@ namespace Pine::Assets
     // Useful for parts of the engine to determine if assets can be added as an AssetResolveReference.
     AssetManagerState GetState();
 
-}

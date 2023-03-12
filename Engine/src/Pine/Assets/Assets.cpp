@@ -28,6 +28,9 @@ namespace
     // valid assets, or loaded assets.
     std::unordered_map<std::string, IAsset*> m_Assets;
 
+    // This is more or less a read-only mirror of `m_Assets`, but has the file path as a key instead.
+    std::unordered_map<std::string, IAsset*> m_AssetsFilePath;
+
     // Which assets paths we need to resolve to asset pointers during the end of an ongoing load
     std::vector<AssetResolveReference> m_AssetResolveReferences;
 
@@ -36,10 +39,10 @@ namespace
         // The file extension(s) for this asset type
         std::vector<std::string> m_FileExtensions;
 
-        Pine::AssetType m_Type;
+        AssetType m_Type;
 
         // This function should create the asset object itself
-        std::function<Pine::IAsset*()> m_Factory;
+        std::function<IAsset*()> m_Factory;
     };
 
     std::vector<AssetFactory> m_AssetFactories = {
@@ -234,6 +237,7 @@ Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, cons
     asset->UpdateFileReadTime();
 
     m_Assets[asset->GetPath()] = asset;
+    m_AssetsFilePath[asset->GetFilePath().string()] = asset;
 
     return asset;
 }
@@ -400,6 +404,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         asset->UpdateFileReadTime();
 
         m_Assets[asset->GetPath()] = asset;
+        m_AssetsFilePath[asset->GetFilePath().string()] = asset;
     }
 
     // At this point we may now load the remaining assets that has dependencies.
@@ -463,6 +468,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         asset->UpdateFileReadTime();
 
         m_Assets[asset->GetPath()] = asset;
+        m_AssetsFilePath[asset->GetFilePath().string()] = asset;
     }
 
     // During the load of all assets, some assets may have created resolve references, for assets that may not have
@@ -492,12 +498,25 @@ void Assets::AddAssetResolveReference(const AssetResolveReference& resolveRefere
     m_AssetResolveReferences.push_back(resolveReference);
 }
 
-Pine::IAsset* Pine::Assets::GetAsset(const std::string& path)
+IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
 {
+    const auto path = Pine::String::Replace(inputPath, "\\", "/");
+
+    if (includeFilePath)
+    {
+        if (m_AssetsFilePath.count(path) != 0)
+            return m_AssetsFilePath[path];
+    }
+
     if (m_Assets.count(path) == 0)
         return nullptr;
 
     return m_Assets[path];
+}
+
+const std::unordered_map<std::string, IAsset*>& Assets::GetAll()
+{
+    return m_Assets;
 }
 
 void Assets::SaveAll()
@@ -518,4 +537,3 @@ void Assets::SaveAll()
 AssetManagerState Assets::GetState()
 {
     return m_State;
-}

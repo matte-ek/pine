@@ -18,13 +18,12 @@ int main()
     }
 
     Pine::Assets::LoadDirectory("editor", false);
+    Pine::Assets::LoadDirectory("game");
 
     // Setup Editor
     RenderHandler::Setup();
     Gui::Setup();
 
-    Pine::Entity::Create("Entity");
-    Pine::Entity::Create("Entity with child")->CreateChild();
 
     // Enter main loop
     Pine::Engine::Run();

@@ -65,6 +65,23 @@ namespace
         
             if (Widgets::InputInt("Order", &order))
                 tilemapRenderer->SetOrder(order);
+
+            if (tilemapRenderer->GetTilemap() != nullptr && tilemapRenderer->GetTilemap()->GetTileset() != nullptr)
+            {
+                static int selectedTileIndex = 0;
+                static bool buildMode = false;
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                auto tileMap = tilemapRenderer->GetTilemap();
+                auto tileSet = tileMap->GetTileset();
+
+                Widgets::TilesetAtlas(tileSet, selectedTileIndex);
+
+                ImGui::Checkbox("Build Mode", &buildMode);
+            }
         }
 
         void Render(Pine::IComponent* component, int index)
@@ -77,7 +94,7 @@ namespace
 
                 if (index == 0)
                 {
-                    // Don't allow the user to disable/remove the Transform component, which should always be first.
+                    // Don't allow the user to disable/remove the Transform component, which should always be the first one.
                     Widgets::PushDisabled();
                 }
 
@@ -96,7 +113,7 @@ namespace
 
                 if (index == 0)
                 {
-                    // Don't allow the user to disable/remove the Transform component, which should always be first.
+                    // Don't allow the user to disable/remove the Transform component, which should always be the first one.
                     Widgets::PopDisabled();
                 }
 
@@ -128,7 +145,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
     // General entity properties
 
     if (entity->GetName().size() < 128)
-        strcpy(nameBuffer, entity->GetName().c_str());
+        strcpy_s(nameBuffer, entity->GetName().c_str());
 
     bool isActive = entity->GetActive();
     bool isStatic = entity->GetStatic();
@@ -196,7 +213,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 
     if (ImGui::Button("Add new component...", ImVec2(-1.f, 35.f)))
     {
-        strcpy(componentSearchBuffer, "\0");
+        strcpy_s(componentSearchBuffer, "\0");
 
         componentSearch();
 
@@ -219,7 +236,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
             componentSearch();
         }
 
-        ImGui::ListBox("##ComponentList", &selectedComponent, componentSearchBox.data(), componentSearchBox.size());
+        ImGui::ListBox("##ComponentList", &selectedComponent, componentSearchBox.data(), static_cast<int>(componentSearchBox.size()));
 
         if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::Button("Add", ImVec2(-1.f, 30.f)))
         {

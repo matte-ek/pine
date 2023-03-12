@@ -1,7 +1,0 @@
-BasedOnStyle: Microsoft
-NamespaceIndentation: All
-IndentAccessModifiers: false
-AccessModifierOffset: -4
-EmptyLineAfterAccessModifier: Never
-EmptyLineBeforeAccessModifier: Never
-PointerAlignment: Left

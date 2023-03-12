@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 
+#include "Gui/Shared/IconStorage/IconStorage.hpp"
+
 namespace
 {
 
@@ -19,7 +21,7 @@ namespace
     // Can be used for example metadata files.
     std::vector<std::string> m_FileExtensionIgnoreList = { ".asset" };
 
-    int m_IconSize = 48;
+    int m_IconSize = 64;
 
     enum class EntryType
     {
@@ -30,11 +32,13 @@ namespace
     struct PathEntry
     {
         std::filesystem::path Path;
-        EntryType Type;
+        EntryType Type = EntryType::File;
 
         std::string DisplayText;
 
         Pine::IAsset* Asset = nullptr;
+
+        Pine::Texture2D* Icon = nullptr;
 
         PathEntry* Parent = nullptr;
         std::vector<PathEntry*> Children;
@@ -80,7 +84,7 @@ namespace
 
                 for (const auto& fileExtensionIgnoreEntry : m_FileExtensionIgnoreList)
                 {
-                    if (newEntry->Path.stem().string() == fileExtensionIgnoreEntry)
+                    if (newEntry->Path.extension().string() == fileExtensionIgnoreEntry)
                     {
                         ignoreEntry = true;
                         break;
@@ -89,10 +93,14 @@ namespace
 
                 if (ignoreEntry)
                 {
+                    delete newEntry;
                     continue;
                 }
 
-                newEntry->Asset = Pine::Assets::GetAsset(entry->Path.string());
+                newEntry->Asset = Pine::Assets::Get(newEntry->Path.string(), true);
+
+            	if (newEntry->Asset)
+					newEntry->Icon = IconStorage::GetIconTexture(newEntry->Asset->GetPath());
             }
             else 
             {
@@ -133,9 +141,10 @@ namespace
         entry->Children.push_back(mappedEntry);
     }
 
-    PathEntry* RenderEntry(PathEntry* entry)
+    PathEntry* RenderEntry(const PathEntry* entry)
     {
-        static auto folderIcon = Pine::Assets::GetAsset<Pine::Texture2D>("editor/icons/folder.png");
+        static auto folderIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/folder.png");
+        static auto fileIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file.png");
 
         PathEntry* clickedItem = nullptr;
 
@@ -151,6 +160,33 @@ namespace
                     clickedItem = directory->Parent;
                 else
                     clickedItem = directory;
+            }
+
+            ImGui::NextColumn();
+        }
+
+        for (auto& file : entry->Children)
+        {
+            if (file->Type == EntryType::Directory)
+                continue;
+
+            const auto isSelected = Selection::IsSelected(file->Asset);
+            const auto icon = file->Icon == nullptr ? fileIcon : file->Icon;
+
+            if (Widgets::Icon(file->DisplayText, icon, isSelected, m_IconSize))
+            {
+            	clickedItem = file;
+            }
+
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+            {
+                ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(icon->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
+                ImGui::SameLine();
+                ImGui::Text("%s", file->DisplayText.c_str());
+
+                ImGui::SetDragDropPayload("Asset", &file->Asset, sizeof(Pine::IAsset*));
+
+                ImGui::EndDragDropSource();
             }
 
             ImGui::NextColumn();
@@ -194,6 +230,10 @@ void Panels::AssetBrowser::RebuildAssetTree()
 
         m_Root = nullptr;
     }
+
+    // First update the icon cache, as we grab the icons from the IconStorage
+    // as we fill out this tree.
+    IconStorage::Update();
 
     m_Root = new PathEntry;
 
@@ -245,7 +285,7 @@ void Panels::AssetBrowser::Render()
 
     if (nrColumns > 0 && m_SelectedEntry != nullptr)
     {
-        ImGui::Columns(nrColumns, 0, false);
+        ImGui::Columns(nrColumns, nullptr, false);
 
         if (const auto newEntrySelection = RenderEntry(m_SelectedEntry))
         {
