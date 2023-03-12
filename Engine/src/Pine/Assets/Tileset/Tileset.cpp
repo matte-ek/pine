@@ -142,7 +142,7 @@ bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
         if (tileData.contains("flags"))
             flags = tileData["flags"].get<std::uint32_t>();
 
-        auto tileTexture = Pine::Assets::GetAsset<Pine::Texture2D>(tileData["texture"]);
+        auto tileTexture = Pine::Assets::Get<Pine::Texture2D>(tileData["texture"]);
 
         if (!tileTexture)
         {

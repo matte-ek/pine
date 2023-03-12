@@ -279,9 +279,9 @@ namespace
         {
             // Make sure to set shaders if we haven't already
             if (m_RectangleRender.m_Shader == nullptr)
-                m_RectangleRender.m_Shader = Assets::GetAsset<Shader>("engine/shaders/2d/rect.shader");
+                m_RectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect.shader");
             if (m_FilledRectangleRender.m_Shader == nullptr)
-                m_FilledRectangleRender.m_Shader = Assets::GetAsset<Shader>("engine/shaders/2d/rect-filled.shader");
+                m_FilledRectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect-filled.shader");
 
             if (!m_RectangleRender.m_Ready)
                 m_RectangleRender.Create();

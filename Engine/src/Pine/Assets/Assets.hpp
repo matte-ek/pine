@@ -40,9 +40,9 @@ namespace Pine::Assets
     IAsset* Get(const std::string& path, bool includeFilePath = false);
 
     template<typename T>
-    T* GetAsset(const std::string& path)
+    T* Get(const std::string& path)
     {
-        return dynamic_cast<T*>(GetAsset(path));
+        return dynamic_cast<T*>(Get(path));
     }
 
     // Returns the entire map used internally within the asset manager
@@ -55,3 +55,4 @@ namespace Pine::Assets
     // Useful for parts of the engine to determine if assets can be added as an AssetResolveReference.
     AssetManagerState GetState();
 
+}

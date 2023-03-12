@@ -415,7 +415,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
         bool missingDependency = false;
         for (const auto& dependency : dependencies)
         {
-            if (GetAsset(dependency) != nullptr)
+            if (Get(dependency) != nullptr)
             {
                 continue;
             }
@@ -476,7 +476,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     // we may attempt to resolve them to pointers now.
     for (auto& assetResolveReference : m_AssetResolveReferences)
     {
-        *assetResolveReference.m_AssetContainer = Assets::GetAsset(assetResolveReference.m_Path);
+        *assetResolveReference.m_AssetContainer = Assets::Get(assetResolveReference.m_Path);
     }
 
     m_AssetResolveReferences.clear();
@@ -537,3 +537,4 @@ void Assets::SaveAll()
 AssetManagerState Assets::GetState()
 {
     return m_State;
+}

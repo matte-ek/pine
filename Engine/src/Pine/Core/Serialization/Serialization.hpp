@@ -52,7 +52,7 @@ namespace Pine::Serialization
         }
         else
         {
-            asset = Pine::Assets::GetAsset(j[name]);
+            asset = Pine::Assets::Get(j[name]);
         }
     }
 
