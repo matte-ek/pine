@@ -1,14 +1,14 @@
+# IDE cache
 .idea/
 .vscode/
 .cache/
 .vs/
-x64/
 
 # Build files
 cmake-build*
 build/
+x64/
 
 # Other
 fonts/
-ImGui/
 game/
