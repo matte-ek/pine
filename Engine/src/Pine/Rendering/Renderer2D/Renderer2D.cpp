@@ -110,10 +110,10 @@ namespace
                 {
                     const std::vector<float> vertices =
                     {
-                        -1,1,
-                        1,1,
-                        1,-1,
-                        -1,-1,
+                        -1.f, 1.f,
+                        1.f, 1.f,
+                        1.f, -1.f,
+                        -1.f, -1.f,
                     };
 
                     m_VertexArray->Bind();
@@ -314,7 +314,7 @@ namespace
 void Pine::Renderer2D::PrepareFrame()
 {
     // Cache Graphics API
-    m_GraphicsAPI = Pine::Graphics::GetGraphicsAPI();
+    m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
     // Create the default texture if required
     if (m_DefaultTexture == nullptr)
@@ -340,7 +340,7 @@ void Pine::Renderer2D::PrepareFrame()
     m_Rectangles.clear();
 }
 
-void Pine::Renderer2D::RenderFrame(Pine::RenderingContext* context)
+void Renderer2D::RenderFrame(RenderingContext* context)
 {
     if (!context)
     {
@@ -390,7 +390,7 @@ void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Texture2D* texture, Vector2f uvOffset, Vector2f uvScale)
+void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, const Texture2D* texture, Vector2f uvOffset, Vector2f uvScale)
 {
     RectangleItem rectangleItem =
     {
@@ -444,7 +444,7 @@ void Pine::Renderer2D::AddText(Pine::Vector2f position, Pine::Color color, const
 
 }
 
-void Renderer2D::AddTextureAtlasItem(Vector2f position, Graphics::TextureAtlas* atlas, std::uint32_t itemId,
+void Renderer2D::AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId,
                                      Color color)
 {
     const auto uvScale = atlas->GetTextureUvScale();
@@ -452,7 +452,7 @@ void Renderer2D::AddTextureAtlasItem(Vector2f position, Graphics::TextureAtlas* 
     RectangleItem rectangleItem =
     {
         position,
-        Vector2f(static_cast<float>(atlas->GetTileSize())),
+        Vector2f(size),
         color,
         m_CoordinateSystem,
         0.f,

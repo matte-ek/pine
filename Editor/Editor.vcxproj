@@ -19,14 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ImGui\imgui.cpp" />
-    <ClCompile Include="ImGui\imgui_demo.cpp" />
-    <ClCompile Include="ImGui\imgui_draw.cpp" />
-    <ClCompile Include="ImGui\imgui_impl_glfw.cpp" />
-    <ClCompile Include="ImGui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="ImGui\imgui_tables.cpp" />
-    <ClCompile Include="ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="ImGui\misc\freetype\imgui_freetype.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Gui\Gui.cpp" />
     <ClCompile Include="src\Gui\Panels\AssetBrowser\AssetBrowserPanel.cpp" />
@@ -36,23 +28,13 @@
     <ClCompile Include="src\Gui\Panels\Properties\AssetPropertiesRenderer\AssetPropertiesRenderer.cpp" />
     <ClCompile Include="src\Gui\Panels\Properties\EntityPropertiesRenderer\EntityPropertiesRenderer.cpp" />
     <ClCompile Include="src\Gui\Panels\Properties\PropertiesPanel.cpp" />
+    <ClCompile Include="src\Gui\Shared\Gizmo\Gizmo2D\Gizmo2D.cpp" />
     <ClCompile Include="src\Gui\Shared\IconStorage\IconStorage.cpp" />
     <ClCompile Include="src\Gui\Shared\Selection\Selection.cpp" />
     <ClCompile Include="src\Gui\Shared\Widgets\Widgets.cpp" />
     <ClCompile Include="src\Rendering\RenderHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ImGui\IconsMaterialDesign.h" />
-    <ClInclude Include="ImGui\imconfig.h" />
-    <ClInclude Include="ImGui\imgui.h" />
-    <ClInclude Include="ImGui\imgui_impl_glfw.h" />
-    <ClInclude Include="ImGui\imgui_impl_opengl3.h" />
-    <ClInclude Include="ImGui\imgui_impl_opengl3_loader.h" />
-    <ClInclude Include="ImGui\imgui_internal.h" />
-    <ClInclude Include="ImGui\imstb_rectpack.h" />
-    <ClInclude Include="ImGui\imstb_textedit.h" />
-    <ClInclude Include="ImGui\imstb_truetype.h" />
-    <ClInclude Include="ImGui\misc\freetype\imgui_freetype.h" />
     <ClInclude Include="src\Gui\Gui.hpp" />
     <ClInclude Include="src\Gui\Panels\AssetBrowser\AssetBrowserPanel.hpp" />
     <ClInclude Include="src\Gui\Panels\EntityList\EntityListPanel.hpp" />
@@ -61,6 +43,7 @@
     <ClInclude Include="src\Gui\Panels\Properties\AssetPropertiesRenderer\AssetPropertiesRenderer.hpp" />
     <ClInclude Include="src\Gui\Panels\Properties\EntityPropertiesRenderer\EntityPropertiesRenderer.hpp" />
     <ClInclude Include="src\Gui\Panels\Properties\PropertiesPanel.hpp" />
+    <ClInclude Include="src\Gui\Shared\Gizmo\Gizmo2D\Gizmo2D.hpp" />
     <ClInclude Include="src\Gui\Shared\IconStorage\IconStorage.hpp" />
     <ClInclude Include="src\Gui\Shared\Selection\Selection.hpp" />
     <ClInclude Include="src\Gui\Shared\Widgets\Widgets.hpp" />
@@ -124,10 +107,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)src;$(SolutionDir)Engine\src;$(ProjectDir)ImGui;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)src;$(SolutionDir)Engine\src;$(ProjectDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)src;$(SolutionDir)Engine\src;$(ProjectDir)ImGui;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)src;$(SolutionDir)Engine\src;$(ProjectDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

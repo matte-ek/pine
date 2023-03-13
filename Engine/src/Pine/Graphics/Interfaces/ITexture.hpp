@@ -26,10 +26,17 @@ namespace Pine::Graphics
         Float
     };
 
+    enum class TextureFilteringMode
+    {
+	    Nearest,
+        Linear
+    };
+
     class ITexture
     {
     protected:
         TextureType m_Type = TextureType::Texture2D;
+        TextureFilteringMode m_FilteringMode = TextureFilteringMode::Linear;
     public:
         virtual ~ITexture() = default;
 
@@ -41,6 +48,9 @@ namespace Pine::Graphics
 
         virtual void SetType(TextureType type) = 0;
         virtual TextureType GetType() = 0;
+
+        virtual void SetFilteringMode(TextureFilteringMode mode) = 0;
+        virtual TextureFilteringMode GetFilteringMode() = 0;
 
         virtual void UploadTextureData(int width, int height, TextureFormat textureFormat, TextureDataFormat dataFormat, void* data) = 0;
     };

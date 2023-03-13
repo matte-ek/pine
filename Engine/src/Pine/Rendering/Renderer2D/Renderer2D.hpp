@@ -29,12 +29,12 @@ namespace Pine::Renderer2D
     void AddRectangle(Vector2f position, Vector2f size, Color color);
     void AddFilledRectangle(Vector2f position, Vector2f size, Color color);
 
-    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Texture2D* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
+    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, const Texture2D* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
     void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Graphics::ITexture* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
 
     void AddFilledRoundedRectangle(Vector2f position, Vector2f size, float radius, Color color);
 
-    void AddTextureAtlasItem(Vector2f position, Graphics::TextureAtlas* atlas, std::uint32_t itemId, Color color);
+    void AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId, Color color);
 
     void AddText(Vector2f position, Color color, const std::string& str);
 

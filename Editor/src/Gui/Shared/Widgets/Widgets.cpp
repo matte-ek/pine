@@ -60,24 +60,24 @@ bool Widgets::Vector2(const std::string& str, Pine::Vector2f& vector)
 
 bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector)
 {
-    const float size = 50.f;
+    constexpr float size = 50.f;
 
     PrepareWidget(str);
 
     ImGui::Columns(3, nullptr, false);
 
     ImGui::SetNextItemWidth(size);
-    bool xChanged = ImGui::DragFloat(std::string("X##" + str).c_str(), &vector.x, 0.1f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_ClampOnInput);
+    bool xChanged = ImGui::DragFloat(std::string("X##" + str).c_str(), &vector.x, 0.01f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_ClampOnInput);
 
     ImGui::NextColumn();
 
     ImGui::SetNextItemWidth(size);
-    bool yChanged = ImGui::DragFloat(std::string("Y##" + str).c_str(), &vector.y, 0.1f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_ClampOnInput);
+    bool yChanged = ImGui::DragFloat(std::string("Y##" + str).c_str(), &vector.y, 0.01f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_ClampOnInput);
 
     ImGui::NextColumn();
 
     ImGui::SetNextItemWidth(size);
-    bool zChanged = ImGui::DragFloat(std::string("Z##" + str).c_str(), &vector.z, 0.1f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_ClampOnInput);
+    bool zChanged = ImGui::DragFloat(std::string("Z##" + str).c_str(), &vector.z, 0.01f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_ClampOnInput);
 
     FinishWidget();
 

@@ -91,10 +91,8 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
 
     glTexImage2D(openglType, 0, openglInternalFormat, width, height, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
 
-    // TODO: This shouldn't be hard coded.
-
-    glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
+    glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
     glTexParameteri(openglType, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(openglType, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
@@ -107,6 +105,26 @@ Pine::Graphics::TextureType Pine::Graphics::GLTexture::GetType()
 void Pine::Graphics::GLTexture::SetType(Pine::Graphics::TextureType type)
 {
     m_Type = type;
+}
+
+void Pine::Graphics::GLTexture::SetFilteringMode(TextureFilteringMode mode)
+{
+    m_FilteringMode = mode;
+
+    if (m_Id != 0)
+    {
+        const auto openglType = TranslateTextureType(m_Type);
+
+        Bind();
+
+        glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
+        glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
+    }
+}
+
+Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetFilteringMode()
+{
+    return m_FilteringMode;
 }
 
 std::uint32_t Pine::Graphics::GLTexture::GetId() const

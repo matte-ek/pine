@@ -22,6 +22,9 @@ namespace Pine::Graphics
         TextureType GetType() override;
         void SetType(TextureType type) override;
 
+    	void SetFilteringMode(TextureFilteringMode mode) override;
+    	TextureFilteringMode GetFilteringMode() override;
+
         void UploadTextureData(int width, int height, TextureFormat format, TextureDataFormat dataFormat, void* data) override;
     };
 

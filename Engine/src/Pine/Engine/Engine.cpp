@@ -21,7 +21,7 @@ namespace
     Pine::Graphics::IGraphicsAPI* m_GraphicsAPI;
 }
 
-bool Pine::Engine::Setup(const Pine::Engine::EngineConfiguration& engineConfiguration)
+bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 {
     m_EngineConfiguration = engineConfiguration;
 
@@ -96,7 +96,7 @@ void Pine::Engine::Run()
         throw std::runtime_error("Engine::Run(): Engine has not been initialized.");
     }
 
-    const auto windowPointer = reinterpret_cast<GLFWwindow*>(WindowManager::GetWindowPointer());
+    const auto windowPointer = static_cast<GLFWwindow*>(WindowManager::GetWindowPointer());
 
     // During the window setup, we've actually made the window to be invisible by default.
     // This is because:

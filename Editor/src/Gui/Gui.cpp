@@ -38,7 +38,7 @@ namespace
         io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Regular.ttf", 17.f);
 
         // Merge in Material Icons
-        static const ImWchar icons_ranges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
+        static constexpr ImWchar icons_ranges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
 
         ImFontConfig icons_config;
 
@@ -60,7 +60,7 @@ namespace
         SetFonts();
         SetTheme();
 
-        ImGui_ImplGlfw_InitForOpenGL(reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
+        ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
         ImGui_ImplOpenGL3_Init("#version 130");
     }
 

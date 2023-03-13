@@ -49,7 +49,7 @@ void Panels::GameViewport::Render()
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
-    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize);
+    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
 
     ImGui::End();
 }

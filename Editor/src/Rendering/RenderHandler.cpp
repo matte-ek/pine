@@ -22,10 +22,10 @@ namespace
         if (stage == Pine::RenderStage::PreRender)
         {
             m_GameRenderingContext->m_Active = Panels::GameViewport::GetActive() && Panels::GameViewport::GetVisible();
-            m_GameRenderingContext->m_Size = Panels::GameViewport::GetSize();
+            m_GameRenderingContext->m_Size = Pine::Vector2f(1920, 1080);
 
             m_LevelRenderingContext->m_Active = Panels::LevelViewport::GetActive() && Panels::LevelViewport::GetVisible();
-            m_LevelRenderingContext->m_Size = Panels::LevelViewport::GetSize();
+            m_LevelRenderingContext->m_Size = Pine::Vector2f(1920, 1080);
         }
     }
 }

@@ -70,15 +70,14 @@ void Pine::RenderManager::Run()
         if (renderingContext->m_Camera)
             renderingContext->m_Camera->OnRender(0.f);
 
-        Pine::Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), renderingContext->m_Size);
+        Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), renderingContext->m_Size);
 
-        Pine::Graphics::GetGraphicsAPI()->ClearColor(Color(static_cast<int>(renderingContext->m_ClearColor.r * 255.f),
+        Graphics::GetGraphicsAPI()->ClearColor(Color(static_cast<int>(renderingContext->m_ClearColor.r * 255.f),
                                                            static_cast<int>(renderingContext->m_ClearColor.g * 255.f),
                                                            static_cast<int>(renderingContext->m_ClearColor.b * 255.f),
                                                            static_cast<int>(renderingContext->m_ClearColor.a * 255.f)));
 
-        Pine::Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer);
-
+        Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer);
 
         CallRenderCallback(RenderStage::Render2D);
 

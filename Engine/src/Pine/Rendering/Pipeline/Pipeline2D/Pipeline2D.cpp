@@ -101,9 +101,9 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
 
             auto tileMap = tilemapRenderer->GetTilemap();
             auto textureAtlas = tileMap->GetTileset()->GetTextureAtlas();
-            auto tileSize = static_cast<float>(tileMap->GetTileset()->GetTileSize());
+            auto tileSize = static_cast<float>(tileMap->GetTileset()->GetTileSize()) * transform->GetScale().x;
 
-            auto positionOffset = Vector2f(transform->GetPosition());
+            auto positionOffset = Vector2f(transform->GetPosition()) * context.m_Size;
 
             Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::Screen);
 
@@ -113,6 +113,7 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
                     continue;
 
                 Pine::Renderer2D::AddTextureAtlasItem(positionOffset + Pine::Vector2f(tileSize * static_cast<float>(tile.m_Position.x), tileSize * static_cast<float>(tile.m_Position.y)),
+                                                      tileSize,
                                                       textureAtlas,
                                                       tile.m_RenderIndex,
                                                       Pine::Color(255, 255, 255, 255));
