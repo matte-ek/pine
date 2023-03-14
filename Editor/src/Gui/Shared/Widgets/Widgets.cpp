@@ -136,7 +136,7 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsse
 
     strcpy_s(buff, assetFileName.c_str());
 
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 51.f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 55.f);
 
     ImGui::InputText(std::string("##AssetPath" + str).c_str(), buff, 128, ImGuiInputTextFlags_ReadOnly);
 
@@ -158,7 +158,7 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsse
 
     ImGui::SameLine();
 
-    if (ImGui::Button("..."))
+    if (ImGui::Button(" ... "))
     {
         // TODO: Asset picker
     }
