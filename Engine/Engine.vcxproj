@@ -182,6 +182,7 @@
     <ClInclude Include="src\Pine\World\Components\Camera\Camera.hpp" />
     <ClInclude Include="src\Pine\World\Components\Components.hpp" />
     <ClInclude Include="src\Pine\World\Components\IComponent\IComponent.hpp" />
+    <ClInclude Include="src\Pine\World\Components\NativeScript\NativeScript.hpp" />
     <ClInclude Include="src\Pine\World\Components\SpriteRenderer\SpriteRenderer.hpp" />
     <ClInclude Include="src\Pine\World\Components\TilemapRenderer\TilemapRenderer.hpp" />
     <ClInclude Include="src\Pine\World\Components\Transform\Transform.hpp" />
@@ -220,6 +221,7 @@
     <ClCompile Include="src\Pine\World\Components\Camera\Camera.cpp" />
     <ClCompile Include="src\Pine\World\Components\Components.cpp" />
     <ClCompile Include="src\Pine\World\Components\IComponent\IComponent.cpp" />
+    <ClCompile Include="src\Pine\World\Components\NativeScript\NativeScript.cpp" />
     <ClCompile Include="src\Pine\World\Components\SpriteRenderer\SpriteRenderer.cpp" />
     <ClCompile Include="src\Pine\World\Components\TilemapRenderer\TilemapRenderer.cpp" />
     <ClCompile Include="src\Pine\World\Components\Transform\Transform.cpp" />

@@ -228,6 +228,8 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
         {
             ImGui::SetKeyboardFocusHere();
 
+            selectedComponent = 0;
+
             setKeyboardFocus = false;
         }
 
@@ -245,8 +247,8 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
                 // Find the component type from the selected string
                 const auto& componentList = Pine::Components::GetComponentTypes();
                 const auto selectedComponentStr = componentSearchBox[selectedComponent];
-                
-                Pine::ComponentType selectedComponentType;
+
+                auto selectedComponentType = Pine::ComponentType::SpriteRenderer;
                 bool foundComponentType = false;
 
                 for (const auto& component : componentList)

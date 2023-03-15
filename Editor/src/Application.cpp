@@ -4,6 +4,8 @@
 #include "Rendering/RenderHandler.hpp"
 #include <Pine/Pine.hpp>
 
+#include "EditorEntity/EditorEntity.hpp"
+
 int main()
 {
     // Setup Pine
@@ -21,9 +23,9 @@ int main()
     Pine::Assets::LoadDirectory("game");
 
     // Setup Editor
+    EditorEntity::Setup();
     RenderHandler::Setup();
     Gui::Setup();
-
 
     // Enter main loop
     Pine::Engine::Run();
@@ -31,6 +33,7 @@ int main()
     // Editor clean up
     Gui::Shutdown();
     RenderHandler::Shutdown();
+    EditorEntity::Dispose();
 
     // Engine clean up
     Pine::Engine::Shutdown();

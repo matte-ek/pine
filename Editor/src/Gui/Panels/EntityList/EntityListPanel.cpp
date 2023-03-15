@@ -28,13 +28,11 @@ namespace
         // since ImGui builds an id from the widget name.
         const std::string renderText = entity->GetName() + "##" + std::to_string(entity->GetId());
 
-        auto flags = ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen |
-                     ImGuiTreeNodeFlags_SpanFullWidth;
+        auto flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen |
+                     ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed;
 
         if (entity->GetChildren().empty())
             flags |= ImGuiTreeNodeFlags_Leaf;
-        if (Selection::IsSelected<Pine::Entity>(entity))
-            flags |= ImGuiTreeNodeFlags_Selected;
 
         static const auto runEntityContextWidgets = [](Pine::Entity* entity)
         {
@@ -95,8 +93,22 @@ namespace
             }
         };
 
+        bool restoreFrameColor = false;
+
+        if (!Selection::IsSelected<Pine::Entity>(entity))
+        {
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.f, 0.f, 0.f, 0.f));
+
+        	restoreFrameColor = true;
+        }
+
         if (ImGui::TreeNodeEx(renderText.c_str(), flags))
         {
+            if (restoreFrameColor)
+            {
+                ImGui::PopStyleColor();
+            }
+
             runEntityContextWidgets(entity);
 
             for (const auto& child : entity->GetChildren())
@@ -108,6 +120,11 @@ namespace
         }
         else
         {
+            if (restoreFrameColor)
+            {
+                ImGui::PopStyleColor();
+            }
+
             runEntityContextWidgets(entity);
         }
     }

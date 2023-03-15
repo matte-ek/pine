@@ -6,9 +6,25 @@ Pine::Camera::Camera() :
 {
 }
 
+void Pine::Camera::SetOrthographicSize(float size)
+{
+    m_OrthographicSize = size;
+}
+
+float Pine::Camera::GetOrthographicSize() const
+{
+    return m_OrthographicSize;
+}
+
 void Pine::Camera::BuildProjectionMatrix()
 {
-
+    if (m_CameraType == CameraType::Orthographic)
+    {
+        m_ProjectionMatrix = glm::ortho(-m_OrthographicSize, m_OrthographicSize, -m_OrthographicSize, m_OrthographicSize, -1.f, 1.f);
+    }
+    else
+    {
+    }
 }
 
 void Pine::Camera::BuildViewMatrix()

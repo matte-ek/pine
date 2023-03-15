@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
 
 namespace
@@ -140,6 +141,11 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsse
 
     ImGui::InputText(std::string("##AssetPath" + str).c_str(), buff, 128, ImGuiInputTextFlags_ReadOnly);
 
+    if (ImGui::IsItemClicked() && asset != nullptr)
+    {
+        Selection::Add(const_cast<Pine::IAsset*>(asset), true);
+    }
+
     if (ImGui::BeginDragDropTarget())
     {
         if (const auto payload = ImGui::AcceptDragDropPayload("Asset"))
@@ -174,8 +180,6 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsse
     {
         ret.hasResult = true;
         ret.asset = nullptr;
-
-        Widgets::PushDisabled();
     }
 
     if (asset == nullptr)

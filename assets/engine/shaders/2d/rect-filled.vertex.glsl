@@ -15,7 +15,8 @@ out vec4 m_PassUvTransform;
 out vec2 m_PassTextureIndexRadius;
 out vec2 m_PassUv;
 
-uniform vec2 m_CamPositionOffset;
+uniform mat4 m_ProjectionMatrix;
+uniform mat4 m_ViewMatrix;
 
 void main()
 {
@@ -28,5 +29,5 @@ void main()
     // Set vertex UV
     m_PassUv = m_Uv;
 
-    gl_Position = vec4(m_CamPositionOffset, 0, 0) + vec4(m_PositionScale.xy, 0, 0) + vec4(m_Vertex.xy, 0, 1) * vec4(m_PositionScale.zw, 0, 1);
+    gl_Position = m_ProjectionMatrix * m_ViewMatrix * (vec4(m_PositionScale.xy, 0, 0) + vec4(m_Vertex.xy, 0, 1) * vec4(m_PositionScale.zw, 0, 1));
 }

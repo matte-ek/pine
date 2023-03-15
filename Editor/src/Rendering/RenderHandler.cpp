@@ -1,4 +1,6 @@
 #include "RenderHandler.hpp"
+
+#include "EditorEntity/EditorEntity.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
@@ -52,7 +54,7 @@ void RenderHandler::Setup()
     m_LevelRenderingContext->m_ClearColor = Pine::Vector4f(0.f, 0.5f, 1.f, 1.f);
 
     // For the level rendering context, we'll always force the editor entity's camera
-    m_LevelRenderingContext->m_Camera = nullptr;
+    m_LevelRenderingContext->m_Camera = EditorEntity::Get()->GetComponent<Pine::Camera>();
 
     Pine::RenderManager::SetPrimaryRenderingContext(m_GameRenderingContext);
     Pine::RenderManager::AddRenderingContextPass(m_LevelRenderingContext);

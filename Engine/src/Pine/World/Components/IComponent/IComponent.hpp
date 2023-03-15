@@ -4,12 +4,13 @@
 namespace Pine
 {
 
-    enum class ComponentType
+    enum class ComponentType : int
     {
         Transform,
         SpriteRenderer,
         TilemapRenderer,
-        Camera
+        Camera,
+        NativeScript
     };
 
     inline const char* ComponentTypeToString(ComponentType type)
@@ -24,6 +25,8 @@ namespace Pine
             return "Tile-map Renderer";
         case ComponentType::Camera:
             return "Camera";
+        case ComponentType::NativeScript:
+            return "Native Script";
         }
 
         return "N/A";

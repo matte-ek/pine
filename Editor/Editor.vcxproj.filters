@@ -57,6 +57,9 @@
     <ClCompile Include="src\Gui\Shared\Gizmo\Gizmo2D\Gizmo2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\EditorEntity\EditorEntity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Rendering\RenderHandler.hpp">
@@ -96,6 +99,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Gui\Shared\Gizmo\Gizmo2D\Gizmo2D.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorEntity\EditorEntity.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -6,16 +6,29 @@
 namespace Pine
 {
 
+    enum class CameraType
+    {
+	    Perspective,
+        Orthographic
+    };
+
     class Camera : public IComponent
     {
     private:
-        Matrix4f m_ProjectionMatrix = Matrix4f(1.f);
+        CameraType m_CameraType = CameraType::Orthographic;
+
+        float m_OrthographicSize = 1.f;
+
+    	Matrix4f m_ProjectionMatrix = Matrix4f(1.f);
         Matrix4f m_ViewMatrix = Matrix4f(1.f);
 
         void BuildProjectionMatrix();
         void BuildViewMatrix();
     public:
         explicit Camera();
+
+        void SetOrthographicSize(float size);
+        float GetOrthographicSize() const;
 
         void OnRender(float) override;
 

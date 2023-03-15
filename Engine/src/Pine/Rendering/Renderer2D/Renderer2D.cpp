@@ -25,7 +25,8 @@ namespace
 
     Rendering::CoordinateSystem m_CoordinateSystem = Rendering::CoordinateSystem::Screen;
 
-    Vector2f m_CamPositionOffset;
+    Matrix4f m_ProjectionMatrix;
+	Matrix4f m_ViewMatrix;
 
     // Base properties that most rendering items require
     struct RenderItem
@@ -165,7 +166,8 @@ namespace
                 m_GraphicsAPI->SetActiveTexture(0);
                 m_DefaultTexture->Bind();
 
-                m_Shader->GetProgram()->GetUniformVariable("m_CamPositionOffset")->LoadVector2(m_CamPositionOffset);
+                m_Shader->GetProgram()->GetUniformVariable("m_ViewMatrix")->LoadMatrix4(m_ViewMatrix);
+                m_Shader->GetProgram()->GetUniformVariable("m_ProjectionMatrix")->LoadMatrix4(m_ProjectionMatrix);
 
                 int startIndex = 0;
                 while (startIndex < rects.size())
@@ -349,14 +351,13 @@ void Renderer2D::RenderFrame(RenderingContext* context)
 
     if (context->m_Camera)
     {
-        if (m_CoordinateSystem == Rendering::CoordinateSystem::Screen)
-            m_CamPositionOffset = (-Vector2f(context->m_Camera->GetParent()->GetTransform()->LocalPosition)) / context->m_Size;
-        else
-            m_CamPositionOffset = -Vector2f(context->m_Camera->GetParent()->GetTransform()->LocalPosition);
+        m_ProjectionMatrix = context->m_Camera->GetProjectionMatrix();
+        m_ViewMatrix = context->m_Camera->GetViewMatrix();
     }
     else
     {
-        m_CamPositionOffset = Vector2f(0.f);
+        m_ProjectionMatrix = Matrix4f(1.f);
+    	m_ViewMatrix = Matrix4f(1.f);
     }
 
     Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), context->m_Size);
