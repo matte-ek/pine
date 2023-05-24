@@ -143,6 +143,7 @@
     <ClInclude Include="src\Pine\Assets\IAsset\IAsset.hpp" />
     <ClInclude Include="src\Pine\Assets\InvalidAsset\InvalidAsset.hpp" />
     <ClInclude Include="src\Pine\Assets\Level\Level.hpp" />
+    <ClInclude Include="src\Pine\Assets\Material\Material.hpp" />
     <ClInclude Include="src\Pine\Assets\Shader\Shader.hpp" />
     <ClInclude Include="src\Pine\Assets\Texture2D\Texture2D.hpp" />
     <ClInclude Include="src\Pine\Assets\Tilemap\Tilemap.hpp" />
@@ -172,6 +173,7 @@
     <ClInclude Include="src\Pine\Graphics\OpenGL\VertexArray\GLVertexArray.hpp" />
     <ClInclude Include="src\Pine\Graphics\OpenGL\VertexBuffer\GLVertexBuffer.hpp" />
     <ClInclude Include="src\Pine\Graphics\TextureAtlas\TextureAtlas.hpp" />
+    <ClInclude Include="src\Pine\Physics\Physics2D\Physics2D.hpp" />
     <ClInclude Include="src\Pine\Pine.hpp" />
     <ClInclude Include="src\Pine\Rendering\Canvas\Canvas.hpp" />
     <ClInclude Include="src\Pine\Rendering\Pipeline\Pipeline2D\Pipeline2D.hpp" />
@@ -180,6 +182,7 @@
     <ClInclude Include="src\Pine\Rendering\RenderingContext.hpp" />
     <ClInclude Include="src\Pine\Rendering\RenderManager\RenderManager.hpp" />
     <ClInclude Include="src\Pine\World\Components\Camera\Camera.hpp" />
+    <ClInclude Include="src\Pine\World\Components\Collider2D\Collider2D.hpp" />
     <ClInclude Include="src\Pine\World\Components\Components.hpp" />
     <ClInclude Include="src\Pine\World\Components\IComponent\IComponent.hpp" />
     <ClInclude Include="src\Pine\World\Components\NativeScript\NativeScript.hpp" />
@@ -196,6 +199,7 @@
     <ClCompile Include="src\Pine\Assets\IAsset\IAsset.cpp" />
     <ClCompile Include="src\Pine\Assets\InvalidAsset\InvalidAsset.cpp" />
     <ClCompile Include="src\Pine\Assets\Level\Level.cpp" />
+    <ClCompile Include="src\Pine\Assets\Material\Material.cpp" />
     <ClCompile Include="src\Pine\Assets\Shader\Shader.cpp" />
     <ClCompile Include="src\Pine\Assets\Texture2D\Texture2D.cpp" />
     <ClCompile Include="src\Pine\Assets\Tilemap\Tilemap.cpp" />
@@ -215,10 +219,12 @@
     <ClCompile Include="src\Pine\Graphics\OpenGL\VertexArray\GLVertexArray.cpp" />
     <ClCompile Include="src\Pine\Graphics\OpenGL\VertexBuffer\GLVertexBuffer.cpp" />
     <ClCompile Include="src\Pine\Graphics\TextureAtlas\TextureAtlas.cpp" />
+    <ClCompile Include="src\Pine\Physics\Physics2D\Physics2D.cpp" />
     <ClCompile Include="src\Pine\Rendering\Pipeline\Pipeline2D\Pipeline2D.cpp" />
     <ClCompile Include="src\Pine\Rendering\Renderer2D\Renderer2D.cpp" />
     <ClCompile Include="src\Pine\Rendering\RenderManager\RenderManager.cpp" />
     <ClCompile Include="src\Pine\World\Components\Camera\Camera.cpp" />
+    <ClCompile Include="src\Pine\World\Components\Collider2D\Collider2D.cpp" />
     <ClCompile Include="src\Pine\World\Components\Components.cpp" />
     <ClCompile Include="src\Pine\World\Components\IComponent\IComponent.cpp" />
     <ClCompile Include="src\Pine\World\Components\NativeScript\NativeScript.cpp" />

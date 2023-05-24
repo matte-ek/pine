@@ -49,7 +49,7 @@ bool Pine::WindowManager::Internal::CreateWindow(Pine::Vector2i position, Pine::
     glfwMakeContextCurrent(m_Window);
 
     // Enable vertical sync by default
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     m_WindowTitle = title;
     m_WindowMonitor = targetMonitor;

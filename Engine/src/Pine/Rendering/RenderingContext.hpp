@@ -18,6 +18,8 @@ namespace Pine
         Vector4f m_ClearColor = Vector4f(0.f, 0.f, 0.f, 1.f);
 
         int m_DrawCalls = 0;
+
+        int m_PreAllocItems = 0;
     };
 
 }

@@ -1,5 +1,6 @@
 #include "Assets.hpp"
 
+#include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Font/Font.hpp"
 #include "Pine/Assets/InvalidAsset/InvalidAsset.hpp"
@@ -47,6 +48,7 @@ namespace
 
     std::vector<AssetFactory> m_AssetFactories = {
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
+        AssetFactory( { { "mat" }, AssetType::Material, [](){ return new Material(); } } ),
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
         AssetFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
@@ -84,7 +86,7 @@ namespace
         if (!mapPath.empty())
             return mapPath;
 
-        // Remove Windows style seperators with a forward slash
+        // Remove Windows style separators with a forward slash
         auto filePath = Pine::String::Replace(path.string(), "\\", "/");
 
         // If we don't want to 'change' the relative directory,

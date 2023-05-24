@@ -1,11 +1,11 @@
 #include "Components.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Engine/Engine.hpp"
+#include "Pine/World/Components/Collider2D/Collider2D.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
-
 using namespace Pine;
 
 namespace
@@ -102,6 +102,7 @@ void Pine::Components::Setup()
     CreateComponentDataBlock<Transform>();
     CreateComponentDataBlock<SpriteRenderer>();
     CreateComponentDataBlock<TilemapRenderer>();
+    CreateComponentDataBlock<Collider2D>();
     CreateComponentDataBlock<Camera>(32);
 
     std::size_t totalSize = 0;

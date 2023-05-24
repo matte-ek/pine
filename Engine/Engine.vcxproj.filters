@@ -168,6 +168,15 @@
     <ClInclude Include="src\Pine\World\Components\NativeScript\NativeScript.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Pine\Assets\Material\Material.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pine\Physics\Physics2D\Physics2D.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Pine\World\Components\Collider2D\Collider2D.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Pine\World\Entities\Entities.cpp">
@@ -279,6 +288,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pine\World\Components\NativeScript\NativeScript.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pine\Assets\Material\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pine\World\Components\Collider2D\Collider2D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Pine\Physics\Physics2D\Physics2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

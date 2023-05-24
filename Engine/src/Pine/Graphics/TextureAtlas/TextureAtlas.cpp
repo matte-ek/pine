@@ -64,6 +64,7 @@ void Pine::Graphics::TextureAtlas::Update()
 
         Renderer2D::AddFilledTexturedRectangle(Vector2f(static_cast<float>(m_TileSize) * column, static_cast<float>(m_TileSize) * row),
                                                Vector2f(static_cast<float>(m_TileSize)),
+                                               0.f,
                                                Color(255, 255, 255, 255),
                                                texture);
     }

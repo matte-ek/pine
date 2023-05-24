@@ -3,6 +3,7 @@
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline2D/Pipeline2D.hpp"
 #include <vector>
+#include <GLFW/glfw3.h>
 
 namespace
 {
@@ -15,13 +16,16 @@ namespace
     // A fallback "default" rendering context to quickly get up and running.
     Pine::RenderingContext m_DefaultRenderingContext;
 
-    std::vector<std::function<void(Pine::RenderStage)>> m_RenderCallbackFunctions;
+    // Used to track delta time between frames
+    double m_LastFrameTime = 0;
 
-    void CallRenderCallback(Pine::RenderStage stage)
+    std::vector<std::function<void(Pine::RenderStage, float)>> m_RenderCallbackFunctions;
+
+    void CallRenderCallback(Pine::RenderStage stage, float deltaTime)
     {
         for (const auto& func : m_RenderCallbackFunctions)
         {
-            func(stage);
+            func(stage, deltaTime);
         }
     }
 
@@ -49,7 +53,14 @@ void Pine::RenderManager::Run()
         return;
     }
 
-    CallRenderCallback(RenderStage::PreRender);
+    double currentFrameTime = glfwGetTime();
+
+    double deltaTime = currentFrameTime - m_LastFrameTime;
+    auto fDeltaTime = static_cast<float>(deltaTime);
+
+    m_LastFrameTime = currentFrameTime;
+
+    CallRenderCallback(RenderStage::PreRender, fDeltaTime);
 
     for (auto renderingContext : m_RenderingContexts)
     {
@@ -79,19 +90,19 @@ void Pine::RenderManager::Run()
 
         Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer);
 
-        CallRenderCallback(RenderStage::Render2D);
+        CallRenderCallback(RenderStage::Render2D, fDeltaTime);
 
         Pipeline2D::Run(*renderingContext);
 
-        CallRenderCallback(RenderStage::Render3D);
+        CallRenderCallback(RenderStage::Render3D, fDeltaTime);
     }
 
     Pine::Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
 
-    CallRenderCallback(RenderStage::PostRender);
+    CallRenderCallback(RenderStage::PostRender, fDeltaTime);
 }
 
-void Pine::RenderManager::AddRenderCallback(const std::function<void(RenderStage)>& func)
+void Pine::RenderManager::AddRenderCallback(const std::function<void(RenderStage, float)>& func)
 {
     m_RenderCallbackFunctions.push_back(func);
 }

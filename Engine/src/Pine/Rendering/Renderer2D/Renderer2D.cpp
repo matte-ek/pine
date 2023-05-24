@@ -1,4 +1,7 @@
 #include "Renderer2D.hpp"
+
+#include <iostream>
+
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Graphics/Interfaces/IGraphicsAPI.hpp"
@@ -15,7 +18,7 @@ using namespace Pine;
 namespace
 {
     // Max amount of instances the 2D renderer may render before moving onto another draw call.
-    constexpr int MaxInstanceCount = 1024;
+    constexpr int MaxInstanceCount = 4096;
 
     // Cached graphics API for the current context
     Graphics::IGraphicsAPI* m_GraphicsAPI = nullptr;
@@ -25,6 +28,7 @@ namespace
 
     Rendering::CoordinateSystem m_CoordinateSystem = Rendering::CoordinateSystem::Screen;
 
+    // Matrices store globally for each PrepareFrame() call
     Matrix4f m_ProjectionMatrix;
 	Matrix4f m_ViewMatrix;
 
@@ -33,6 +37,7 @@ namespace
     {
         Vector2f m_Position;
         Vector2f m_Size;
+        float m_Rotation = 0.f;
         Color m_Color;
         Rendering::CoordinateSystem m_CoordinateSystem;
     };
@@ -91,7 +96,7 @@ namespace
             Graphics::IVertexBuffer* m_PositionSizeBuffer = nullptr;
             Graphics::IVertexBuffer* m_UvRadiusBuffer = nullptr;
             Graphics::IVertexBuffer* m_ColorBuffer = nullptr;
-            Graphics::IVertexBuffer* m_TextureBuffer = nullptr;
+            Graphics::IVertexBuffer* m_TextureRotationBuffer = nullptr;
 
             Shader* m_Shader = nullptr;
 
@@ -152,8 +157,8 @@ namespace
                 m_ColorBuffer = m_VertexArray->CreateFloatArrayBuffer(sizeof(Vector4f) * MaxInstanceCount, 4, 4, Graphics::BufferUsageHint::DynamicDraw);
                 m_ColorBuffer->SetDivisor(Graphics::VertexBufferDivisor::PerInstance, 1);
 
-                m_TextureBuffer = m_VertexArray->CreateFloatArrayBuffer(sizeof(Vector2f) * MaxInstanceCount, 5, 2, Graphics::BufferUsageHint::DynamicDraw);
-                m_TextureBuffer->SetDivisor(Graphics::VertexBufferDivisor::PerInstance, 1);
+                m_TextureRotationBuffer = m_VertexArray->CreateFloatArrayBuffer(sizeof(Vector3f) * MaxInstanceCount, 5, 3, Graphics::BufferUsageHint::DynamicDraw);
+                m_TextureRotationBuffer->SetDivisor(Graphics::VertexBufferDivisor::PerInstance, 1);
 
                 m_Ready = true;
             }
@@ -169,15 +174,15 @@ namespace
                 m_Shader->GetProgram()->GetUniformVariable("m_ViewMatrix")->LoadMatrix4(m_ViewMatrix);
                 m_Shader->GetProgram()->GetUniformVariable("m_ProjectionMatrix")->LoadMatrix4(m_ProjectionMatrix);
 
-                int startIndex = 0;
-                while (startIndex < rects.size())
-                {
-                    // Prepare the new instance data for the next batch of rectangles
-                    std::vector<Vector4f> rectPositionSizeData;
-                    std::vector<Vector4f> rectUvTransformData;
-                    std::vector<Vector4f> rectColorData;
-                    std::vector<Vector2f> rectTextureIndexRadiusData;
+                // Prepare the new instance data for the next batch of rectangles
+                std::vector<Vector4f> rectPositionSizeData;
+                std::vector<Vector4f> rectUvTransformData;
+                std::vector<Vector4f> rectColorData;
+                std::vector<Vector3f> rectTextureIndexRadiusData;
 
+                int startIndex = 0;
+                while (startIndex < static_cast<int>(rects.size()))
+                {
                 	int minSize = std::min(static_cast<int>(rects.size()) - startIndex, MaxInstanceCount);
 
                     // To avoid re-allocations, we can fill out the vector directly
@@ -225,6 +230,7 @@ namespace
                                                                     static_cast<float>(rect.m_Color.a) / 255.f);
 
                         rectTextureIndexRadiusData[vertexBufferIndex].y = rect.m_Radius;
+                        rectTextureIndexRadiusData[vertexBufferIndex].z = -rect.m_Rotation;
 
                         if (rect.m_Texture != nullptr)
                         {
@@ -258,8 +264,8 @@ namespace
                     m_ColorBuffer->Bind();
                     m_ColorBuffer->UploadData(rectColorData.data(), sizeof(Vector4f) * minSize, 0);
 
-                    m_TextureBuffer->Bind();
-                    m_TextureBuffer->UploadData(rectTextureIndexRadiusData.data(), sizeof(Vector2f) * minSize, 0);
+                    m_TextureRotationBuffer->Bind();
+                    m_TextureRotationBuffer->UploadData(rectTextureIndexRadiusData.data(), sizeof(Vector3f) * minSize, 0);
 
                     // Render the quads
                     if (m_LineLoop)
@@ -305,6 +311,8 @@ namespace
                 return;
             }
 
+            m_FilledRectangles.reserve(context->m_PreAllocItems);
+
             if (!m_FilledRectangles.empty())
                 m_FilledRectangleRender.Render(context, m_FilledRectangles);
             if (!m_Rectangles.empty())
@@ -326,7 +334,7 @@ void Pine::Renderer2D::PrepareFrame()
         // Create a 1x1 solid white pixel texture
         auto* textureData = static_cast<std::uint8_t*>(malloc(sizeof(std::uint8_t) * 4));
         
-        for (int i = 0; i < sizeof(std::uint8_t) * 4;i++)
+        for (size_t i = 0; i < sizeof(std::uint8_t) * 4;i++)
             textureData[i] = 255;
 
         m_DefaultTexture->Bind();
@@ -371,6 +379,7 @@ void Pine::Renderer2D::AddRectangle(Pine::Vector2f position, Pine::Vector2f size
     {
         position,
         size,
+        0.f,
         color,
         m_CoordinateSystem
     };
@@ -378,12 +387,13 @@ void Pine::Renderer2D::AddRectangle(Pine::Vector2f position, Pine::Vector2f size
     m_Rectangles.push_back(rectangleItem);
 }
 
-void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2f size, Pine::Color color)
+void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2f size, float rotation, Pine::Color color)
 {
     RectangleItem rectangleItem =
     {
         position,
         size,
+        rotation,
         color,
         m_CoordinateSystem
     };
@@ -391,12 +401,13 @@ void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, const Texture2D* texture, Vector2f uvOffset, Vector2f uvScale)
+void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, const Texture2D* texture, Vector2f uvOffset, Vector2f uvScale)
 {
     RectangleItem rectangleItem =
     {
         position,
         size,
+        rotation,
         color,
         m_CoordinateSystem,
         0.f,
@@ -408,13 +419,14 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Co
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Graphics::ITexture* texture,
+void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, Graphics::ITexture* texture,
                                             Vector2f uvOffset, Vector2f uvScale)
 {
     RectangleItem rectangleItem =
     {
         position,
         size,
+        rotation,
         color,
     	m_CoordinateSystem,
         0.f,
@@ -432,6 +444,7 @@ void Pine::Renderer2D::AddFilledRoundedRectangle(Pine::Vector2f position, Pine::
     {
         position,
         size,
+        0.f,
         color,
         m_CoordinateSystem,
         radius
@@ -454,6 +467,7 @@ void Renderer2D::AddTextureAtlasItem(Vector2f position, float size, const Graphi
     {
         position,
         Vector2f(size),
+        0.f,
         color,
         m_CoordinateSystem,
         0.f,

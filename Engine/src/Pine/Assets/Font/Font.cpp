@@ -28,14 +28,14 @@ std::uint32_t Pine::Font::Create(float fontSize)
 
     if (stream.read(buffer.data(), size))
     {
-        void* bitmapBuffer = malloc(1024*1024);
+        void* bitmapBuffer = malloc(1024 * 1024);
 
         FontData data;
 
         data.m_Size = fontSize;
         data.m_CharData.resize(96);
 
-        stbtt_BakeFontBitmap(reinterpret_cast<const unsigned char*>(buffer.data()), 0, fontSize, reinterpret_cast<unsigned char*>(bitmapBuffer), 1024, 1024, 32, 96, data.m_CharData.data());
+        stbtt_BakeFontBitmap(reinterpret_cast<const unsigned char*>(buffer.data()), 0, fontSize, static_cast<unsigned char*>(bitmapBuffer), 1024, 1024, 32, 96, data.m_CharData.data());
 
         data.m_TextureFontAtlas = Graphics::GetGraphicsAPI()->CreateTexture();
 

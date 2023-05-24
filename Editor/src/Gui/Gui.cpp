@@ -4,6 +4,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui.h"
+#include "ImGuizmo.h"
 #include "IconsMaterialDesign.h"
 
 #include "Panels/Properties/PropertiesPanel.hpp"
@@ -144,6 +145,7 @@ namespace
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
 
         CreateDockSpace();
 

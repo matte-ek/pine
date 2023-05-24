@@ -27,10 +27,10 @@ namespace Pine::Renderer2D
     Rendering::CoordinateSystem GetCoordinateSystem();
 
     void AddRectangle(Vector2f position, Vector2f size, Color color);
-    void AddFilledRectangle(Vector2f position, Vector2f size, Color color);
+    void AddFilledRectangle(Vector2f position, Vector2f size, float rotation, Color color);
 
-    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, const Texture2D* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
-    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, Color color, Graphics::ITexture* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
+    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, const Texture2D* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
+    void AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, Graphics::ITexture* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
 
     void AddFilledRoundedRectangle(Vector2f position, Vector2f size, float radius, Color color);
 

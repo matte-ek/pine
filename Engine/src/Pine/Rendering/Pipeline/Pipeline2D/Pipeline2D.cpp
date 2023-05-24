@@ -83,6 +83,7 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
 
             Renderer2D::AddFilledTexturedRectangle(transform->GetPosition(),
                                                    size,
+                                                   0.f,
                                                    Color(255, 255, 255, 255),
                                                    spriteRenderer->GetTexture(),
                                                    Vector2f(0.f),

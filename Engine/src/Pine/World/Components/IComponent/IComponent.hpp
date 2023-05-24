@@ -10,7 +10,8 @@ namespace Pine
         SpriteRenderer,
         TilemapRenderer,
         Camera,
-        NativeScript
+        NativeScript,
+        Collider2D
     };
 
     inline const char* ComponentTypeToString(ComponentType type)
@@ -27,6 +28,8 @@ namespace Pine
             return "Camera";
         case ComponentType::NativeScript:
             return "Native Script";
+        case ComponentType::Collider2D:
+            return "Collider2D";
         }
 
         return "N/A";
