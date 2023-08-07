@@ -36,7 +36,7 @@
     <ClInclude Include="src\Pine\World\Components\IComponent\IComponent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Pine\World\Components\Camera\Camera.hpp">
+    <ClInclude Include="src\Pine\World\Components\SceneCamera\SceneCamera.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Pine\Rendering\Rendering.hpp">
@@ -197,7 +197,7 @@
     <ClCompile Include="src\Pine\World\Components\SpriteRenderer\SpriteRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pine\World\Components\Camera\Camera.cpp">
+    <ClCompile Include="src\Pine\World\Components\SceneCamera\SceneCamera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Pine\World\Components\Components.cpp">

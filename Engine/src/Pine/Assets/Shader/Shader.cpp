@@ -76,7 +76,7 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
     // Gets asset's parent directory and adds that to the path specified
     // in the JSON file. We do this because the file path specified in the JSON
     // is relative to the .shader file, and we need the path relative to the application
-    const auto getRelativePath = [&](const std::string& filePath) {
+    const auto getAbsolutePath = [&](const std::string& filePath) {
         const auto assetParentDirectory = m_FilePath.parent_path().string();
 
         return assetParentDirectory + "/" + filePath;
@@ -88,26 +88,32 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
     // Load and compile all specified shaders
     if (!vertexPath.empty())
     {
-        if (!LoadAndCompileShader(getRelativePath(vertexPath), m_ShaderProgram, Graphics::ShaderType::Vertex))
+        if (!LoadAndCompileShader(getAbsolutePath(vertexPath), m_ShaderProgram, Graphics::ShaderType::Vertex))
         {
             return false;
         }
+
+        m_ShaderFiles.push_back(Pine::Assets::GetOrLoad(getAbsolutePath(vertexPath)));
     }
 
     if (!fragmentPath.empty())
     {
-        if (!LoadAndCompileShader(getRelativePath(fragmentPath), m_ShaderProgram, Graphics::ShaderType::Fragment))
+        if (!LoadAndCompileShader(getAbsolutePath(fragmentPath), m_ShaderProgram, Graphics::ShaderType::Fragment))
         {
             return false;
         }
+
+        m_ShaderFiles.push_back(Pine::Assets::GetOrLoad(getAbsolutePath(vertexPath)));
     }
 
     if (!computePath.empty())
     {
-        if (!LoadAndCompileShader(getRelativePath(computePath), m_ShaderProgram, Graphics::ShaderType::Compute))
+        if (!LoadAndCompileShader(getAbsolutePath(computePath), m_ShaderProgram, Graphics::ShaderType::Compute))
         {
             return false;
         }
+
+        m_ShaderFiles.push_back(Pine::Assets::GetOrLoad(getAbsolutePath(vertexPath)));
     }
 
     // Finally attempt to link the program
@@ -153,10 +159,50 @@ void Pine::Shader::Dispose()
         m_ShaderProgram = nullptr;
     }
 
+    m_ShaderFiles.clear();
+
     m_State = AssetState::Unloaded;
 }
 
 Pine::Graphics::IShaderProgram* Pine::Shader::GetProgram() const
 {
     return m_ShaderProgram;
+}
+
+bool Pine::Shader::HasBeenUpdated() const
+{
+    if (IAsset::HasBeenUpdated())
+    {
+        return true;
+    }
+
+    for (const auto& shaderFile : m_ShaderFiles)
+    {
+        if (shaderFile->HasBeenUpdated())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Pine::Shader::MarkAsUpdated()
+{
+    IAsset::MarkAsUpdated();
+
+    for (const auto& shaderFile : m_ShaderFiles)
+    {
+        shaderFile->MarkAsUpdated();
+    }
+}
+
+void Pine::Shader::SetReady(bool ready)
+{
+    m_Ready = ready;
+}
+
+bool Pine::Shader::IsReady() const
+{
+    return m_Ready;
 }

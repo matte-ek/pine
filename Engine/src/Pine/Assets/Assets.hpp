@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <string>
+#include <unordered_map>
 
 namespace Pine
 {
@@ -44,6 +45,8 @@ namespace Pine::Assets
     {
         return dynamic_cast<T*>(Get(path));
     }
+
+    IAsset* GetOrLoad(const std::string& path, bool includeFilePath = false);
 
     // Returns the entire map used internally within the asset manager
     const std::unordered_map<std::string, IAsset*>& GetAll();

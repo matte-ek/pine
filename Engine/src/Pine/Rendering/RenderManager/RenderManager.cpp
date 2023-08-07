@@ -2,16 +2,20 @@
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline2D/Pipeline2D.hpp"
+#include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
 #include <vector>
 #include <GLFW/glfw3.h>
 
 namespace
 {
     // All rendering contexts being used
-    std::vector<Pine::RenderingContext*> m_RenderingContexts;
+    std::vector<Pine::RenderingContext *> m_RenderingContexts;
+
+    // The buffer we render each frame to
+    Pine::Graphics::IFrameBuffer *m_RenderingBuffer;
 
     // The rendering context that is used to render the scene
-    Pine::RenderingContext* m_CurrentRenderingContext;
+    Pine::RenderingContext *m_CurrentRenderingContext;
 
     // A fallback "default" rendering context to quickly get up and running.
     Pine::RenderingContext m_DefaultRenderingContext;
@@ -23,7 +27,7 @@ namespace
 
     void CallRenderCallback(Pine::RenderStage stage, float deltaTime)
     {
-        for (const auto& func : m_RenderCallbackFunctions)
+        for (const auto &func: m_RenderCallbackFunctions)
         {
             func(stage, deltaTime);
         }
@@ -33,15 +37,20 @@ namespace
 
 void Pine::RenderManager::Setup()
 {
-    m_DefaultRenderingContext.m_Size = Vector2f(Engine::GetEngineConfiguration().m_WindowSize);
+    m_DefaultRenderingContext.Size = Vector2f(Engine::GetEngineConfiguration().m_WindowSize);
+
+    m_RenderingBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
+    m_RenderingBuffer->Create(1920, 1080, Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer);
 
     SetPrimaryRenderingContext(&m_DefaultRenderingContext);
 
     Pipeline2D::Setup();
+    Pipeline3D::Setup();
 }
 
 void Pine::RenderManager::Shutdown()
 {
+    Pipeline3D::Shutdown();
     Pipeline2D::Shutdown();
 }
 
@@ -62,39 +71,44 @@ void Pine::RenderManager::Run()
 
     CallRenderCallback(RenderStage::PreRender, fDeltaTime);
 
-    for (auto renderingContext : m_RenderingContexts)
+    for (auto renderingContext: m_RenderingContexts)
     {
-        if (!renderingContext->m_Active)
+        if (!renderingContext->Active)
             continue;
 
         m_CurrentRenderingContext = renderingContext;
 
         // Reset statistics
-        renderingContext->m_DrawCalls = 0;
+        renderingContext->DrawCalls = 0;
 
-        if (renderingContext->m_FrameBuffer)
-            renderingContext->m_FrameBuffer->Bind();
+        if (renderingContext->FrameBuffer)
+            renderingContext->FrameBuffer->Bind();
         else
             Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr); // This will just render everything onto the screen.
 
         // Make sure we got the camera's projection and view matrix ready for the scene
-        if (renderingContext->m_Camera)
-            renderingContext->m_Camera->OnRender(0.f);
+        if (renderingContext->SceneCamera)
+            renderingContext->SceneCamera->OnRender(0.f);
 
-        Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), renderingContext->m_Size);
+        Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), renderingContext->Size);
 
-        Graphics::GetGraphicsAPI()->ClearColor(Color(static_cast<int>(renderingContext->m_ClearColor.r * 255.f),
-                                                           static_cast<int>(renderingContext->m_ClearColor.g * 255.f),
-                                                           static_cast<int>(renderingContext->m_ClearColor.b * 255.f),
-                                                           static_cast<int>(renderingContext->m_ClearColor.a * 255.f)));
+        Graphics::GetGraphicsAPI()->ClearColor(Color(static_cast<int>(renderingContext->ClearColor.r * 255.f),
+                                                     static_cast<int>(renderingContext->ClearColor.g * 255.f),
+                                                     static_cast<int>(renderingContext->ClearColor.b * 255.f),
+                                                     static_cast<int>(renderingContext->ClearColor.a * 255.f)));
 
         Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer);
 
-        CallRenderCallback(RenderStage::Render2D, fDeltaTime);
+        // 3D pass
+        CallRenderCallback(RenderStage::Render3D, fDeltaTime);
+        Pipeline3D::Run(*renderingContext);
 
+        // 2D pass
+        CallRenderCallback(RenderStage::Render2D, fDeltaTime);
         Pipeline2D::Run(*renderingContext);
 
-        CallRenderCallback(RenderStage::Render3D, fDeltaTime);
+        // Post Processing
+        CallRenderCallback(RenderStage::PostProcessing, fDeltaTime);
     }
 
     Pine::Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
@@ -102,12 +116,12 @@ void Pine::RenderManager::Run()
     CallRenderCallback(RenderStage::PostRender, fDeltaTime);
 }
 
-void Pine::RenderManager::AddRenderCallback(const std::function<void(RenderStage, float)>& func)
+void Pine::RenderManager::AddRenderCallback(const std::function<void(RenderStage, float)> &func)
 {
     m_RenderCallbackFunctions.push_back(func);
 }
 
-void Pine::RenderManager::SetPrimaryRenderingContext(Pine::RenderingContext* context)
+void Pine::RenderManager::SetPrimaryRenderingContext(Pine::RenderingContext *context)
 {
     if (m_RenderingContexts.empty())
         m_RenderingContexts.push_back(&m_DefaultRenderingContext);
@@ -115,29 +129,29 @@ void Pine::RenderManager::SetPrimaryRenderingContext(Pine::RenderingContext* con
     m_RenderingContexts[0] = context;
 }
 
-Pine::RenderingContext* Pine::RenderManager::GetPrimaryRenderingContext()
+Pine::RenderingContext *Pine::RenderManager::GetPrimaryRenderingContext()
 {
     return m_RenderingContexts[0];
 }
 
-Pine::RenderingContext* Pine::RenderManager::GetCurrentRenderingContext()
+Pine::RenderingContext *Pine::RenderManager::GetCurrentRenderingContext()
 {
     return m_CurrentRenderingContext;
 }
 
-Pine::RenderingContext* Pine::RenderManager::GetDefaultRenderingContext()
+Pine::RenderingContext *Pine::RenderManager::GetDefaultRenderingContext()
 {
     return &m_DefaultRenderingContext;
 }
 
-void Pine::RenderManager::AddRenderingContextPass(Pine::RenderingContext* context)
+void Pine::RenderManager::AddRenderingContextPass(Pine::RenderingContext *context)
 {
     m_RenderingContexts.push_back(context);
 }
 
-void Pine::RenderManager::RemoveRenderingContextPass(Pine::RenderingContext* context)
+void Pine::RenderManager::RemoveRenderingContextPass(Pine::RenderingContext *context)
 {
-    for (int i = 0; i < m_RenderingContexts.size();i++)
+    for (int i = 0; i < m_RenderingContexts.size(); i++)
     {
         if (m_RenderingContexts[i] == context)
         {

@@ -6,6 +6,13 @@
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
+#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
+#include "Pine/World/Components/NativeScript/NativeScript.hpp"
+#include "Pine/World/Components/Light/Light.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
+#include "Pine/World/Components/RigidBody/RigidBody.hpp"
+#include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
+
 using namespace Pine;
 
 namespace
@@ -100,10 +107,16 @@ namespace
 void Pine::Components::Setup()
 {
     CreateComponentDataBlock<Transform>();
+    CreateComponentDataBlock<ModelRenderer>();
+    CreateComponentDataBlock<NativeScript>(1); // Temporary for Terrain Renderer
+    CreateComponentDataBlock<Camera>(32);
+    CreateComponentDataBlock<Light>();
+    CreateComponentDataBlock<Collider>();
+    CreateComponentDataBlock<RigidBody>();
+    CreateComponentDataBlock<Collider2D>();
+    CreateComponentDataBlock<RigidBody2D>();
     CreateComponentDataBlock<SpriteRenderer>();
     CreateComponentDataBlock<TilemapRenderer>();
-    CreateComponentDataBlock<Collider2D>();
-    CreateComponentDataBlock<Camera>(32);
 
     std::size_t totalSize = 0;
 

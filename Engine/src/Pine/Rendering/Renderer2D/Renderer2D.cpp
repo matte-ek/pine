@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
-#include <stb_truetype.h>
+#include <stb/stb_truetype.h>
 
 using namespace Pine;
 
@@ -33,7 +33,7 @@ namespace
 	Matrix4f m_ViewMatrix;
 
     // Base properties that most rendering items require
-    struct RenderItem
+    struct Drawable
     {
         Vector2f m_Position;
         Vector2f m_Size;
@@ -42,7 +42,7 @@ namespace
         Rendering::CoordinateSystem m_CoordinateSystem;
     };
 
-    struct RectangleItem : RenderItem
+    struct Rectangle : Drawable
     {
         float m_Radius = 0.0f;
         Graphics::ITexture* m_Texture = nullptr;
@@ -50,14 +50,13 @@ namespace
         Vector2f m_UvScale = Vector2f(1.f);
     };
 
-    std::vector<RectangleItem> m_Rectangles;
-    std::vector<RectangleItem> m_FilledRectangles;
+    std::vector<Rectangle> m_FilledRectangles;
 
     Vector4f ComputePositionSize(const RenderingContext* context, Vector2f position, Vector2f size, Rendering::CoordinateSystem coordinateSystem)
     {
         // Compute width and height
-        const float w = size.x / context->m_Size.x;
-        const float h = size.y / context->m_Size.y;
+        const float w = size.x / context->Size.x;
+        const float h = size.y / context->Size.y;
 
         // Compute position
         float x;
@@ -66,8 +65,8 @@ namespace
         if (coordinateSystem == Rendering::CoordinateSystem::Screen)
         {
             // Transform the screen coordinates to normalized (0-1) coordinates
-            x = (position.x / context->m_Size.x) * 2.0f;
-            y = (position.y / context->m_Size.y) * 2.0f;
+            x = (position.x / context->Size.x) * 2.0f;
+            y = (position.y / context->Size.y) * 2.0f;
 
             // Move the origin to the top left of the screen
             x += -1.0f + w;
@@ -102,51 +101,30 @@ namespace
 
             bool m_Ready = false;
 
-            // If we're drawing as a line loop, we'll get a non-filled rectangle
-            bool m_LineLoop = false;
-
-            void Create(bool lineLoop = false)
+            void Create()
             {
                 m_VertexArray = m_GraphicsAPI->CreateVertexArray();
                 m_VertexArray->Bind();
 
-                m_LineLoop = lineLoop;
-
-                if (lineLoop)
+                const std::vector<float> vertices =
                 {
-                    const std::vector<float> vertices =
-                    {
-                        -1.f, 1.f,
-                        1.f, 1.f,
-                        1.f, -1.f,
-                        -1.f, -1.f,
-                    };
+                    -1.f, 1.f, 0.f,
+                    -1.f, -1.f, 0.f,
+                    1.f, -1.f, 0.f,
+                    1.f, 1.f, 0.f,
+                };
 
-                    m_VertexArray->Bind();
-                    m_VertexArray->StoreFloatArrayBuffer(vertices, 0, 2, Graphics::BufferUsageHint::StaticDraw);
-                }
-                else
+                const std::vector<std::uint32_t> indices =
                 {
-                    const std::vector<float> vertices =
-                    {
-                        -1.f, 1.f, 0.f,
-                        -1.f, -1.f, 0.f,
-                        1.f, -1.f, 0.f,
-                        1.f, 1.f, 0.f,
-                    };
+                    0,1,3,
+                    3,1,2
+                };
 
-                    const std::vector<int> indices =
-                    {
-                        0,1,3,
-                        3,1,2
-                    };
+                const std::vector<float> uvs = { 0, 0, 0, 1, 1, 1, 1, 0 };
 
-                    const std::vector<float> uvs = { 0, 0, 0, 1, 1, 1, 1, 0 };
-
-                    m_VertexArray->StoreFloatArrayBuffer(vertices, 0, 3, Graphics::BufferUsageHint::StaticDraw);
-                    m_VertexArray->StoreFloatArrayBuffer(uvs, 1, 2, Graphics::BufferUsageHint::StaticDraw);
-                    m_VertexArray->StoreElementArrayBuffer(indices);
-                }
+                m_VertexArray->StoreFloatArrayBuffer(const_cast<float *>(vertices.data()), vertices.size() * sizeof(float), 0, 3, Graphics::BufferUsageHint::StaticDraw);
+                m_VertexArray->StoreFloatArrayBuffer(const_cast<float *>(uvs.data()), uvs.size() * sizeof(float), 1, 2, Graphics::BufferUsageHint::StaticDraw);
+                m_VertexArray->StoreElementArrayBuffer(const_cast<std::uint32_t*>(indices.data()), indices.size() * sizeof(int));
 
                 m_PositionSizeBuffer = m_VertexArray->CreateFloatArrayBuffer(sizeof(Vector4f) * MaxInstanceCount, 2, 4, Graphics::BufferUsageHint::DynamicDraw);
                 m_PositionSizeBuffer->SetDivisor(Graphics::VertexBufferDivisor::PerInstance, 1);
@@ -163,7 +141,7 @@ namespace
                 m_Ready = true;
             }
 
-            void Render(RenderingContext* context, const std::vector<RectangleItem>& rects) const
+            void Render(RenderingContext* context, const std::vector<Rectangle>& rects) const
             {
                 m_Shader->GetProgram()->Use();
                 m_VertexArray->Bind();
@@ -268,31 +246,22 @@ namespace
                     m_TextureRotationBuffer->UploadData(rectTextureIndexRadiusData.data(), sizeof(Vector3f) * minSize, 0);
 
                     // Render the quads
-                    if (m_LineLoop)
-                        m_GraphicsAPI->DrawArraysInstanced(Graphics::RenderMode::LineLoop, 4, minSize);
-                    else
-                        m_GraphicsAPI->DrawElementsInstanced(Graphics::RenderMode::Triangles, 12, minSize);
+                    m_GraphicsAPI->DrawElementsInstanced(Graphics::RenderMode::Triangles, 12, minSize);
 
-                    context->m_DrawCalls++;
+                    context->DrawCalls++;
 
                     startIndex += minSize;
                 }
             }
         };
 
-        RectangleInstanceRenderContext m_RectangleRender;
         RectangleInstanceRenderContext m_FilledRectangleRender;
 
         void PrepareFrame()
         {
-            // Make sure to set shaders if we haven't already
-            if (m_RectangleRender.m_Shader == nullptr)
-                m_RectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect.shader");
             if (m_FilledRectangleRender.m_Shader == nullptr)
                 m_FilledRectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect-filled.shader");
 
-            if (!m_RectangleRender.m_Ready)
-                m_RectangleRender.Create();
             if (!m_FilledRectangleRender.m_Ready)
                 m_FilledRectangleRender.Create();
         }
@@ -300,23 +269,21 @@ namespace
         void RenderFrame(RenderingContext* context)
         {
             // Make sure we have all the required shaders, should be set in PrepareFrame()
-            if (m_RectangleRender.m_Shader == nullptr || m_FilledRectangleRender.m_Shader == nullptr)
+            if (m_FilledRectangleRender.m_Shader == nullptr)
             {
                 throw std::runtime_error("Renderer2D::RenderFrame(): Missing essential shaders.");
             }
 
             // If we don't have any rectangles to process we can just exit
-            if (m_Rectangles.empty() && m_FilledRectangles.empty())
+            if (m_FilledRectangles.empty())
             {
                 return;
             }
 
-            m_FilledRectangles.reserve(context->m_PreAllocItems);
+            m_FilledRectangles.reserve(context->PreAllocItems);
 
             if (!m_FilledRectangles.empty())
-                m_FilledRectangleRender.Render(context, m_FilledRectangles);
-            if (!m_Rectangles.empty())
-                m_RectangleRender.Render(context, m_Rectangles);
+                m_FilledRectangleRender.Render(context, m_FilledRectangles);;
         }
     }
 }
@@ -347,7 +314,6 @@ void Pine::Renderer2D::PrepareFrame()
 
     // Clear up stuff from the last frame
     m_FilledRectangles.clear();
-    m_Rectangles.clear();
 }
 
 void Renderer2D::RenderFrame(RenderingContext* context)
@@ -357,10 +323,10 @@ void Renderer2D::RenderFrame(RenderingContext* context)
         throw std::runtime_error("Renderer2D::RenderFrame(): No rendering context provided");
     }
 
-    if (context->m_Camera)
+    if (context->SceneCamera)
     {
-        m_ProjectionMatrix = context->m_Camera->GetProjectionMatrix();
-        m_ViewMatrix = context->m_Camera->GetViewMatrix();
+        m_ProjectionMatrix = context->SceneCamera->GetProjectionMatrix();
+        m_ViewMatrix = context->SceneCamera->GetViewMatrix();
     }
     else
     {
@@ -368,28 +334,14 @@ void Renderer2D::RenderFrame(RenderingContext* context)
     	m_ViewMatrix = Matrix4f(1.f);
     }
 
-    Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), context->m_Size);
+    Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), context->Size);
 
     RectangleRenderer::RenderFrame(context);
 }
 
-void Pine::Renderer2D::AddRectangle(Pine::Vector2f position, Pine::Vector2f size, Pine::Color color)
-{
-    RectangleItem rectangleItem =
-    {
-        position,
-        size,
-        0.f,
-        color,
-        m_CoordinateSystem
-    };
-
-    m_Rectangles.push_back(rectangleItem);
-}
-
 void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2f size, float rotation, Pine::Color color)
 {
-    RectangleItem rectangleItem =
+    Rectangle rectangleItem =
     {
         position,
         size,
@@ -403,7 +355,7 @@ void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2
 
 void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, const Texture2D* texture, Vector2f uvOffset, Vector2f uvScale)
 {
-    RectangleItem rectangleItem =
+    Rectangle rectangleItem =
     {
         position,
         size,
@@ -422,7 +374,7 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, fl
 void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, Graphics::ITexture* texture,
                                             Vector2f uvOffset, Vector2f uvScale)
 {
-    RectangleItem rectangleItem =
+    Rectangle rectangleItem =
     {
         position,
         size,
@@ -440,7 +392,7 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, fl
 
 void Pine::Renderer2D::AddFilledRoundedRectangle(Pine::Vector2f position, Pine::Vector2f size, float radius, Pine::Color color)
 {
-    RectangleItem rectangleItem =
+    Rectangle rectangleItem =
     {
         position,
         size,
@@ -455,7 +407,6 @@ void Pine::Renderer2D::AddFilledRoundedRectangle(Pine::Vector2f position, Pine::
 
 void Pine::Renderer2D::AddText(Pine::Vector2f position, Pine::Color color, const std::string& str)
 {
-
 }
 
 void Renderer2D::AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId,
@@ -463,7 +414,7 @@ void Renderer2D::AddTextureAtlasItem(Vector2f position, float size, const Graphi
 {
     const auto uvScale = atlas->GetTextureUvScale();
 
-    RectangleItem rectangleItem =
+    Rectangle rectangleItem =
     {
         position,
         Vector2f(size),

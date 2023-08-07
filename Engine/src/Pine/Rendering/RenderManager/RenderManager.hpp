@@ -9,6 +9,7 @@ namespace Pine
         PreRender,
         Render2D,
         Render3D,
+        PostProcessing,
         PostRender
     };
 }

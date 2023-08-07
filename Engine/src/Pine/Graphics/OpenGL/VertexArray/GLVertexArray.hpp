@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <vector>
 
 #include "Pine/Graphics/Interfaces/IVertexArray.hpp"
 
@@ -21,7 +22,7 @@ namespace Pine::Graphics
         GLVertexBuffer* CreateArrayBuffer(std::size_t size, int binding, int vecSize, int type, BufferUsageHint hint);
 
         template <typename T>
-        GLVertexBuffer* StoreArrayBuffer(const std::vector<T>& vec, int binding, int vecSize, int type, BufferUsageHint hint);
+        GLVertexBuffer* StoreArrayBuffer(T *data, std::size_t size, int binding, int vecSize, int type, BufferUsageHint hint);
     public:
         GLVertexArray();
 
@@ -31,9 +32,9 @@ namespace Pine::Graphics
         IVertexBuffer* CreateFloatArrayBuffer(std::size_t size, int binding, int vecSize, BufferUsageHint usageHint) override;
         IVertexBuffer* CreateIntegerArrayBuffer(std::size_t size, int binding, int vecSize, BufferUsageHint usageHint) override;
 
-        IVertexBuffer* StoreFloatArrayBuffer(const std::vector<float>& vec, int binding, int vecSize, BufferUsageHint hint) override;
-        IVertexBuffer* StoreIntArrayBuffer(const std::vector<int>& vec, int binding, int vecSize, BufferUsageHint hint) override;
-        void StoreElementArrayBuffer(const std::vector<int>& vec) override;
+        IVertexBuffer* StoreFloatArrayBuffer(float *data, std::size_t size, int binding, int vecSize, BufferUsageHint hint) override;
+        IVertexBuffer* StoreIntArrayBuffer(float *data, std::size_t size, int binding, int vecSize, BufferUsageHint hint) override;
+        void StoreElementArrayBuffer(std::uint32_t *data, std::size_t size) override;
 
         std::uint32_t GetId() const;
     };

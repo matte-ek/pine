@@ -181,7 +181,7 @@
     <ClInclude Include="src\Pine\Rendering\Rendering.hpp" />
     <ClInclude Include="src\Pine\Rendering\RenderingContext.hpp" />
     <ClInclude Include="src\Pine\Rendering\RenderManager\RenderManager.hpp" />
-    <ClInclude Include="src\Pine\World\Components\Camera\Camera.hpp" />
+    <ClInclude Include="src\Pine\World\Components\SceneCamera\SceneCamera.hpp" />
     <ClInclude Include="src\Pine\World\Components\Collider2D\Collider2D.hpp" />
     <ClInclude Include="src\Pine\World\Components\Components.hpp" />
     <ClInclude Include="src\Pine\World\Components\IComponent\IComponent.hpp" />
@@ -223,7 +223,7 @@
     <ClCompile Include="src\Pine\Rendering\Pipeline\Pipeline2D\Pipeline2D.cpp" />
     <ClCompile Include="src\Pine\Rendering\Renderer2D\Renderer2D.cpp" />
     <ClCompile Include="src\Pine\Rendering\RenderManager\RenderManager.cpp" />
-    <ClCompile Include="src\Pine\World\Components\Camera\Camera.cpp" />
+    <ClCompile Include="src\Pine\World\Components\SceneCamera\SceneCamera.cpp" />
     <ClCompile Include="src\Pine\World\Components\Collider2D\Collider2D.cpp" />
     <ClCompile Include="src\Pine\World\Components\Components.cpp" />
     <ClCompile Include="src\Pine\World\Components\IComponent\IComponent.cpp" />

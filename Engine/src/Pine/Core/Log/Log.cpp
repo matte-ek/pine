@@ -1,5 +1,7 @@
 #include "Log.hpp"
+
 #include <iostream>
+#include <fmt/format.h>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -36,8 +38,6 @@ namespace
 
     void SetConsoleColor(ConsoleColor colorCode)
     {
-        return;
-
         if (colorCode == ConsoleColor::None)
         {
             std::cout << "\033[;0m";
@@ -54,7 +54,7 @@ namespace
 
         std::cout << "[" << prefix << "] ";
 
-        SetConsoleColor(ConsoleColor::Gray);
+        SetConsoleColor(ConsoleColor::White);
 
         std::cout << str << std::endl;
     }
@@ -62,7 +62,7 @@ namespace
 
 void Pine::Log::Verbose(const std::string &str)
 {
-    PrintMessage("Verbose", ConsoleColor::DarkGray, str.c_str());
+    PrintMessage("Verbose", ConsoleColor::White, str.c_str());
 }
 
 void Pine::Log::Message(const std::string &str)

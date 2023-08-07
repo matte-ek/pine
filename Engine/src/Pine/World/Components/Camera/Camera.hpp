@@ -15,7 +15,11 @@ namespace Pine
     class Camera : public IComponent
     {
     private:
-        CameraType m_CameraType = CameraType::Orthographic;
+        CameraType m_CameraType = CameraType::Perspective;
+
+        float m_NearPlane = 1.f;
+        float m_FarPlane = 100.f;
+        float m_FieldOfView = 70.f;
 
         float m_OrthographicSize = 1.f;
 
@@ -26,6 +30,18 @@ namespace Pine
         void BuildViewMatrix();
     public:
         explicit Camera();
+
+        void SetCameraType(CameraType type);
+        CameraType GetCameraType() const;
+
+        void SetNearPlane(float value);
+        float GetNearPlane() const;
+
+        void SetFarPlane(float value);
+        float GetFarPlane() const;
+
+        void SetFieldOfView(float value);
+        float GetFieldOfView() const;
 
         void SetOrthographicSize(float size);
         float GetOrthographicSize() const;

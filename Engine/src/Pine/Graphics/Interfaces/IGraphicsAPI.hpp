@@ -53,6 +53,9 @@ namespace Pine::Graphics
         virtual IShaderProgram* CreateShaderProgram() = 0;
         virtual void DestroyShaderProgram(IShaderProgram* program) = 0;
 
+        virtual IUniformBuffer* CreateUniformBuffer() = 0;
+        virtual void DestroyUniformBuffer(IUniformBuffer* buffer) = 0;
+
         virtual IFrameBuffer* CreateFrameBuffer() = 0;
         virtual void DestroyFrameBuffer(IFrameBuffer* buffer) = 0;
         virtual void BindFrameBuffer(IFrameBuffer* buffer) = 0;

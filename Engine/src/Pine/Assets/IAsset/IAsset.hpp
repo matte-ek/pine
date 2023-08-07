@@ -134,10 +134,10 @@ namespace Pine
         void SetFilePath(const std::filesystem::path& path);
         const std::filesystem::path& GetFilePath() const;
 
-        void UpdateFileReadTime();
+        virtual void MarkAsUpdated();
 
         bool HasFile() const;
-        bool HasFileBeenUpdated() const;
+        virtual bool HasBeenUpdated() const;
 
         bool HasMetadata() const;
         bool HasDependencies() const;

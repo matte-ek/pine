@@ -52,7 +52,7 @@ Pine::AssetLoadMode Pine::IAsset::GetLoadMode() const
 
 bool Pine::IAsset::LoadFromFile(AssetLoadStage stage) // NOLINT(google-default-arguments)
 {
-    return false;
+    return true;
 }
 
 bool Pine::IAsset::HasFile() const
@@ -123,7 +123,7 @@ void Pine::IAsset::SaveMetadata()
     Serialization::SaveToFile(metadataFile, outputJson);
 }
 
-void Pine::IAsset::UpdateFileReadTime()
+void Pine::IAsset::MarkAsUpdated()
 {
     if (!m_HasFile)
     {
@@ -133,7 +133,7 @@ void Pine::IAsset::UpdateFileReadTime()
     m_DiskWriteTime = std::filesystem::last_write_time(m_FilePath);
 }
 
-bool Pine::IAsset::HasFileBeenUpdated() const
+bool Pine::IAsset::HasBeenUpdated() const
 {
     return std::filesystem::last_write_time(m_FilePath) != m_DiskWriteTime;
 }

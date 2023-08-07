@@ -9,6 +9,7 @@
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
+#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Engine/Engine.hpp"
@@ -48,6 +49,7 @@ namespace
 
     std::vector<AssetFactory> m_AssetFactories = {
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
+        AssetFactory( { { "obj", "fbx" }, AssetType::Model, [](){ return new Model(); } } ),
         AssetFactory( { { "mat" }, AssetType::Material, [](){ return new Material(); } } ),
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
@@ -95,9 +97,7 @@ namespace
             return filePath;
 
         if (Pine::String::StartsWith(filePath, rootPath + "/"))
-        {
             return filePath.substr(rootPath.size() + 1);
-        }
 
         return filePath;
     }
@@ -187,7 +187,7 @@ Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, cons
 
     if (auto existingAsset = FindExistingAssetFromFile(path, rootPath, mapPath))
     {
-        if (!existingAsset->HasFileBeenUpdated())
+        if (!existingAsset->HasBeenUpdated())
         {
             return existingAsset;
         }
@@ -236,7 +236,7 @@ Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, cons
         }
     }
 
-    asset->UpdateFileReadTime();
+    asset->MarkAsUpdated();
 
     m_Assets[asset->GetPath()] = asset;
     m_AssetsFilePath[asset->GetFilePath().string()] = asset;
@@ -263,7 +263,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
 
         if (auto existingAsset = FindExistingAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", ""))
         {
-            if (!existingAsset->HasFileBeenUpdated())
+            if (!existingAsset->HasBeenUpdated())
             {
                 continue;
             }
@@ -403,7 +403,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
 
         assetsLoaded++;
 
-        asset->UpdateFileReadTime();
+        asset->MarkAsUpdated();
 
         m_Assets[asset->GetPath()] = asset;
         m_AssetsFilePath[asset->GetFilePath().string()] = asset;
@@ -467,7 +467,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
 
         assetsLoaded++;
 
-        asset->UpdateFileReadTime();
+        asset->MarkAsUpdated();
 
         m_Assets[asset->GetPath()] = asset;
         m_AssetsFilePath[asset->GetFilePath().string()] = asset;
@@ -512,6 +512,22 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
 
     if (m_Assets.count(path) == 0)
         return nullptr;
+
+    return m_Assets[path];
+}
+
+IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)
+{
+    const auto path = Pine::String::Replace(inputPath, "\\", "/");
+
+    if (includeFilePath)
+    {
+        if (m_AssetsFilePath.count(path) != 0)
+            return m_AssetsFilePath[path];
+    }
+
+    if (m_Assets.count(path) == 0)
+        return LoadFromFile(path);
 
     return m_Assets[path];
 }

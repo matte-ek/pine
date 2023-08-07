@@ -15,14 +15,14 @@ namespace
         TilemapRenderer
     };
 
-    struct RenderItem
+    struct Drawable
     {
         RenderItemType m_Type = RenderItemType::SpriteRenderer;
         Pine::IComponent* m_ComponentPointer = nullptr;
         int m_Order = 0;
     };
 
-    std::vector<RenderItem> m_RenderItems;
+    std::vector<Drawable> m_RenderItems;
 }
 
 void Pine::Pipeline2D::Setup()
@@ -35,7 +35,7 @@ void Pine::Pipeline2D::Shutdown()
 
 void Pine::Pipeline2D::Run(RenderingContext& context)
 {
-    static const auto renderItemSort = [](const RenderItem& a, const RenderItem& b)
+    static const auto renderItemSort = [](const Drawable& a, const Drawable& b)
     {
         return a.m_Order < b.m_Order;
     };
@@ -104,7 +104,7 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
             auto textureAtlas = tileMap->GetTileset()->GetTextureAtlas();
             auto tileSize = static_cast<float>(tileMap->GetTileset()->GetTileSize()) * transform->GetScale().x;
 
-            auto positionOffset = Vector2f(transform->GetPosition()) * context.m_Size;
+            auto positionOffset = Vector2f(transform->GetPosition()) * context.Size;
 
             Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::Screen);
 

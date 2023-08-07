@@ -3,6 +3,7 @@
 #include "Pine/Graphics/OpenGL/ShaderProgram/GLShaderProgram.hpp"
 #include "Pine/Graphics/OpenGL/Texture/GLTexture.hpp"
 #include "Pine/Graphics/OpenGL/VertexArray/GLVertexArray.hpp"
+#include "Pine/Graphics/OpenGL/UniformBuffer/GLUniformBuffer.hpp"
 #include <GL/glew.h>
 #include <stdexcept>
 
@@ -176,4 +177,16 @@ void Pine::Graphics::OpenGL::BindFrameBuffer(Pine::Graphics::IFrameBuffer* buffe
 void Pine::Graphics::OpenGL::SetViewport(Pine::Vector2i position, Pine::Vector2i size)
 {
     glViewport(position.x, position.y, size.x, size.y);
+}
+
+Pine::Graphics::IUniformBuffer *Pine::Graphics::OpenGL::CreateUniformBuffer()
+{
+    return new GLUniformBuffer();
+}
+
+void Pine::Graphics::OpenGL::DestroyUniformBuffer(Pine::Graphics::IUniformBuffer *buffer)
+{
+    buffer->Dispose();
+
+    delete dynamic_cast<GLUniformBuffer*>(buffer);
 }

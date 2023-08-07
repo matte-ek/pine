@@ -9,14 +9,14 @@ namespace
     {
         switch (type)
         {
-        case Pine::Graphics::ShaderType::Vertex:
-            return GL_VERTEX_SHADER;
-        case Pine::Graphics::ShaderType::Fragment:
-            return GL_FRAGMENT_SHADER;
-        case Pine::Graphics::ShaderType::Compute:
-            return GL_COMPUTE_SHADER;
-        default:
-            throw std::runtime_error("Unsupported shader type.");
+            case Pine::Graphics::ShaderType::Vertex:
+                return GL_VERTEX_SHADER;
+            case Pine::Graphics::ShaderType::Fragment:
+                return GL_FRAGMENT_SHADER;
+            case Pine::Graphics::ShaderType::Compute:
+                return GL_COMPUTE_SHADER;
+            default:
+                throw std::runtime_error("Unsupported shader type.");
         }
     }
 }
@@ -28,7 +28,7 @@ void Pine::Graphics::GLShaderProgram::Use()
 
 void Pine::Graphics::GLShaderProgram::Dispose()
 {
-    for (const auto& shader : m_CompiledShaders)
+    for (const auto &shader: m_CompiledShaders)
     {
         glDeleteShader(shader);
     }
@@ -39,7 +39,7 @@ void Pine::Graphics::GLShaderProgram::Dispose()
     }
 }
 
-bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string& src, Pine::Graphics::ShaderType type)
+bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string &src, Pine::Graphics::ShaderType type)
 {
     const auto openglShaderType = TranslateShaderType(type);
 
@@ -68,7 +68,7 @@ bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string& sr
 
         // Get a char array pointer from the vector, since it has a
         // NULL character, this will work fine.
-        const char* errorMessage = errorMessageArray.data( );
+        const char *errorMessage = errorMessageArray.data();
 
         // Just printing the error should be fine for now
         Log::Error(errorMessage);
@@ -96,7 +96,7 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
 
     m_Id = glCreateProgram();
 
-    for (const auto& shader : m_CompiledShaders)
+    for (const auto &shader: m_CompiledShaders)
     {
         glAttachShader(m_Id, shader);
     }
@@ -120,7 +120,7 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
 
         // Get a char array pointer from the vector, since it has a
         // NULL character, this will work fine.
-        const char* errorMessage = errorMessageArray.data( );
+        const char *errorMessage = errorMessageArray.data();
 
         // Just printing the error should be fine for now
         Log::Error(errorMessage);
@@ -129,7 +129,7 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
     }
 
     // Since the link was successful, we can now safely detach and remove the shaders.
-    for (auto shader : m_CompiledShaders)
+    for (auto shader: m_CompiledShaders)
     {
         glDetachShader(m_Id, shader);
         glDeleteShader(shader);
@@ -140,7 +140,7 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
     return true;
 }
 
-Pine::Graphics::IUniformVariable* Pine::Graphics::GLShaderProgram::GetUniformVariable(const std::string& name)
+Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVariable(const std::string &name)
 {
     if (m_UniformVariables.count(name) == 0)
     {
@@ -150,8 +150,7 @@ Pine::Graphics::IUniformVariable* Pine::Graphics::GLShaderProgram::GetUniformVar
         if (uniformLocation >= 0)
         {
             m_UniformVariables[name] = new GLUniformVariable(uniformLocation);
-        }
-        else
+        } else
         {
             Log::Warning("Failed to find uniform variable: " + name);
 
@@ -162,8 +161,19 @@ Pine::Graphics::IUniformVariable* Pine::Graphics::GLShaderProgram::GetUniformVar
     return m_UniformVariables[name];
 }
 
-bool Pine::Graphics::GLShaderProgram::AttachUniformBuffer(Pine::Graphics::IUniformBuffer* buffer,
-                                                          const std::string& bufferName)
+bool Pine::Graphics::GLShaderProgram::AttachUniformBuffer(Pine::Graphics::IUniformBuffer *buffer,
+                                                          const std::string &bufferName)
 {
-    return false;
+    const int bufferIndex = glGetUniformBlockIndex(m_Id, bufferName.c_str());
+
+    if (0 > bufferIndex)
+    {
+        Log::Error(fmt::format("Failed to find uniform buffer {}", bufferName));
+
+        return false;
+    }
+
+    glUniformBlockBinding(m_Id, bufferIndex, buffer->GetBindIndex());
+
+    return true;
 }

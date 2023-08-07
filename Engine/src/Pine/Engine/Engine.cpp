@@ -8,10 +8,11 @@
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Entities/Entities.hpp"
+#include "Pine/Utilities/HotReload/HotReload.hpp"
+#include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 
 #include <GLFW/glfw3.h>
 #include <stdexcept>
-
 
 namespace
 {
@@ -79,6 +80,8 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     Components::Setup();
     Entities::Setup();
     RenderManager::Setup();
+    Renderer3D::Setup();
+    Utilities::HotReload::Setup();
 
     // Finish initialization
     m_IsInitialized = true;
@@ -126,6 +129,8 @@ void Pine::Engine::Shutdown()
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
 
+    Utilities::HotReload::Shutdown();
+    Renderer3D::Shutdown();
     Entities::Shutdown();
     Components::Shutdown();
     RenderManager::Shutdown();

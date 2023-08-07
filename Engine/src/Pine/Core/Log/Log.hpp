@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <fmt/format.h>
 
 namespace Pine::Log
 {

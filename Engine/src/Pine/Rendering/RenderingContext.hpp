@@ -8,18 +8,18 @@ namespace Pine
 
     struct RenderingContext
     {
-        bool m_Active = true;
+        bool Active = true;
 
-        Vector2f m_Size = Vector2f(0.f);
+        Vector2f Size = Vector2f(0.f);
 
-        Camera* m_Camera = nullptr;
-        Graphics::IFrameBuffer* m_FrameBuffer = nullptr;
+        Camera* SceneCamera = nullptr;
+        Graphics::IFrameBuffer* FrameBuffer = nullptr;
 
-        Vector4f m_ClearColor = Vector4f(0.f, 0.f, 0.f, 1.f);
+        Vector4f ClearColor = Vector4f(0.f, 0.f, 0.f, 1.f);
 
-        int m_DrawCalls = 0;
+        int DrawCalls = 0;
 
-        int m_PreAllocItems = 0;
+        int PreAllocItems = 0;
     };
 
 }

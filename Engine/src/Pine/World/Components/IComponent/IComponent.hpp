@@ -1,35 +1,58 @@
 #pragma once
+
 #include <nlohmann/json.hpp>
 
 namespace Pine
 {
 
+    // Notice: This order needs to match within Pine::Components::Setup()
     enum class ComponentType : int
     {
         Transform,
+        ModelRenderer,
+        TerrainRenderer,
+        Camera,
+        Light,
+        Collider,
+        RigidBody,
+        Collider2D,
+        RigidBody2D,
         SpriteRenderer,
         TilemapRenderer,
-        Camera,
         NativeScript,
-        Collider2D
+        Script
     };
 
-    inline const char* ComponentTypeToString(ComponentType type)
+    inline const char *ComponentTypeToString(ComponentType type)
     {
         switch (type)
         {
-        case ComponentType::Transform:
-            return "Transform";
-        case ComponentType::SpriteRenderer:
-            return "Sprite Renderer";
-        case ComponentType::TilemapRenderer:
-            return "Tile-map Renderer";
-        case ComponentType::Camera:
-            return "Camera";
-        case ComponentType::NativeScript:
-            return "Native Script";
-        case ComponentType::Collider2D:
-            return "Collider2D";
+            case ComponentType::Transform:
+                return "Transform";
+            case ComponentType::ModelRenderer:
+                return "Model Renderer";
+            case ComponentType::TerrainRenderer:
+                return "Terrain Renderer";
+            case ComponentType::Camera:
+                return "Camera";
+            case ComponentType::Light:
+                return "Light";
+            case ComponentType::Collider:
+                return "Collider";
+            case ComponentType::RigidBody:
+                return "Rigid Body";
+            case ComponentType::Collider2D:
+                return "Collider 2D";
+            case ComponentType::RigidBody2D:
+                return "Rigid Body 2D";
+            case ComponentType::SpriteRenderer:
+                return "Sprite Renderer";
+            case ComponentType::TilemapRenderer:
+                return "Tile-map Renderer";
+            case ComponentType::NativeScript:
+                return "Native Script";
+            case ComponentType::Script:
+                return "Script";
         }
 
         return "N/A";
@@ -47,23 +70,28 @@ namespace Pine
 
         ComponentType m_Type = ComponentType::Transform;
 
-        Entity* m_Parent = nullptr;
+        Entity *m_Parent = nullptr;
     public:
         explicit IComponent(ComponentType type);
+
         virtual ~IComponent() = default;
 
         void SetActive(bool value);
+
         bool GetActive() const;
 
         void SetStandalone(bool value);
+
         bool GetStandalone() const;
 
-        void SetParent(Entity* entity);
-        Entity* GetParent() const;
+        void SetParent(Entity *entity);
+
+        Entity *GetParent() const;
 
         ComponentType GetType() const;
 
         virtual void OnCreated();
+
         virtual void OnDestroyed();
 
         // Whenever this component's memory is copied to a new component.
@@ -80,8 +108,9 @@ namespace Pine
         // Called each frame right before rendering
         virtual void OnRender(float deltaTime);
 
-        virtual void LoadData(const nlohmann::json& j);
-        virtual void SaveData(nlohmann::json& j);
+        virtual void LoadData(const nlohmann::json &j);
+
+        virtual void SaveData(nlohmann::json &j);
     };
 
 }

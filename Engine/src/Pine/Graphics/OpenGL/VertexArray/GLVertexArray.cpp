@@ -41,27 +41,27 @@ void Pine::Graphics::GLVertexArray::Dispose()
 
     m_BuffersIndices.clear();
 
-    for (auto buffer : m_Buffers)
-        delete buffer;
+    //for (auto buffer : m_Buffers)
+    //    delete buffer;
 }
 
-Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreFloatArrayBuffer(const std::vector<float>& vec, int binding, int vecSize, BufferUsageHint hint)
+Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreFloatArrayBuffer(float *data, std::size_t size, int binding, int vecSize, BufferUsageHint hint)
 {
-    return StoreArrayBuffer(vec, binding, vecSize, GL_FLOAT, hint);
+    return StoreArrayBuffer(data, size, binding, vecSize, GL_FLOAT, hint);
 }
 
-Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreIntArrayBuffer(const std::vector<int>& vec, int binding, int vecSize, BufferUsageHint hint)
+Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreIntArrayBuffer(float *data, std::size_t size, int binding, int vecSize, BufferUsageHint hint)
 {
-    return StoreArrayBuffer(vec, binding, vecSize, GL_INT, hint);
+    return StoreArrayBuffer(data, size, binding, vecSize, GL_INT, hint);
 }
 
-void Pine::Graphics::GLVertexArray::StoreElementArrayBuffer(const std::vector<int>& vec)
+void Pine::Graphics::GLVertexArray::StoreElementArrayBuffer(std::uint32_t *data, std::size_t size)
 {
     const auto buffer = CreateBuffer();
 
     // Bind and store the data
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<long long>(vec.size() * sizeof(int)), vec.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(size), reinterpret_cast<void*>(data), GL_STATIC_DRAW);
 
     // For element array buffers we don't have to do any binding stuff.
 }
@@ -83,13 +83,13 @@ std::uint32_t Pine::Graphics::GLVertexArray::GetId() const
 }
 
 Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::CreateFloatArrayBuffer(
-    std::size_t size, int binding, int vecSize, Pine::Graphics::BufferUsageHint usageHint)
+        std::size_t size, int binding, int vecSize, Pine::Graphics::BufferUsageHint usageHint)
 {
     return CreateArrayBuffer(size, binding, vecSize, GL_FLOAT, usageHint);
 }
 
 Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::CreateIntegerArrayBuffer(
-    std::size_t size, int binding, int vecSize, Pine::Graphics::BufferUsageHint usageHint)
+        std::size_t size, int binding, int vecSize, Pine::Graphics::BufferUsageHint usageHint)
 {
     return CreateArrayBuffer(size, binding, vecSize, GL_INT, usageHint);
 }
@@ -116,11 +116,11 @@ Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::CreateArrayBuffer
 }
 
 template <typename T>
-Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::StoreArrayBuffer(const std::vector<T>& vec, int binding, int vecSize, int type, BufferUsageHint hint)
+Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::StoreArrayBuffer(T *data, std::size_t size, int binding, int vecSize, int type, BufferUsageHint hint)
 {
-    auto vertexBuffer = CreateArrayBuffer(vec.size() * sizeof(T), binding, vecSize, type, hint);
+    auto vertexBuffer = CreateArrayBuffer(size, binding, vecSize, type, hint);
 
-    vertexBuffer->UploadData(static_cast<const void*>(vec.data()), vec.size() * sizeof(T), 0);
+    vertexBuffer->UploadData(data, size, 0);
 
     return vertexBuffer;
 }

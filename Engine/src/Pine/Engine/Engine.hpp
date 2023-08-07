@@ -21,6 +21,9 @@ namespace Pine::Engine
         // Refers to both entity and component count
         std::uint32_t m_MaxObjectCount = 2048;
 
+        // Whether to enable engine debug tools, such as hot reload
+        bool m_EnableDebugTools = true;
+
         Graphics::GraphicsAPI m_GraphicsAPI = Graphics::GraphicsAPI::OpenGL;
     };
 

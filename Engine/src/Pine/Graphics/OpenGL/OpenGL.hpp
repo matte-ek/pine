@@ -39,6 +39,9 @@ namespace Pine::Graphics
         IShaderProgram* CreateShaderProgram() override;
         void DestroyShaderProgram(IShaderProgram* program) override;
 
+        IUniformBuffer* CreateUniformBuffer() override;
+        void DestroyUniformBuffer(IUniformBuffer* buffer) override;
+
         IFrameBuffer* CreateFrameBuffer() override;
         void DestroyFrameBuffer(IFrameBuffer* buffer) override;
         void BindFrameBuffer(IFrameBuffer* buffer) override;

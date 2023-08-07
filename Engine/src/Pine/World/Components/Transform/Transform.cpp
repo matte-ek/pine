@@ -5,12 +5,17 @@
 using namespace Pine;
 
 Pine::Transform::Transform() :
-      IComponent(ComponentType::Transform)
+        IComponent(ComponentType::Transform)
 {
 }
 
 void Pine::Transform::CalculateTransformationMatrix()
 {
+    m_TransformationMatrix = Matrix4f(1.f);
+
+    m_TransformationMatrix = glm::translate(m_TransformationMatrix, GetPosition());
+    m_TransformationMatrix *= glm::toMat4(GetRotation());
+    m_TransformationMatrix = glm::scale(m_TransformationMatrix, GetScale());
 }
 
 void Pine::Transform::OnRender(float deltaTime)
@@ -18,14 +23,14 @@ void Pine::Transform::OnRender(float deltaTime)
     CalculateTransformationMatrix();
 }
 
-void Pine::Transform::LoadData(const nlohmann::json& j)
+void Pine::Transform::LoadData(const nlohmann::json &j)
 {
     Serialization::LoadVector3(j, "pos", LocalPosition);
     Serialization::LoadQuaternion(j, "rot", LocalRotation);
     Serialization::LoadVector3(j, "scl", LocalScale);
 }
 
-void Pine::Transform::SaveData(nlohmann::json& j)
+void Pine::Transform::SaveData(nlohmann::json &j)
 {
     j["pos"] = Serialization::StoreVector3(LocalPosition);
     j["rot"] = Serialization::StoreQuaternion(LocalRotation);
@@ -93,7 +98,7 @@ void Pine::Transform::SetEulerAngles(Vector3f angle)
     LocalRotation = glm::quat(glm::radians(angle));
 }
 
-const Matrix4f& Transform::GetTransformationMatrix() const
+const Matrix4f &Transform::GetTransformationMatrix() const
 {
     return m_TransformationMatrix;
 }
