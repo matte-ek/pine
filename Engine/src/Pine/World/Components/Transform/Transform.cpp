@@ -4,40 +4,40 @@
 
 using namespace Pine;
 
-Pine::Transform::Transform() :
+Transform::Transform() :
         IComponent(ComponentType::Transform)
 {
 }
 
-void Pine::Transform::CalculateTransformationMatrix()
+void Transform::CalculateTransformationMatrix()
 {
     m_TransformationMatrix = Matrix4f(1.f);
 
-    m_TransformationMatrix = glm::translate(m_TransformationMatrix, GetPosition());
-    m_TransformationMatrix *= glm::toMat4(GetRotation());
-    m_TransformationMatrix = glm::scale(m_TransformationMatrix, GetScale());
+    m_TransformationMatrix = translate(m_TransformationMatrix, GetPosition());
+    m_TransformationMatrix *= toMat4(GetRotation());
+    m_TransformationMatrix = scale(m_TransformationMatrix, GetScale());
 }
 
-void Pine::Transform::OnRender(float deltaTime)
+void Transform::OnRender(float deltaTime)
 {
     CalculateTransformationMatrix();
 }
 
-void Pine::Transform::LoadData(const nlohmann::json &j)
+void Transform::LoadData(const nlohmann::json &j)
 {
     Serialization::LoadVector3(j, "pos", LocalPosition);
     Serialization::LoadQuaternion(j, "rot", LocalRotation);
     Serialization::LoadVector3(j, "scl", LocalScale);
 }
 
-void Pine::Transform::SaveData(nlohmann::json &j)
+void Transform::SaveData(nlohmann::json &j)
 {
     j["pos"] = Serialization::StoreVector3(LocalPosition);
     j["rot"] = Serialization::StoreQuaternion(LocalRotation);
     j["scl"] = Serialization::StoreVector3(LocalScale);
 }
 
-Vector3f Pine::Transform::GetPosition() const
+Vector3f Transform::GetPosition() const
 {
     Vector3f position = LocalPosition;
 
@@ -49,7 +49,7 @@ Vector3f Pine::Transform::GetPosition() const
     return position;
 }
 
-Quaternion Pine::Transform::GetRotation() const
+Quaternion Transform::GetRotation() const
 {
     Quaternion rotation = LocalRotation;
 
@@ -61,7 +61,7 @@ Quaternion Pine::Transform::GetRotation() const
     return rotation;
 }
 
-Vector3f Pine::Transform::GetScale() const
+Vector3f Transform::GetScale() const
 {
     Vector3f scale = LocalScale;
 
@@ -73,29 +73,29 @@ Vector3f Pine::Transform::GetScale() const
     return scale;
 }
 
-Vector3f Pine::Transform::GetForward() const
+Vector3f Transform::GetForward() const
 {
     return LocalRotation * Vector3f(0.f, 0.f, -1.f);
 }
 
-Vector3f Pine::Transform::GetRight() const
+Vector3f Transform::GetRight() const
 {
     return LocalRotation * Vector3f(1.f, 0.f, 0.f);
 }
 
-Vector3f Pine::Transform::GetUp() const
+Vector3f Transform::GetUp() const
 {
     return LocalRotation * Vector3f(0.f, 1.f, 0.f);
 }
 
-Vector3f Pine::Transform::GetEulerAngles() const
+Vector3f Transform::GetEulerAngles() const
 {
-    return glm::degrees(glm::eulerAngles(LocalRotation));
+    return degrees(eulerAngles(LocalRotation));
 }
 
-void Pine::Transform::SetEulerAngles(Vector3f angle)
+void Transform::SetEulerAngles(Vector3f angle)
 {
-    LocalRotation = glm::quat(glm::radians(angle));
+    LocalRotation = glm::quat(radians(angle));
 }
 
 const Matrix4f &Transform::GetTransformationMatrix() const

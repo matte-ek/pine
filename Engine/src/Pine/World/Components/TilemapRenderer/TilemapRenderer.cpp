@@ -6,7 +6,7 @@ Pine::TilemapRenderer::TilemapRenderer() :
 {
 }
 
-void Pine::TilemapRenderer::SetTilemap(Pine::Tilemap* map)
+void Pine::TilemapRenderer::SetTilemap(Tilemap* map)
 {
     m_Tilemap = map;
 }

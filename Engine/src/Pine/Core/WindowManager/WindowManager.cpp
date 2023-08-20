@@ -18,8 +18,8 @@ namespace
 
 }
 
-bool Pine::WindowManager::Internal::CreateWindow(Pine::Vector2i position, Pine::Vector2i requestedSize,
-                                                 const std::string &title, Pine::WindowManager::ScreenType type)
+bool Pine::WindowManager::Internal::CreateWindow(Vector2i position, Vector2i requestedSize,
+                                                 const std::string &title, ScreenType type)
 {
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -55,7 +55,7 @@ bool Pine::WindowManager::Internal::CreateWindow(Pine::Vector2i position, Pine::
     m_WindowMonitor = targetMonitor;
     m_CurrentScreenType = type;
 
-    WindowManager::SetWindowPosition(position);
+    SetWindowPosition(position);
 
     return true;
 }
@@ -75,7 +75,7 @@ bool Pine::WindowManager::IsWindowOpen()
     return !glfwWindowShouldClose(m_Window);
 }
 
-void Pine::WindowManager::SetWindowPosition(Pine::Vector2i targetPosition)
+void Pine::WindowManager::SetWindowPosition(Vector2i targetPosition)
 {
     WINDOW_CHECK
 
@@ -94,7 +94,7 @@ void Pine::WindowManager::SetWindowPosition(Pine::Vector2i targetPosition)
     glfwSetWindowPos(m_Window, position.x, position.y);
 }
 
-void Pine::WindowManager::SetWindowSize(Pine::Vector2i size)
+void Pine::WindowManager::SetWindowSize(Vector2i size)
 {
     WINDOW_CHECK
 
@@ -110,7 +110,7 @@ void Pine::WindowManager::SetWindowTitle(const std::string &title)
     m_WindowTitle = title;
 }
 
-void Pine::WindowManager::SetWindowScreenType(Pine::WindowManager::ScreenType screenType)
+void Pine::WindowManager::SetWindowScreenType(ScreenType screenType)
 {
     WINDOW_CHECK
 
@@ -121,7 +121,7 @@ void Pine::WindowManager::SetWindowScreenType(Pine::WindowManager::ScreenType sc
 
     // We cannot currently restore between fullscreen at this point, as the window will have to
     // be destroyed and recreated. Might support it in the future.
-    if (m_CurrentScreenType == WindowManager::ScreenType::Fullscreen)
+    if (m_CurrentScreenType == ScreenType::Fullscreen)
     {
         return;
     }

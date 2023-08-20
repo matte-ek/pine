@@ -3,87 +3,111 @@
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
+#include "Pine/Graphics/Graphics.hpp"
 
 namespace
 {
-    using namespace Pine;
+	using namespace Pine;
 
-    __inline bool IsComponentValid(const IComponent *component)
-    {
-        return component && component->GetActive() && component->GetParent()->GetActive();
-    }
+	__inline bool IsComponentValid(const IComponent* component)
+	{
+		return component && component->GetActive() && component->GetParent()->GetActive();
+	}
 
-    std::unordered_map<Model *, std::vector<ModelRenderer *>> GetRenderingBatch()
-    {
-        std::unordered_map<Model *, std::vector<ModelRenderer *>> renderBatch;
+	std::unordered_map<Model*, std::vector<ModelRenderer*>> GetRenderingBatch()
+	{
+		std::unordered_map<Model*, std::vector<ModelRenderer*>> renderBatch;
 
-        for (auto &modelRenderer : Components::Get<ModelRenderer>())
-        {
-            if (!IsComponentValid(&modelRenderer) && !modelRenderer.GetModel())
-            {
-                continue;
-            }
+		for (auto& modelRenderer : Components::Get<ModelRenderer>())
+		{
+			if (!IsComponentValid(&modelRenderer) && !modelRenderer.GetModel())
+			{
+				continue;
+			}
 
-            renderBatch[modelRenderer.GetModel()].push_back(&modelRenderer);
-        }
+			renderBatch[modelRenderer.GetModel()].push_back(&modelRenderer);
+		}
 
-        return renderBatch;
-    }
+		return renderBatch;
+	}
 
-    std::vector<Light *> GetLights()
-    {
-        std::vector<Light*> lights;
+	std::vector<Light*> GetLights()
+	{
+		std::vector<Light*> lights;
 
-        for (auto &light : Components::Get<Light>())
-        {
-            if (!IsComponentValid(&light))
-            {
-                continue;
-            }
+		for (auto& light : Components::Get<Light>())
+		{
+			if (!IsComponentValid(&light))
+			{
+				continue;
+			}
 
-            lights.push_back(&light);
-        }
+			lights.push_back(&light);
+		}
 
-        return lights;
-    }
+		return lights;
+	}
 }
 
-void Pine::Pipeline3D::Setup()
+void Pipeline3D::Setup()
 {
 }
 
-void Pine::Pipeline3D::Shutdown()
+void Pipeline3D::Shutdown()
 {
 }
 
-void Pine::Pipeline3D::Run(RenderingContext &context)
+void Pipeline3D::Run(const RenderingContext& context)
 {
-    Renderer3D::SetCamera(context.SceneCamera);
+	Renderer3D::SetCamera(context.SceneCamera);
 
-    // Prepare Data
-    const auto renderingBatch = GetRenderingBatch();
-    const auto lights = GetLights();
+	Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
+	Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
 
-    // Upload Data
-    for (auto light : lights)
-    {
-    }
+	// Prepare Data
+	const auto renderingBatch = GetRenderingBatch();
+	const auto lights = GetLights();
 
-    // Rendering
-    for (const auto& [model, renderers] : renderingBatch)
-    {
-        for (auto mesh : model->GetMeshes())
-        {
-            Renderer3D::PrepareMesh(mesh);
+	// Upload Data
+	for (auto light : lights)
+	{
+		Renderer3D::AddLight(light);
+	}
 
-            for (auto renderer : renderers)
-            {
-                renderer->GetParent()->GetTransform()->OnRender(0.f);
+	Renderer3D::UploadLights();
 
-                Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix());
-            }
-        }
-    }
+	// Rendering
+	for (const auto& [model, renderers] : renderingBatch)
+	{
+		for (auto mesh : model->GetMeshes())
+		{
+			Renderer3D::PrepareMesh(mesh);
 
-    // Skybox
+			// If we have multiple entities to render, use instanced rendering.
+			if (renderers.size() > 1)
+			{
+				for (auto renderer : renderers)
+				{
+					renderer->GetParent()->GetTransform()->OnRender(0.f);
+
+					if (Renderer3D::AddInstance(renderer->GetParent()->GetTransform()->GetTransformationMatrix()))
+					{
+						Renderer3D::RenderMeshInstanced();
+					}
+				}
+
+				Renderer3D::RenderMeshInstanced();
+			}
+			else
+			{
+				auto renderer = renderers[0];
+
+				renderer->GetParent()->GetTransform()->OnRender(0.f);
+
+				Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix());
+			}
+		}
+	}
+
+	// Sky box
 }

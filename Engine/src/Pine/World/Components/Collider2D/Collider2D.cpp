@@ -15,7 +15,7 @@ Pine::Collider2DType Pine::Collider2D::GetColliderType() const
 	return m_ColliderType;
 }
 
-void Pine::Collider2D::SetOffset(Pine::Vector2f offset)
+void Pine::Collider2D::SetOffset(Vector2f offset)
 {
 	m_ColliderOffset = offset;
 }
@@ -25,7 +25,7 @@ const Pine::Vector2f& Pine::Collider2D::GetOffset() const
 	return m_ColliderOffset;
 }
 
-void Pine::Collider2D::SetSize(Pine::Vector2f size)
+void Pine::Collider2D::SetSize(Vector2f size)
 {
 	m_ColliderSize = size;
 }

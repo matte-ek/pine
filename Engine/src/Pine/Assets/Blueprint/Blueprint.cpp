@@ -4,7 +4,7 @@
 namespace
 {
 
-    void StoreEntity(nlohmann::json& j, Pine::Entity* entity)
+    void StoreEntity(nlohmann::json& j, const Pine::Entity* entity)
     {
         j["name"] = entity->GetName();
         j["active"] = entity->GetActive();
@@ -64,7 +64,7 @@ Pine::Blueprint::Blueprint()
     m_LoadMode = AssetLoadMode::MultiThread;
 }
 
-void Pine::Blueprint::CopyEntity(Pine::Entity* dst, const Pine::Entity* src, bool createInstance) const
+void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, bool createInstance)
 {
     dst->SetName(src->GetName());
     dst->SetActive(src->GetActive());
@@ -79,12 +79,12 @@ void Pine::Blueprint::CopyEntity(Pine::Entity* dst, const Pine::Entity* src, boo
 
     for (auto child : src->GetChildren())
     {
-        Pine::Entity* newChild;
+        Entity* newChild;
 
         if (createInstance)
             newChild = Entity::Create();
         else
-            newChild = new Pine::Entity(0, false);
+            newChild = new Entity(0, false);
 
         dst->AddChild(newChild);
 
@@ -104,14 +104,14 @@ bool Pine::Blueprint::HasEntity() const
     return m_Entity;
 }
 
-void Pine::Blueprint::CreateFromEntity(const Pine::Entity* entity)
+void Pine::Blueprint::CreateFromEntity(const Entity* entity)
 {
-    m_Entity = new Pine::Entity(0, false);
+    m_Entity = new Entity(0, false);
 
    CopyEntity(m_Entity, entity, false);
 }
 
-Pine::Entity* Pine::Blueprint::Spawn()
+Pine::Entity* Pine::Blueprint::Spawn() const
 {
    if (m_Entity == nullptr)
    {
@@ -127,7 +127,7 @@ Pine::Entity* Pine::Blueprint::Spawn()
 
 void Pine::Blueprint::FromJson(const nlohmann::json& j)
 {
-   m_Entity = new Pine::Entity(0, false);
+   m_Entity = new Entity(0, false);
 
    LoadEntity(j, m_Entity);
 }
@@ -146,9 +146,9 @@ nlohmann::json Pine::Blueprint::ToJson() const
    return json;
 }
 
-bool Pine::Blueprint::LoadFromFile(Pine::AssetLoadStage stage)
+bool Pine::Blueprint::LoadFromFile(AssetLoadStage stage)
 {
-   auto json = Pine::Serialization::LoadFromFile(m_FilePath);
+   auto json = Serialization::LoadFromFile(m_FilePath);
 
    if (!json.has_value())
    {
@@ -164,7 +164,7 @@ bool Pine::Blueprint::LoadFromFile(Pine::AssetLoadStage stage)
 
 bool Pine::Blueprint::SaveToFile()
 {
-    Pine::Serialization::SaveToFile(m_FilePath, ToJson());
+    Serialization::SaveToFile(m_FilePath, ToJson());
 
     return true;
 }

@@ -77,7 +77,7 @@ const std::string& Pine::Entity::GetName() const
     return m_Name;
 }
 
-void Pine::Entity::SetParent(Pine::Entity* entity)
+void Pine::Entity::SetParent(Entity* entity)
 {
     m_Parent = entity;
 }
@@ -87,7 +87,7 @@ Pine::Entity* Pine::Entity::GetParent() const
     return m_Parent;
 }
 
-Pine::IComponent* Pine::Entity::AddComponent(Pine::ComponentType type)
+Pine::IComponent* Pine::Entity::AddComponent(ComponentType type)
 {
     const auto component = Components::Create(type);
 
@@ -98,7 +98,7 @@ Pine::IComponent* Pine::Entity::AddComponent(Pine::ComponentType type)
     return component;
 }
 
-Pine::IComponent* Pine::Entity::AddComponent(Pine::IComponent* component)
+Pine::IComponent* Pine::Entity::AddComponent(IComponent* component)
 {
     component->SetParent(this);
 
@@ -107,7 +107,7 @@ Pine::IComponent* Pine::Entity::AddComponent(Pine::IComponent* component)
     return component;
 }
 
-bool Pine::Entity::RemoveComponent(const Pine::IComponent* targetComponent)
+bool Pine::Entity::RemoveComponent(const IComponent* targetComponent)
 {
     for (int i = 0; i < m_Components.size();i++)
     {
@@ -159,14 +159,14 @@ Pine::Entity* Pine::Entity::CreateChild()
     return entity;
 }
 
-void Pine::Entity::AddChild(Pine::Entity* entity)
+void Pine::Entity::AddChild(Entity* entity)
 {
     entity->SetParent(this);
 
     m_Children.push_back(entity);
 }
 
-void Pine::Entity::RemoveChild(Pine::Entity* entity)
+void Pine::Entity::RemoveChild(Entity* entity)
 {
     entity->SetParent(nullptr);
 

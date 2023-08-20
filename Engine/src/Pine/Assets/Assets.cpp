@@ -13,6 +13,7 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Engine/Engine.hpp"
+#include "Pine/Assets/Texture3D/Texture3D.hpp"
 
 #include <cmath>
 #include <functional>
@@ -47,8 +48,9 @@ namespace
         std::function<IAsset*()> m_Factory;
     };
 
-    std::vector<AssetFactory> m_AssetFactories = {
+    std::vector m_AssetFactories = {
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
+        AssetFactory( { { "cmap" }, AssetType::Texture3D, [](){ return new Texture3D(); } } ),
         AssetFactory( { { "obj", "fbx" }, AssetType::Model, [](){ return new Model(); } } ),
         AssetFactory( { { "mat" }, AssetType::Material, [](){ return new Material(); } } ),
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
@@ -89,20 +91,20 @@ namespace
             return mapPath;
 
         // Remove Windows style separators with a forward slash
-        auto filePath = Pine::String::Replace(path.string(), "\\", "/");
+        auto filePath = String::Replace(path.string(), "\\", "/");
 
         // If we don't want to 'change' the relative directory,
         // we can just return the file path itself.
         if (rootPath.empty())
             return filePath;
 
-        if (Pine::String::StartsWith(filePath, rootPath + "/"))
+        if (String::StartsWith(filePath, rootPath + "/"))
             return filePath.substr(rootPath.size() + 1);
 
         return filePath;
     }
 
-    Pine::IAsset* FindExistingAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
+    IAsset* FindExistingAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
     {
         const auto path = GetAssetMapPath(filePath, rootPath, mapPath);
 
@@ -112,9 +114,9 @@ namespace
         return m_Assets[path];
     }
 
-    Pine::IAsset* PrepareAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
+    IAsset* PrepareAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
     {
-        if (!std::filesystem::exists(filePath))
+        if (!exists(filePath))
             return nullptr;
 
         const auto path = GetAssetMapPath(filePath, rootPath, mapPath);
@@ -151,7 +153,7 @@ namespace
         MultiThread
     };
 
-    bool LoadAssetDataFromFile(Pine::IAsset* asset, LoadThreadingModeContext threadingModeContext, AssetLoadStage loadStage)
+    bool LoadAssetDataFromFile(IAsset* asset, LoadThreadingModeContext threadingModeContext, AssetLoadStage loadStage)
     {
         // Verify that we are in the main thread if the asset's load mode requires us to be
         if ((asset->GetLoadMode() == AssetLoadMode::SingleThread ||
@@ -168,20 +170,22 @@ namespace
     }
 }
 
-void Pine::Assets::Setup()
+void Assets::Setup()
 {
 }
 
-void Pine::Assets::Shutdown()
+void Assets::Shutdown()
 {
     for (auto& asset : m_Assets)
     {
+        Log::Verbose(fmt::format("Disposing asset {}...", asset.first));
+        
         asset.second->Dispose();
     }
 }
 
-Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, const std::string& rootPath,
-                                         const std::string& mapPath)
+IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::string& rootPath,
+                             const std::string& mapPath)
 {
     IAsset* asset;
 
@@ -244,9 +248,9 @@ Pine::IAsset* Pine::Assets::LoadFromFile(const std::filesystem::path& path, cons
     return asset;
 }
 
-int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativePath)
+int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativePath)
 {
-    if (!std::filesystem::exists(path))
+    if (!exists(path))
         return -1;
 
     m_State = AssetManagerState::LoadDirectory;
@@ -263,6 +267,11 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
 
         if (auto existingAsset = FindExistingAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", ""))
         {
+            if (existingAsset->GetType() == AssetType::Invalid)
+            {
+                continue;
+            }
+
             if (!existingAsset->HasBeenUpdated())
             {
                 continue;
@@ -478,7 +487,7 @@ int Pine::Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRel
     // we may attempt to resolve them to pointers now.
     for (auto& assetResolveReference : m_AssetResolveReferences)
     {
-        *assetResolveReference.m_AssetContainer = Assets::Get(assetResolveReference.m_Path);
+        *assetResolveReference.m_AssetContainer = Get(assetResolveReference.m_Path);
     }
 
     m_AssetResolveReferences.clear();
@@ -502,7 +511,7 @@ void Assets::AddAssetResolveReference(const AssetResolveReference& resolveRefere
 
 IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
 {
-    const auto path = Pine::String::Replace(inputPath, "\\", "/");
+    const auto path = String::Replace(inputPath, "\\", "/");
 
     if (includeFilePath)
     {
@@ -518,7 +527,7 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
 
 IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)
 {
-    const auto path = Pine::String::Replace(inputPath, "\\", "/");
+    const auto path = String::Replace(inputPath, "\\", "/");
 
     if (includeFilePath)
     {

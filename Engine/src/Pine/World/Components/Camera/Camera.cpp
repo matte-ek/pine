@@ -19,7 +19,7 @@ float Pine::Camera::GetOrthographicSize() const
 
 void Pine::Camera::BuildProjectionMatrix()
 {
-    auto renderingContext = Pine::RenderManager::GetCurrentRenderingContext();
+    auto renderingContext = RenderManager::GetCurrentRenderingContext();
     const float aspectRatio = renderingContext->Size.x / renderingContext->Size.y;
 
     if (m_CameraType == CameraType::Orthographic)
@@ -34,12 +34,12 @@ void Pine::Camera::BuildViewMatrix()
     const auto transform = m_Parent->GetTransform();
 
     const auto position = transform->GetPosition();
-    const auto rotation = glm::normalize(transform->GetRotation());
+    const auto rotation = normalize(transform->GetRotation());
 
     const auto direction = rotation * Vector3f(0.f, 0.f, -1.f);
     const auto up = rotation * Vector3f(0.f, 1.f, 0.f);
 
-    m_ViewMatrix = glm::lookAt(position, position + direction, up);
+    m_ViewMatrix = lookAt(position, position + direction, up);
 }
 
 void Pine::Camera::OnRender(float)
@@ -96,7 +96,7 @@ float Pine::Camera::GetFieldOfView() const
     return m_FieldOfView;
 }
 
-void Pine::Camera::SetCameraType(Pine::CameraType type)
+void Pine::Camera::SetCameraType(CameraType type)
 {
     m_CameraType = type;
 }
@@ -104,4 +104,14 @@ void Pine::Camera::SetCameraType(Pine::CameraType type)
 Pine::CameraType Pine::Camera::GetCameraType() const
 {
     return m_CameraType;
+}
+
+void Pine::Camera::SetClearColor(Vector4f color)
+{
+    m_ClearColor = color;
+}
+
+const Pine::Vector4f &Pine::Camera::GetClearColor() const
+{
+    return m_ClearColor;
 }

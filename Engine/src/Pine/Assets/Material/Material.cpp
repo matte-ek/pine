@@ -4,7 +4,7 @@
 
 Pine::Material::Material()
 {
-	m_Type = Pine::AssetType::Material;
+	m_Type = AssetType::Material;
 }
 
 void Pine::Material::SetDiffuseColor(Vector3f color)
@@ -50,6 +50,30 @@ void Pine::Material::SetSpecular(Texture2D* texture)
 void Pine::Material::SetNormal(Texture2D* texture)
 {
 	m_Normal = texture;
+}
+
+void Pine::Material::SetDiffuse(const std::string &fileReference)
+{
+    assert(!fileReference.empty());
+    assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
+
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetContainer<IAsset>*>(&m_Diffuse)});
+}
+
+void Pine::Material::SetSpecular(const std::string &fileReference)
+{
+    assert(!fileReference.empty());
+    assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
+
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetContainer<IAsset>*>(&m_Specular)});
+}
+
+void Pine::Material::SetNormal(const std::string &fileReference)
+{
+    assert(!fileReference.empty());
+    assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
+
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetContainer<IAsset>*>(&m_Normal)});
 }
 
 Pine::Texture2D* Pine::Material::GetDiffuse() const

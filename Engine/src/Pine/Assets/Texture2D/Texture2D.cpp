@@ -4,12 +4,12 @@
 #include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
+#include <stb_image.h>
 
 Pine::Texture2D::Texture2D()
 {
-    m_Type = Pine::AssetType::Texture2D;
-    m_LoadMode = Pine::AssetLoadMode::MultiThreadPrepare;
+    m_Type = AssetType::Texture2D;
+    m_LoadMode = AssetLoadMode::MultiThreadPrepare;
 }
 
 bool Pine::Texture2D::PrepareGpuData()
@@ -108,7 +108,7 @@ Pine::Graphics::ITexture* Pine::Texture2D::GetGraphicsTexture() const
     return m_Texture;
 }
 
-bool Pine::Texture2D::LoadFromFile(Pine::AssetLoadStage stage)
+bool Pine::Texture2D::LoadFromFile(AssetLoadStage stage)
 {
     switch (stage)
     {

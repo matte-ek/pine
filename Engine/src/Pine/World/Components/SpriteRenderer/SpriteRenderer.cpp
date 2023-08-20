@@ -6,7 +6,7 @@ Pine::SpriteRenderer::SpriteRenderer() :
 {
 }
 
-void Pine::SpriteRenderer::SetTexture(Pine::Texture2D* texture)
+void Pine::SpriteRenderer::SetTexture(Texture2D* texture)
 {
     m_StaticTexture = texture;
 }
@@ -26,7 +26,7 @@ int Pine::SpriteRenderer::GetOrder() const
     return m_Order;
 }
 
-void Pine::SpriteRenderer::SetScalingMode(Pine::SpriteScalingMode scalingMode)
+void Pine::SpriteRenderer::SetScalingMode(SpriteScalingMode scalingMode)
 {
     m_ScalingMode = scalingMode;
 }

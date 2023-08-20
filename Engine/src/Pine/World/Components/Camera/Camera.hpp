@@ -17,6 +17,8 @@ namespace Pine
     private:
         CameraType m_CameraType = CameraType::Perspective;
 
+        Vector4f m_ClearColor = Vector4f(0.f);
+
         float m_NearPlane = 1.f;
         float m_FarPlane = 100.f;
         float m_FieldOfView = 70.f;
@@ -45,6 +47,9 @@ namespace Pine
 
         void SetOrthographicSize(float size);
         float GetOrthographicSize() const;
+
+        void SetClearColor(Vector4f color);
+        const Vector4f& GetClearColor() const;
 
         void OnRender(float) override;
 

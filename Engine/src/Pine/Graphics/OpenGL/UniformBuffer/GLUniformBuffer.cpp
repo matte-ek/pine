@@ -1,9 +1,21 @@
 #include "GLUniformBuffer.hpp"
 #include <GL/glew.h>
 
+namespace
+{
+    std::uint32_t m_BoundUniformBuffer = 0;
+}
+
 void Pine::Graphics::GLUniformBuffer::Bind()
 {
+    if (m_BoundUniformBuffer == m_Id)
+    {
+        return;
+    }
+
     glBindBuffer(GL_UNIFORM_BUFFER, m_Id);
+
+    m_BoundUniformBuffer = m_Id;
 }
 
 void Pine::Graphics::GLUniformBuffer::Dispose()

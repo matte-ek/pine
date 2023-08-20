@@ -26,9 +26,9 @@ namespace Pine::Graphics
         void Create();
         void Dispose();
 
-        bool AttachShader(Pine::Shader* shader);
+        bool AttachShader(Shader* shader);
 
-        void Upload();
+        void Upload(size_t size = 0);
 
         int BindIndex() const;
         T& Data();
@@ -42,7 +42,7 @@ namespace Pine::Graphics
     }
 
     template<typename T>
-    bool ShaderStorage<T>::AttachShader(Pine::Shader *shader)
+    bool ShaderStorage<T>::AttachShader(Shader*shader)
     {
         return shader->GetProgram()->AttachUniformBuffer(m_UniformBuffer, m_Name);
     }
@@ -60,11 +60,11 @@ namespace Pine::Graphics
     }
 
     template<typename T>
-    void ShaderStorage<T>::Upload()
+    void ShaderStorage<T>::Upload(size_t size)
     {
         m_UniformBuffer->Bind();
 
-        m_UniformBuffer->UploadData(&m_Data, sizeof(T), 0);
+        m_UniformBuffer->UploadData(&m_Data, size == 0 ? sizeof(T) : size, 0);
     }
 
     template<typename T>
@@ -78,7 +78,7 @@ namespace Pine::Graphics
     template<typename T>
     void ShaderStorage<T>::Create()
     {
-        m_UniformBuffer = Graphics::GetGraphicsAPI()->CreateUniformBuffer();
+        m_UniformBuffer = GetGraphicsAPI()->CreateUniformBuffer();
         m_UniformBuffer->Create(sizeof(T), m_BindIndex);
     }
 

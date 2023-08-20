@@ -24,6 +24,9 @@ namespace Pine::Graphics
         virtual bool Setup() = 0;
         virtual void Shutdown() = 0;
 
+        virtual void EnableErrorLogging() = 0;
+        virtual void DisableErrorLogging() = 0;
+
         // Example: OpenGL
         virtual const char* GetName() const = 0;
 
@@ -39,6 +42,9 @@ namespace Pine::Graphics
         virtual void SetViewport(Vector2i position, Vector2i size) = 0;
 
         //virtual void SetBlendingEnabled(bool value) = 0;
+        virtual void SetDepthTestEnabled(bool value) = 0;
+        virtual void SetStencilTestEnabled(bool value) = 0;
+        virtual void SetFaceCullingEnabled(bool value) = 0;
 
         virtual IVertexArray* CreateVertexArray() = 0;
         virtual void DestroyVertexArray(IVertexArray* array) = 0;
@@ -47,8 +53,6 @@ namespace Pine::Graphics
         virtual void DestroyTexture(ITexture* texture) = 0;
 
         virtual int GetSupportedTextureSlots() = 0;
-
-        virtual void SetActiveTexture(int binding) = 0;
 
         virtual IShaderProgram* CreateShaderProgram() = 0;
         virtual void DestroyShaderProgram(IShaderProgram* program) = 0;

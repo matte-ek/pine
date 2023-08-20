@@ -130,10 +130,10 @@ void Pine::IAsset::MarkAsUpdated()
         throw std::runtime_error("Attempted to update read time on non-existing file.");
     }
 
-    m_DiskWriteTime = std::filesystem::last_write_time(m_FilePath);
+    m_DiskWriteTime = last_write_time(m_FilePath);
 }
 
 bool Pine::IAsset::HasBeenUpdated() const
 {
-    return std::filesystem::last_write_time(m_FilePath) != m_DiskWriteTime;
+    return last_write_time(m_FilePath) != m_DiskWriteTime;
 }

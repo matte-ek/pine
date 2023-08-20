@@ -11,11 +11,11 @@ namespace Pine
     private:
         // Stored entity which is the entity the blueprint is describing. This does not
         // point to any existing entity in the world.
-        Pine::Entity* m_Entity = nullptr;
+        Entity* m_Entity = nullptr;
 
         // Copies entity and component data from the source to the destination.
         // If createInstance is set, it will create the source entities components in the world.
-        void CopyEntity(Pine::Entity* dst, const Pine::Entity* src, bool createInstance) const;
+        static void CopyEntity(Entity* dst, const Entity* src, bool createInstance);
     public:
         explicit Blueprint();
 
@@ -23,10 +23,10 @@ namespace Pine
         bool HasEntity() const;
 
         // Create a copy of an existing entity in memory
-        void CreateFromEntity(const Pine::Entity* entity);
+        void CreateFromEntity(const Entity* entity);
 
         // Spawns the stored entity in the world
-        Pine::Entity* Spawn();
+        Entity* Spawn() const;
 
         // Serializes or de-serializes the stored entity
         void FromJson(const nlohmann::json& j);

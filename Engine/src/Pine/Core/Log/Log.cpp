@@ -52,9 +52,10 @@ namespace
     {
         SetConsoleColor(color);
 
-        std::cout << "[" << prefix << "] ";
+        std::cout << prefix << ": ";
 
-        SetConsoleColor(ConsoleColor::White);
+        if (color != ConsoleColor::DarkGray)
+            SetConsoleColor(ConsoleColor::White);
 
         std::cout << str << std::endl;
     }
@@ -62,25 +63,25 @@ namespace
 
 void Pine::Log::Verbose(const std::string &str)
 {
-    PrintMessage("Verbose", ConsoleColor::White, str.c_str());
+    PrintMessage("verbose", ConsoleColor::DarkGray, str.c_str());
 }
 
 void Pine::Log::Message(const std::string &str)
 {
-    PrintMessage("Message", ConsoleColor::White, str.c_str());
+    PrintMessage("info", ConsoleColor::White, str.c_str());
 }
 
 void Pine::Log::Warning(const std::string &str)
 {
-    PrintMessage("Warning", ConsoleColor::Yellow, str.c_str());
+    PrintMessage("warning", ConsoleColor::Yellow, str.c_str());
 }
 
 void Pine::Log::Error(const std::string &str)
 {
-    PrintMessage("Error", ConsoleColor::Red, str.c_str());
+    PrintMessage("error", ConsoleColor::Red, str.c_str());
 }
 
 void Pine::Log::Fatal(const std::string &str)
 {
-    PrintMessage("FATAL", ConsoleColor::Red, str.c_str());
+    PrintMessage("fatal", ConsoleColor::Red, str.c_str());
 }

@@ -4,7 +4,7 @@
 
 #define STB_TRUETYPE_IMPLEMENTATION
 
-#include <stb/stb_truetype.h>
+#include <stb_truetype.h>
 
 Pine::Font::Font()
 {
@@ -61,7 +61,7 @@ void Pine::Font::Dispose()
 {
 }
 
-bool Pine::Font::LoadFromFile(Pine::AssetLoadStage stage)
+bool Pine::Font::LoadFromFile(AssetLoadStage stage)
 {
     m_State = AssetState::Loaded;
 

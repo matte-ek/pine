@@ -1,6 +1,6 @@
 #include "IComponent.hpp"
 
-Pine::IComponent::IComponent(Pine::ComponentType type)
+Pine::IComponent::IComponent(ComponentType type)
     : m_Type(type)
 {
 }
@@ -30,7 +30,7 @@ bool Pine::IComponent::GetStandalone() const
     return m_Standalone;
 }
 
-void Pine::IComponent::SetParent(Pine::Entity* entity)
+void Pine::IComponent::SetParent(Entity* entity)
 {
     m_Parent = entity;
 }

@@ -5,7 +5,7 @@
 
 using namespace Pine::Renderer3D::Specifications;
 
-Pine::Mesh::Mesh(Pine::Model *model)
+Pine::Mesh::Mesh(Model*model)
 {
     m_Model = model;
     m_VertexArray = Graphics::GetGraphicsAPI()->CreateVertexArray();
@@ -36,9 +36,17 @@ bool Pine::Mesh::HasElementBuffer() const
     return m_HasElementBuffer;
 }
 
-void Pine::Mesh::SetMaterial(Pine::Material *material)
+void Pine::Mesh::SetMaterial(Material*material)
 {
     m_Material = material;
+}
+
+void Pine::Mesh::SetMaterial(const std::string &fileReference)
+{
+    assert(!fileReference.empty());
+    assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
+
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetContainer<IAsset>*>(&m_Material)});
 }
 
 Pine::Material *Pine::Mesh::GetMaterial() const
@@ -55,7 +63,7 @@ void Pine::Mesh::SetVertices(float* vertices, std::size_t size)
 {
     m_VertexArray->Bind();
     m_VertexArray->StoreFloatArrayBuffer(reinterpret_cast<float*>(vertices), size, Buffers::VERTEX_ARRAY_BUFFER, 3, Graphics::BufferUsageHint::StaticDraw);
-    m_RenderCount = size / sizeof(Vector3f);
+    m_RenderCount = static_cast<std::uint32_t>(size / sizeof(Vector3f));
 }
 
 void Pine::Mesh::SetIndices(std::uint32_t *indices, std::size_t size)
@@ -63,7 +71,7 @@ void Pine::Mesh::SetIndices(std::uint32_t *indices, std::size_t size)
     m_VertexArray->Bind();
     m_VertexArray->StoreElementArrayBuffer(indices, size);
     m_HasElementBuffer = true;
-    m_RenderCount = size / sizeof(std::uint32_t);
+    m_RenderCount = static_cast<std::uint32_t>(size / sizeof(std::uint32_t));
 }
 
 void Pine::Mesh::SetNormals(float* normals, std::size_t size)

@@ -65,7 +65,7 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
 
     std::vector<std::uint32_t> attachedDrawBuffers;
 
-    if (buffers & Buffers::ColorBuffer)
+    if (buffers & ColorBuffer)
     {
         m_ColorBuffer = new GLTexture();
 
@@ -77,7 +77,7 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
         attachedDrawBuffers.push_back(GL_COLOR_ATTACHMENT0);
     }
 
-    if (buffers & Buffers::NormalBuffer)
+    if (buffers & NormalBuffer)
     {
         m_NormalBuffer = new GLTexture();
 
@@ -89,7 +89,7 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
         attachedDrawBuffers.push_back(GL_COLOR_ATTACHMENT1);
     }
 
-    if (buffers & Buffers::DepthBuffer)
+    if (buffers & DepthBuffer)
     {
         m_DepthBuffer = new GLTexture();
 

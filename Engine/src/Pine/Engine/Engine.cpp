@@ -59,6 +59,8 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
         return false;
     }
 
+    Graphics::GetGraphicsAPI()->EnableErrorLogging();
+
     // Load engine assets, order is important, we want the shaders ready
     // before the other stuff.
 
@@ -106,7 +108,7 @@ void Pine::Engine::Run()
     // 1. Initialize the engine without making a visible frozen window.
     // 2. Allow the user to modify the window, without the window flickering during startup.
     // So we'll have to restore it here.
-    WindowManager::SetWindowVisible(true);
+    WindowManager::SetWindowVisible(true); 
 
     // The main rendering loop itself
     while (WindowManager::IsWindowOpen())
@@ -128,6 +130,7 @@ void Pine::Engine::Shutdown()
     {
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
+
 
     Utilities::HotReload::Shutdown();
     Renderer3D::Shutdown();

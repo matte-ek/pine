@@ -7,6 +7,8 @@ namespace Pine
 {
     struct MeshLoadData
     {
+        Material* Material = nullptr;
+
         Vector3f* Vertices = nullptr;
         Vector3f* Normals = nullptr;
         Vector3f* Tangents = nullptr;

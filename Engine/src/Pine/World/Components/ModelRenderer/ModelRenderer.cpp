@@ -5,7 +5,7 @@ Pine::ModelRenderer::ModelRenderer()
 {
 }
 
-void Pine::ModelRenderer::SetModel(Pine::Model *model)
+void Pine::ModelRenderer::SetModel(Model*model)
 {
     m_Model = model;
 }

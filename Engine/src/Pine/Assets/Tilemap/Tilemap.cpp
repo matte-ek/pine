@@ -8,7 +8,7 @@ Pine::Tilemap::Tilemap()
     m_LoadMode = AssetLoadMode::MultiThread;
 }
 
-void Pine::Tilemap::SetTileset(Pine::Tileset* tileset)
+void Pine::Tilemap::SetTileset(Tileset* tileset)
 {
     m_Tileset = tileset;
 }
@@ -28,7 +28,7 @@ void Pine::Tilemap::Dispose()
     m_State = AssetState::Unloaded;
 }
 
-void Pine::Tilemap::CreateTile(std::uint32_t index, Pine::Vector2i gridPosition, std::uint32_t flags)
+void Pine::Tilemap::CreateTile(std::uint32_t index, Vector2i gridPosition, std::uint32_t flags)
 {
     if (m_Tileset == nullptr)
     {
@@ -55,7 +55,7 @@ void Pine::Tilemap::CreateTile(std::uint32_t index, Pine::Vector2i gridPosition,
     m_Tiles.push_back(tileInstance);
 }
 
-void Pine::Tilemap::RemoveTile(const Pine::TileInstance& instance)
+void Pine::Tilemap::RemoveTile(const TileInstance& instance)
 {
     for (int i = 0; i < m_Tiles.size();i++)
     {
@@ -67,7 +67,7 @@ void Pine::Tilemap::RemoveTile(const Pine::TileInstance& instance)
     }
 }
 
-const Pine::TileInstance* Pine::Tilemap::GetTileByPosition(Pine::Vector2i gridPosition) const
+const Pine::TileInstance* Pine::Tilemap::GetTileByPosition(Vector2i gridPosition) const
 {
     for (const auto & m_Tile : m_Tiles)
     {

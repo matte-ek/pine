@@ -5,6 +5,8 @@
 
 namespace
 {
+    std::uint32_t m_ActiveShader = 0;
+
     std::uint32_t TranslateShaderType(Pine::Graphics::ShaderType type)
     {
         switch (type)
@@ -23,7 +25,14 @@ namespace
 
 void Pine::Graphics::GLShaderProgram::Use()
 {
+    if (m_ActiveShader == m_Id)
+    {
+        return;
+    }
+
     glUseProgram(m_Id);
+
+    m_ActiveShader = m_Id;
 }
 
 void Pine::Graphics::GLShaderProgram::Dispose()
@@ -39,7 +48,7 @@ void Pine::Graphics::GLShaderProgram::Dispose()
     }
 }
 
-bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string &src, Pine::Graphics::ShaderType type)
+bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string &src, ShaderType type)
 {
     const auto openglShaderType = TranslateShaderType(type);
 
@@ -161,7 +170,7 @@ Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVar
     return m_UniformVariables[name];
 }
 
-bool Pine::Graphics::GLShaderProgram::AttachUniformBuffer(Pine::Graphics::IUniformBuffer *buffer,
+bool Pine::Graphics::GLShaderProgram::AttachUniformBuffer(IUniformBuffer*buffer,
                                                           const std::string &bufferName)
 {
     const int bufferIndex = glGetUniformBlockIndex(m_Id, bufferName.c_str());

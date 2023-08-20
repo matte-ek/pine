@@ -17,19 +17,19 @@ namespace Pine
     {
         Collider2DType m_ColliderType = Collider2DType::Box;
 
-        Pine::Vector2f m_ColliderOffset = Vector2f(0.f);
-        Pine::Vector2f m_ColliderSize = Vector2f(1.f);
+        Vector2f m_ColliderOffset = Vector2f(0.f);
+        Vector2f m_ColliderSize = Vector2f(1.f);
     public:
         explicit Collider2D();
 
         void SetColliderType(Collider2DType type);
         Collider2DType GetColliderType() const;
 
-        void SetOffset(Pine::Vector2f offset);
-        const Pine::Vector2f& GetOffset() const;
+        void SetOffset(Vector2f offset);
+        const Vector2f & GetOffset() const;
 
-        void SetSize(Pine::Vector2f size);
-        const Pine::Vector2f& GetSize() const;
+        void SetSize(Vector2f size);
+        const Vector2f & GetSize() const;
 
         void OnRender(float deltaTime) override;
 

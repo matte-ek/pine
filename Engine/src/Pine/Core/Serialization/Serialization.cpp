@@ -4,7 +4,7 @@
 
 std::optional<nlohmann::json> Pine::Serialization::LoadFromFile(const std::filesystem::path& path)
 {
-    if (!std::filesystem::exists(path))
+    if (!exists(path))
         return {};
 
     std::ifstream fileStream(path);
@@ -36,7 +36,7 @@ void Pine::Serialization::SaveToFile(const std::filesystem::path& path, const nl
     stream.close();
 }
 
-nlohmann::json Pine::Serialization::StoreVector2(const Pine::Vector3f& vector)
+nlohmann::json Pine::Serialization::StoreVector2(const Vector3f& vector)
 {
     nlohmann::json j;
 
@@ -46,7 +46,7 @@ nlohmann::json Pine::Serialization::StoreVector2(const Pine::Vector3f& vector)
     return j;
 }
 
-nlohmann::json Pine::Serialization::StoreVector3(const Pine::Vector3f& vector)
+nlohmann::json Pine::Serialization::StoreVector3(const Vector3f& vector)
 {
     nlohmann::json j;
 
@@ -57,7 +57,7 @@ nlohmann::json Pine::Serialization::StoreVector3(const Pine::Vector3f& vector)
     return j;
 }
 
-nlohmann::json Pine::Serialization::StoreVector4(const Pine::Vector4f& vector)
+nlohmann::json Pine::Serialization::StoreVector4(const Vector4f& vector)
 {
     nlohmann::json j;
 
@@ -69,7 +69,7 @@ nlohmann::json Pine::Serialization::StoreVector4(const Pine::Vector4f& vector)
     return j;
 }
 
-nlohmann::json Pine::Serialization::StoreQuaternion(const Pine::Quaternion& quaternion)
+nlohmann::json Pine::Serialization::StoreQuaternion(const Quaternion& quaternion)
 {
     nlohmann::json j;
 
@@ -81,7 +81,7 @@ nlohmann::json Pine::Serialization::StoreQuaternion(const Pine::Quaternion& quat
     return j;
 }
 
-void Pine::Serialization::LoadVector4(const nlohmann::json& j, const std::string& name, Pine::Vector4f& vec)
+void Pine::Serialization::LoadVector4(const nlohmann::json& j, const std::string& name, Vector4f& vec)
 {
     if (!j.contains(name))
         return;
@@ -92,7 +92,7 @@ void Pine::Serialization::LoadVector4(const nlohmann::json& j, const std::string
     vec.w = j[name]["w"].get<float>();
 }
 
-void Pine::Serialization::LoadVector3(const nlohmann::json& j, const std::string& name, Pine::Vector3f& vec)
+void Pine::Serialization::LoadVector3(const nlohmann::json& j, const std::string& name, Vector3f& vec)
 {
     if (!j.contains(name))
         return;
@@ -102,7 +102,7 @@ void Pine::Serialization::LoadVector3(const nlohmann::json& j, const std::string
     vec.z = j[name]["z"].get<float>();
 }
 
-void Pine::Serialization::LoadVector2(const nlohmann::json& j, const std::string& name, Pine::Vector2f& vec)
+void Pine::Serialization::LoadVector2(const nlohmann::json& j, const std::string& name, Vector2f& vec)
 {
     if (!j.contains(name))
         return;
@@ -111,7 +111,7 @@ void Pine::Serialization::LoadVector2(const nlohmann::json& j, const std::string
     vec.y = j[name]["y"].get<float>();
 }
 
-void Pine::Serialization::LoadQuaternion(const nlohmann::json& j, const std::string& name, Pine::Quaternion& quaternion)
+void Pine::Serialization::LoadQuaternion(const nlohmann::json& j, const std::string& name, Quaternion& quaternion)
 {
     if (!j.contains(name))
         return;
@@ -122,7 +122,7 @@ void Pine::Serialization::LoadQuaternion(const nlohmann::json& j, const std::str
     quaternion.w = j[name]["w"].get<float>();
 }
 
-nlohmann::json Pine::Serialization::StoreAsset(const Pine::IAsset* asset)
+nlohmann::json Pine::Serialization::StoreAsset(const IAsset* asset)
 {
     return asset == nullptr ? "null" : asset->GetPath();
 }

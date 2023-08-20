@@ -58,7 +58,7 @@ Pine::Graphics::TextureAtlas* Pine::Tileset::GetTextureAtlas() const
     return m_TextureAtlas;
 }
 
-void Pine::Tileset::AddTile(Pine::Texture2D* texture, std::uint32_t defaultFlags)
+void Pine::Tileset::AddTile(Texture2D* texture, std::uint32_t defaultFlags)
 {
     TileData tile{};
 
@@ -69,7 +69,7 @@ void Pine::Tileset::AddTile(Pine::Texture2D* texture, std::uint32_t defaultFlags
     m_Tiles.push_back(tile);
 }
 
-void Pine::Tileset::RemoveTile(const Pine::TileData& tile)
+void Pine::Tileset::RemoveTile(const TileData& tile)
 {
     for (int i = 0; i < m_Tiles.size();i++)
     {
@@ -94,7 +94,7 @@ Pine::TileData const* Pine::Tileset::GetTileByIndex(std::uint32_t index) const
     return nullptr;
 }
 
-Pine::TileData const* Pine::Tileset::GetTileByTexture(const Pine::Texture2D* texture) const
+Pine::TileData const* Pine::Tileset::GetTileByTexture(const Texture2D* texture) const
 {
     for (auto& tile : m_Tiles)
     {
@@ -142,7 +142,7 @@ bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
         if (tileData.contains("flags"))
             flags = tileData["flags"].get<std::uint32_t>();
 
-        auto tileTexture = Pine::Assets::Get<Pine::Texture2D>(tileData["texture"]);
+        auto tileTexture = Pine::Assets::Get<Texture2D>(tileData["texture"]);
 
         if (!tileTexture)
         {

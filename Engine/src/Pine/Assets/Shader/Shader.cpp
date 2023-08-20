@@ -32,6 +32,8 @@ namespace
 
         if (!shader->CompileAndLoadShader(src, type))
         {
+            Pine::Log::Error(fmt::format("Error occurred in file {}", filePath));
+
             return false;
         }
 
@@ -45,7 +47,7 @@ Pine::Shader::Shader()
     m_Type = AssetType::Shader;
 }
 
-bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
+bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
 {
     // Attempt to parse JSON
     auto jsonOpt = Serialization::LoadFromFile(m_FilePath);
@@ -93,7 +95,7 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
             return false;
         }
 
-        m_ShaderFiles.push_back(Pine::Assets::GetOrLoad(getAbsolutePath(vertexPath)));
+        m_ShaderFiles.push_back(Assets::GetOrLoad(getAbsolutePath(vertexPath)));
     }
 
     if (!fragmentPath.empty())
@@ -103,7 +105,7 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
             return false;
         }
 
-        m_ShaderFiles.push_back(Pine::Assets::GetOrLoad(getAbsolutePath(vertexPath)));
+        m_ShaderFiles.push_back(Assets::GetOrLoad(getAbsolutePath(fragmentPath)));
     }
 
     if (!computePath.empty())
@@ -113,7 +115,7 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
             return false;
         }
 
-        m_ShaderFiles.push_back(Pine::Assets::GetOrLoad(getAbsolutePath(vertexPath)));
+        m_ShaderFiles.push_back(Assets::GetOrLoad(getAbsolutePath(computePath)));
     }
 
     // Finally attempt to link the program
@@ -141,8 +143,6 @@ bool Pine::Shader::LoadFromFile(Pine::AssetLoadStage stage)
         }
     }
 
-    // TODO: Setup uniform buffers
-
     m_State = AssetState::Loaded;
 
     return true;
@@ -152,14 +152,13 @@ void Pine::Shader::Dispose()
 {
     if (m_ShaderProgram)
     {
-        m_ShaderProgram->Dispose();
-
         Graphics::GetGraphicsAPI()->DestroyShaderProgram(m_ShaderProgram);
 
         m_ShaderProgram = nullptr;
     }
 
     m_ShaderFiles.clear();
+    m_Ready = false;
 
     m_State = AssetState::Unloaded;
 }

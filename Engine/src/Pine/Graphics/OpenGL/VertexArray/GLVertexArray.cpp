@@ -83,18 +83,19 @@ std::uint32_t Pine::Graphics::GLVertexArray::GetId() const
 }
 
 Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::CreateFloatArrayBuffer(
-        std::size_t size, int binding, int vecSize, Pine::Graphics::BufferUsageHint usageHint)
+        std::size_t size, int binding, int vecSize, BufferUsageHint usageHint)
 {
     return CreateArrayBuffer(size, binding, vecSize, GL_FLOAT, usageHint);
 }
 
 Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::CreateIntegerArrayBuffer(
-        std::size_t size, int binding, int vecSize, Pine::Graphics::BufferUsageHint usageHint)
+        std::size_t size, int binding, int vecSize, BufferUsageHint usageHint)
 {
     return CreateArrayBuffer(size, binding, vecSize, GL_INT, usageHint);
 }
 
-Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::CreateArrayBuffer(std::size_t size, int binding, int vecSize, int type, Pine::Graphics::BufferUsageHint hint)
+Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::CreateArrayBuffer(std::size_t size, int binding, int vecSize, int type,
+    BufferUsageHint hint)
 {
     const auto buffer = CreateBuffer();
 

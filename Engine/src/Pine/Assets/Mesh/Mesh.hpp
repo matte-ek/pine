@@ -29,6 +29,8 @@ namespace Pine
         bool HasElementBuffer() const;
 
         void SetMaterial(Material* material);
+        void SetMaterial(const std::string& fileReference);
+
         Material* GetMaterial() const;
 
         Model* GetModel() const;

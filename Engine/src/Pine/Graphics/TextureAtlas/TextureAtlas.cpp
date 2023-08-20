@@ -3,12 +3,12 @@
 #include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
 #include "Pine/Rendering/RenderingContext.hpp"
 
-Pine::Graphics::TextureAtlas::TextureAtlas(Pine::Vector2i size, int tileSize) :
+Pine::Graphics::TextureAtlas::TextureAtlas(Vector2i size, int tileSize) :
     m_Size(size),
     m_TileSize(tileSize)
 {
-    m_AtlasFrameBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_AtlasFrameBuffer->Create(size.x, size.y, Buffers::ColorBuffer);
+    m_AtlasFrameBuffer = GetGraphicsAPI()->CreateFrameBuffer();
+    m_AtlasFrameBuffer->Create(size.x, size.y, ColorBuffer);
 }
 
 Pine::Graphics::ITexture* Pine::Graphics::TextureAtlas::GetColorBuffer() const
@@ -16,7 +16,7 @@ Pine::Graphics::ITexture* Pine::Graphics::TextureAtlas::GetColorBuffer() const
     return m_AtlasFrameBuffer->GetColorBuffer();
 }
 
-std::uint32_t Pine::Graphics::TextureAtlas::AddTexture(Pine::Graphics::ITexture* texture)
+std::uint32_t Pine::Graphics::TextureAtlas::AddTexture(ITexture* texture)
 {
 	auto itemId = static_cast<std::uint32_t>(m_Textures.size());
 
@@ -48,8 +48,8 @@ void Pine::Graphics::TextureAtlas::Update()
 
     m_AtlasFrameBuffer->Bind();
 
-    Graphics::GetGraphicsAPI()->ClearColor(Color(0, 0, 0, 0));
-    Graphics::GetGraphicsAPI()->ClearBuffers(Buffers::ColorBuffer);
+    GetGraphicsAPI()->ClearColor(Color(0, 0, 0, 0));
+    GetGraphicsAPI()->ClearBuffers(ColorBuffer);
 
     Renderer2D::PrepareFrame();
     Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::Screen);
@@ -71,7 +71,7 @@ void Pine::Graphics::TextureAtlas::Update()
 
     Renderer2D::RenderFrame(&renderingContext);
 
-    Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
+    GetGraphicsAPI()->BindFrameBuffer(nullptr);
 }
 
 void Pine::Graphics::TextureAtlas::SetTileSize(int tileSize)
@@ -92,7 +92,7 @@ float Pine::Graphics::TextureAtlas::GetTextureUvScale() const
 void Pine::Graphics::TextureAtlas::Dispose()
 {
     if (m_AtlasFrameBuffer)
-        Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_AtlasFrameBuffer);
+        GetGraphicsAPI()->DestroyFrameBuffer(m_AtlasFrameBuffer);
 }
 
 void Pine::Graphics::TextureAtlas::RemoveTexture(std::uint32_t texture)

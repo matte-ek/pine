@@ -7,7 +7,7 @@ namespace
     Pine::Graphics::IGraphicsAPI* m_GraphicsAPI = nullptr;
 }
 
-bool Pine::Graphics::Setup(Pine::Graphics::GraphicsAPI api)
+bool Pine::Graphics::Setup(GraphicsAPI api)
 {
     switch (api)
     {

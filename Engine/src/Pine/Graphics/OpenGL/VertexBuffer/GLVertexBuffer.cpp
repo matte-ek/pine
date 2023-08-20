@@ -17,7 +17,7 @@ void Pine::Graphics::GLVertexBuffer::UploadData(const void* data, std::size_t si
     glBufferSubData(GL_ARRAY_BUFFER, static_cast<std::int32_t>(offset), static_cast<std::int32_t>(size), data);
 }
 
-void Pine::Graphics::GLVertexBuffer::SetDivisor(Pine::Graphics::VertexBufferDivisor mode, int instanceCount)
+void Pine::Graphics::GLVertexBuffer::SetDivisor(VertexBufferDivisor mode, int instanceCount)
 {
     glVertexAttribDivisor(m_Binding, mode == VertexBufferDivisor::PerVertex ? 0 : instanceCount);
 }

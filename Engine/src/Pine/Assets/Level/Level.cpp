@@ -1,5 +1,6 @@
 #include "Level.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
+#include "Pine/World/World.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
 Pine::Level::Level()
@@ -30,7 +31,7 @@ void Pine::Level::CreateFromWorld()
     }
 }
 
-void Pine::Level::Load() const
+void Pine::Level::Load()
 {
     Entities::DeleteAll();
 
@@ -38,6 +39,8 @@ void Pine::Level::Load() const
     {
         blueprint->Spawn();
     }
+
+    World::SetActiveLevel(this, true);
 }
 
 void Pine::Level::ClearBlueprints()
@@ -57,7 +60,12 @@ std::size_t Pine::Level::GetBlueprintCount() const
     return m_Blueprints.size();
 }
 
-bool Pine::Level::LoadFromFile(Pine::AssetLoadStage stage)
+Pine::LevelSettings& Pine::Level::GetLevelSettings()
+{
+    return m_LevelSettings;
+}
+
+bool Pine::Level::LoadFromFile(AssetLoadStage stage)
 {
     const auto json = Serialization::LoadFromFile(m_FilePath);
 

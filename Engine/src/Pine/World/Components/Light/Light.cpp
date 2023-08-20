@@ -5,7 +5,7 @@ Pine::Light::Light()
 {
 }
 
-void Pine::Light::SetLightType(Pine::LightType type)
+void Pine::Light::SetLightType(LightType type)
 {
     m_LightType = type;
 }
@@ -15,7 +15,7 @@ Pine::LightType Pine::Light::GetLightType() const
     return m_LightType;
 }
 
-void Pine::Light::SetLightColor(Pine::Vector3f color)
+void Pine::Light::SetLightColor(Vector3f color)
 {
     m_LightColor = color;
 }

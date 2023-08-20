@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
-#include <stb/stb_truetype.h>
+#include <stb_truetype.h>
 
 using namespace Pine;
 
@@ -146,7 +146,6 @@ namespace
                 m_Shader->GetProgram()->Use();
                 m_VertexArray->Bind();
 
-                m_GraphicsAPI->SetActiveTexture(0);
                 m_DefaultTexture->Bind();
 
                 m_Shader->GetProgram()->GetUniformVariable("m_ViewMatrix")->LoadMatrix4(m_ViewMatrix);
@@ -214,8 +213,7 @@ namespace
                         {
                             if (textures.count(rect.m_Texture) == 0)
                             {
-                                m_GraphicsAPI->SetActiveTexture(currentTextureSlot);
-                                rect.m_Texture->Bind();
+                                rect.m_Texture->Bind(currentTextureSlot);
 
                                 textures[rect.m_Texture] = currentTextureSlot;
 
@@ -288,7 +286,7 @@ namespace
     }
 }
 
-void Pine::Renderer2D::PrepareFrame()
+void Renderer2D::PrepareFrame()
 {
     // Cache Graphics API
     m_GraphicsAPI = Graphics::GetGraphicsAPI();
@@ -339,7 +337,7 @@ void Renderer2D::RenderFrame(RenderingContext* context)
     RectangleRenderer::RenderFrame(context);
 }
 
-void Pine::Renderer2D::AddFilledRectangle(Pine::Vector2f position, Pine::Vector2f size, float rotation, Pine::Color color)
+void Renderer2D::AddFilledRectangle(Vector2f position, Vector2f size, float rotation, Color color)
 {
     Rectangle rectangleItem =
     {
@@ -390,7 +388,7 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, fl
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Pine::Renderer2D::AddFilledRoundedRectangle(Pine::Vector2f position, Pine::Vector2f size, float radius, Pine::Color color)
+void Renderer2D::AddFilledRoundedRectangle(Vector2f position, Vector2f size, float radius, Color color)
 {
     Rectangle rectangleItem =
     {
@@ -405,7 +403,7 @@ void Pine::Renderer2D::AddFilledRoundedRectangle(Pine::Vector2f position, Pine::
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Pine::Renderer2D::AddText(Pine::Vector2f position, Pine::Color color, const std::string& str)
+void Renderer2D::AddText(Vector2f position, Color color, const std::string& str)
 {
 }
 

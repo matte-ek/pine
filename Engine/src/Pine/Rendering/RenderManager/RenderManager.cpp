@@ -111,7 +111,7 @@ void Pine::RenderManager::Run()
         CallRenderCallback(RenderStage::PostProcessing, fDeltaTime);
     }
 
-    Pine::Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
+    Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
 
     CallRenderCallback(RenderStage::PostRender, fDeltaTime);
 }
@@ -121,7 +121,7 @@ void Pine::RenderManager::AddRenderCallback(const std::function<void(RenderStage
     m_RenderCallbackFunctions.push_back(func);
 }
 
-void Pine::RenderManager::SetPrimaryRenderingContext(Pine::RenderingContext *context)
+void Pine::RenderManager::SetPrimaryRenderingContext(RenderingContext*context)
 {
     if (m_RenderingContexts.empty())
         m_RenderingContexts.push_back(&m_DefaultRenderingContext);
@@ -144,12 +144,12 @@ Pine::RenderingContext *Pine::RenderManager::GetDefaultRenderingContext()
     return &m_DefaultRenderingContext;
 }
 
-void Pine::RenderManager::AddRenderingContextPass(Pine::RenderingContext *context)
+void Pine::RenderManager::AddRenderingContextPass(RenderingContext*context)
 {
     m_RenderingContexts.push_back(context);
 }
 
-void Pine::RenderManager::RemoveRenderingContextPass(Pine::RenderingContext *context)
+void Pine::RenderManager::RemoveRenderingContextPass(RenderingContext*context)
 {
     for (int i = 0; i < m_RenderingContexts.size(); i++)
     {

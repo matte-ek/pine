@@ -60,7 +60,7 @@ namespace
 
 }
 
-void Pine::Entities::Setup()
+void Entities::Setup()
 {
     m_MaxEntityCount = Engine::GetEngineConfiguration().m_MaxObjectCount;
 
@@ -78,7 +78,7 @@ void Pine::Entities::Setup()
     m_EntityPointerList.reserve(m_MaxEntityCount);
 }
 
-void Pine::Entities::Shutdown()
+void Entities::Shutdown()
 {
     free(m_Entities);
     delete[] m_EntityOccupationArray;
@@ -86,7 +86,7 @@ void Pine::Entities::Shutdown()
     m_EntityPointerList.clear();
 }
 
-Pine::Entity* Pine::Entities::Create()
+Entity* Entities::Create()
 {
     const auto availableEntityIndex = GetAvailableEntityIndex();
 
@@ -108,7 +108,7 @@ Pine::Entity* Pine::Entities::Create()
     return entityPtr;
 }
 
-Pine::Entity* Pine::Entities::Create(const std::string& name)
+Entity* Entities::Create(const std::string& name)
 {
     auto entity = Create();
 

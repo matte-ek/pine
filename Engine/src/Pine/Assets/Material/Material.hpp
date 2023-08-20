@@ -48,6 +48,10 @@ namespace Pine
 		void SetSpecular(Texture2D* texture);
 		void SetNormal(Texture2D* texture);
 
+        void SetDiffuse(const std::string& fileReference);
+        void SetSpecular(const std::string& fileReference);
+        void SetNormal(const std::string& fileReference);
+
 		Texture2D* GetDiffuse() const;
 		Texture2D* GetSpecular() const;
 		Texture2D* GetNormal() const;

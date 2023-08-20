@@ -9,10 +9,15 @@ namespace
 {
     void UpdateAssets()
     {
-        Pine::Log::Verbose("HotReload: Reloading assets due to window focus.");
+        int assetsReloaded = 0;
 
-        Pine::Assets::LoadDirectory("engine/shaders", false);
-        Pine::Assets::LoadDirectory("engine", false);
+        assetsReloaded += Pine::Assets::LoadDirectory("engine/shaders", false);
+        assetsReloaded += Pine::Assets::LoadDirectory("engine", false);
+
+        if (assetsReloaded > 0)
+        {
+            Pine::Log::Verbose(fmt::format("Reloaded {} assets due to hot-reload", assetsReloaded));
+        }
     }
 
     void OnWindowFocusCallback(GLFWwindow*, int focused)

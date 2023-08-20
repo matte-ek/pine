@@ -13,7 +13,7 @@ namespace Pine
 
         bool m_Ready = false;
 
-        std::vector<Pine::IAsset*> m_ShaderFiles;
+        std::vector<IAsset*> m_ShaderFiles;
     public:
         Shader();
 

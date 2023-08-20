@@ -104,7 +104,7 @@ namespace
     }
 }
 
-void Pine::Components::Setup()
+void Components::Setup()
 {
     CreateComponentDataBlock<Transform>();
     CreateComponentDataBlock<ModelRenderer>();
@@ -128,7 +128,7 @@ void Pine::Components::Setup()
     Log::Verbose("Total size allocated for components: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
 }
 
-void Pine::Components::Shutdown()
+void Components::Shutdown()
 {
     for (const auto block : m_ComponentDataBlocks)
     {
@@ -139,7 +139,7 @@ void Pine::Components::Shutdown()
     m_ComponentDataBlocks.clear();
 }
 
-const std::vector<ComponentDataBlock<IComponent>*>& Pine::Components::GetComponentTypes()
+const std::vector<ComponentDataBlock<IComponent>*>&Components::GetComponentTypes()
 {
     return m_ComponentDataBlocks;
 }

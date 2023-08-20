@@ -113,11 +113,11 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
                 if (tile.m_Flags & NoRender)
                     continue;
 
-                Pine::Renderer2D::AddTextureAtlasItem(positionOffset + Pine::Vector2f(tileSize * static_cast<float>(tile.m_Position.x), tileSize * static_cast<float>(tile.m_Position.y)),
-                                                      tileSize,
-                                                      textureAtlas,
-                                                      tile.m_RenderIndex,
-                                                      Pine::Color(255, 255, 255, 255));
+                Renderer2D::AddTextureAtlasItem(positionOffset + Vector2f(tileSize * static_cast<float>(tile.m_Position.x), tileSize * static_cast<float>(tile.m_Position.y)),
+                                                tileSize,
+                                                textureAtlas,
+                                                tile.m_RenderIndex,
+                                                Color(255, 255, 255, 255));
             }
 
             Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem::World);

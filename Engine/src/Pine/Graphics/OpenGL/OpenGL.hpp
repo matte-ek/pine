@@ -17,6 +17,9 @@ namespace Pine::Graphics
         bool Setup() override;
         void Shutdown() override;
 
+        void EnableErrorLogging() override;
+        void DisableErrorLogging() override;
+
         const char* GetName() const override;
         const char* GetVersionString() const override;
         const char* GetGraphicsAdapter() const override;
@@ -26,6 +29,10 @@ namespace Pine::Graphics
 
         void SetViewport(Vector2i position, Vector2i size) override;
 
+        void SetDepthTestEnabled(bool value) override;
+        void SetStencilTestEnabled(bool value) override;
+        void SetFaceCullingEnabled(bool value) override;
+
         IVertexArray* CreateVertexArray() override;
         void DestroyVertexArray(IVertexArray* array) override;
 
@@ -33,8 +40,6 @@ namespace Pine::Graphics
         void DestroyTexture(ITexture* texture) override;
 
         int GetSupportedTextureSlots() override;
-
-        void SetActiveTexture(int binding) override;
 
         IShaderProgram* CreateShaderProgram() override;
         void DestroyShaderProgram(IShaderProgram* program) override;

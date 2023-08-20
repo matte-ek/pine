@@ -1,4 +1,5 @@
 #pragma once
+#include "Pine/Core/Math/Math.hpp"
 
 namespace Pine::Graphics
 {
@@ -20,6 +21,17 @@ namespace Pine::Graphics
         CubeMap
     };
 
+    enum class TextureUploadTarget
+    {
+        Default,
+        Right,
+        Left,
+        Top,
+        Bottom,
+        Front,
+        Back
+    };
+
     enum class TextureDataFormat
     {
         UnsignedByte,
@@ -36,14 +48,21 @@ namespace Pine::Graphics
     {
     protected:
         TextureType m_Type = TextureType::Texture2D;
+
         TextureFilteringMode m_FilteringMode = TextureFilteringMode::Linear;
+
+        int m_Width = 0;
+        int m_Height = 0;
+
+        TextureFormat m_TextureFormat = TextureFormat::SingleChannel;
+        TextureDataFormat m_TextureDataFormat = TextureDataFormat::UnsignedByte;
     public:
         virtual ~ITexture() = default;
 
         // The type is up to the graphics API being used
         virtual void* GetGraphicsIdentifier() = 0;
 
-        virtual void Bind() = 0;
+        virtual void Bind(int textureIndex = 0) = 0;
         virtual void Dispose() = 0;
 
         virtual void SetType(TextureType type) = 0;
@@ -52,7 +71,14 @@ namespace Pine::Graphics
         virtual void SetFilteringMode(TextureFilteringMode mode) = 0;
         virtual TextureFilteringMode GetFilteringMode() = 0;
 
+        virtual int GetWidth() = 0;
+        virtual int GetHeight() = 0;
+
+        virtual TextureFormat GetTextureFormat() = 0;
+        virtual TextureDataFormat GetTextureDataFormat() = 0;
+
         virtual void UploadTextureData(int width, int height, TextureFormat textureFormat, TextureDataFormat dataFormat, void* data) = 0;
+        virtual void CopyTextureData(ITexture* texture, TextureUploadTarget textureUploadTarget, Vector4i srcRect = Vector4i(-1), Vector2i dstPos = Vector2i(0)) = 0;
     };
 
 }
