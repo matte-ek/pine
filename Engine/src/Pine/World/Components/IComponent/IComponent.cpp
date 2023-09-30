@@ -64,6 +64,14 @@ void Pine::IComponent::OnRender(float deltaTime)
 {
 }
 
+void Pine::IComponent::OnPrePhysicsUpdate()
+{
+}
+
+void Pine::IComponent::OnPostPhysicsUpdate()
+{
+}
+
 void Pine::IComponent::LoadData(const nlohmann::json& j)
 {
 }

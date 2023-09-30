@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
-#include <stb_truetype.h>
+#include <stb/stb_truetype.h>
 
 using namespace Pine;
 

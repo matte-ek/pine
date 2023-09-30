@@ -108,8 +108,11 @@ namespace Pine
         // Called each frame right before rendering
         virtual void OnRender(float deltaTime);
 
-        virtual void LoadData(const nlohmann::json &j);
+        // Called before/after any physics updates
+        virtual void OnPrePhysicsUpdate();
+        virtual void OnPostPhysicsUpdate();
 
+        virtual void LoadData(const nlohmann::json &j);
         virtual void SaveData(nlohmann::json &j);
     };
 

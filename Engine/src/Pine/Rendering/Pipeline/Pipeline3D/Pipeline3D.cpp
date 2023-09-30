@@ -59,7 +59,8 @@ void Pipeline3D::Shutdown()
 
 void Pipeline3D::Run(const RenderingContext& context)
 {
-	Renderer3D::SetCamera(context.SceneCamera);
+	if (context.SceneCamera)
+		Renderer3D::SetCamera(context.SceneCamera);
 
 	Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 	Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);

@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <stb/stb_image.h>
 
 Pine::Texture2D::Texture2D()
 {
@@ -68,7 +68,7 @@ void Pine::Texture2D::UploadGpuData()
     stbi_image_free(m_PreparedTextureData);
 
     m_PreparedTextureData = nullptr;
-
+    
     m_State = AssetState::Loaded;
 }
 
