@@ -16,18 +16,18 @@ namespace
     Pine::RenderingContext* m_GameRenderingContext = nullptr;
     Pine::RenderingContext* m_LevelRenderingContext = nullptr;
 
-    void OnPineRender(Pine::RenderStage stage)
+    void OnPineRender(Pine::RenderStage stage, float deltaTime)
     {
         if (!m_GameRenderingContext || !m_LevelRenderingContext)
             return;
 
         if (stage == Pine::RenderStage::PreRender)
         {
-            m_GameRenderingContext->m_Active = Panels::GameViewport::GetActive() && Panels::GameViewport::GetVisible();
-            m_GameRenderingContext->m_Size = Pine::Vector2f(1920, 1080);
+            m_GameRenderingContext->Active = Panels::GameViewport::GetActive() && Panels::GameViewport::GetVisible();
+            m_GameRenderingContext->Size = Pine::Vector2f(1920, 1080);
 
-            m_LevelRenderingContext->m_Active = Panels::LevelViewport::GetActive() && Panels::LevelViewport::GetVisible();
-            m_LevelRenderingContext->m_Size = Pine::Vector2f(1920, 1080);
+            m_LevelRenderingContext->Active = Panels::LevelViewport::GetActive() && Panels::LevelViewport::GetVisible();
+            m_LevelRenderingContext->Size = Pine::Vector2f(1920, 1080);
         }
     }
 }
@@ -47,14 +47,14 @@ void RenderHandler::Setup()
     m_GameRenderingContext = new Pine::RenderingContext;
     m_LevelRenderingContext = new Pine::RenderingContext;
 
-    m_GameRenderingContext->m_FrameBuffer = m_GameFrameBuffer;
-    m_LevelRenderingContext->m_FrameBuffer = m_LevelFrameBuffer;
+    m_GameRenderingContext->FrameBuffer = m_GameFrameBuffer;
+    m_LevelRenderingContext->FrameBuffer = m_LevelFrameBuffer;
 
-    m_GameRenderingContext->m_ClearColor = Pine::Vector4f(1.f, 0.5f, 0.f, 1.f);
-    m_LevelRenderingContext->m_ClearColor = Pine::Vector4f(0.f, 0.5f, 1.f, 1.f);
+    m_GameRenderingContext->ClearColor = Pine::Vector4f(1.f, 0.5f, 0.f, 1.f);
+    m_LevelRenderingContext->ClearColor = Pine::Vector4f(0.f, 0.5f, 1.f, 1.f);
 
     // For the level rendering context, we'll always force the editor entity's camera
-    m_LevelRenderingContext->m_Camera = EditorEntity::Get()->GetComponent<Pine::Camera>();
+    m_LevelRenderingContext->SceneCamera = EditorEntity::Get()->GetComponent<Pine::Camera>();
 
     Pine::RenderManager::SetPrimaryRenderingContext(m_GameRenderingContext);
     Pine::RenderManager::AddRenderingContextPass(m_LevelRenderingContext);
@@ -70,6 +70,11 @@ void RenderHandler::Shutdown()
 
     delete m_GameRenderingContext;
     delete m_LevelRenderingContext;
+}
+
+Pine::RenderingContext* RenderHandler::GetGameRenderingContext()
+{
+    return m_GameRenderingContext;
 }
 
 Pine::Graphics::IFrameBuffer* RenderHandler::GetGameFrameBuffer()

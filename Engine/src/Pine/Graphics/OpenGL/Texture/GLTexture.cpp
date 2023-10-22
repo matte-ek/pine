@@ -8,7 +8,7 @@ namespace
 {
 
     std::uint32_t m_ActiveTexture = 10000;
-    std::uint32_t m_BoundTextures[64] = { 10000 };
+    std::uint32_t m_BoundTextures[64] = {10000};
 
     struct GLTextureFormat
     {
@@ -20,12 +20,12 @@ namespace
     {
         switch (type)
         {
-        case Pine::Graphics::TextureType::Texture2D:
-            return GL_TEXTURE_2D;
-        case Pine::Graphics::TextureType::CubeMap:
-            return GL_TEXTURE_CUBE_MAP;
-        default:
-            throw std::runtime_error("Unsupported texture type.");
+            case Pine::Graphics::TextureType::Texture2D:
+                return GL_TEXTURE_2D;
+            case Pine::Graphics::TextureType::CubeMap:
+                return GL_TEXTURE_CUBE_MAP;
+            default:
+                throw std::runtime_error("Unsupported texture type.");
         }
     }
 
@@ -33,12 +33,12 @@ namespace
     {
         switch (type)
         {
-        case Pine::Graphics::TextureDataFormat::UnsignedByte:
-            return GL_UNSIGNED_BYTE;
-        case Pine::Graphics::TextureDataFormat::Float:
-            return GL_FLOAT;
-        default:
-            throw std::runtime_error("Unsupported texture data format type.");
+            case Pine::Graphics::TextureDataFormat::UnsignedByte:
+                return GL_UNSIGNED_BYTE;
+            case Pine::Graphics::TextureDataFormat::Float:
+                return GL_FLOAT;
+            default:
+                throw std::runtime_error("Unsupported texture data format type.");
         }
     }
 
@@ -50,7 +50,8 @@ namespace
         switch (format)
         {
             case Pine::Graphics::TextureFormat::SingleChannel:
-                openglFormat = GL_R8;
+                openglFormat = GL_RED;
+                openglInternalFormat = GL_R8;
                 break;
             case Pine::Graphics::TextureFormat::RGB:
                 openglFormat = GL_RGB;
@@ -108,7 +109,7 @@ void Pine::Graphics::GLTexture::Bind(int textureIndex)
     m_BoundTextures[textureIndex] = m_Id;
 }
 
-void Pine::Graphics::GLTexture::CopyTextureData(ITexture*texture,
+void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
                                                 TextureUploadTarget textureUploadTarget,
                                                 Vector4i srcRect,
                                                 Vector2i dstPos)
@@ -121,6 +122,15 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture*texture,
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(texture->GetTextureFormat());
 
     // Since glCopyImageSubData only copies the data, we'll need to manually allocate it first.
+    // EDIT: Since I cannot get glCopyImageSubData working, we'll copy data to the CPU, then to the GPU again :S
+
+    auto srcId = *reinterpret_cast<std::uint32_t *>(texture->GetGraphicsIdentifier());
+
+    size_t bufferSize = texture->GetWidth() * texture->GetHeight() * (texture->GetTextureFormat() == TextureFormat::RGBA ? 4 : 3);
+    void* buffer = malloc(bufferSize);
+
+    glGetTextureImage(static_cast<int>(srcId), 0, openglFormat, GL_UNSIGNED_BYTE, bufferSize, buffer);
+
     glTexImage2D(cubeMapTextureType,
                  0,
                  openglInternalFormat,
@@ -129,7 +139,9 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture*texture,
                  0,
                  openglFormat,
                  TranslateTextureDataFormatType(texture->GetTextureDataFormat()),
-                 nullptr);
+                 buffer);
+
+    free(buffer);
 
     // We have to set the filtering properties before copying the data
     glTexParameteri(textureType, GL_TEXTURE_MIN_FILTER, texture->GetFilteringMode() == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
@@ -137,10 +149,8 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture*texture,
     glTexParameteri(textureType, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(textureType, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    auto srcId = *reinterpret_cast<std::uint32_t*>(texture->GetGraphicsIdentifier());
-
     // TODO: This doesn't currently work for cube maps, for whatever reason.
-    glCopyImageSubData(srcId,
+    /*glCopyImageSubData(srcId,
                        GL_TEXTURE_2D,
                        0,
                        0, 0,
@@ -153,6 +163,7 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture*texture,
                        srcRect.z,
                        srcRect.w,
                        1);
+    */
 }
 
 void Pine::Graphics::GLTexture::Dispose()
@@ -160,7 +171,7 @@ void Pine::Graphics::GLTexture::Dispose()
     glDeleteTextures(1, &m_Id);
 }
 
-void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, TextureFormat format, TextureDataFormat dataFormat, void* data)
+void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, TextureFormat format, TextureDataFormat dataFormat, void *data)
 {
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(format);
 
@@ -193,15 +204,7 @@ void Pine::Graphics::GLTexture::SetFilteringMode(TextureFilteringMode mode)
 {
     m_FilteringMode = mode;
 
-    if (m_Id != 0)
-    {
-        const auto openglType = TranslateTextureType(m_Type);
-
-        Bind();
-
-        glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
-        glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
-    }
+    UpdateTextureFiltering();
 }
 
 Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetFilteringMode()
@@ -209,12 +212,24 @@ Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetFilteringMode
     return m_FilteringMode;
 }
 
+void Pine::Graphics::GLTexture::SetMipmapFilteringMode(Pine::Graphics::TextureFilteringMode mode)
+{
+    m_MipmapFilteringMode = mode;
+
+    UpdateTextureFiltering();
+}
+
+Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetMipmapFilteringMode()
+{
+    return m_MipmapFilteringMode;
+}
+
 std::uint32_t Pine::Graphics::GLTexture::GetId() const
 {
     return m_Id;
 }
 
-void* Pine::Graphics::GLTexture::GetGraphicsIdentifier()
+void *Pine::Graphics::GLTexture::GetGraphicsIdentifier()
 {
     return &m_Id;
 }
@@ -237,4 +252,37 @@ Pine::Graphics::TextureFormat Pine::Graphics::GLTexture::GetTextureFormat()
 Pine::Graphics::TextureDataFormat Pine::Graphics::GLTexture::GetTextureDataFormat()
 {
     return m_TextureDataFormat;
+}
+
+void Pine::Graphics::GLTexture::GenerateMipmaps()
+{
+    m_HasMipmaps = true;
+
+    glGenerateMipmap(TranslateTextureType(m_Type));
+}
+
+void Pine::Graphics::GLTexture::UpdateTextureFiltering()
+{
+    if (m_Id == 0)
+    {
+        return;
+    }
+
+    const auto openglType = TranslateTextureType(m_Type);
+
+    Bind();
+
+    int minFilter = m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST;
+    int magFilter = m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST;
+
+    if (m_HasMipmaps)
+    {
+        if (m_MipmapFilteringMode == TextureFilteringMode::Nearest)
+            minFilter = m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
+        else
+            minFilter = m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
+    }
+
+    glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, minFilter);
+    glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, magFilter);
 }

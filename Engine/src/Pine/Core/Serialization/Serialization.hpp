@@ -48,7 +48,7 @@ namespace Pine::Serialization
 
         if (Assets::GetState() == AssetManagerState::LoadDirectory && allowReference)
         {
-            Assets::AddAssetResolveReference({name, reinterpret_cast<AssetContainer<IAsset>*>(&asset)});
+            Assets::AddAssetResolveReference({j[name], reinterpret_cast<AssetContainer<IAsset>*>(&asset)});
         }
         else
         {

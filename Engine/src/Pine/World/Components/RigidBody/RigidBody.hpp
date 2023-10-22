@@ -18,7 +18,7 @@ namespace Pine
     class RigidBody : public IComponent
     {
     private:
-        RigidBodyType m_RigidBodyType = RigidBodyType::Kinematic;
+        RigidBodyType m_RigidBodyType = RigidBodyType::Dynamic;
 
         float m_Mass = 1.0f;
 

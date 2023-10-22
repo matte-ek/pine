@@ -1,9 +1,12 @@
 #include "Widgets.hpp"
 #include "IconsMaterialDesign.h"
+#include "Pine/Core/Math/Math.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include <cstdint>
 #include <cstring>
+#include <fmt/core.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
@@ -47,7 +50,7 @@ bool Widgets::Checkbox(const std::string& str, bool* value)
 {
     PrepareWidget(str);
 
-    bool ret = ImGui::Checkbox(str.c_str(), value);
+    bool ret = ImGui::Checkbox(fmt::format("##{}", str).c_str(), value);
 
     FinishWidget();
 
@@ -115,6 +118,51 @@ bool Widgets::InputInt(const std::string& str, int* value)
     return ret;
 }
 
+bool Widgets::InputFloat(const std::string& str, float* value)
+{
+    bool ret = false;
+    
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(-1.f);
+
+    ret = ImGui::InputFloat(std::string("##InputFloat" + str).c_str(), value);
+
+    FinishWidget();
+
+    return ret;
+}
+
+bool Widgets::SliderFloat(const std::string& str, float* value, float min, float max)
+{
+    bool ret = false;
+    
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(-1.f);
+
+    ret = ImGui::SliderFloat(std::string("##SliderFloat" + str).c_str(), value, min, max);
+
+    FinishWidget();
+
+    return ret;
+}
+
+bool Widgets::ColorPicker3(const std::string& str, Pine::Vector3f& color)
+{
+    bool ret = false;
+    
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(-1.f);
+
+    ret = ImGui::ColorEdit3(std::string("##ColorPicker3" + str).c_str(), glm::value_ptr(color), ImGuiColorEditFlags_NoAlpha);
+
+    FinishWidget();
+
+    return ret;
+}
+
 AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType)
 {
     AssetPickerResult ret;
@@ -135,9 +183,9 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsse
 
     char buff[128];
 
-    strcpy_s(buff, assetFileName.c_str());
+    strcpy(buff, assetFileName.c_str());
 
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 55.f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.f);
 
     ImGui::InputText(std::string("##AssetPath" + str).c_str(), buff, 128, ImGuiInputTextFlags_ReadOnly);
 

@@ -15,6 +15,18 @@ namespace Pine::Graphics
         LineLoop
     };
 
+    enum class TestFunction
+    {
+        Never,
+        Always,
+        Less,
+        LessEqual,
+        Greater,
+        GreaterEqual,
+        Equal,
+        NotEqual
+    };
+
     class IGraphicsAPI
     {
     public:
@@ -45,6 +57,8 @@ namespace Pine::Graphics
         virtual void SetDepthTestEnabled(bool value) = 0;
         virtual void SetStencilTestEnabled(bool value) = 0;
         virtual void SetFaceCullingEnabled(bool value) = 0;
+
+        virtual void SetDepthFunction(TestFunction value) = 0;
 
         virtual IVertexArray* CreateVertexArray() = 0;
         virtual void DestroyVertexArray(IVertexArray* array) = 0;

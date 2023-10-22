@@ -1,6 +1,7 @@
 #pragma once
 #include "Pine/Assets/IAsset/IAsset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Core/Color/Color.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include <string>
@@ -33,6 +34,11 @@ namespace Widgets
     bool Combobox(const std::string& str, int* value, const char* items);
 
     bool InputInt(const std::string& str, int* value);
+    bool InputFloat(const std::string& str, float* value);
+
+    bool SliderFloat(const std::string& str, float* value, float min, float max);
+
+    bool ColorPicker3(const std::string& str, Pine::Vector3f& color);
 
     AssetPickerResult AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
 

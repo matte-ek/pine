@@ -2,11 +2,19 @@
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "IconsMaterialDesign.h"
 #include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
+#include "Pine/Core/Math/Math.hpp"
+#include "Pine/World/Components/Camera/Camera.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Light/Light.hpp"
+#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
+#include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
+#include "Rendering/RenderHandler.hpp"
 #include "imgui.h"
 #include "Pine/Core/String/String.hpp"
 #include <stdexcept>
@@ -34,6 +42,124 @@ namespace
             if (Widgets::Vector3("Scale", scale))
             {
                 transform->LocalScale = scale;
+            }
+        }
+
+        void RenderModelRenderer(Pine::ModelRenderer* modelRenderer)
+        {
+            auto [newModelSet, newModel] = Widgets::AssetPicker("Model", reinterpret_cast<Pine::IAsset*>(modelRenderer->GetModel()), Pine::AssetType::Model);
+
+            if (newModelSet)
+                modelRenderer->SetModel(dynamic_cast<Pine::Model*>(newModel));
+        }
+
+        void RenderCamera(Pine::Camera* camera)
+        {
+            int cameraType = static_cast<int>(camera->GetCameraType());
+            float nearPlane = camera->GetNearPlane();
+            float farPlane = camera->GetFarPlane();
+            float fov = camera->GetFieldOfView();
+            bool isActiveCamera = RenderHandler::GetGameRenderingContext()->SceneCamera == camera;
+
+            if (Widgets::Combobox("Camera Type", &cameraType, "Perspective\0Orthographic\0"))
+            {
+                camera->SetCameraType(static_cast<Pine::CameraType>(cameraType));
+            }
+
+            if (Widgets::SliderFloat("Near Plane", &nearPlane, 0.01f, 10.f))
+            {
+                camera->SetNearPlane(nearPlane);
+            }
+
+            if (Widgets::SliderFloat("Far Plane", &farPlane, 100.0f, 10000.f))
+            {
+                camera->SetFarPlane(farPlane);
+            }
+
+            if (Widgets::SliderFloat("Field of View", &fov, 10.0f, 180.f))
+            {
+                camera->SetFieldOfView(fov);
+            }
+
+            if (Widgets::Checkbox("Use Camera", &isActiveCamera))
+            {
+                RenderHandler::GetGameRenderingContext()->SceneCamera = isActiveCamera ? camera : nullptr;
+            }            
+        }
+
+        void RenderLight(Pine::Light* light)
+        {
+            int lightType = static_cast<int>(light->GetLightType());
+            Pine::Vector3f lightColor = light->GetLightColor();
+
+            if (Widgets::Combobox("Light Type", &lightType, "Directional\0Point Light\0Spot Light\0"))
+            {
+                light->SetLightType(static_cast<Pine::LightType>(lightType));
+            }
+
+            if (Widgets::ColorPicker3("Color", lightColor))
+            {
+                light->SetLightColor(lightColor);
+            }
+        }
+
+        void RenderCollider(Pine::Collider* collider)
+        {
+            auto colliderType = static_cast<int>(collider->GetColliderType());
+            auto position = collider->GetPosition();
+            auto size = collider->GetSize();
+
+            if (Widgets::Combobox("Collider Type", &colliderType, "Box\0Sphere\0Capsule\0Convex Mesh\0Concave Mesh\0Height Field\0"))
+            {
+                collider->SetColliderType(static_cast<Pine::ColliderType>(colliderType));
+            }
+
+            if (colliderType == static_cast<int>(Pine::ColliderType::Box))
+            {
+                if (Widgets::Vector3("Collider Position", position))
+                {
+                    collider->SetPosition(position);
+                }
+
+                if (Widgets::Vector3("Collider Size", size))
+                {
+                    collider->SetSize(size);
+                }
+            }
+            else
+            {
+                if (Widgets::InputFloat("Collider Radius", &size.x))
+                {
+                    collider->SetRadius(size.x);
+                }
+
+                if (Widgets::InputFloat("Collider Height", &size.y))
+                {
+                    collider->SetRadius(size.y);
+                }
+            }
+        }
+
+        void RenderRigidBody(Pine::RigidBody* rigidBody)
+        {
+            auto type = static_cast<int>(rigidBody->GetRigidBodyType());
+            auto mass = rigidBody->GetMass();
+            auto gravityEnabled = rigidBody->GetGravityEnabled();
+            auto& rotationLock = rigidBody->GetRotationLock();
+
+            if (Widgets::Combobox("Rigid Body Type", &type, "Static\0Kinematic\0Dynamic\0"))
+            {
+                rigidBody->SetRigidBodyType(static_cast<Pine::RigidBodyType>(type));
+            }
+
+            if (Widgets::SliderFloat("Mass", &mass, 0, 1000))
+            {
+                rigidBody->SetMass(mass);
+            }
+
+            if (Widgets::Checkbox("Gravity Enabled", &gravityEnabled))
+            {
+                rigidBody->SetGravityEnabled(gravityEnabled);
             }
         }
 
@@ -103,7 +229,7 @@ namespace
                     component->SetActive(isActive);
                 }
 
-                ImGui::SameLine(ImGui::GetWindowWidth() - 32.f);
+                ImGui::SameLine(ImGui::GetContentRegionAvail().x - 16.f);
 
                 if (ImGui::Button(std::string(ICON_MD_DELETE "##" + std::to_string(index)).c_str()))
                 {
@@ -123,6 +249,21 @@ namespace
                 {
                 case Pine::ComponentType::Transform:
                     RenderTransform(dynamic_cast<Pine::Transform*>(component));
+                    break;
+                case Pine::ComponentType::ModelRenderer:
+                    RenderModelRenderer(dynamic_cast<Pine::ModelRenderer*>(component));
+                    break;
+                case Pine::ComponentType::Camera:
+                    RenderCamera(dynamic_cast<Pine::Camera*>(component));
+                    break;
+                case Pine::ComponentType::Light:
+                    RenderLight(dynamic_cast<Pine::Light*>(component));
+                    break;
+                case Pine::ComponentType::Collider:
+                    RenderCollider(dynamic_cast<Pine::Collider*>(component));
+                    break;
+                case Pine::ComponentType::RigidBody:
+                    RenderRigidBody(dynamic_cast<Pine::RigidBody*>(component));
                     break;
                 case Pine::ComponentType::SpriteRenderer:
                     RenderSpriteRenderer(dynamic_cast<Pine::SpriteRenderer*>(component));
@@ -145,7 +286,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
     // General entity properties
 
     if (entity->GetName().size() < 128)
-        strcpy_s(nameBuffer, entity->GetName().c_str());
+        strcpy(nameBuffer, entity->GetName().c_str());
 
     bool isActive = entity->GetActive();
     bool isStatic = entity->GetStatic();
@@ -182,7 +323,8 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 
     static bool setKeyboardFocus = false;
 
-    static auto componentSearch = [&]() {
+    static auto componentSearch = [&]() 
+    {
         const auto& componentList = Pine::Components::GetComponentTypes();
 
         componentSearchBox.clear();
@@ -201,10 +343,12 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
                 continue;
             }
 
-            if (Pine::String::ToLower(std::string(componentName)).find(Pine::String::ToLower(std::string(componentSearchBuffer))) != std::string::npos)
+            if (Pine::String::ToLower(std::string(componentName)).find(Pine::String::ToLower(std::string(componentSearchBuffer))) == std::string::npos)
             {
-                componentSearchBox.push_back(componentName);
+                continue;
             }
+
+            componentSearchBox.push_back(componentName);
         }
     };
 
@@ -213,7 +357,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 
     if (ImGui::Button("Add new component...", ImVec2(-1.f, 35.f)))
     {
-        strcpy_s(componentSearchBuffer, "\0");
+        strcpy(componentSearchBuffer, "\0");
 
         componentSearch();
 

@@ -251,7 +251,10 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
 int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativePath)
 {
     if (!exists(path))
+    {
+        Log::Warning(fmt::format("Loaded no assets from '{}', directory does not exist.", path.string()));
         return -1;
+    }
 
     m_State = AssetManagerState::LoadDirectory;
 
@@ -487,7 +490,15 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
     // we may attempt to resolve them to pointers now.
     for (auto& assetResolveReference : m_AssetResolveReferences)
     {
-        *assetResolveReference.m_AssetContainer = Get(assetResolveReference.m_Path);
+        auto asset = Get(assetResolveReference.m_Path);
+
+        if (!asset)
+        {
+            Log::Warning(fmt::format("Failed to resolve asset reference '{}'.", assetResolveReference.m_Path));
+            continue;
+        }
+
+        *assetResolveReference.m_AssetContainer = asset;
     }
 
     m_AssetResolveReferences.clear();

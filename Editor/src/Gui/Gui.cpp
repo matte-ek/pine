@@ -137,7 +137,7 @@ namespace
         ImGui::End();
     }
 
-    void OnPineRender(Pine::RenderStage stage)
+    void OnPineRender(Pine::RenderStage stage, float deltaTime)
     {
         if (stage != Pine::RenderStage::PostRender)
             return;

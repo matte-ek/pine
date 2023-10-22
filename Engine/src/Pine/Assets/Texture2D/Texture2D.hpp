@@ -12,6 +12,8 @@ namespace Pine
         int m_Width = 0;
         int m_Height = 0;
 
+        bool m_GenerateMipmaps = true;
+
         Graphics::TextureFormat m_Format = Graphics::TextureFormat::SingleChannel;
 
         Graphics::ITexture* m_Texture = nullptr;
@@ -22,6 +24,9 @@ namespace Pine
         void UploadGpuData();
     public:
         Texture2D();
+
+        void SetGenerateMipmaps(bool value);
+        bool GetGenerateMipmaps() const;
 
         int GetWidth() const;
         int GetHeight() const;

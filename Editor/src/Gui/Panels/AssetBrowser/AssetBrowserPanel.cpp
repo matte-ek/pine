@@ -4,10 +4,12 @@
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/IAsset/IAsset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Core/String/String.hpp"
 #include "imgui.h"
 #include "IconsMaterialDesign.h"
 #include <array>
 #include <cmath>
+#include <cstring>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -100,7 +102,9 @@ namespace
                 newEntry->Asset = Pine::Assets::Get(newEntry->Path.string(), true);
 
             	if (newEntry->Asset)
-					newEntry->Icon = IconStorage::GetIconTexture(newEntry->Asset->GetPath());
+				{
+                    newEntry->Icon = IconStorage::GetIconTexture(newEntry->Asset->GetPath());
+                }
             }
             else 
             {
@@ -141,6 +145,36 @@ namespace
         entry->Children.push_back(mappedEntry);
     }
 
+    PathEntry* RenderAssetEntry(PathEntry* file)
+    {
+        static auto fileIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file.png");
+
+        PathEntry* clickedItem = nullptr;
+
+        const auto isSelected = Selection::IsSelected(file->Asset);
+        const auto icon = file->Icon == nullptr ? fileIcon : file->Icon;
+
+        if (Widgets::Icon(file->DisplayText, icon, isSelected, m_IconSize))
+        {
+            clickedItem = file;
+        }
+
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+        {
+            ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(icon->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
+            ImGui::SameLine();
+            ImGui::Text("%s", file->DisplayText.c_str());
+
+            ImGui::SetDragDropPayload("Asset", &file->Asset, sizeof(Pine::IAsset*));
+
+            ImGui::EndDragDropSource();
+        }
+
+        ImGui::NextColumn();
+
+        return clickedItem;
+    }
+
     PathEntry* RenderEntry(const PathEntry* entry)
     {
         static auto folderIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/folder.png");
@@ -170,28 +204,46 @@ namespace
             if (file->Type == EntryType::Directory)
                 continue;
 
-            const auto isSelected = Selection::IsSelected(file->Asset);
-            const auto icon = file->Icon == nullptr ? fileIcon : file->Icon;
-
-            if (Widgets::Icon(file->DisplayText, icon, isSelected, m_IconSize))
+            if (auto clickedAsset = RenderAssetEntry(file))
             {
-            	clickedItem = file;
+                clickedItem = clickedAsset;
             }
-
-            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
-            {
-                ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(icon->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
-                ImGui::SameLine();
-                ImGui::Text("%s", file->DisplayText.c_str());
-
-                ImGui::SetDragDropPayload("Asset", &file->Asset, sizeof(Pine::IAsset*));
-
-                ImGui::EndDragDropSource();
-            }
-
-            ImGui::NextColumn();
         }
         
+        return clickedItem;
+    }
+
+    PathEntry* RenderEntrySearch(const PathEntry* root, const std::string& searchQuery)
+    {
+        PathEntry* clickedItem = nullptr;
+
+        for (auto& file : root->Children)
+        {
+            if (file->Type == EntryType::Directory)
+                continue;
+
+            if (Pine::String::ToLower(file->DisplayText).find(Pine::String::ToLower(searchQuery)) == std::string::npos)
+            {
+                continue;
+            }
+
+            if (auto clickedAsset = RenderAssetEntry(file))
+            {
+                clickedItem = clickedAsset;
+            }
+        }
+
+        for (auto& directory : root->Children)
+        {
+            if (directory->Type == EntryType::File)
+                continue;
+
+            if (auto clickedAsset = RenderEntrySearch(directory, searchQuery))
+            {
+                clickedItem = clickedAsset;
+            }
+        }
+
         return clickedItem;
     }
 
@@ -240,7 +292,7 @@ void Panels::AssetBrowser::RebuildAssetTree()
     m_Root->Type = EntryType::Directory;
     m_Root->Path = "game";
 
-    MapDirectoryEntry("engine", "Engine", m_Root);
+    MapDirectoryEntry("engine", "engine", m_Root);
     ProcessDirectoryTree("game", m_Root);
 
     m_SelectedEntry = m_Root;
@@ -279,14 +331,35 @@ void Panels::AssetBrowser::Render()
 
     ImGui::BeginChild("##Assets", ImVec2(-1.f, -1.f), true, 0);
 
+    const bool isSearching = strlen(m_SearchBuffer) > 0;
     const int iconSizePadding = m_IconSize + 16;
     const float spaceAvailable = ImGui::GetContentRegionAvail().x - (iconSizePadding * 2);
     const int nrColumns = static_cast<int>(spaceAvailable) / iconSizePadding;
 
-    if (nrColumns > 0 && m_SelectedEntry != nullptr)
+    if (nrColumns == 0)
     {
-        ImGui::Columns(nrColumns, nullptr, false);
+        ImGui::EndChild();
+        ImGui::End();
+        
+        return;
+    }
 
+    ImGui::Columns(nrColumns, nullptr, false);
+
+    if (isSearching)
+    {
+        const std::string searchQuery = Pine::String::ToLower(m_SearchBuffer);
+
+        if (const auto selectedEntry = RenderEntrySearch(m_SelectedEntry, searchQuery))
+        {
+            if (selectedEntry->Type == EntryType::File)
+            {
+                Selection::Add<Pine::IAsset>(selectedEntry->Asset, true);
+            }
+        }
+    }
+    else 
+    {
         if (const auto newEntrySelection = RenderEntry(m_SelectedEntry))
         {
             if (newEntrySelection->Type == EntryType::Directory)
@@ -298,17 +371,15 @@ void Panels::AssetBrowser::Render()
                 Selection::Add<Pine::IAsset>(newEntrySelection->Asset, true);
             }
         }
-
-        ImGui::Columns(1);
-
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_::ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
-        {
-            Selection::Clear();
-        }
     }
 
+    ImGui::Columns(1);
+
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_::ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+    {
+        Selection::Clear();
+    }
 
     ImGui::EndChild();
-
     ImGui::End();
 }

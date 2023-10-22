@@ -50,12 +50,15 @@ namespace Pine::Graphics
         TextureType m_Type = TextureType::Texture2D;
 
         TextureFilteringMode m_FilteringMode = TextureFilteringMode::Linear;
+        TextureFilteringMode m_MipmapFilteringMode = TextureFilteringMode::Linear;
 
         int m_Width = 0;
         int m_Height = 0;
 
         TextureFormat m_TextureFormat = TextureFormat::SingleChannel;
         TextureDataFormat m_TextureDataFormat = TextureDataFormat::UnsignedByte;
+
+        bool m_HasMipmaps = false;
     public:
         virtual ~ITexture() = default;
 
@@ -71,6 +74,9 @@ namespace Pine::Graphics
         virtual void SetFilteringMode(TextureFilteringMode mode) = 0;
         virtual TextureFilteringMode GetFilteringMode() = 0;
 
+        virtual void SetMipmapFilteringMode(TextureFilteringMode mode) = 0;
+        virtual TextureFilteringMode GetMipmapFilteringMode() = 0;
+
         virtual int GetWidth() = 0;
         virtual int GetHeight() = 0;
 
@@ -79,6 +85,8 @@ namespace Pine::Graphics
 
         virtual void UploadTextureData(int width, int height, TextureFormat textureFormat, TextureDataFormat dataFormat, void* data) = 0;
         virtual void CopyTextureData(ITexture* texture, TextureUploadTarget textureUploadTarget, Vector4i srcRect = Vector4i(-1), Vector2i dstPos = Vector2i(0)) = 0;
+
+        virtual void GenerateMipmaps() = 0;
     };
 
 }

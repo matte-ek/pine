@@ -43,6 +43,7 @@ in VertexData
 {
 	vec2 uv;
 	vec3 worldPosition;
+    vec3 cameraPos;
 	vec3 cameraDir;
 	vec3 normalDir;
 	vec3 lightDir[4];
@@ -54,8 +55,16 @@ uniform bool hasTangentData;
 // Light indices from Lights that should affect this object
 uniform ivec4 lightsIndices;
 
+#shader hooks
+
 vec3 calculateBaseLightning(vec3 lightDirection, int lightIndex)
 {
+#if defined(OVERRIDE_MAT_COLORS)
+    vec3 diffuseColor = override.diffuseColor;
+#else
+    vec3 diffuseColor = material.diffuseColor;
+#endif
+
     // Calculate normal dir and account for tangent data
     vec3 normal;
 
@@ -71,11 +80,11 @@ vec3 calculateBaseLightning(vec3 lightDirection, int lightIndex)
     vec3 halfwayDirection = normalize(lightDirection + input.cameraDir);
     float specularFactor = pow(max(dot(normal, halfwayDirection), 0.0), material.shininess);
 
-    vec3 ambient = lights[lightIndex].color * material.diffuseColor * material.ambientColor * texture(textureSamplers.diffuse, input.uv * material.uvScale).xyz;
-    vec3 diffuse = lights[lightIndex].color * material.diffuseColor * texture(textureSamplers.diffuse, input.uv * material.uvScale).xyz * diffuseFactor;
+    vec3 ambient = diffuseColor * material.ambientColor * texture(textureSamplers.diffuse, input.uv * material.uvScale).xyz + vec3(0.1f);
+    vec3 diffuse = lights[lightIndex].color * diffuseColor * texture(textureSamplers.diffuse, input.uv * material.uvScale).xyz * diffuseFactor;
     vec3 specular = lights[lightIndex].color * material.specularColor * texture(textureSamplers.specular, input.uv * material.uvScale).xyz * specularFactor;
 
-    return diffuse + specular + ambient;
+    return diffuse + specular + (1.f - diffuseFactor) * ambient;
 }
 
 vec3 calculateDirectionalLight()
@@ -85,7 +94,11 @@ vec3 calculateDirectionalLight()
 
 void main(void)
 {
+    #shader preFragment
+
     vec4 directionalLight = vec4(calculateDirectionalLight(), 1.0);
 
     m_OutputColor = directionalLight;
+
+    #shader postFragment
 }

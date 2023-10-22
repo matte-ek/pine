@@ -24,6 +24,9 @@ add_library(Engine ${SOURCES}
         src/Pine/Rendering/Renderer3D/ShaderStorages.hpp
         src/Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.cpp
         src/Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp
+        src/Pine/Rendering/Features/Skybox/Skybox.cpp
+        src/Pine/Input/Input.hpp
+        src/Pine/Input/Input.cpp
 )
 
 target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D)

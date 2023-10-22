@@ -65,6 +65,12 @@ void Pine::Texture2D::UploadGpuData()
     m_Texture->Bind();
     m_Texture->UploadTextureData(m_Width, m_Height, m_Format, Graphics::TextureDataFormat::UnsignedByte, m_PreparedTextureData);
 
+    if (m_GenerateMipmaps)
+    {
+        m_Texture->GenerateMipmaps();
+        m_Texture->SetMipmapFilteringMode(Pine::Graphics::TextureFilteringMode::Nearest);
+    }
+
     stbi_image_free(m_PreparedTextureData);
 
     m_PreparedTextureData = nullptr;
@@ -96,6 +102,16 @@ int Pine::Texture2D::GetWidth() const
 int Pine::Texture2D::GetHeight() const
 {
     return m_Height;
+}
+
+void Pine::Texture2D::SetGenerateMipmaps(bool value)
+{
+    m_GenerateMipmaps = value;
+}
+
+bool Pine::Texture2D::GetGenerateMipmaps() const
+{
+    return m_GenerateMipmaps;
 }
 
 Pine::Graphics::TextureFormat Pine::Texture2D::GetFormat() const

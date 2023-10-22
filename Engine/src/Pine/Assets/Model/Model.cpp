@@ -15,6 +15,7 @@ namespace
     {
         MeshLoadData loadData;
 
+        loadData.Faces = mesh->mNumFaces;
         loadData.VertexCount = mesh->mNumVertices;
         loadData.Vertices = static_cast<Vector3f *>(malloc(loadData.VertexCount * sizeof(Vector3f)));
 
@@ -35,7 +36,13 @@ namespace
         if (mesh->HasTextureCoords(0))
         {
             loadData.UVs = static_cast<Vector2f *>(malloc(loadData.VertexCount * sizeof(Vector2f)));
-            memcpy(loadData.UVs, mesh->mTextureCoords[0], loadData.VertexCount * sizeof(Vector2f));
+
+            memset(loadData.UVs, 0, loadData.VertexCount * sizeof(Vector2f));
+
+            for (std::uint32_t i = 0; i < loadData.VertexCount;i++)
+            {
+                loadData.UVs[i] = Vector2f(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+            }
         }
 
         std::vector<std::uint32_t> indices;
@@ -67,9 +74,7 @@ namespace
                 auto engineMaterial = new Material;
 
                 // This is sort of messy.
-                engineMaterial->SetPath(
-                        std::filesystem::path(engineModel->GetPath()).parent_path().string() + "/" + modelName +
-                        ".mat");
+                engineMaterial->SetPath(std::filesystem::path(engineModel->GetPath()).parent_path().string() + "/" + modelName + ".mat");
                 engineMaterial->SetFilePath(modelDirectory + modelName + ".mat");
 
                 aiColor3D diffuse_color(1.f, 1.f, 1.f);

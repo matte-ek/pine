@@ -18,13 +18,17 @@ namespace Pine
 
         std::uint32_t* Indices = nullptr;
         std::uint32_t IndicesLength = 0;
+
+        std::uint32_t Faces = 0;
     };
 
     class Model : public IAsset
     {
-    private:
+    protected:
         std::vector<Mesh*> m_Meshes;
         std::vector<MeshLoadData> m_MeshLoadData;
+
+        bool m_UsedAsCollider = false;
 
         bool LoadModel();
         void UploadModel();
@@ -40,5 +44,7 @@ namespace Pine
         bool LoadFromFile(AssetLoadStage stage) override;
 
         void Dispose() override;
+
+        friend class Collider;
     };
 }

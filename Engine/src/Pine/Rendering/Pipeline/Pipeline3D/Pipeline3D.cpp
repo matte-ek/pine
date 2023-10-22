@@ -4,6 +4,7 @@
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/Graphics/Graphics.hpp"
+#include "Pine/Rendering/Features/Skybox/Skybox.hpp"
 
 namespace
 {
@@ -20,7 +21,7 @@ namespace
 
 		for (auto& modelRenderer : Components::Get<ModelRenderer>())
 		{
-			if (!IsComponentValid(&modelRenderer) && !modelRenderer.GetModel())
+			if (!IsComponentValid(&modelRenderer) || !modelRenderer.GetModel())
 			{
 				continue;
 			}
@@ -51,14 +52,18 @@ namespace
 
 void Pipeline3D::Setup()
 {
+    Renderer::Skybox::Setup();
 }
 
 void Pipeline3D::Shutdown()
 {
+    Renderer::Skybox::Shutdown();
 }
 
 void Pipeline3D::Run(const RenderingContext& context)
 {
+    Renderer3D::FrameReset();
+
 	if (context.SceneCamera)
 		Renderer3D::SetCamera(context.SceneCamera);
 
@@ -111,4 +116,8 @@ void Pipeline3D::Run(const RenderingContext& context)
 	}
 
 	// Sky box
+    if (context.Skybox != nullptr)
+    {
+        Renderer::Skybox::Render(context.Skybox);
+    }
 }

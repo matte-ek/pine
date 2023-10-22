@@ -35,6 +35,7 @@ out VertexData
 {
 	vec2 uv;
 	vec3 worldPosition;
+	vec3 cameraPos;
 	vec3 cameraDir;
 	vec3 normalDir;
 	vec3 lightDir[4];
@@ -45,19 +46,24 @@ uniform bool hasTangentData;
 // Light indices from Lights that should affect this object
 uniform ivec4 lightsIndices;
 
+#shader hooks
+
 void main()
 {
 	vec4 vertexPosition = vec4(vertex, 1.0);
 	mat4 transformationMatrix = transformationMatrices[gl_InstanceID];
 
+	#shader preVertex
+
 	output.worldPosition = (transformationMatrix * vertexPosition).xyz;
 	output.uv = uv;
+	output.cameraPos = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
 
 	// Apply object transformation to our normal vector
 	vec3 worldNormalDir = normalize((transformationMatrix * vec4(normal, 0.0)).xyz);
 	
 	// Extract the camera origin from the view matrix, and calculate the direction from the vertex.
-	vec3 cameraDir = normalize((inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz - output.worldPosition.xyz);	
+	vec3 cameraDir = normalize(output.cameraPos - output.worldPosition.xyz);	
 
 	if (hasTangentData)
 	{
@@ -97,4 +103,6 @@ void main()
 	}
 
 	gl_Position = projectionMatrix * viewMatrix * transformationMatrix * vertexPosition;
+
+	#shader postVertex
 }

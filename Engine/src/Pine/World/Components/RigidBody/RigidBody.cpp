@@ -51,8 +51,6 @@ void Pine::RigidBody::UpdateColliders()
         const auto rot = transform->GetRotation();
 
         tr.setPosition(reactphysics3d::Vector3(collider->GetPosition().x, collider->GetPosition().y, collider->GetPosition().z));
-        tr.setOrientation(reactphysics3d::Quaternion(rot.x, rot.y, rot.z, rot.w));
-
         m_Collider->setLocalToBodyTransform(tr);
         m_Collider->getMaterial().setBounciness(0);
     }
@@ -164,7 +162,9 @@ void Pine::RigidBody::OnPrePhysicsUpdate()
     }
 
     if (m_Parent->GetStatic())
+    {
         return;
+    }
 
     UpdateRigidBodyProperties();
 }

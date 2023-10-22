@@ -10,7 +10,8 @@ namespace Pine::Graphics
     {
         Vertex,
         Fragment,
-        Compute
+        Compute,
+        ShaderTypeCount
     };
 
     class IShaderProgram

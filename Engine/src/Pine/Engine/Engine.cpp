@@ -5,11 +5,14 @@
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
+#include "Pine/Input/Input.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/Utilities/HotReload/HotReload.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
+#include "Pine/World/World.hpp"
+#include "Pine/Physics/Physics3D/Physics3D.hpp"
 
 #include <GLFW/glfw3.h>
 #include <stdexcept>
@@ -83,6 +86,8 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     Entities::Setup();
     RenderManager::Setup();
     Renderer3D::Setup();
+    Physics3D::Setup();
+    Input::Setup();
     Utilities::HotReload::Setup();
 
     // Finish initialization
@@ -118,6 +123,8 @@ void Pine::Engine::Run()
         m_GraphicsAPI->ClearColor(Color(0, 0, 0, 255));
         m_GraphicsAPI->ClearBuffers(Graphics::ColorBuffer);
 
+        Input::Update();
+        World::Update();
         RenderManager::Run();
 
         glfwSwapBuffers(windowPointer);
@@ -131,8 +138,8 @@ void Pine::Engine::Shutdown()
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
 
-
     Utilities::HotReload::Shutdown();
+    Input::Shutdown();
     Renderer3D::Shutdown();
     Entities::Shutdown();
     Components::Shutdown();

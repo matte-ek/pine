@@ -5,6 +5,7 @@
 Pine::Material::Material()
 {
 	m_Type = AssetType::Material;
+    m_Shader = Assets::Get<Pine::Shader>("engine/shaders/3d/generic.shader");
 }
 
 void Pine::Material::SetDiffuseColor(Vector3f color)

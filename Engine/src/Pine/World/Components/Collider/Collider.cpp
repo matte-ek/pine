@@ -1,9 +1,15 @@
 #include "Collider.hpp"
+#include "Pine/Assets/Model/Model.hpp"
+#include "Pine/Core/Math/Math.hpp"
+#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
+#include <atomic>
+#include <reactphysics3d/collision/TriangleVertexArray.h>
+#include <reactphysics3d/mathematics/Vector3.h>
 
 Pine::Collider::Collider::Collider()
         : IComponent(ComponentType::Collider)
@@ -50,6 +56,53 @@ void Pine::Collider::UpdateBody()
     }
 }
 
+reactphysics3d::TriangleMesh* Pine::Collider::LoadTriangleMesh()
+{
+    auto modelRenderer = m_Parent->GetComponent<Pine::ModelRenderer>();
+
+    if (!modelRenderer || !modelRenderer->GetModel())
+        return nullptr;
+
+    auto model = modelRenderer->GetModel();
+
+    // We'll currently have to reload the model again, in order to process the vertex and index data
+    if (!model->LoadModel())
+        return nullptr;
+    if (model->m_MeshLoadData.empty())
+        return nullptr;
+
+    reactphysics3d::TriangleMesh *triangleMesh = Physics3D::GetCommon()->createTriangleMesh(); 
+
+    for (const auto mesh : model->m_MeshLoadData)
+    {        
+        auto triangleArray = new reactphysics3d::TriangleVertexArray(
+            mesh.VertexCount, 
+            mesh.Vertices, sizeof(Vector3f), 
+            mesh.Normals, sizeof(Vector3f),
+            mesh.Faces,
+            mesh.Indices, 3 * sizeof(std::uint32_t),
+            reactphysics3d::TriangleVertexArray::VertexDataType::VERTEX_FLOAT_TYPE, 
+            reactphysics3d::TriangleVertexArray::NormalDataType::NORMAL_FLOAT_TYPE,
+            reactphysics3d::TriangleVertexArray::IndexDataType::INDEX_INTEGER_TYPE
+        );
+
+        triangleMesh->addSubpart(triangleArray);
+    }
+
+    // We'll have to purposely "memory-leak" a bit, since TriangleVertexArray doesn't copy any data.
+    // TODO: I really *need* to get in some proper tracking for this
+    for (const auto loadData : model->m_MeshLoadData)
+    {
+        //free(loadData.Normals);
+        free(loadData.Tangents);
+        free(loadData.UVs);
+    }
+
+    model->m_MeshLoadData.clear();
+
+    return triangleMesh;
+}
+
 void Pine::Collider::CreateShape()
 {
     switch (m_ColliderType)
@@ -63,12 +116,20 @@ void Pine::Collider::CreateShape()
         case ColliderType::Capsule:
             m_CollisionShape = Pine::Physics3D::GetCommon()->createCapsuleShape(m_Size.x, m_Size.y);
             break;
-        case ColliderType::ConcaveMesh:
-        case ColliderType::ConvexMesh:
-        case ColliderType::HeightField:
-            break;
         default:
             break;
+    }
+
+    if (m_ColliderType == ColliderType::ConcaveMesh)
+    {
+        auto mesh = LoadTriangleMesh();
+        
+        if (mesh)
+        {
+            const auto& scale = m_Parent->GetTransform()->GetScale();
+
+            m_CollisionShape = Pine::Physics3D::GetCommon()->createConcaveMeshShape(mesh, reactphysics3d::Vector3(32.f, 32.f, 32.f));
+        }
     }
 
     m_ShapeUpdated = true;
@@ -130,6 +191,8 @@ void Pine::Collider::UpdateShape()
             dynamic_cast< reactphysics3d::CapsuleShape * >(m_CollisionShape)->setHeight(size.y);
             break;
         case ColliderType::ConcaveMesh:
+            //dynamic_cast< reactphysics3d::ConcaveMeshShape * >(m_CollisionShape)->setScale(reactphysics3d::Vector3(size.x, size.y, size.z));
+            break;
         case ColliderType::ConvexMesh:
         case ColliderType::HeightField:
             break;

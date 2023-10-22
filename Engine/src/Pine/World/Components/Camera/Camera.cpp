@@ -34,7 +34,7 @@ void Pine::Camera::BuildViewMatrix()
     const auto transform = m_Parent->GetTransform();
 
     const auto position = transform->GetPosition();
-    const auto rotation = normalize(transform->GetRotation());
+    const auto rotation = normalize(transform->LocalRotation);
 
     const auto direction = rotation * Vector3f(0.f, 0.f, -1.f);
     const auto up = rotation * Vector3f(0.f, 1.f, 0.f);

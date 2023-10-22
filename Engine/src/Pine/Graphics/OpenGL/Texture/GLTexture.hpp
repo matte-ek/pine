@@ -11,6 +11,8 @@ namespace Pine::Graphics
     {
     private:
         std::uint32_t m_Id = 0;
+
+        void UpdateTextureFiltering();
     public:
         GLTexture();
 
@@ -26,6 +28,9 @@ namespace Pine::Graphics
     	void SetFilteringMode(TextureFilteringMode mode) override;
     	TextureFilteringMode GetFilteringMode() override;
 
+        void SetMipmapFilteringMode(TextureFilteringMode mode) override;
+        TextureFilteringMode GetMipmapFilteringMode() override;
+
         int GetWidth() override;
         int GetHeight() override;
 
@@ -34,6 +39,8 @@ namespace Pine::Graphics
 
         void UploadTextureData(int width, int height, TextureFormat format, TextureDataFormat dataFormat, void* data) override;
         void CopyTextureData(ITexture* texture, TextureUploadTarget textureUploadTarget, Vector4i srcRect = Vector4i(-1), Vector2i dstPos = Vector2i(0)) override;
+
+        void GenerateMipmaps() override;
     };
 
 }

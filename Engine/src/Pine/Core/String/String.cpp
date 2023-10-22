@@ -35,7 +35,7 @@ std::string Pine::String::Replace(const std::string& str, const std::string& pat
 {
     std::string s = str;
 
-    if(!pattern.empty())
+    if (!pattern.empty())
         for(std::size_t pos = 0; (pos = s.find(pattern, pos)) != std::string::npos; pos += replacement.size())
             s.replace(pos, pattern.size(), replacement);
 

@@ -26,6 +26,9 @@ namespace Pine::Renderer3D
     // Renderer specific global configuration
     RenderConfiguration& GetRenderConfiguration();
 
+    // Resets the renderer for a new frame
+    void FrameReset();
+
     // Prepares the specified mesh for rendering, overrideMaterial will override the mesh material if set.
     // If includeMaterial is set to false, the renderer won't set up the material for rendering.
     void PrepareMesh(Mesh* mesh, Material* overrideMaterial = nullptr);

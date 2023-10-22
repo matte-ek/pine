@@ -1,4 +1,5 @@
 #include "WindowManager.hpp"
+#include "Pine/Core/Math/Math.hpp"
 
 #include <GLFW/glfw3.h>
 #include <stdexcept>
@@ -12,9 +13,29 @@ namespace
     GLFWmonitor* m_WindowMonitor;
 
     GLFWwindow* m_Window;
+
     std::string m_WindowTitle;
+    Pine::Vector2i m_WindowPosition;
+    Pine::Vector2i m_WindowSize;
 
     Pine::WindowManager::ScreenType m_CurrentScreenType;
+
+    void OnWindowSizeChanged(GLFWwindow* window, int width, int height)
+    {
+        if (window != m_Window)
+            return;
+
+        m_WindowSize = Pine::Vector2i(width, height);
+    }
+
+    void OnWindowPositionChanged(GLFWwindow* window, int x, int y)
+    {
+        if (window != m_Window)
+            return;
+
+        m_WindowPosition = Pine::Vector2i(x, y);
+    }
+
 
 }
 
@@ -53,9 +74,13 @@ bool Pine::WindowManager::Internal::CreateWindow(Vector2i position, Vector2i req
 
     m_WindowTitle = title;
     m_WindowMonitor = targetMonitor;
+    m_WindowSize = size;
     m_CurrentScreenType = type;
 
     SetWindowPosition(position);
+
+    glfwSetWindowPosCallback(m_Window, OnWindowPositionChanged);
+    glfwSetWindowSizeCallback(m_Window, OnWindowSizeChanged);
 
     return true;
 }
@@ -88,10 +113,12 @@ void Pine::WindowManager::SetWindowPosition(Vector2i targetPosition)
         const auto currentWindowSize = GetWindowSize();
 
         position.x = videoMode->width / 2 - currentWindowSize.x / 2;
-        position.y= videoMode->height / 2 - currentWindowSize.y / 2;
+        position.y = videoMode->height / 2 - currentWindowSize.y / 2;
     }
 
     glfwSetWindowPos(m_Window, position.x, position.y);
+
+    m_WindowPosition = targetPosition;
 }
 
 void Pine::WindowManager::SetWindowSize(Vector2i size)

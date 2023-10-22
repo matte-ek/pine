@@ -10,6 +10,8 @@ namespace Pine::Physics3D
 
     void Update(double deltaTime);
 
+    void RenderDebugColliders();
+
     reactphysics3d::PhysicsCommon* GetCommon();
     reactphysics3d::PhysicsWorld* GetWorld();
 

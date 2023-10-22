@@ -24,6 +24,31 @@ namespace
         }
     }
 
+    std::uint32_t TranslateTestFunction(Pine::Graphics::TestFunction testFunction)
+    {
+        switch (testFunction)
+        {
+            case Pine::Graphics::TestFunction::Always:
+                return GL_ALWAYS;
+            case Pine::Graphics::TestFunction::Never:
+                return GL_NEVER;
+            case Pine::Graphics::TestFunction::Equal:
+                return GL_EQUAL;
+            case Pine::Graphics::TestFunction::NotEqual:
+                return GL_NOTEQUAL;
+            case Pine::Graphics::TestFunction::Greater:
+                return GL_GREATER;
+            case Pine::Graphics::TestFunction::GreaterEqual:
+                return GL_GEQUAL;
+            case Pine::Graphics::TestFunction::Less:
+                return GL_LESS;
+            case Pine::Graphics::TestFunction::LessEqual:
+                return GL_LEQUAL;
+            default:
+                throw std::runtime_error("Invalid test function.");
+        }
+    }
+
     void GLAPIENTRY MessageCallback(GLenum source,
                                     GLenum type,
                                     GLuint id,
@@ -232,4 +257,9 @@ void Pine::Graphics::OpenGL::SetFaceCullingEnabled(bool value)
 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     glCullFace(GL_BACK);
+}
+
+void Pine::Graphics::OpenGL::SetDepthFunction(Pine::Graphics::TestFunction value)
+{
+    glDepthFunc(TranslateTestFunction(value));
 }

@@ -93,6 +93,23 @@ void AssetPropertiesPanel::Render(Pine::IAsset* asset)
 		RenderTilemap(dynamic_cast<Pine::Tilemap*>(asset));
 		break;
 	default:
+		ImGui::Text("No asset properties available.");
 		break;
+	}
+	
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	if (ImGui::Button("Open File", ImVec2(100.f, 30.f)))
+	{
+
+	}
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Remove", ImVec2(100.f, 30.f)))
+	{
+
 	}
 }

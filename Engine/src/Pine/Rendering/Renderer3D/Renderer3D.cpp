@@ -256,3 +256,10 @@ void Pine::Renderer3D::UploadLights()
 
     m_CurrentLightIndex = 0;
 }
+
+void Pine::Renderer3D::FrameReset()
+{
+    m_Shader = nullptr;
+    m_Mesh = nullptr;
+    m_Material = nullptr;
+}

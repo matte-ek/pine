@@ -33,6 +33,8 @@ namespace Pine::Graphics
         void SetStencilTestEnabled(bool value) override;
         void SetFaceCullingEnabled(bool value) override;
 
+        void SetDepthFunction(TestFunction value) override;
+
         IVertexArray* CreateVertexArray() override;
         void DestroyVertexArray(IVertexArray* array) override;
 

@@ -20,7 +20,7 @@ namespace Pine
         Vector4f m_ClearColor = Vector4f(0.f);
 
         float m_NearPlane = 1.f;
-        float m_FarPlane = 100.f;
+        float m_FarPlane = 1000.f;
         float m_FieldOfView = 70.f;
 
         float m_OrthographicSize = 1.f;
