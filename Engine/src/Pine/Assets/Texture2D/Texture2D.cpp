@@ -21,7 +21,7 @@ bool Pine::Texture2D::PrepareGpuData()
 
     int width, height, channels;
 
-    const auto data = stbi_load(m_FilePath.string().c_str(), &width, &height, &channels, 0);
+    const auto data = stbi_load(m_FilePath.string().c_str(), &width, &height, &channels, 4);
 
     if (data == nullptr)
     {
@@ -31,6 +31,10 @@ bool Pine::Texture2D::PrepareGpuData()
 
     m_Width = width;
     m_Height = height;
+
+    // BUG: Loading a 3 channel image seems to break stuff right now, so we're just
+    // going to force RGBA for now.
+    channels = 4;
 
     switch (channels)
     {
@@ -57,7 +61,7 @@ void Pine::Texture2D::UploadGpuData()
 {
     if (m_PreparedTextureData == nullptr)
     {
-        throw std::runtime_error("Texture2D::UploadGpuData() called before preparing");
+        throw std::runtime_error("Texture2D::UploadGpuData() called before Texture2D::PrepareGpuData()! Texture load failed?");
     }
 
     m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
@@ -70,6 +74,9 @@ void Pine::Texture2D::UploadGpuData()
         m_Texture->GenerateMipmaps();
         m_Texture->SetMipmapFilteringMode(Pine::Graphics::TextureFilteringMode::Nearest);
     }
+
+    // TODO: Use some sort of load-preset option?
+    m_Texture->SetMipmapFilteringMode(Pine::Graphics::TextureFilteringMode::Linear);
 
     stbi_image_free(m_PreparedTextureData);
 

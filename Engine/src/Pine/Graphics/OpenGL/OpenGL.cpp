@@ -259,6 +259,11 @@ void Pine::Graphics::OpenGL::SetFaceCullingEnabled(bool value)
     glCullFace(GL_BACK);
 }
 
+void Pine::Graphics::OpenGL::SetMultisampleEnabled(bool value)
+{
+    value ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
+}
+
 void Pine::Graphics::OpenGL::SetDepthFunction(Pine::Graphics::TestFunction value)
 {
     glDepthFunc(TranslateTestFunction(value));

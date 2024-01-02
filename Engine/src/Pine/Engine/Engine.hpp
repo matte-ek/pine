@@ -24,6 +24,12 @@ namespace Pine::Engine
         // Whether to enable engine debug tools, such as hot reload
         bool m_EnableDebugTools = true;
 
+        // Whether to pause and wait for new events instead of rendering a new frame instantly.
+        bool m_WaitEvents = false;
+
+        // Disables all the engine stuff (such as handling entities, input and physics)
+        bool m_Standalone = false;
+
         Graphics::GraphicsAPI m_GraphicsAPI = Graphics::GraphicsAPI::OpenGL;
     };
 

@@ -118,13 +118,17 @@ void Pine::Engine::Run()
     // The main rendering loop itself
     while (WindowManager::IsWindowOpen())
     {
-        glfwPollEvents();
+        m_EngineConfiguration.m_WaitEvents ? glfwWaitEventsTimeout(1) : glfwPollEvents();
 
         m_GraphicsAPI->ClearColor(Color(0, 0, 0, 255));
         m_GraphicsAPI->ClearBuffers(Graphics::ColorBuffer);
 
-        Input::Update();
-        World::Update();
+        if (!m_EngineConfiguration.m_Standalone)
+        {
+            Input::Update();
+            World::Update();
+        }
+
         RenderManager::Run();
 
         glfwSwapBuffers(windowPointer);

@@ -1,5 +1,6 @@
 #include "Gui/Gui.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Core/Math/Math.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include <Pine/Pine.hpp>
@@ -12,7 +13,8 @@ int main()
     Pine::Engine::EngineConfiguration engineConfiguration;
 
     engineConfiguration.m_WindowTitle = "Pine Engine Editor";
-    engineConfiguration.m_WindowSize = Pine::Vector2i(1600, 900);
+    engineConfiguration.m_WindowPosition = Pine::Vector2i(0, 0);
+    engineConfiguration.m_WindowSize = Pine::Vector2i(1920, 1080);
 
     if (!Pine::Engine::Setup(engineConfiguration))
     {
@@ -37,6 +39,7 @@ int main()
 
     // Engine clean up
     Pine::Engine::Shutdown();
+
 
     return 0;
 }

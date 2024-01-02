@@ -17,7 +17,11 @@ namespace Pine
 
         Pine::Shader* m_ParentShader = nullptr;
 
+        Pine::Shader* m_DiscardShader = nullptr;
+
         std::vector<IAsset*> m_ShaderFiles;
+
+        bool LoadShaderPackage(const nlohmann::json& j);
     public:
         Shader();
 
@@ -33,7 +37,11 @@ namespace Pine
 
         Pine::Shader* GetParentShader() const;
 
+        Pine::Shader* GetDiscardShader() const;
+
         std::optional<std::string> GetShaderSourceFile(Graphics::ShaderType type) const;
+
+        bool LoadFromJson(const nlohmann::json& j);
 
         bool LoadFromFile(AssetLoadStage stage) override;
         void Dispose() override;

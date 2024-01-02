@@ -45,6 +45,8 @@ bool Pine::WindowManager::Internal::CreateWindow(Vector2i position, Vector2i req
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
+   // glfwWindowHint(GLFW_SAMPLES, 16);
+
     const auto targetMonitor = glfwGetPrimaryMonitor();
     auto size = requestedSize;
 
@@ -181,22 +183,14 @@ Pine::Vector2i Pine::WindowManager::GetWindowPosition()
 {
     WINDOW_CHECK
 
-    Vector2i ret;
-
-    glfwGetWindowPos(m_Window, &ret.x, &ret.y);
-
-    return ret;
+    return m_WindowPosition;
 }
 
 Pine::Vector2i Pine::WindowManager::GetWindowSize()
 {
     WINDOW_CHECK
 
-    Vector2i ret;
-
-    glfwGetWindowSize(m_Window, &ret.x, &ret.y);
-
-    return ret;
+    return m_WindowSize;
 }
 
 bool Pine::WindowManager::GetWindowVisible()

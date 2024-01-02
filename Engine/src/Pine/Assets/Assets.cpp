@@ -447,7 +447,7 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
             assetsLoadErrors++;
             continue;
         }
-
+        
         if (asset->GetLoadMode() == AssetLoadMode::MultiThreadPrepare)
         {
             if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Prepare))
@@ -490,7 +490,9 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
     // we may attempt to resolve them to pointers now.
     for (auto& assetResolveReference : m_AssetResolveReferences)
     {
-        auto asset = Get(assetResolveReference.m_Path);
+        const auto refMapPath = GetAssetMapPath(assetResolveReference.m_Path, useAsRelativePath ? path.string() : "", "");
+
+        auto asset = Get(refMapPath);
 
         if (!asset)
         {
@@ -524,6 +526,7 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
 {
     const auto path = String::Replace(inputPath, "\\", "/");
 
+    // If we want to find the asset by its file path instead of fake engine path
     if (includeFilePath)
     {
         if (m_AssetsFilePath.count(path) != 0)

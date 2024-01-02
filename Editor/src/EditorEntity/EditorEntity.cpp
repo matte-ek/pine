@@ -1,10 +1,19 @@
 #include "EditorEntity.hpp"
 
+#include "Pine/Input/Input.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/NativeScript/NativeScript.hpp"
+#include <GLFW/glfw3.h>
 
 namespace
 {
+
+	Pine::InputContext* m_EditorInputContext = nullptr;
+
+	Pine::InputBind* m_Forward = nullptr;
+	Pine::InputBind* m_Sideways = nullptr;
+	Pine::InputBind* m_Pitch = nullptr;
+	Pine::InputBind* m_Yaw = nullptr;
 
 	Pine::Entity* m_Entity = nullptr;
 
@@ -14,7 +23,9 @@ namespace
 	public:
 		void OnRender(float deltaTime) override
 		{
-			
+            auto transform = m_Parent->GetTransform();
+
+            transform->LocalPosition += transform->GetForward() * m_Forward->GetAxisValue();
 		}
 
 		void LoadData(const nlohmann::json& j) override {}
@@ -26,10 +37,28 @@ namespace
 
 void EditorEntity::Setup()
 {
-	m_Entity = Pine::Entity::Create("dffdsfsfed");
-//	m_Entity->SetTemporary(true);
+	/* Setup Inputs */
+	m_EditorInputContext = Pine::Input::CreateContext("Editor");
+	
+	m_Forward = m_EditorInputContext->CreateInputBinding("Forward");
+	m_Sideways = m_EditorInputContext->CreateInputBinding("Sideways");
+	m_Pitch = m_EditorInputContext->CreateInputBinding("Pitch");
+	m_Yaw = m_EditorInputContext->CreateInputBinding("Yaw");
 
-//	m_Entity->AddComponent(new EditorComponent());
+	m_Forward->AddKeyboardBinding(GLFW_KEY_W, 1.f);
+	m_Forward->AddKeyboardBinding(GLFW_KEY_S, -1.f);
+
+	m_Sideways->AddKeyboardBinding(GLFW_KEY_D, 1.f);
+	m_Sideways->AddKeyboardBinding(GLFW_KEY_A, -1.f);
+
+	m_Pitch->AddAxisBinding(Pine::Axis::MouseY);
+	m_Yaw->AddAxisBinding(Pine::Axis::MouseX);
+
+	/* Setup entity */
+	m_Entity = Pine::Entity::Create("EditorEntity");
+
+    m_Entity->SetTemporary(false);
+	m_Entity->AddComponent(new EditorComponent());
 	m_Entity->AddComponent<Pine::Camera>();
 }
 

@@ -37,7 +37,7 @@ namespace Pine::Assets
     void AddAssetResolveReference(const AssetResolveReference& resolveReference);
 
     // Attempts to find an already loaded asset with it's mapped path.
-    // includeFilePath allows you to find the asset by it's file path instead of fake engine path.
+    // includeFilePath allows you to find the asset by its file path instead of fake engine path.
     IAsset* Get(const std::string& path, bool includeFilePath = false);
 
     template<typename T>

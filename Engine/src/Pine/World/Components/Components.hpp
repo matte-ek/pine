@@ -30,14 +30,17 @@ namespace Pine
         // Cached version of GetHighestComponentIndex(), should always be correct. Will however be -1 if empty.
         int m_HighestComponentIndex = -1;
 
+        // Sort of hacky, but it allows us to select what components we want to iterate through
+        bool m_IterateDisabledObjects = false;
+
         ComponentDataBlockIterator<T> begin()
         {
-            return ComponentDataBlockIterator<T>(0, this);
+            return ComponentDataBlockIterator<T>(0, this, m_IterateDisabledObjects);
         }
 
         ComponentDataBlockIterator<T> end()
         {
-            return ComponentDataBlockIterator<T>(m_HighestComponentIndex == -1 ? 0 : m_HighestComponentIndex, this);
+            return ComponentDataBlockIterator<T>(m_HighestComponentIndex == -1 ? 0 : m_HighestComponentIndex, this, m_IterateDisabledObjects);
         }
 
         __inline int GetHighestComponentIndex()
@@ -83,11 +86,23 @@ namespace Pine
     struct ComponentDataBlockIterator
     {
     public:
-        ComponentDataBlockIterator(uint32_t index, ComponentDataBlock<T>* block)
+        ComponentDataBlockIterator(uint32_t index, ComponentDataBlock<T>* block, bool iterateDisabledObjects)
             : m_ComponentIndex(index),
-              m_BlockParent(block)
+              m_BlockParent(block),
+              m_IterateDisabledObjects(iterateDisabledObjects)
         {
             m_ComponentPtr = block->GetComponent(index);
+
+            if (!m_IterateDisabledObjects &&
+                m_ComponentPtr &&
+                block->m_HighestComponentIndex != -1 &&
+                index < block->m_HighestComponentIndex)
+            {
+                if (!reinterpret_cast<IComponent*>(m_ComponentPtr)->IsWorldEnabled())
+                {
+                    ++(*this);
+                }
+            }
         }
 
         T& operator*() const
@@ -112,8 +127,16 @@ namespace Pine
             }
 
             // Else start searching for the next component
-            while (!m_BlockParent->m_ComponentOccupationArray[m_ComponentIndex])
+            while (!m_BlockParent->m_ComponentOccupationArray[m_ComponentIndex] ||
+                  (!m_IterateDisabledObjects && !reinterpret_cast<IComponent*>(m_BlockParent->GetComponent(m_ComponentIndex))->IsWorldEnabled()))
+            {
+                if (m_ComponentIndex >= m_BlockParent->m_HighestComponentIndex)
+                {
+                    break;
+                }
+
                 m_ComponentIndex++;
+            }
 
             m_ComponentPtr = m_BlockParent->GetComponent(m_ComponentIndex);
 
@@ -135,6 +158,8 @@ namespace Pine
         ComponentDataBlock<T>* m_BlockParent;
 
         T* m_ComponentPtr;
+
+        bool m_IterateDisabledObjects = false;
     };
 }
 
@@ -173,11 +198,14 @@ namespace Pine::Components
     }
 
     template<typename T>
-    ComponentDataBlock<T>& Get()
+    ComponentDataBlock<T>& Get(bool includeInactiveComponents = false)
     {
         static auto type = GetType<T>();
 
-        // Don't ask.
-        return *reinterpret_cast<ComponentDataBlock<T>*>(&GetData(type));
+        auto& block = *reinterpret_cast<ComponentDataBlock<T>*>(&GetData(type));
+
+        block.m_IterateDisabledObjects = includeInactiveComponents;
+
+        return block;
     }
 }

@@ -132,7 +132,7 @@ void Pine::InputBind::Update()
 
 void Pine::Input::Setup()
 {
-    m_InputContexts.push_back(new Pine::InputContext());
+    m_InputContexts.push_back(new Pine::InputContext("Default"));
     m_Context = m_InputContexts[0];
 }
 
@@ -211,9 +211,20 @@ Pine::InputBind* Pine::Input::CreateInputBind(const std::string& name, Pine::Inp
     return m_Context->InputBindings[m_Context->InputBindings.size() - 1];
 }
 
-Pine::InputContext* Pine::Input::CreateContext()
+Pine::InputContext* Pine::Input::CreateContext(const std::string& name)
 {
-    m_InputContexts.push_back(new Pine::InputContext());
+    m_InputContexts.push_back(new Pine::InputContext(name));
 
     return m_InputContexts[m_InputContexts.size() - 1];
+}
+
+Pine::InputContext::InputContext(const std::string& name)
+{
+    Name = name;
+}
+
+Pine::InputBind* Pine::InputContext::CreateInputBinding(const std::string& name, Pine::InputType type)
+{
+    InputBindings.push_back(new InputBind(name, type));
+    return InputBindings[InputBindings.size() - 1];
 }

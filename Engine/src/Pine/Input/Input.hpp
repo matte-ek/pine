@@ -68,8 +68,12 @@ namespace Pine
 
     struct InputContext
     {  
+        std::string Name = "";
         bool InputEnabled = true;
         std::vector<InputBind*> InputBindings;
+
+        InputContext(const std::string& name);
+        InputBind* CreateInputBinding(const std::string& name, InputType type = InputType::Axis);
     };
 
     namespace Input
@@ -78,7 +82,7 @@ namespace Pine
         void Shutdown();
         void Update();
 
-        InputContext* CreateContext();
+        InputContext* CreateContext(const std::string& name);
         InputContext* GetDefaultContext();
 
         void OverrideContext(InputContext* context);

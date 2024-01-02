@@ -2,6 +2,7 @@
 #include "World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
+#include "Pine/World/Components/NativeScript/NativeScript.hpp"
 
 namespace
 {
@@ -76,6 +77,13 @@ float Pine::World::GetTimeScale()
 void Pine::World::Update()
 {
     const auto deltaTime = CalculateFrameTime();
+
+    /*
+    for (auto& script : Components::Get<Pine::NativeScript>())
+    {
+        script.OnRender(static_cast<float>(deltaTime));
+    }
+     */
 
     Physics3D::Update(deltaTime);
 }

@@ -62,26 +62,26 @@ bool Widgets::Vector2(const std::string& str, Pine::Vector2f& vector)
     return false;
 }
 
-bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector)
+bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector, float speed)
 {
-    constexpr float size = 50.f;
+    constexpr float size = 60.f;
 
     PrepareWidget(str);
 
     ImGui::Columns(3, nullptr, false);
 
     ImGui::SetNextItemWidth(size);
-    bool xChanged = ImGui::DragFloat(std::string("X##" + str).c_str(), &vector.x, 0.01f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    bool xChanged = ImGui::DragFloat(std::string("X##" + str).c_str(), &vector.x, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::NextColumn();
 
     ImGui::SetNextItemWidth(size);
-    bool yChanged = ImGui::DragFloat(std::string("Y##" + str).c_str(), &vector.y, 0.01f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    bool yChanged = ImGui::DragFloat(std::string("Y##" + str).c_str(), &vector.y, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::NextColumn();
 
     ImGui::SetNextItemWidth(size);
-    bool zChanged = ImGui::DragFloat(std::string("Z##" + str).c_str(), &vector.z, 0.01f, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    bool zChanged = ImGui::DragFloat(std::string("Z##" + str).c_str(), &vector.z, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     FinishWidget();
 
@@ -200,7 +200,7 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsse
         {
             auto droppedAsset = *static_cast<Pine::IAsset**>(payload->Data);
 
-            if (restrictedType == Pine::AssetType::Invalid || droppedAsset->GetType() == restrictedType)
+            if (droppedAsset && (restrictedType == Pine::AssetType::Invalid || droppedAsset->GetType() == restrictedType))
             {
                 ret.hasResult = true;
                 ret.asset = droppedAsset;

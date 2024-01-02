@@ -5,7 +5,6 @@
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
-#include "Pine/Core/Math/Math.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/IComponent/IComponent.hpp"
@@ -25,8 +24,11 @@ namespace
     {
         void RenderTransform(Pine::Transform* transform)
         {
+            static bool isApplyingRotation = false;
+            static Pine::Vector3f eulerAngles;
+
             auto position = transform->LocalPosition;
-            auto rotation = glm::eulerAngles(transform->LocalRotation);
+            auto rotation = isApplyingRotation ? eulerAngles : transform->GetEulerAngles();
             auto scale = transform->LocalScale;
 
             if (Widgets::Vector3("Position", position))
@@ -34,14 +36,26 @@ namespace
                 transform->LocalPosition = position;
             }
 
-            if (Widgets::Vector3("Rotation", rotation))
+            if (Widgets::Vector3("Rotation", rotation, 0.5f))
             {
-                transform->LocalRotation = rotation;
+                if (!isApplyingRotation)
+                {
+                    isApplyingRotation = true;
+                }
+
+                eulerAngles = rotation;
+
+                transform->SetEulerAngles(rotation);
             }
 
             if (Widgets::Vector3("Scale", scale))
             {
                 transform->LocalScale = scale;
+            }
+
+            if (isApplyingRotation && !ImGui::IsMouseDown(ImGuiMouseButton_::ImGuiMouseButton_Left))
+            {
+                isApplyingRotation = false;
             }
         }
 

@@ -57,6 +57,7 @@ namespace Pine::Graphics
         virtual void SetDepthTestEnabled(bool value) = 0;
         virtual void SetStencilTestEnabled(bool value) = 0;
         virtual void SetFaceCullingEnabled(bool value) = 0;
+        virtual void SetMultisampleEnabled(bool value) = 0;
 
         virtual void SetDepthFunction(TestFunction value) = 0;
 

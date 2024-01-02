@@ -1,4 +1,5 @@
 #include "IComponent.hpp"
+#include "Pine/World/Entity/Entity.hpp"
 
 Pine::IComponent::IComponent(ComponentType type)
     : m_Type(type)
@@ -78,4 +79,9 @@ void Pine::IComponent::LoadData(const nlohmann::json& j)
 
 void Pine::IComponent::SaveData(nlohmann::json& j)
 {
+}
+
+bool Pine::IComponent::IsWorldEnabled() const
+{
+    return m_Active && m_Parent->GetActive();
 }

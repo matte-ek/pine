@@ -76,7 +76,7 @@ namespace
         ImGuiIO& io = ImGui::GetIO();
 
         // Add normal font
-        io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Regular.ttf", 17.f);
+        io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Regular.ttf", 18.f);
 
         // Merge in Material Icons
         static constexpr ImWchar icons_ranges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};

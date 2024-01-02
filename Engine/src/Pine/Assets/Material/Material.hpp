@@ -11,7 +11,7 @@ namespace Pine
 	enum class MaterialRenderingMode
 	{
 		Opaque, // For non transparent textures
-		Discard, // For either non transparent or fully transparent textures
+		Discard, // For either non-transparent or fully transparent textures
 		Transparent, // For semi transparent textures,
 		Size
 	};

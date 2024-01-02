@@ -77,16 +77,15 @@ namespace Pine
         virtual ~IComponent() = default;
 
         void SetActive(bool value);
-
         bool GetActive() const;
 
         void SetStandalone(bool value);
-
         bool GetStandalone() const;
 
         void SetParent(Entity *entity);
-
         Entity *GetParent() const;
+
+        bool IsWorldEnabled() const;
 
         ComponentType GetType() const;
 

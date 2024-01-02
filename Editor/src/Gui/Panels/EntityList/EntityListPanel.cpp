@@ -6,6 +6,9 @@
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "imgui.h"
+#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
+#include "Pine/World/Components/Light/Light.hpp"
+#include "Pine/World/Components/Camera/Camera.hpp"
 
 namespace
 {
@@ -266,6 +269,39 @@ void Panels::EntityList::Render()
             if (ImGui::MenuItem("Empty"))
             {
                 auto entity = Pine::Entity::Create();
+
+                Selection::Add(entity, true);
+
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem("Model Renderer"))
+            {
+                auto entity = Pine::Entity::Create();
+
+                entity->AddComponent<Pine::ModelRenderer>();
+
+                Selection::Add(entity, true);
+
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem("Light"))
+            {
+                auto entity = Pine::Entity::Create();
+
+                entity->AddComponent<Pine::Light>();
+
+                Selection::Add(entity, true);
+
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem("Camera"))
+            {
+                auto entity = Pine::Entity::Create();
+
+                entity->AddComponent<Pine::Camera>();
 
                 Selection::Add(entity, true);
 

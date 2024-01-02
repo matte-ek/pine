@@ -32,6 +32,7 @@ namespace Pine::Graphics
         void SetDepthTestEnabled(bool value) override;
         void SetStencilTestEnabled(bool value) override;
         void SetFaceCullingEnabled(bool value) override;
+        void SetMultisampleEnabled(bool value) override;
 
         void SetDepthFunction(TestFunction value) override;
 

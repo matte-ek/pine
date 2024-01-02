@@ -4,7 +4,7 @@
 namespace Pine
 {
 
-	class NativeScript : public IComponent
+    class NativeScript : public IComponent
 	{
 	private:
 	public:

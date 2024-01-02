@@ -6,20 +6,15 @@
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/Interfaces/IShaderProgram.hpp"
-#include "Pine/Rendering/Rendering.hpp"
-#include "nlohmann/json.hpp"
 
+#include <nlohmann/json.hpp>
 #include <fmt/core.h>
-#include <fmt/format.h>
-#include <fstream>
-#include <optional>
 #include <string>
-#include <tuple>
 
 namespace
 {
 
-    struct ShaderHook 
+    struct ShaderHook
     {
         std::string Name; // ex "PreVertex"
         std::string HookMacro; // ex "#PreVertex"
@@ -101,11 +96,16 @@ namespace
     // Gets asset's parent directory and adds that to the path specified
     // in the JSON file. We do this because the file path specified in the JSON
     // is relative to the .shader file, and we need the path relative to the application
-    const std::string GetAbsolutePath(const Pine::Shader* shader, const std::string& filePath) 
+    std::string GetAbsolutePath(const Pine::Shader* shader, const std::string& filePath)
     {
         const auto assetParentDirectory = shader->GetFilePath().parent_path().string();
 
         return assetParentDirectory + "/" + filePath;
+    }
+
+    bool LoadShaderPackage(nlohmann::json& j)
+    {
+
     }
 
 }
@@ -125,110 +125,16 @@ bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
 
     const auto j = jsonOpt.value();
 
-    // Get all shader file paths
-    std::string vertexPath, fragmentPath, computePath;
-
-    if (j.contains("vertex"))
-        vertexPath = j["vertex"];
-    if (j.contains("fragment"))
-        fragmentPath = j["fragment"];
-    if (j.contains("compute"))
-        vertexPath = j["compute"];
-
-    // Invalid shader configuration
-    if (vertexPath.empty() && fragmentPath.empty() && computePath.empty())
-    {
-        Log::Error("No shader files specified in " + m_FileName);
-
-        return false;
-    }
-
-    // Prepare graphics shader program
-    m_ShaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
-
-    if (j.contains("parent"))
-    {
-        m_ParentShader = Pine::Assets::Get<Pine::Shader>(j["parent"]);
-        m_BaseShader = false;
-
-        if (!m_ParentShader)
-        {
-            Pine::Log::Error(fmt::format("Failed to find parent shader in {}, parent shader: {}.", m_FileName, j["parent"].get<std::string>()));
-            return false;
-        }
-    }
-
-    // Load and compile all specified shaders
-    if (!vertexPath.empty())
-    {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, vertexPath), j, this, Graphics::ShaderType::Vertex))
-        {
-            return false;
-        }
-
-        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, vertexPath)));
-    }
-
-    if (!fragmentPath.empty())
-    {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, fragmentPath), j, this, Graphics::ShaderType::Fragment))
-        {
-            return false;
-        }
-
-        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, fragmentPath)));
-    }
-
-    if (!computePath.empty())
-    {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, computePath), j, this, Graphics::ShaderType::Compute))
-        {
-            return false;
-        }
-
-        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, computePath)));
-    }
-
-    // Finally attempt to link the program
-    if (!m_ShaderProgram->LinkProgram())
+    if (!LoadShaderPackage(j))
     {
         return false;
     }
 
-    m_ShaderProgram->Use();
-
-    // Setup texture samplers
-    if (j.contains("texture_samplers"))
+    if (j.contains("generate_discard"))
     {
-        std::vector<std::pair<std::string, int>> textureSamplers;
+        auto discardJson = j;
 
-        for (const auto& item : j["texture_samplers"].items())
-        {
-            textureSamplers.push_back(std::make_pair(item.key(), item.value().get<int>()));
-        }
-
-        if (m_ParentShader != nullptr)
-        {
-            auto parentJson = Serialization::LoadFromFile(m_ParentShader->GetFilePath()).value();
-
-            for (const auto& item : parentJson["texture_samplers"].items())
-            {
-                textureSamplers.push_back(std::make_pair(item.key(), item.value().get<int>()));
-            }
-        }
-
-        for (const auto& [name, value] : textureSamplers)
-        {
-            auto uniformVariable = m_ShaderProgram->GetUniformVariable(name);
-
-            if (uniformVariable == nullptr)
-            {
-                Log::Warning("Failed to find texture sampler " + name + ", " + m_FileName);
-                continue;
-            }
-
-            uniformVariable->LoadInteger(value);
-        }
+        discardJson[""];
     }
 
     m_State = AssetState::Loaded;
@@ -319,4 +225,125 @@ std::optional<std::string> Pine::Shader::GetShaderSourceFile(Graphics::ShaderTyp
         return std::nullopt;
     
     return std::make_optional(GetAbsolutePath(this, j[shaderTypeString]));
+}
+
+bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j)
+{
+    // Get all shader file paths
+    std::string vertexPath, fragmentPath, computePath;
+
+    if (j.contains("vertex"))
+        vertexPath = j["vertex"];
+    if (j.contains("fragment"))
+        fragmentPath = j["fragment"];
+    if (j.contains("compute"))
+        vertexPath = j["compute"];
+
+    // Invalid shader configuration
+    if (vertexPath.empty() && fragmentPath.empty() && computePath.empty())
+    {
+        Log::Error("No shader files specified in " + m_FileName);
+
+        return false;
+    }
+
+    // Prepare graphics shader program
+    m_ShaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
+
+    if (j.contains("parent"))
+    {
+        m_ParentShader = Pine::Assets::Get<Pine::Shader>(j["parent"]);
+        m_BaseShader = false;
+
+        if (!m_ParentShader)
+        {
+            Pine::Log::Error(fmt::format("Failed to find parent shader in {}, parent shader: {}.", m_FileName, j["parent"].get<std::string>()));
+            return false;
+        }
+    }
+
+    // Load and compile all specified shaders
+    if (!vertexPath.empty())
+    {
+        if (!LoadAndCompileShader(GetAbsolutePath(this, vertexPath), j, this, Graphics::ShaderType::Vertex))
+        {
+            return false;
+        }
+
+        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, vertexPath)));
+    }
+
+    if (!fragmentPath.empty())
+    {
+        if (!LoadAndCompileShader(GetAbsolutePath(this, fragmentPath), j, this, Graphics::ShaderType::Fragment))
+        {
+            return false;
+        }
+
+        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, fragmentPath)));
+    }
+
+    if (!computePath.empty())
+    {
+        if (!LoadAndCompileShader(GetAbsolutePath(this, computePath), j, this, Graphics::ShaderType::Compute))
+        {
+            return false;
+        }
+
+        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, computePath)));
+    }
+
+    // Finally attempt to link the program
+    if (!m_ShaderProgram->LinkProgram())
+    {
+        return false;
+    }
+
+    m_ShaderProgram->Use();
+
+    // Setup texture samplers
+    if (j.contains("texture_samplers"))
+    {
+        std::vector<std::pair<std::string, int>> textureSamplers;
+
+        for (const auto& item : j["texture_samplers"].items())
+        {
+            textureSamplers.emplace_back(item.key(), item.value().get<int>());
+        }
+
+        if (m_ParentShader != nullptr)
+        {
+            auto parentJson = Serialization::LoadFromFile(m_ParentShader->GetFilePath()).value();
+
+            for (const auto& item : parentJson["texture_samplers"].items())
+            {
+                textureSamplers.emplace_back(item.key(), item.value().get<int>());
+            }
+        }
+
+        for (const auto& [name, value] : textureSamplers)
+        {
+            auto uniformVariable = m_ShaderProgram->GetUniformVariable(name);
+
+            if (uniformVariable == nullptr)
+            {
+                Log::Warning("Failed to find texture sampler " + name + ", " + m_FileName);
+                continue;
+            }
+
+            uniformVariable->LoadInteger(value);
+        }
+    }
+
+    return true;
+}
+
+bool Pine::Shader::LoadFromJson(const nlohmann::json &j)
+{
+    return LoadShaderPackage(j);
+}
+
+Pine::Shader *Pine::Shader::GetDiscardShader() const
+{
+    return m_DiscardShader;
 }

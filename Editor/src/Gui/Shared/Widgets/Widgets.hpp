@@ -29,7 +29,7 @@ namespace Widgets
     bool Checkbox(const std::string& str, bool* value);
 
     bool Vector2(const std::string& str, Pine::Vector2f& vector);
-    bool Vector3(const std::string& str, Pine::Vector3f& vector);
+    bool Vector3(const std::string& str, Pine::Vector3f& vector, float speed = 0.01f);
 
     bool Combobox(const std::string& str, int* value, const char* items);
 
