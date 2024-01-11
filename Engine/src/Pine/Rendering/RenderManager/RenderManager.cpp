@@ -11,9 +11,6 @@ namespace
     // All rendering contexts being used
     std::vector<Pine::RenderingContext *> m_RenderingContexts;
 
-    // The buffer we render each frame to
-    Pine::Graphics::IFrameBuffer *m_RenderingBuffer;
-
     // The rendering context that is used to render the scene
     Pine::RenderingContext *m_CurrentRenderingContext;
 
@@ -38,10 +35,7 @@ namespace
 void Pine::RenderManager::Setup()
 {
     m_DefaultRenderingContext.Size = Vector2f(Engine::GetEngineConfiguration().m_WindowSize);
-
-    m_RenderingBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_RenderingBuffer->Create(1920, 1080, Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer);
-
+    
     SetPrimaryRenderingContext(&m_DefaultRenderingContext);
 
     Pipeline2D::Setup();

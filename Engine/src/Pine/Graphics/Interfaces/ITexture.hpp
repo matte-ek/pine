@@ -59,6 +59,9 @@ namespace Pine::Graphics
         TextureDataFormat m_TextureDataFormat = TextureDataFormat::UnsignedByte;
 
         bool m_HasMipmaps = false;
+
+        bool m_MultiSampled = false;
+        int m_Samples = 8;
     public:
         virtual ~ITexture() = default;
 
@@ -76,6 +79,12 @@ namespace Pine::Graphics
 
         virtual void SetMipmapFilteringMode(TextureFilteringMode mode) = 0;
         virtual TextureFilteringMode GetMipmapFilteringMode() = 0;
+
+        virtual void SetMultiSampled(bool multiSampled) = 0;
+        virtual bool IsMultiSampled() = 0;
+
+        virtual void SetSamples(int samples) = 0;
+        virtual int GetSamples() = 0;
 
         virtual int GetWidth() = 0;
         virtual int GetHeight() = 0;

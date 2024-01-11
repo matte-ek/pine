@@ -20,7 +20,9 @@ namespace Pine::Graphics
        void Bind() override;
        void Dispose() override;
 
-       bool Create(int width, int height, std::uint32_t buffers) override;
+       bool Create(int width, int height, std::uint32_t buffers, int multiSample = 0) override;
+
+       void Blit(IFrameBuffer* source, Vector4i srcRect = Vector4i(-1), Vector4i dstRect = Vector4i(-1)) override;
 
        Vector2i GetSize() override;
 

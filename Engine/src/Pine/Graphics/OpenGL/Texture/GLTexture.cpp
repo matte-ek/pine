@@ -16,12 +16,12 @@ namespace
         int openglInternalFormat = 0;
     };
 
-    std::uint32_t TranslateTextureType(Pine::Graphics::TextureType type)
+    std::uint32_t TranslateTextureType(Pine::Graphics::TextureType type, bool multiSample)
     {
         switch (type)
         {
             case Pine::Graphics::TextureType::Texture2D:
-                return GL_TEXTURE_2D;
+                return multiSample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
             case Pine::Graphics::TextureType::CubeMap:
                 return GL_TEXTURE_CUBE_MAP;
             default:
@@ -104,7 +104,7 @@ void Pine::Graphics::GLTexture::Bind(int textureIndex)
         m_ActiveTexture = textureIndex;
     }
 
-    glBindTexture(TranslateTextureType(m_Type), m_Id);
+    glBindTexture(TranslateTextureType(m_Type, m_MultiSampled), m_Id);
 
     m_BoundTextures[textureIndex] = m_Id;
 }
@@ -117,7 +117,7 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
     if (srcRect.x < 0)
         srcRect = Vector4i(0, 0, texture->GetWidth(), texture->GetHeight());
 
-    auto textureType = TranslateTextureType(m_Type);
+    auto textureType = TranslateTextureType(m_Type, m_MultiSampled);
     auto cubeMapTextureType = m_Type == TextureType::CubeMap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<int>(textureUploadTarget) - 1 : GL_TEXTURE_2D;
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(texture->GetTextureFormat());
 
@@ -175,14 +175,21 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
 {
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(format);
 
-    const auto openglType = TranslateTextureType(m_Type);
+    const auto openglType = TranslateTextureType(m_Type, m_MultiSampled);
 
-    glTexImage2D(openglType, 0, openglInternalFormat, width, height, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
+    if (m_MultiSampled)
+        glTexImage2DMultisample(openglType, m_Samples, openglInternalFormat, width, height, GL_TRUE);
+    else
+        glTexImage2D(openglType, 0, openglInternalFormat, width, height, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
 
-    glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
-    glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
-    glTexParameteri(openglType, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(openglType, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    if (!m_MultiSampled)
+    {
+        glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
+        glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
+
+        glTexParameteri(openglType, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(openglType, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    }
 
     m_Width = width;
     m_Height = height;
@@ -258,7 +265,7 @@ void Pine::Graphics::GLTexture::GenerateMipmaps()
 {
     m_HasMipmaps = true;
 
-    glGenerateMipmap(TranslateTextureType(m_Type));
+    glGenerateMipmap(TranslateTextureType(m_Type, m_MultiSampled));
 }
 
 void Pine::Graphics::GLTexture::UpdateTextureFiltering()
@@ -268,7 +275,7 @@ void Pine::Graphics::GLTexture::UpdateTextureFiltering()
         return;
     }
 
-    const auto openglType = TranslateTextureType(m_Type);
+    const auto openglType = TranslateTextureType(m_Type, m_MultiSampled);
 
     Bind();
 
@@ -285,4 +292,24 @@ void Pine::Graphics::GLTexture::UpdateTextureFiltering()
 
     glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, minFilter);
     glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, magFilter);
+}
+
+void Pine::Graphics::GLTexture::SetMultiSampled(bool multiSampled)
+{
+    m_MultiSampled = multiSampled;
+}
+
+bool Pine::Graphics::GLTexture::IsMultiSampled()
+{
+    return m_MultiSampled;
+}
+
+void Pine::Graphics::GLTexture::SetSamples(int samples)
+{
+    m_Samples = samples;
+}
+
+int Pine::Graphics::GLTexture::GetSamples()
+{
+    return m_Samples;
 }

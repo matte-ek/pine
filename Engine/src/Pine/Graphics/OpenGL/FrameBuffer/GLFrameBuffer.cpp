@@ -55,24 +55,29 @@ void Pine::Graphics::GLFrameBuffer::Dispose()
     }
 }
 
-bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t buffers)
+bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t buffers, int multiSample)
 {
+    const bool multiSampleEnabled = multiSample != 0;
+    const auto textureType = multiSampleEnabled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+
     // Create the frame buffer object itself
     glGenFramebuffers(1, &m_Id);
     glBindFramebuffer(GL_FRAMEBUFFER, m_Id);
 
     // Attach specified buffers to the frame buffer
-
     std::vector<std::uint32_t> attachedDrawBuffers;
 
     if (buffers & ColorBuffer)
     {
         m_ColorBuffer = new GLTexture();
 
+        m_ColorBuffer->SetMultiSampled(multiSampleEnabled);
+        m_ColorBuffer->SetSamples(multiSample);
+
         m_ColorBuffer->Bind();
         m_ColorBuffer->UploadTextureData(width, height, TextureFormat::RGBA, TextureDataFormat::UnsignedByte, nullptr);
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorBuffer->GetId(), 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textureType, m_ColorBuffer->GetId(), 0);
 
         attachedDrawBuffers.push_back(GL_COLOR_ATTACHMENT0);
     }
@@ -84,7 +89,7 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
         m_NormalBuffer->Bind();
         m_NormalBuffer->UploadTextureData(width, height, TextureFormat::RGBA16F, TextureDataFormat::Float, nullptr);
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_NormalBuffer->GetId(), 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, textureType, m_NormalBuffer->GetId(), 0);
 
         attachedDrawBuffers.push_back(GL_COLOR_ATTACHMENT1);
     }
@@ -93,10 +98,13 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
     {
         m_DepthBuffer = new GLTexture();
 
+        m_DepthBuffer->SetMultiSampled(multiSampleEnabled);
+        m_DepthBuffer->SetSamples(multiSample);
+
         m_DepthBuffer->Bind();
         m_DepthBuffer->UploadTextureData(width, height, TextureFormat::Depth, TextureDataFormat::Float, nullptr);
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthBuffer->GetId(), 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, textureType, m_DepthBuffer->GetId(), 0);
     }
 
     // Tell OpenGL about the newly created draw attachments
@@ -126,5 +134,21 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
     m_Size = Vector2i(width, height);
 
     return true;
+}
+
+void Pine::Graphics::GLFrameBuffer::Blit(Pine::Graphics::IFrameBuffer *source, Pine::Vector4i srcRect, Pine::Vector4i dstRect)
+{
+    if (srcRect == Vector4i(-1))
+        srcRect = Vector4i(0, 0, source->GetSize().x, source->GetSize().y);
+    if (dstRect == Vector4i(-1))
+        dstRect = Vector4i(0, 0, m_Size.x, m_Size.y);
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, dynamic_cast<GLFrameBuffer*>(source)->m_Id);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_Id);
+
+    glBlitFramebuffer(srcRect.x, srcRect.y, srcRect.z, srcRect.w, dstRect.x, dstRect.y, dstRect.z, dstRect.w, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 

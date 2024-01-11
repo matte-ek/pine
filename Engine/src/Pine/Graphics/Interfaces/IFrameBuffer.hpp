@@ -30,7 +30,9 @@ namespace Pine::Graphics
         virtual void Bind() = 0;
         virtual void Dispose() = 0;
 
-        virtual bool Create(int width, int height, std::uint32_t buffers) = 0;
+        virtual void Blit(IFrameBuffer* source, Vector4i srcRect = Vector4i(-1), Vector4i dstRect = Vector4i(-1)) = 0;
+
+        virtual bool Create(int width, int height, std::uint32_t buffers, int multiSample = 0) = 0;
     };
 
 }
