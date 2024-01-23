@@ -12,7 +12,7 @@ namespace Pine
     {
     private:
         Graphics::IVertexArray* m_VertexArray = nullptr;
-        AssetContainer<Material> m_Material;
+        AssetHandle<Material> m_Material;
 
         std::uint32_t m_RenderCount = 0;
         bool m_HasElementBuffer = false;

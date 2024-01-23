@@ -20,8 +20,8 @@ namespace Pine
     private:
         Graphics::ITexture* m_CubeMapTexture = nullptr;
 
-        AssetContainer<Texture2D> m_Texture;
-        std::array<AssetContainer<Texture2D>, 6> m_SideTextures;
+        AssetHandle<Texture2D> m_Texture;
+        std::array<AssetHandle<Texture2D>, 6> m_SideTextures;
     public:
         Texture3D();
 

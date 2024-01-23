@@ -80,7 +80,7 @@ namespace Pine
     };
 
     template <class T>
-    class AssetContainer;
+    class AssetHandle;
 
     class IAsset
     {
@@ -120,7 +120,7 @@ namespace Pine
         bool m_IsDeleted = false;
 
         template<typename>
-        friend class AssetContainer;
+        friend class AssetHandle;
     public:
         virtual ~IAsset() = default;
 
@@ -135,12 +135,14 @@ namespace Pine
         const std::filesystem::path& GetFilePath() const;
 
         virtual void MarkAsUpdated();
-
-        bool HasFile() const;
         virtual bool HasBeenUpdated() const;
 
+        bool HasFile() const;
         bool HasMetadata() const;
         bool HasDependencies() const;
+
+        bool IsDeleted() const;
+        void MarkAsDeleted();
 
         const std::vector<std::string>& GetDependencies() const;
 
@@ -157,7 +159,7 @@ namespace Pine
     };
 
     template <class T>
-    class AssetContainer
+    class AssetHandle
     {
     private:
         mutable T* m_Asset = nullptr;
@@ -184,7 +186,7 @@ namespace Pine
             return m_Asset;
         }
 
-        AssetContainer& operator=(IAsset* asset)
+        AssetHandle& operator=(IAsset* asset)
         {
             // Decrease the ref count on the asset we already have
             if (m_Asset != nullptr)
@@ -209,6 +211,6 @@ namespace Pine
     struct AssetResolveReference
     {
         std::string m_Path;
-        AssetContainer<IAsset>* m_AssetContainer;
+        AssetHandle<IAsset>* m_AssetHandle;
     };
 }

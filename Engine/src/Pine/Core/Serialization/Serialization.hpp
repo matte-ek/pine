@@ -39,7 +39,7 @@ namespace Pine::Serialization
     void LoadQuaternion(const nlohmann::json& j, const std::string& name, Quaternion& quaternion);
 
     template <typename T>
-    void LoadAsset(const nlohmann::json& j, const std::string& name, AssetContainer<T>& asset, bool allowReference = true)
+    void LoadAsset(const nlohmann::json& j, const std::string& name, AssetHandle<T>& asset, bool allowReference = true)
     {
         if (!j.contains(name))
             return;
@@ -48,7 +48,7 @@ namespace Pine::Serialization
 
         if (Assets::GetState() == AssetManagerState::LoadDirectory && allowReference)
         {
-            Assets::AddAssetResolveReference({j[name], reinterpret_cast<AssetContainer<IAsset>*>(&asset)});
+            Assets::AddAssetResolveReference({j[name], reinterpret_cast<AssetHandle<IAsset>*>(&asset)});
         }
         else
         {

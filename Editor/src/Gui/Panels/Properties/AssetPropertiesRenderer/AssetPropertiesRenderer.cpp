@@ -7,6 +7,8 @@
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
+#include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
+#include "Gui/Shared/Selection/Selection.hpp"
 
 namespace
 {
@@ -110,6 +112,10 @@ void AssetPropertiesPanel::Render(Pine::IAsset* asset)
 
 	if (ImGui::Button("Remove", ImVec2(100.f, 30.f)))
 	{
+        std::filesystem::remove(asset->GetFilePath());
 
+        Selection::Clear();
+
+        Panels::AssetBrowser::RebuildAssetTree();
 	}
 }

@@ -48,11 +48,17 @@ namespace Pine::Assets
 
     IAsset* GetOrLoad(const std::string& path, bool includeFilePath = false);
 
+    // Moves an already existing asset to a new path.
+    void MoveAsset(Pine::IAsset* asset, const std::filesystem::path& newPath);
+
     // Returns the entire map used internally within the asset manager
     const std::unordered_map<std::string, IAsset*>& GetAll();
 
     // Saves all new asset data that has been modified to disk
     void SaveAll();
+
+    // Monitor all loaded asset's files for changes
+    void RefreshAll();
 
     // Gets what state the asset manager is in, such as if we're in the process of loading a directory.
     // Useful for parts of the engine to determine if assets can be added as an AssetResolveReference.

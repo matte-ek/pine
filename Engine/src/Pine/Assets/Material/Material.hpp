@@ -23,11 +23,11 @@ namespace Pine
 		Vector3f m_SpecularColor = Vector3f(0.f, 0.f, 0.f);
 		Vector3f m_AmbientColor = Vector3f(0.05f, 0.05f, 0.05f);
 
-		AssetContainer<Texture2D> m_Diffuse;
-		AssetContainer<Texture2D> m_Specular;
-		AssetContainer<Texture2D> m_Normal;
+		AssetHandle<Texture2D> m_Diffuse;
+		AssetHandle<Texture2D> m_Specular;
+		AssetHandle<Texture2D> m_Normal;
 
-		AssetContainer<Shader> m_Shader;
+		AssetHandle<Shader> m_Shader;
 
 		MaterialRenderingMode m_RenderingMode = MaterialRenderingMode::Opaque;
 

@@ -7,6 +7,8 @@
 // You may select multiple items at once, however only one type at once.
 // The selection system will make sure that two types won't be selected at once.
 
+// TODO: Use handles instead of raw pointers, lol.
+
 namespace Selection
 {
     void AddEntity(Pine::Entity* entity);

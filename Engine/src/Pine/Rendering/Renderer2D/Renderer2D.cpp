@@ -18,7 +18,7 @@ using namespace Pine;
 namespace
 {
     // Max amount of instances the 2D renderer may render before moving onto another draw call.
-    constexpr int MaxInstanceCount = 4096;
+    constexpr int MaxInstanceCount = 1024;
 
     // Cached graphics API for the current context
     Graphics::IGraphicsAPI* m_GraphicsAPI = nullptr;

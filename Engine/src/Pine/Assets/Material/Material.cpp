@@ -58,7 +58,7 @@ void Pine::Material::SetDiffuse(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetContainer<IAsset>*>(&m_Diffuse)});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Diffuse)});
 }
 
 void Pine::Material::SetSpecular(const std::string &fileReference)
@@ -66,7 +66,7 @@ void Pine::Material::SetSpecular(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetContainer<IAsset>*>(&m_Specular)});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Specular)});
 }
 
 void Pine::Material::SetNormal(const std::string &fileReference)
@@ -74,7 +74,7 @@ void Pine::Material::SetNormal(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetContainer<IAsset>*>(&m_Normal)});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Normal)});
 }
 
 Pine::Texture2D* Pine::Material::GetDiffuse() const

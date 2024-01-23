@@ -46,7 +46,7 @@ void Pine::Mesh::SetMaterial(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetContainer<IAsset>*>(&m_Material)});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Material)});
 }
 
 Pine::Material *Pine::Mesh::GetMaterial() const

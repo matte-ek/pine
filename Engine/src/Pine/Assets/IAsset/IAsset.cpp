@@ -137,3 +137,13 @@ bool Pine::IAsset::HasBeenUpdated() const
 {
     return last_write_time(m_FilePath) != m_DiskWriteTime;
 }
+
+bool Pine::IAsset::IsDeleted() const
+{
+    return m_IsDeleted;
+}
+
+void Pine::IAsset::MarkAsDeleted()
+{
+    m_IsDeleted = true;
+}

@@ -500,7 +500,7 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
             continue;
         }
 
-        *assetResolveReference.m_AssetContainer = asset;
+        *assetResolveReference.m_AssetHandle = asset;
     }
 
     m_AssetResolveReferences.clear();
@@ -555,6 +555,11 @@ IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)
     return m_Assets[path];
 }
 
+void Assets::MoveAsset(Pine::IAsset *asset, const std::filesystem::path &newPath)
+{
+
+}
+
 const std::unordered_map<std::string, IAsset*>& Assets::GetAll()
 {
     return m_Assets;
@@ -575,7 +580,33 @@ void Assets::SaveAll()
     }
 }
 
+void Assets::RefreshAll()
+{
+    for (const auto& [path, asset] : m_Assets)
+    {
+        if (!asset->HasFile())
+            continue;
+        if (asset->IsDeleted())
+            continue;
+
+        if (!std::filesystem::exists(asset->GetFilePath()))
+        {
+            Log::Warning(fmt::format("Asset '{}' has been deleted from disk.", asset->GetPath()));
+
+            asset->MarkAsDeleted();
+            asset->Dispose();
+        }
+
+        // TODO: Not sure how I want to handle this just yet.
+        //if (asset->HasBeenUpdated())
+        //{
+        //    asset->Dispose();
+        //}
+    }
+}
+
 AssetManagerState Assets::GetState()
 {
     return m_State;
 }
+

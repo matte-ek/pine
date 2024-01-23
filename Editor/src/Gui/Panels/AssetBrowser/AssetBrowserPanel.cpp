@@ -7,19 +7,20 @@
 #include "Pine/Core/String/String.hpp"
 #include "imgui.h"
 #include "IconsMaterialDesign.h"
-#include <array>
-#include <cmath>
 #include <cstring>
 #include <filesystem>
 #include <string>
 #include <vector>
 
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
+#include "Pine/Assets/Level/Level.hpp"
+#include "Pine/Assets/Texture3D/Texture3D.hpp"
+#include "Pine/Assets/Material/Material.hpp"
 
 namespace
 {
 
-    // Items with the file extensions specifed below will not be shown in the user interface.
+    // Items with the file extensions specified below will not be shown in the user interface.
     // Can be used for example metadata files.
     std::vector<std::string> m_FileExtensionIgnoreList = { ".asset" };
 
@@ -55,6 +56,13 @@ namespace
             }
         } 
     };
+
+    bool m_Active = true;
+    char m_SearchBuffer[64];
+
+    PathEntry* m_Root = nullptr;
+    PathEntry* m_SelectedEntry = nullptr;
+    PathEntry* m_SelectedItem = nullptr;
 
     void ProcessDirectoryTree(const std::filesystem::path& path, PathEntry* entry)
     {
@@ -159,11 +167,24 @@ namespace
             clickedItem = file;
         }
 
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+        {
+            clickedItem = file;
+
+            ImGui::OpenPopup("AssetContextMenu");
+        }
+
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
         {
             ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(icon->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
             ImGui::SameLine();
-            ImGui::Text("%s", file->DisplayText.c_str());
+
+            ImGui::BeginChild("##DragDropInfo", ImVec2(200.f, 64.f));
+            {
+                ImGui::Text("%s", file->DisplayText.c_str());
+                ImGui::Text("%s", AssetTypeToString(file->Asset->GetType()));
+            }
+            ImGui::EndChild();
 
             ImGui::SetDragDropPayload("Asset", &file->Asset, sizeof(Pine::IAsset*));
 
@@ -188,12 +209,20 @@ namespace
             if (directory->Type == EntryType::File)
                 continue;
 
-            if (Widgets::Icon(directory->DisplayText, folderIcon, false, m_IconSize))
+            if (Widgets::Icon(directory->DisplayText, folderIcon, m_SelectedItem == directory, m_IconSize))
             {
                 if (directory->DisplayText == "...")
                     clickedItem = directory->Parent;
                 else
                     clickedItem = directory;
+            }
+
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+            {
+                Selection::Clear();
+                m_SelectedItem = directory;
+
+                ImGui::OpenPopup("AssetContextMenu");
             }
 
             ImGui::NextColumn();
@@ -247,11 +276,187 @@ namespace
         return clickedItem;
     }
 
-    bool m_Active = true;
-    char m_SearchBuffer[64];
+    void RenderContextMenu()
+    {
+        static int itemCreationType = -1;
 
-    PathEntry* m_Root = nullptr;
-    PathEntry* m_SelectedEntry = nullptr;
+        static auto renderRenameDialog = [&](bool refresh)
+        {
+            ImGui::SetNextWindowSize(ImVec2(300.f, 120.f));
+
+            if (ImGui::BeginPopupModal("RenameItemDialog", nullptr, ImGuiWindowFlags_NoResize))
+            {
+                static char buffer[128];
+
+                if (refresh)
+                {
+                    if (m_SelectedItem->DisplayText.size() < 127)
+                        strcpy(buffer, m_SelectedItem->DisplayText.c_str());
+                }
+
+                ImGui::Text("Item Name:");
+                ImGui::InputText("##Rename", buffer, IM_ARRAYSIZE(buffer));
+
+                if ((ImGui::Button("Rename") || ImGui::IsKeyPressed(ImGuiKey_Enter)) && strlen(buffer) > 0)
+                {
+                    std::filesystem::rename(m_SelectedItem->Path, m_SelectedItem->Path.parent_path().string() + "/" + buffer);
+
+                    Selection::Clear();
+                    m_SelectedItem = nullptr;
+
+                    Panels::AssetBrowser::RebuildAssetTree();
+
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Cancel"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::EndPopup();
+            }
+        };
+
+        static auto createItemDialog = [&](bool refresh)
+        {
+            ImGui::SetNextWindowSize(ImVec2(300.f, 140.f));
+
+            if (ImGui::BeginPopupModal("CreateItemDialog", nullptr, ImGuiWindowFlags_NoResize))
+            {
+                static char buffer[64];
+
+                if (refresh)
+                {
+                    strcpy(buffer, "");
+                }
+
+                ImGui::Text("Item Name:");
+                ImGui::InputText("##ItemName", buffer, IM_ARRAYSIZE(buffer));
+
+                if ((ImGui::Button("Create") || ImGui::IsKeyPressed(ImGuiKey_Enter)) && strlen(buffer) > 0)
+                {
+                    Pine::IAsset* asset = nullptr;
+
+                    switch (itemCreationType)
+                    {
+                        case 0:
+                            // not going to error check the buffer here, going to blame user error if something goes wrong :-)
+                            std::filesystem::create_directory(m_SelectedEntry->Path.string() + "/" + buffer);
+                            break;
+                        case 1:
+                            asset = new Pine::Material();
+                            break;
+                        case 2:
+                            asset = new Pine::Level();
+                            break;
+                        case 3:
+                            asset = new Pine::Texture3D();
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (asset)
+                    {
+                        // TODO: Append file extension if required.
+                        asset->SetFilePath(m_SelectedEntry->Path.string() + "/" + buffer);
+                        asset->SaveToFile();
+                        asset->Dispose();
+
+                        delete asset;
+                    }
+
+                    itemCreationType = -1;
+
+                    Panels::AssetBrowser::RebuildAssetTree();
+
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Cancel"))
+                {
+                    itemCreationType = -1;
+
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::EndPopup();
+            }
+        };
+
+        bool openRenameItemDialog = false;
+        bool openCreateItemDialog = false;
+
+        if (ImGui::BeginPopup("AssetContextMenu", 0))
+        {
+            const bool isTargetingAsset = !Selection::GetSelectedAssets().empty();
+            const bool isTargetingDirectory = m_SelectedItem && m_SelectedItem->Type == EntryType::Directory;
+
+            if (ImGui::BeginMenu("Create"))
+            {
+                itemCreationType = -1;
+
+                if (ImGui::MenuItem("Directory", nullptr))
+                {
+                    itemCreationType = 0;
+                }
+
+                if (ImGui::MenuItem("Material", nullptr))
+                {
+                    itemCreationType = 1;
+                }
+
+                if (ImGui::MenuItem("Level", nullptr))
+                {
+                    itemCreationType = 2;
+                }
+
+                if (ImGui::MenuItem("Texture3D", nullptr))
+                {
+                    itemCreationType = 3;
+                }
+
+                if (itemCreationType != -1)
+                {
+                    openCreateItemDialog = true;
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Rename", "F2", false, isTargetingAsset || isTargetingDirectory))
+            {
+                openRenameItemDialog = true;
+            }
+
+            if (ImGui::MenuItem("Remove", "DEL", false, isTargetingAsset || isTargetingDirectory))
+            {
+                std::filesystem::remove(m_SelectedItem->Path.string());
+
+                Selection::Clear();
+                m_SelectedItem = nullptr;
+
+                Panels::AssetBrowser::RebuildAssetTree();
+            }
+
+            ImGui::EndPopup();
+        }
+
+        if (openRenameItemDialog)
+            ImGui::OpenPopup("RenameItemDialog");
+        if (openCreateItemDialog)
+            ImGui::OpenPopup("CreateItemDialog");
+
+        renderRenameDialog(openRenameItemDialog);
+        createItemDialog(openCreateItemDialog);
+    }
 }
 
 void Panels::AssetBrowser::SetActive(bool value)
@@ -268,6 +473,8 @@ void Panels::AssetBrowser::RebuildAssetTree()
 {
     std::string restoreDirectory;
 
+    m_SelectedItem = nullptr;
+
     if (m_SelectedEntry != nullptr)
     {
         restoreDirectory = m_SelectedEntry->Path.string();
@@ -282,6 +489,9 @@ void Panels::AssetBrowser::RebuildAssetTree()
 
         m_Root = nullptr;
     }
+
+    Pine::Assets::RefreshAll();
+    Pine::Assets::LoadDirectory("game");
 
     // First update the icon cache, as we grab the icons from the IconStorage
     // as we fill out this tree.
@@ -333,7 +543,7 @@ void Panels::AssetBrowser::Render()
 
     const bool isSearching = strlen(m_SearchBuffer) > 0;
     const int iconSizePadding = m_IconSize + 16;
-    const float spaceAvailable = ImGui::GetContentRegionAvail().x - (iconSizePadding * 2);
+    const float spaceAvailable = ImGui::GetContentRegionAvail().x - static_cast<float>(iconSizePadding * 2);
     const int nrColumns = static_cast<int>(spaceAvailable) / iconSizePadding;
 
     if (nrColumns == 0)
@@ -365,21 +575,39 @@ void Panels::AssetBrowser::Render()
             if (newEntrySelection->Type == EntryType::Directory)
             {
                 m_SelectedEntry = newEntrySelection;
+                m_SelectedItem = newEntrySelection;
             }
-            else 
+            else
             {
                 Selection::Add<Pine::IAsset>(newEntrySelection->Asset, true);
+
+                m_SelectedItem = newEntrySelection;
             }
         }
     }
 
     ImGui::Columns(1);
 
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_::ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+    if (ImGui::IsWindowHovered())
     {
-        Selection::Clear();
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_::ImGuiMouseButton_Left))
+        {
+            Selection::Clear();
+
+            m_SelectedItem = nullptr;
+        }
+
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_::ImGuiMouseButton_Right) && !ImGui::IsPopupOpen("AssetContextMenu"))
+        {
+            ImGui::OpenPopup("AssetContextMenu");
+
+            m_SelectedItem = nullptr;
+        }
     }
 
+    RenderContextMenu();
+
     ImGui::EndChild();
+
     ImGui::End();
 }

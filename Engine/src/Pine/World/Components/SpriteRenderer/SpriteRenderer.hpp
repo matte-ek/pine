@@ -15,7 +15,7 @@ namespace Pine
     class SpriteRenderer : public IComponent
     {
     private:
-        AssetContainer<Texture2D> m_StaticTexture;
+        AssetHandle<Texture2D> m_StaticTexture;
 
         SpriteScalingMode m_ScalingMode = SpriteScalingMode::Stretch;
 

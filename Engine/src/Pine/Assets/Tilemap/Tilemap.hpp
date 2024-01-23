@@ -31,7 +31,7 @@ namespace Pine
     class Tilemap : public IAsset
     {
     private:
-        AssetContainer<Tileset> m_Tileset;
+        AssetHandle<Tileset> m_Tileset;
 
         std::vector<TileInstance> m_Tiles;
     public:

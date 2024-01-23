@@ -9,7 +9,7 @@ namespace Pine
     class TilemapRenderer : public IComponent
     {
     private:
-        AssetContainer<Tilemap> m_Tilemap;
+        AssetHandle<Tilemap> m_Tilemap;
 
         int m_Order = 0;
     public:

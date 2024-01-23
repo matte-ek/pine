@@ -8,7 +8,7 @@ namespace Pine
     class ModelRenderer : public IComponent
     {
     private:
-        AssetContainer<Model> m_Model;
+        AssetHandle<Model> m_Model;
     public:
         ModelRenderer();
 
