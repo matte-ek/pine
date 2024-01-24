@@ -196,7 +196,7 @@ namespace
         return clickedItem;
     }
 
-    PathEntry* RenderEntry(const PathEntry* entry)
+    PathEntry* RenderEntry(const PathEntry* entry, bool& rebuildTree)
     {
         static auto folderIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/folder.png");
         static auto fileIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file.png");
@@ -215,6 +215,69 @@ namespace
                     clickedItem = directory->Parent;
                 else
                     clickedItem = directory;
+            }
+
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+            {
+                ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(folderIcon->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
+                ImGui::SameLine();
+                ImGui::Text("%s", directory->DisplayText.c_str());
+
+                ImGui::SetDragDropPayload("Directory", &directory, sizeof(PathEntry*));
+
+                ImGui::EndDragDropSource();
+            }
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (ImGui::AcceptDragDropPayload("Asset", ImGuiDragDropFlags_SourceAllowNullID))
+                {
+                    const auto asset = *static_cast<Pine::IAsset**>(ImGui::GetDragDropPayload()->Data);
+                    const auto newPath = directory->Path.string() + "/" + asset->GetFileName();
+
+                    std::filesystem::rename(asset->GetFilePath(), newPath);
+
+                    Pine::Assets::MoveAsset(asset, newPath);
+
+                    rebuildTree = true;
+                }
+
+                if (ImGui::AcceptDragDropPayload("Directory", ImGuiDragDropFlags_SourceAllowNullID))
+                {
+                    const auto newDirectory = *static_cast<PathEntry**>(ImGui::GetDragDropPayload()->Data);
+                    const auto newPath = newDirectory->Path.string() + "/" + directory->Parent->DisplayText;
+
+                    std::filesystem::rename(directory->Path, newPath);
+
+                    rebuildTree = true;
+
+                    // This is kind of messy.
+                    /*
+                    std::function<void(PathEntry*, PathEntry*)> moveChildren;
+                    moveChildren = [moveChildren](PathEntry* entry, PathEntry* newDirectory)
+                    {
+                        for (auto& child : entry->Children)
+                        {
+                            if (child->Type == EntryType::Directory)
+                            {
+                                moveChildren(child, newDirectory);
+                            }
+                            else
+                            {
+                                const auto newPath = newDirectory->Path.string() + "/" + child->DisplayText;
+
+                                std::filesystem::rename(child->Path, newPath);
+
+                                Pine::Assets::MoveAsset(child->Asset, newPath);
+                            }
+                        }
+                    };
+
+                    moveChildren(directory, newDirectory);
+                    */
+                }
+
+                ImGui::EndDragDropTarget();
             }
 
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
@@ -299,9 +362,13 @@ namespace
 
                 if ((ImGui::Button("Rename") || ImGui::IsKeyPressed(ImGuiKey_Enter)) && strlen(buffer) > 0)
                 {
-                    std::filesystem::rename(m_SelectedItem->Path, m_SelectedItem->Path.parent_path().string() + "/" + buffer);
+                    const auto asset = Selection::GetSelectedAssets()[0];
+                    const auto newPath = asset->GetFilePath().parent_path().string() + "/" + buffer;
 
-                    Selection::Clear();
+                    std::filesystem::rename(m_SelectedItem->Path, newPath);
+
+                    Pine::Assets::MoveAsset(asset, newPath);
+
                     m_SelectedItem = nullptr;
 
                     Panels::AssetBrowser::RebuildAssetTree();
@@ -564,13 +631,16 @@ void Panels::AssetBrowser::Render()
         {
             if (selectedEntry->Type == EntryType::File)
             {
-                Selection::Add<Pine::IAsset>(selectedEntry->Asset, true);
+                if (selectedEntry->Asset != nullptr)
+                    Selection::Add<Pine::IAsset>(selectedEntry->Asset, true);
             }
         }
     }
     else 
     {
-        if (const auto newEntrySelection = RenderEntry(m_SelectedEntry))
+        bool rebuildTree = false;
+
+        if (const auto newEntrySelection = RenderEntry(m_SelectedEntry, rebuildTree))
         {
             if (newEntrySelection->Type == EntryType::Directory)
             {
@@ -579,11 +649,15 @@ void Panels::AssetBrowser::Render()
             }
             else
             {
-                Selection::Add<Pine::IAsset>(newEntrySelection->Asset, true);
+                if (newEntrySelection->Asset != nullptr)
+                    Selection::Add<Pine::IAsset>(newEntrySelection->Asset, true);
 
                 m_SelectedItem = newEntrySelection;
             }
         }
+
+        if (rebuildTree)
+            Panels::AssetBrowser::RebuildAssetTree();
     }
 
     ImGui::Columns(1);

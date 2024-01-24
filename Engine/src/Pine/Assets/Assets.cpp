@@ -129,15 +129,11 @@ namespace
         IAsset* asset;
 
         if (factory != nullptr)
-        {
             asset = factory->m_Factory();
-        }
         else
-        {
             asset = new InvalidAsset();
-        }
 
-        asset->SetFilePath(filePath);
+        asset->SetFilePath(filePath, rootPath);
         asset->SetPath(path);
 
         asset->LoadMetadata();
@@ -512,7 +508,10 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
     if (assetsLoaded == 0)
         return -1;
 
-    Log::Verbose("Loaded " + std::to_string(assetsLoaded) + " assets from " + path.string());
+    if (assetsLoadErrors > 0)
+        Log::Warning(fmt::format("Failed to load {} asset(s) from '{}'.", assetsLoadErrors, path.string()));
+
+    Log::Verbose("Loaded " + std::to_string(assetsLoaded) + " asset(s) from " + path.string());
 
     return assetsLoadErrors;
 }
@@ -555,9 +554,20 @@ IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)
     return m_Assets[path];
 }
 
-void Assets::MoveAsset(Pine::IAsset *asset, const std::filesystem::path &newPath)
+void Assets::MoveAsset(Pine::IAsset *asset, const std::filesystem::path &newFilePath)
 {
+    const auto newPath = GetAssetMapPath(newFilePath, asset->GetFileRootPath().string(), "");
+    const auto oldPath = asset->GetPath();
+    const auto oldFilePath = asset->GetFilePath();
 
+    asset->SetPath(newPath);
+    asset->SetFilePath(newFilePath, String::StartsWith(newFilePath, asset->GetFileRootPath().string()) ? asset->GetFileRootPath() : "");
+
+    m_Assets.erase(oldPath);
+    m_AssetsFilePath.erase(oldFilePath.string());
+
+    m_Assets[newPath] = asset;
+    m_AssetsFilePath[newFilePath] = asset;
 }
 
 const std::unordered_map<std::string, IAsset*>& Assets::GetAll()
@@ -597,11 +607,9 @@ void Assets::RefreshAll()
             asset->Dispose();
         }
 
-        // TODO: Not sure how I want to handle this just yet.
-        //if (asset->HasBeenUpdated())
-        //{
-        //    asset->Dispose();
-        //}
+        // TODO: Not sure how I want to handle this just yet. We shouldn't have to deal with cases like this for now anyway.
+        // Realistically only the editor will call this, and it will already reload the assets from the directory right after this is called,
+        // which will deal with updated assets in a nicer way.
     }
 }
 

@@ -12,6 +12,7 @@
 #include "Panels/EntityList/EntityListPanel.hpp"
 #include "Panels/GameViewport/GameViewportPanel.hpp"
 #include "Panels/LevelViewport/LevelViewportPanel.hpp"
+#include "Gui/Panels/Engine/EngineAssetsPanel.hpp"
 
 namespace
 {
@@ -156,6 +157,8 @@ namespace
         Panels::EntityList::Render();
         Panels::AssetBrowser::Render();
         Panels::Properties::Render();
+
+        Panels::EngineAssetsPanel::Render();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

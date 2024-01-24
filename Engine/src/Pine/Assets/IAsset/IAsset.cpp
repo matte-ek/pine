@@ -26,13 +26,24 @@ const std::string& Pine::IAsset::GetPath() const
 
 void Pine::IAsset::SetFilePath(const std::filesystem::path& path)
 {
+    SetFilePath(path, "");
+}
+
+void Pine::IAsset::SetFilePath(const std::filesystem::path& path, const std::filesystem::path& root)
+{
     m_FilePath = String::Replace(path.string(), "\\", "/");
+    m_FileRootPath = String::Replace(root.string(), "\\", "/");
     m_HasFile = true;
 }
 
 const std::filesystem::path& Pine::IAsset::GetFilePath() const
 {
     return m_FilePath;
+}
+
+const std::filesystem::path& Pine::IAsset::GetFileRootPath() const
+{
+    return m_FileRootPath;
 }
 
 Pine::AssetState Pine::IAsset::GetState() const

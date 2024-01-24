@@ -16,19 +16,39 @@ bool Pine::Texture3D::LoadFromFile(AssetLoadStage stage)
 
     if (!j.has_value())
     {
+        Log::Error("Error loading Texture3D, JSON is empty.");
         return false;
     }
 
     const auto json = j.value();
 
+    bool readyToBuild = false;
+
     Serialization::LoadAsset(json, "texture", m_Texture, false);
 
-    for (int i = 0; i < 6;i++)
+    if (!m_Texture.Get())
     {
-        Serialization::LoadAsset(json["side"], std::to_string(i), m_SideTextures[i], false);
+        for (int i = 0; i < 6;i++)
+        {
+            Serialization::LoadAsset(json["side"], std::to_string(i), m_SideTextures[i], false);
+
+            if (!m_SideTextures[i].Get())
+            {
+                readyToBuild = false;
+            }
+        }
+    }
+    else
+    {
+        readyToBuild = true;
     }
 
-    Build();
+    if (readyToBuild)
+    {
+        Build();
+    }
+
+    m_State = AssetState::Loaded;
 
     return true;
 }
@@ -96,7 +116,7 @@ Pine::Graphics::ITexture *Pine::Texture3D::GetCubeMap() const
     return m_CubeMapTexture;
 }
 
-void Pine::Texture3D::Build()
+bool Pine::Texture3D::Build()
 {
     // Make sure we have all textures required
     if (m_Texture.Get() == nullptr)
@@ -107,7 +127,9 @@ void Pine::Texture3D::Build()
             {
                 Log::Warning("Cannot build cube map, missing textures.");
 
-                return;
+                m_Valid = false;
+
+                return false;
             }
         }
     }
@@ -138,7 +160,9 @@ void Pine::Texture3D::Build()
             {
                 Log::Error("Attempted to build cube map with unloaded textures.");
 
-                return;
+                m_Valid = false;
+
+                return false;
             }
 
             m_CubeMapTexture->CopyTextureData(side->GetGraphicsTexture(), static_cast<Graphics::TextureUploadTarget>(i + 1));
@@ -146,6 +170,13 @@ void Pine::Texture3D::Build()
     }
 
     m_CubeMapTexture->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
+
+    m_Valid = true;
+
+    return true;
 }
 
-
+bool Pine::Texture3D::IsValid() const
+{
+    return m_Valid;
+}

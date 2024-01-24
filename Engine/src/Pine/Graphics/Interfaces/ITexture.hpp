@@ -44,6 +44,29 @@ namespace Pine::Graphics
         Linear
     };
 
+    inline const char* TextureFormatToString(TextureFormat format)
+    {
+        switch (format)
+        {
+        case TextureFormat::SingleChannel:
+            return "SingleChannel";
+        case TextureFormat::RGB:
+            return "RGB";
+        case TextureFormat::RGBA:
+            return "RGBA";
+        case TextureFormat::RGB16F:
+            return "RGB16F";
+        case TextureFormat::RGBA16F:
+            return "RGBA16F";
+        case TextureFormat::Depth:
+            return "Depth";
+        case TextureFormat::Alpha:
+            return "Alpha";
+        default:
+            return "Unknown";
+        }
+    }
+
     class ITexture
     {
     protected:

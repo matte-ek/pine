@@ -10,6 +10,11 @@ namespace
 
 void Selection::AddEntity(Pine::Entity* entity)
 {
+    if (entity == nullptr)
+    {
+        throw std::runtime_error("Entity is nullptr.");
+    }
+
     for (int i = 0; i < m_SelectedEntities.size();i++)
     {
         if (m_SelectedEntities[i] == entity)
@@ -27,6 +32,11 @@ void Selection::AddEntity(Pine::Entity* entity)
 
 void Selection::AddAsset(Pine::IAsset* asset)
 {
+    if (asset == nullptr)
+    {
+        throw std::runtime_error("Asset is nullptr.");
+    }
+
     for (int i = 0; i < m_SelectedAssets.size();i++)
     {
         if (m_SelectedAssets[i] == asset)

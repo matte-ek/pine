@@ -97,6 +97,7 @@ namespace Pine
         // Otherwise, it may have been generated during run-time.
         bool m_HasFile = false;
         std::filesystem::path m_FilePath;
+        std::filesystem::path m_FileRootPath;
 
         // Used to determine if an asset file has been updated on the disk since we last loaded it.
         std::filesystem::file_time_type m_DiskWriteTime;
@@ -132,7 +133,9 @@ namespace Pine
         const std::string& GetPath() const;
 
         void SetFilePath(const std::filesystem::path& path);
+        void SetFilePath(const std::filesystem::path& path, const std::filesystem::path& root);
         const std::filesystem::path& GetFilePath() const;
+        const std::filesystem::path& GetFileRootPath() const;
 
         virtual void MarkAsUpdated();
         virtual bool HasBeenUpdated() const;

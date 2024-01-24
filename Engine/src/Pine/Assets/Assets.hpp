@@ -48,7 +48,8 @@ namespace Pine::Assets
 
     IAsset* GetOrLoad(const std::string& path, bool includeFilePath = false);
 
-    // Moves an already existing asset to a new path.
+    // Moves an already existing asset to a new path, the newPath needs to be a file system path,
+    // and the asset will use the same root path as the old path.
     void MoveAsset(Pine::IAsset* asset, const std::filesystem::path& newPath);
 
     // Returns the entire map used internally within the asset manager
