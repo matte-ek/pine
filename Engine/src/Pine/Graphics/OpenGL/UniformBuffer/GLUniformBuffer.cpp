@@ -28,7 +28,7 @@ void Pine::Graphics::GLUniformBuffer::Create(std::size_t size, int bindingIndex)
     glGenBuffers(1, &m_Id);
 
     glBindBuffer(GL_UNIFORM_BUFFER, m_Id);
-    glBufferData(GL_UNIFORM_BUFFER, static_cast<std::int32_t>(size), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, static_cast<std::int32_t>(size), nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, bindingIndex, m_Id);
 
     m_BindingIndex = bindingIndex;

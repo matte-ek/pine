@@ -11,13 +11,13 @@ layout(std140) uniform Matrices
 out VertexData
 {
 	vec3 uv;
-}output;
+}vOut;
 
 void main()
 {
 	vec4 wPos = projectionMatrix * mat4(mat3(viewMatrix)) * vec4(vertex, 1.0);
 
-    output.uv = vertex;
+    vOut.uv = vertex;
 
     gl_Position = wPos.xyww;
 }  

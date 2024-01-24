@@ -47,7 +47,7 @@ in VertexData
 	vec3 cameraDir;
 	vec3 normalDir;
 	vec3 lightDir[4];
-}input;
+}vIn;
 
 uniform TextureSamplers textureSamplers;
 uniform bool hasTangentData;
@@ -69,27 +69,27 @@ vec3 calculateBaseLightning(vec3 lightDirection, int lightIndex)
     vec3 normal;
 
     if (hasTangentData)
-        normal = normalize((2.0 * texture(textureSamplers.normal, input.uv * material.uvScale)).xyz);
+        normal = normalize((2.0 * texture(textureSamplers.normal, vIn.uv * material.uvScale)).xyz);
     else
-        normal = input.normalDir;
+        normal = vIn.normalDir;
 
     float diffuseFactor = max(dot(normal, lightDirection), 0.0);
 
     // We get more accurate specular results if we use a vector directed half-way
     // to our camera from the light.
-    vec3 halfwayDirection = normalize(lightDirection + input.cameraDir);
+    vec3 halfwayDirection = normalize(lightDirection + vIn.cameraDir);
     float specularFactor = pow(max(dot(normal, halfwayDirection), 0.0), material.shininess);
 
-    vec3 ambient = diffuseColor * material.ambientColor * texture(textureSamplers.diffuse, input.uv * material.uvScale).xyz + vec3(0.1f);
-    vec3 diffuse = lights[lightIndex].color * diffuseColor * texture(textureSamplers.diffuse, input.uv * material.uvScale).xyz * diffuseFactor;
-    vec3 specular = lights[lightIndex].color * material.specularColor * texture(textureSamplers.specular, input.uv * material.uvScale).xyz * specularFactor;
+    vec3 ambient = diffuseColor * material.ambientColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz + vec3(0.1f);
+    vec3 diffuse = lights[lightIndex].color * diffuseColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz * diffuseFactor;
+    vec3 specular = lights[lightIndex].color * material.specularColor * texture(textureSamplers.specular, vIn.uv * material.uvScale).xyz * specularFactor;
 
     return diffuse + specular + (1.f - diffuseFactor) * ambient;
 }
 
 vec3 calculateDirectionalLight()
 {
-    return calculateBaseLightning(input.lightDir[0], 0);
+    return calculateBaseLightning(vIn.lightDir[0], 0);
 }
 
 void main(void)

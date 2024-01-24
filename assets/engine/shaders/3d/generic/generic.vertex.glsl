@@ -39,7 +39,7 @@ out VertexData
 	vec3 cameraDir;
 	vec3 normalDir;
 	vec3 lightDir[4];
-}output;
+}vOut;
 
 uniform bool hasTangentData;
 
@@ -55,15 +55,15 @@ void main()
 
 	#shader preVertex
 
-	output.worldPosition = (transformationMatrix * vertexPosition).xyz;
-	output.uv = uv;
-	output.cameraPos = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	vOut.worldPosition = (transformationMatrix * vertexPosition).xyz;
+	vOut.uv = uv;
+	vOut.cameraPos = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
 
 	// Apply object transformation to our normal vector
 	vec3 worldNormalDir = normalize((transformationMatrix * vec4(normal, 0.0)).xyz);
 	
 	// Extract the camera origin from the view matrix, and calculate the direction from the vertex.
-	vec3 cameraDir = normalize(output.cameraPos - output.worldPosition.xyz);	
+	vec3 cameraDir = normalize(vOut.cameraPos - vOut.worldPosition.xyz);	
 
 	if (hasTangentData)
 	{
@@ -78,28 +78,28 @@ void main()
 			worldTangent.z, worldBiTangent.z, worldNormalDir.z
 		);
 
-		output.lightDir[0] = tangentMatrix * normalize(lights[0].position - output.worldPosition.xyz);
+		vOut.lightDir[0] = tangentMatrix * normalize(lights[0].position - vOut.worldPosition.xyz);
 
 		for (int i = 1; i < 4;i++)
 		{
-			output.lightDir[i] = tangentMatrix * normalize(lights[i].position - output.worldPosition.xyz);
+			vOut.lightDir[i] = tangentMatrix * normalize(lights[i].position - vOut.worldPosition.xyz);
 		}	
 
-		output.cameraDir = tangentMatrix * cameraDir;
-		output.normalDir = tangentMatrix * worldNormalDir;
+		vOut.cameraDir = tangentMatrix * cameraDir;
+		vOut.normalDir = tangentMatrix * worldNormalDir;
 	}
 	else
 	{
 		// Pass everything directly in world space
-		output.lightDir[0] = normalize(lights[0].position - output.worldPosition.xyz);
+		vOut.lightDir[0] = normalize(lights[0].position - vOut.worldPosition.xyz);
 
 		for (int i = 1; i < 4;i++)
 		{
-			output.lightDir[i] = normalize(lights[i].position - output.worldPosition.xyz);
+			vOut.lightDir[i] = normalize(lights[i].position - vOut.worldPosition.xyz);
 		}	
 
-		output.cameraDir = cameraDir;
-		output.normalDir = worldNormalDir;
+		vOut.cameraDir = cameraDir;
+		vOut.normalDir = worldNormalDir;
 	}
 
 	gl_Position = projectionMatrix * viewMatrix * transformationMatrix * vertexPosition;

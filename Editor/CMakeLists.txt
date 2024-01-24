@@ -8,6 +8,8 @@ include_directories(src include imgui ${CMAKE_SOURCE_DIR}/Engine/src ${CMAKE_SOU
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE IMGUI_SOURCES "imgui/*.cpp")
 
+add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
+
 add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Gui/Panels/Engine/EngineAssetsPanel.hpp
         src/Gui/Panels/Engine/EngineAssetsPanel.cpp)

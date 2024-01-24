@@ -9,6 +9,8 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 find_package(ReactPhysics3D REQUIRED)
 
+add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
+
 add_library(Engine ${SOURCES}
         src/Pine/Utilities/HotReload/HotReload.hpp
         src/Pine/Assets/Mesh/Mesh.hpp
