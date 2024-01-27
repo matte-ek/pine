@@ -7,6 +7,8 @@ namespace EditorEntity
 	void Setup();
 	void Dispose();
 
+    void SetCaptureMouse(bool value);
+
 	Pine::Entity* Get();
 
 }

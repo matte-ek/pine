@@ -17,15 +17,30 @@ namespace
 
 	Pine::Entity* m_Entity = nullptr;
 
+    bool m_CaptureMouse = false;
+    Pine::Vector2f m_ViewAngles = Pine::Vector2f(0.f);
+
 	class EditorComponent : public Pine::NativeScript
 	{
 	private:
 	public:
 		void OnRender(float deltaTime) override
 		{
+            const float speed = 2.f;
+            const float sensitivity = 0.2f;
+
             auto transform = m_Parent->GetTransform();
 
-            transform->LocalPosition += transform->GetForward() * m_Forward->GetAxisValue();
+            transform->LocalPosition += transform->GetForward() * m_Forward->GetAxisValue() * deltaTime * speed;
+            transform->LocalPosition += transform->GetRight() * m_Sideways->GetAxisValue() * deltaTime * speed;
+
+            if (m_CaptureMouse)
+            {
+                m_ViewAngles.x += m_Pitch->GetAxisValue() * sensitivity;
+                m_ViewAngles.y += m_Yaw->GetAxisValue() * sensitivity;
+
+                transform->SetEulerAngles(Pine::Vector3f(m_ViewAngles, 0.f));
+            }
 		}
 
 		void LoadData(const nlohmann::json& j) override {}
@@ -57,7 +72,7 @@ void EditorEntity::Setup()
 	/* Setup entity */
 	m_Entity = Pine::Entity::Create("EditorEntity");
 
-    m_Entity->SetTemporary(false);
+    m_Entity->SetTemporary(true);
 	m_Entity->AddComponent(new EditorComponent());
 	m_Entity->AddComponent<Pine::Camera>();
 }
@@ -69,4 +84,9 @@ void EditorEntity::Dispose()
 Pine::Entity* EditorEntity::Get()
 {
 	return m_Entity;
+}
+
+void EditorEntity::SetCaptureMouse(bool value)
+{
+    m_CaptureMouse = value;
 }

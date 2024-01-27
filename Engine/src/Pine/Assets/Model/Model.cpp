@@ -98,7 +98,7 @@ namespace
 
                     std::string filePathStr = filePath.C_Str();
 
-                    engineMaterial->SetDiffuse(modelDirectory + filePathStr);
+                    loadData.DiffuseMap = modelDirectory + filePathStr;
                 }
 
                 if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
@@ -108,7 +108,7 @@ namespace
 
                     std::string filePathStr = filePath.C_Str();
 
-                    engineMaterial->SetSpecular(modelDirectory + filePathStr);
+                    loadData.SpecularMap = modelDirectory + filePathStr;
                 }
 
                 if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
@@ -118,7 +118,7 @@ namespace
 
                     std::string filePathStr = filePath.C_Str();
 
-                    engineMaterial->SetNormal(modelDirectory + filePathStr);
+                    loadData.NormalMap = modelDirectory + filePathStr;
                 }
 
                 loadData.Material = engineMaterial;
@@ -201,6 +201,14 @@ void Model::UploadModel()
 
         if (loadData.Material)
         {
+            // Set any texture maps if we have to
+            if (!loadData.DiffuseMap.empty())
+                loadData.Material->SetDiffuse(loadData.DiffuseMap);
+            if (!loadData.SpecularMap.empty())
+                loadData.Material->SetSpecular(loadData.SpecularMap);
+            if (!loadData.NormalMap.empty())
+                loadData.Material->SetNormal(loadData.NormalMap);
+
             // If a material is supplied here, we know it was generated from the model data, so check if
             // the user has its own material before using this.
             if (m_Metadata.contains("material"))

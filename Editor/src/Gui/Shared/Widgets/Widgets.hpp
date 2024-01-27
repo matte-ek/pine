@@ -41,6 +41,7 @@ namespace Widgets
     bool ColorPicker3(const std::string& str, Pine::Vector3f& color);
 
     AssetPickerResult AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
+    AssetPickerResult AssetPicker(const std::string& str, const std::string& id, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
 
     bool Icon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, int size = 64);
 

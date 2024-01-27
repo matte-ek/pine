@@ -182,6 +182,15 @@ void Pine::Input::Update()
     
         m_LastMousePosition = Pine::Vector2i(windowSize.x / 2.0, windowSize.y / 2.0);
     }
+
+    if (m_CursorVisible)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    else
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    }
 }
 
 Pine::InputContext* Pine::Input::GetDefaultContext()
@@ -216,6 +225,25 @@ Pine::InputContext* Pine::Input::CreateContext(const std::string& name)
     m_InputContexts.push_back(new Pine::InputContext(name));
 
     return m_InputContexts[m_InputContexts.size() - 1];
+}
+
+void Pine::Input::SetCursorPosition(Pine::Vector2i position)
+{
+    auto windowHandle = reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+
+    glfwSetCursorPos(windowHandle, position.x, position.y);
+
+    m_LastMousePosition = position;
+}
+
+Pine::Vector2i Pine::Input::GetCursorPosition()
+{
+    auto windowHandle = reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+
+    double cursorX, cursorY;
+    glfwGetCursorPos(windowHandle, &cursorX, &cursorY);
+
+    return { cursorX, cursorY };
 }
 
 Pine::InputContext::InputContext(const std::string& name)

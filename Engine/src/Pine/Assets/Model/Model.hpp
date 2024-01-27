@@ -20,6 +20,10 @@ namespace Pine
         std::uint32_t IndicesLength = 0;
 
         std::uint32_t Faces = 0;
+
+        std::string DiffuseMap;
+        std::string SpecularMap;
+        std::string NormalMap;
     };
 
     class Model : public IAsset

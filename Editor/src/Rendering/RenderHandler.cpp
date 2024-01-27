@@ -28,6 +28,8 @@ namespace
 
             m_LevelRenderingContext->Active = Panels::LevelViewport::GetActive() && Panels::LevelViewport::GetVisible();
             m_LevelRenderingContext->Size = Pine::Vector2f(1920, 1080);
+
+            EditorEntity::Get()->GetComponents()[1]->OnRender(deltaTime);
         }
     }
 }

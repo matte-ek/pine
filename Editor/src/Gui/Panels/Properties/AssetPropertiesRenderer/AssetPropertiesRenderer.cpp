@@ -1,3 +1,4 @@
+#include <fmt/format.h>
 #include "AssetPropertiesRenderer.hpp"
 
 #include "IconsMaterialDesign.h"
@@ -14,6 +15,7 @@
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Level/Level.hpp"
+#include "Gui/Panels/Properties/EntityPropertiesRenderer/EntityPropertiesRenderer.hpp"
 
 namespace
 {
@@ -121,17 +123,46 @@ namespace
 
     void RenderModel(Pine::Model *model)
     {
+        for (int i = 0; i < model->GetMeshes().size();i++)
+        {
+            auto mesh = model->GetMeshes()[i];
 
+            if (ImGui::CollapsingHeader(fmt::format("Mesh {}", i).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Render Count: %d", mesh->GetRenderCount());
+                ImGui::Text("Has Element Buffer: %s", mesh->HasElementBuffer() ? "Yes" : "No");
+
+                const auto newMaterial = Widgets::AssetPicker("Material", std::to_string(i), mesh->GetMaterial(), Pine::AssetType::Material);
+                if (newMaterial.hasResult)
+                {
+                    mesh->SetMaterial(dynamic_cast<Pine::Material *>(newMaterial.asset));
+                }
+            }
+        }
     }
 
     void RenderBlueprint(Pine::Blueprint *blueprint)
     {
+        ImGui::Text("Has Entity: %s", blueprint->HasEntity() ? "Yes" : "No");
 
+        EntityPropertiesPanel::Render(blueprint->GetEntity());
     }
 
     void RenderLevel(Pine::Level *level)
     {
+        ImGui::Text("Blueprint count: %zu", level->GetBlueprintCount());
 
+        if (ImGui::Button("Load", ImVec2(150.f, 45.f)))
+        {
+            level->Load();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Save", ImVec2(150.f, 45.f)))
+        {
+            level->CreateFromWorld();
+        }
     }
 
     void RenderTileset(Pine::Tileset *tileset)
@@ -181,8 +212,10 @@ void AssetPropertiesPanel::Render(Pine::IAsset *asset)
 
     ImGui::BeginChild("##AssetPropertiesChild", ImVec2(-1.f, 65.f), false, 0);
 
+    auto formattedPath = "/" + std::filesystem::path(asset->GetPath()).parent_path().string();
+
     ImGui::Text("%s", asset->GetFileName().c_str());
-    ImGui::Text("%s", asset->GetPath().c_str());
+    ImGui::Text("%s (%s)", formattedPath.c_str(), asset->GetFilePath().c_str());
 
     ImGui::Text("%s", AssetTypeToString(asset->GetType()));
 

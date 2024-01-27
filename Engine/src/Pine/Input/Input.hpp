@@ -4,6 +4,8 @@
 #include <vector>
 #include <functional>
 
+#include "Pine/Core/Math/Math.hpp"
+
 namespace Pine
 {
 
@@ -89,6 +91,9 @@ namespace Pine
 
         void SetCursorAutoCenter(bool value);
         void SetCursorVisible(bool value);
+
+        void SetCursorPosition(Pine::Vector2i position);
+        Pine::Vector2i GetCursorPosition();
 
         InputBind* CreateInputBind(const std::string& name, InputType type = InputType::Axis);
     }

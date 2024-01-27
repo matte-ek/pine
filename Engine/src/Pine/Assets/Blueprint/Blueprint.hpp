@@ -22,6 +22,9 @@ namespace Pine
         // If we currently have an entity stored as a blueprint
         bool HasEntity() const;
 
+        // Gets the stored entity
+        Entity* GetEntity() const;
+
         // Create a copy of an existing entity in memory
         void CreateFromEntity(const Entity* entity);
 

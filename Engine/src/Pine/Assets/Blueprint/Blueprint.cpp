@@ -74,6 +74,9 @@ void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, bool createInst
 
     for (auto component : src->GetComponents())
     {
+        if (component->GetType() == ComponentType::NativeScript) // this might be a bad idea.
+            continue;
+
         dst->AddComponent(Components::Copy(component, !createInstance));
     }
 
@@ -167,4 +170,9 @@ bool Pine::Blueprint::SaveToFile()
     Serialization::SaveToFile(m_FilePath, ToJson());
 
     return true;
+}
+
+Pine::Entity *Pine::Blueprint::GetEntity() const
+{
+    return m_Entity;
 }

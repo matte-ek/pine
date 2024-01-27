@@ -74,13 +74,16 @@ bool Pine::Level::LoadFromFile(AssetLoadStage stage)
         return false;
     }
 
-    for (const auto& blueprintJson : json.value()["entities"])
+    if (json.value().contains("entities"))
     {
-        auto blueprint = new Blueprint();
+        for (const auto& blueprintJson : json.value()["entities"])
+        {
+            auto blueprint = new Blueprint();
 
-        blueprint->FromJson(blueprintJson);
+            blueprint->FromJson(blueprintJson);
 
-        m_Blueprints.push_back(blueprint);
+            m_Blueprints.push_back(blueprint);
+        }
     }
 
     m_State = AssetState::Loaded;

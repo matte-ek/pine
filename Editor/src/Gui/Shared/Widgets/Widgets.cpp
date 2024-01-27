@@ -165,6 +165,11 @@ bool Widgets::ColorPicker3(const std::string& str, Pine::Vector3f& color)
 
 AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType)
 {
+    return AssetPicker(str, "", asset, restrictedType);
+}
+
+AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string& id, const Pine::IAsset* asset, Pine::AssetType restrictedType)
+{
     AssetPickerResult ret;
 
     std::string assetFileName;
@@ -178,6 +183,9 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsse
     {
         return ret;
     }
+
+    if (!id.empty())
+        ImGui::PushID(id.c_str());
 
     PrepareWidget(str);
 
@@ -236,6 +244,9 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsse
     }
 
     FinishWidget();
+
+    if (!id.empty())
+        ImGui::PopID();
 
     return ret;
 }
