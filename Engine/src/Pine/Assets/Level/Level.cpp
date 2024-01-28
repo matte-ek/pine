@@ -29,6 +29,8 @@ void Pine::Level::CreateFromWorld()
 
         m_Blueprints.push_back(blueprint);
     }
+
+    m_HasBeenModified = true;
 }
 
 void Pine::Level::Load()
@@ -53,6 +55,7 @@ void Pine::Level::ClearBlueprints()
     }
 
     m_Blueprints.clear();
+    m_HasBeenModified = true;
 }
 
 std::size_t Pine::Level::GetBlueprintCount() const

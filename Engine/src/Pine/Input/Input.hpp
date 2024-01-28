@@ -70,11 +70,11 @@ namespace Pine
 
     struct InputContext
     {  
-        std::string Name = "";
+        std::string Name;
         bool InputEnabled = true;
         std::vector<InputBind*> InputBindings;
 
-        InputContext(const std::string& name);
+        explicit InputContext(const std::string& name);
         InputBind* CreateInputBinding(const std::string& name, InputType type = InputType::Axis);
     };
 

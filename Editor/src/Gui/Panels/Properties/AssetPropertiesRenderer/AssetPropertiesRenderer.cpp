@@ -16,6 +16,7 @@
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 #include "Gui/Panels/Properties/EntityPropertiesRenderer/EntityPropertiesRenderer.hpp"
+#include "Pine/World/World.hpp"
 
 namespace
 {
@@ -154,7 +155,7 @@ namespace
 
         if (ImGui::Button("Load", ImVec2(150.f, 45.f)))
         {
-            level->Load();
+            Pine::World::SetActiveLevel(level);
         }
 
         ImGui::SameLine();

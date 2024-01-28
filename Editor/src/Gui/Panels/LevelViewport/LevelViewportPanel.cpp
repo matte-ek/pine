@@ -35,8 +35,18 @@ namespace
         World
     };
 
-    GizmoMode m_GizmoMode;
-    PerspectiveMode m_PerspectiveMode;
+    enum class SnapMode : int
+    {
+        Disabled,
+        OnKey,
+        Always
+    };
+
+    GizmoMode m_GizmoMode = GizmoMode::Translate;
+    PerspectiveMode m_PerspectiveMode = PerspectiveMode::Local;
+    SnapMode m_SnapMode = SnapMode::OnKey;
+
+    float m_SnapRange = 1.f;
 
     void RenderGizmo(ImVec2 viewportPosition)
     {
@@ -74,12 +84,16 @@ namespace
                 break;
         }
 
+        const auto shouldSnap = m_SnapMode == SnapMode::Always || (m_SnapMode == SnapMode::OnKey && ImGui::GetIO().KeyCtrl);
+        auto snapRange = Pine::Vector3f(m_SnapRange);
+
         if (ImGuizmo::Manipulate(glm::value_ptr(camera->GetViewMatrix()),
                                  glm::value_ptr(camera->GetProjectionMatrix()),
                                  operation,
                                  mode,
                                  glm::value_ptr(matrix),
-                                 glm::value_ptr(deltaMatrix)))
+                                 glm::value_ptr(deltaMatrix),
+                                 shouldSnap ? glm::value_ptr(snapRange) : nullptr))
         {
 
             Pine::Vector3f position, scale, skew;
@@ -135,23 +149,71 @@ void Panels::LevelViewport::Render()
 
     const std::uint64_t id = *static_cast<std::uint32_t*>(RenderHandler::GetLevelFrameBuffer()->GetColorBuffer()->GetGraphicsIdentifier());
 
-    if (ImGui::Button("Translate"))
+    static auto tabButton = [](const char* text, bool selected)
+    {
+        bool ret = false;
+
+        if (!selected)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.15f, 0.11f, 1.00f));
+        else
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.11f, 0.27f, 0.24f, 1.00f));
+
+        if (ImGui::Button(text, ImVec2(45.f, 24.f)))
+            ret = true;
+
+        ImGui::PopStyleColor();
+
+        return ret;
+    };
+
+    if (tabButton(ICON_MD_OPEN_WITH, m_GizmoMode == GizmoMode::Translate))
         m_GizmoMode = GizmoMode::Translate;
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Rotate"))
+    if (tabButton(ICON_MD_360, m_GizmoMode == GizmoMode::Rotate))
         m_GizmoMode = GizmoMode::Rotate;
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Scale"))
+    if (tabButton(ICON_MD_ZOOM_OUT_MAP, m_GizmoMode == GizmoMode::Scale))
         m_GizmoMode = GizmoMode::Scale;
 
     ImGui::SameLine();
 
-    ImGui::SetNextItemWidth(80.f);
-    ImGui::Combo("##Mode", reinterpret_cast<int*>(&m_PerspectiveMode), "Local\0World\0");
+    if (ImGui::Button(ICON_MD_EXPAND_MORE))
+    {
+        ImGui::OpenPopup("GizmoContextMenu");
+    }
+
+    ImGui::SetNextWindowSize(ImVec2(150.f, 0.f));
+    if (ImGui::BeginPopup("GizmoContextMenu"))
+    {
+        if (ImGui::MenuItem("World Space", nullptr, m_PerspectiveMode == PerspectiveMode::World))
+            m_PerspectiveMode = PerspectiveMode::World;
+        if (ImGui::MenuItem("Local Space", nullptr, m_PerspectiveMode == PerspectiveMode::Local))
+            m_PerspectiveMode = PerspectiveMode::Local;
+
+        ImGui::Separator();
+
+        if (ImGui::BeginMenu("Grid Snap"))
+        {
+            if (ImGui::MenuItem("Off", nullptr, m_SnapMode == SnapMode::Disabled))
+                m_SnapMode = SnapMode::Disabled;
+            if (ImGui::MenuItem("On Key", nullptr, m_SnapMode == SnapMode::OnKey))
+                m_SnapMode = SnapMode::OnKey;
+            if (ImGui::MenuItem("Always", nullptr, m_SnapMode == SnapMode::Always))
+                m_SnapMode = SnapMode::Always;
+
+            ImGui::SetNextItemWidth(150.f);
+            ImGui::SliderFloat("Size", &m_SnapRange, 0.1f, 10.f, "%.1f");
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::Spacing();
 
     const auto avSize = ImGui::GetContentRegionAvail();
     const auto position = ImGui::GetCursorScreenPos();

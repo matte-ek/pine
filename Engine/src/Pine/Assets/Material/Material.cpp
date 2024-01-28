@@ -11,16 +11,19 @@ Pine::Material::Material()
 void Pine::Material::SetDiffuseColor(Vector3f color)
 {
 	m_DiffuseColor = color;
+    m_HasBeenModified = true;
 }
 
 void Pine::Material::SetSpecularColor(Vector3f color)
 {
 	m_SpecularColor = color;
+    m_HasBeenModified = true;
 }
 
 void Pine::Material::SetAmbientColor(Vector3f color)
 {
 	m_AmbientColor = color;
+    m_HasBeenModified = true;
 }
 
 const Pine::Vector3f& Pine::Material::GetDiffuseColor() const
@@ -41,16 +44,19 @@ const Pine::Vector3f& Pine::Material::GetAmbientColor() const
 void Pine::Material::SetDiffuse(Texture2D* texture)
 {
 	m_Diffuse = texture;
+    m_HasBeenModified = true;
 }
 
 void Pine::Material::SetSpecular(Texture2D* texture)
 {
 	m_Specular = texture;
+    m_HasBeenModified = true;
 }
 
 void Pine::Material::SetNormal(Texture2D* texture)
 {
 	m_Normal = texture;
+    m_HasBeenModified = true;
 }
 
 void Pine::Material::SetDiffuse(const std::string &fileReference)
@@ -95,6 +101,7 @@ Pine::Texture2D* Pine::Material::GetNormal() const
 void Pine::Material::SetShader(Shader* shader)
 {
 	m_Shader = shader;
+    m_HasBeenModified = true;
 }
 
 Pine::Shader* Pine::Material::GetShader() const
@@ -105,6 +112,7 @@ Pine::Shader* Pine::Material::GetShader() const
 void Pine::Material::SetRenderingMode(MaterialRenderingMode mode)
 {
 	m_RenderingMode = mode;
+    m_HasBeenModified = true;
 }
 
 Pine::MaterialRenderingMode Pine::Material::GetRenderingMode() const
@@ -115,6 +123,7 @@ Pine::MaterialRenderingMode Pine::Material::GetRenderingMode() const
 void Pine::Material::SetShininess(float value)
 {
 	m_Shininess = value;
+    m_HasBeenModified = true;
 }
 
 float Pine::Material::GetShininess() const
@@ -125,6 +134,7 @@ float Pine::Material::GetShininess() const
 void Pine::Material::SetTextureScale(float value)
 {
 	m_TextureScale = value;
+    m_HasBeenModified = true;
 }
 
 float Pine::Material::GetTextureScale() const

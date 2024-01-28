@@ -577,17 +577,23 @@ const std::unordered_map<std::string, IAsset*>& Assets::GetAll()
 
 void Assets::SaveAll()
 {
+    int savedAssets = 0;
+
     for (const auto& [path, asset] : m_Assets)
     {
         if (!asset->HasFile())
             continue;
-
-        // We currently have no way of knowing if an asset has actually been updated from the code.
-        // So for now save all assets
+        if (!asset->IsModified())
+            continue;
 
         asset->SaveToFile();
         asset->SaveMetadata();
+        asset->MarkAsUpdated();
+
+        savedAssets++;
     }
+
+    Log::Message(fmt::format("Saved {} modified assets.", savedAssets));
 }
 
 void Assets::RefreshAll()

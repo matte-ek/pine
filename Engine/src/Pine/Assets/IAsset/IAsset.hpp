@@ -102,6 +102,9 @@ namespace Pine
         // Used to determine if an asset file has been updated on the disk since we last loaded it.
         std::filesystem::file_time_type m_DiskWriteTime;
 
+        // Used to determine if this asset has been modified, and that we'd like to save it.
+        bool m_HasBeenModified = false;
+
         AssetState m_State = AssetState::Unloaded;
 
         AssetLoadMode m_LoadMode = AssetLoadMode::SingleThread;
@@ -146,6 +149,9 @@ namespace Pine
 
         bool IsDeleted() const;
         void MarkAsDeleted();
+
+        bool IsModified() const;
+        void MarkAsModified();
 
         const std::vector<std::string>& GetDependencies() const;
 

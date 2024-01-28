@@ -43,16 +43,19 @@ namespace
 
             component->LoadData(componentData);
 
-            entity->AddComponent(componentData);
+            entity->AddComponent(component);
         }
 
-        for (const auto& childData : j["children"])
+        if (j.contains("children"))
         {
-            auto child = new Pine::Entity(0, false);
+            for (const auto& childData : j["children"])
+            {
+                auto child = new Pine::Entity(0, false);
 
-            entity->AddChild(child);
+                entity->AddChild(child);
 
-            LoadEntity(childData, child);
+                LoadEntity(childData, child);
+            }
         }
     }
 
@@ -112,6 +115,8 @@ void Pine::Blueprint::CreateFromEntity(const Entity* entity)
     m_Entity = new Entity(0, false);
 
    CopyEntity(m_Entity, entity, false);
+
+   m_HasBeenModified = true;
 }
 
 Pine::Entity* Pine::Blueprint::Spawn() const

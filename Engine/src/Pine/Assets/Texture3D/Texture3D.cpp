@@ -94,6 +94,7 @@ void Pine::Texture3D::Dispose()
 void Pine::Texture3D::SetTexture(Texture2D*texture)
 {
     m_Texture = texture;
+    m_HasBeenModified = true;
 }
 
 Pine::Texture2D *Pine::Texture3D::GetTexture() const
@@ -104,6 +105,7 @@ Pine::Texture2D *Pine::Texture3D::GetTexture() const
 void Pine::Texture3D::SetSideTexture(TextureCubeSide side, Texture2D*texture)
 {
     m_SideTextures[static_cast<int>(side)] = texture;
+    m_HasBeenModified = true;
 }
 
 Pine::Texture2D *Pine::Texture3D::GetSideTexture(TextureCubeSide side) const

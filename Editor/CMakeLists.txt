@@ -12,6 +12,12 @@ add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Gui/Panels/Engine/EngineAssetsPanel.hpp
-        src/Gui/Panels/Engine/EngineAssetsPanel.cpp)
+        src/Gui/Panels/Engine/EngineAssetsPanel.cpp
+        src/Gui/MenuBar/MenuBar.hpp
+        src/Gui/MenuBar/MenuBar.cpp
+        src/Gui/Shared/Commands/Commands.hpp
+        src/Gui/Shared/Commands/Commands.cpp
+        src/Gui/Shared/KeybindSystem/KeybindSystem.hpp
+        src/Gui/Shared/KeybindSystem/KeybindSystem.cpp)
 
 target_link_libraries(Editor Engine freetype)

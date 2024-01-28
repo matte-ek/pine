@@ -142,6 +142,7 @@ void Pine::IAsset::MarkAsUpdated()
     }
 
     m_DiskWriteTime = last_write_time(m_FilePath);
+    m_HasBeenModified = false;
 }
 
 bool Pine::IAsset::HasBeenUpdated() const
@@ -157,4 +158,14 @@ bool Pine::IAsset::IsDeleted() const
 void Pine::IAsset::MarkAsDeleted()
 {
     m_IsDeleted = true;
+}
+
+bool Pine::IAsset::IsModified() const
+{
+    return m_HasBeenModified;
+}
+
+void Pine::IAsset::MarkAsModified()
+{
+    m_HasBeenModified = true;
 }

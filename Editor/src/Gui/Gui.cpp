@@ -13,6 +13,8 @@
 #include "Panels/GameViewport/GameViewportPanel.hpp"
 #include "Panels/LevelViewport/LevelViewportPanel.hpp"
 #include "Gui/Panels/Engine/EngineAssetsPanel.hpp"
+#include "Gui/MenuBar/MenuBar.hpp"
+#include "Gui/Shared/Commands/Commands.hpp"
 
 namespace
 {
@@ -150,6 +152,8 @@ namespace
 
         CreateDockSpace();
 
+        MenuBar::Render();
+
         ImGui::ShowDemoWindow();
 
         Panels::GameViewport::Render();
@@ -157,8 +161,9 @@ namespace
         Panels::EntityList::Render();
         Panels::AssetBrowser::Render();
         Panels::Properties::Render();
-
         Panels::EngineAssetsPanel::Render();
+
+        Commands::Update();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -169,10 +174,14 @@ void Gui::Setup()
 {
     InitializeImGui();
 
+    Commands::Setup();
+
     Pine::RenderManager::AddRenderCallback(OnPineRender);
 }
 
 void Gui::Shutdown()
 {
+    Commands::Dispose();
+
     ShutdownImGui();
 }
