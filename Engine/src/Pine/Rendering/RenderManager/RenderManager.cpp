@@ -3,6 +3,8 @@
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline2D/Pipeline2D.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
+#include "Pine/World/World.hpp"
+#include "Pine/Assets/Level/Level.hpp"
 #include <vector>
 #include <GLFW/glfw3.h>
 
@@ -67,6 +69,9 @@ void Pine::RenderManager::Run()
 
     for (auto renderingContext: m_RenderingContexts)
     {
+        if (Pine::World::GetActiveLevel())
+            renderingContext->Skybox = Pine::World::GetActiveLevel()->GetLevelSettings().Skybox.Get();
+
         if (!renderingContext->Active)
             continue;
 

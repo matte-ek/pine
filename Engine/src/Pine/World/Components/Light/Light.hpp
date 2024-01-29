@@ -25,6 +25,9 @@ namespace Pine
 
         void SetLightColor(Vector3f color);
         const Vector3f& GetLightColor() const;
+
+        void LoadData(const nlohmann::json& j) override;
+        void SaveData(nlohmann::json& j) override;
     };
 
 }

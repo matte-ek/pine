@@ -88,6 +88,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     Renderer3D::Setup();
     Physics3D::Setup();
     Input::Setup();
+    World::Setup();
     Utilities::HotReload::Setup();
 
     // Finish initialization

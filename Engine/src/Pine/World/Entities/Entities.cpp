@@ -7,7 +7,7 @@ namespace
 {
     // Incremental counter each time an entity is created, to make sure
     // each entity will have a unique id.
-    std::uint32_t m_EntityId = 0;
+    std::uint32_t m_EntityId = 1;
 
     // The current set engine configuration for the maximum amount of entities in the scene.
     // Currently, stays constant during the lifespan of the application.
@@ -238,6 +238,8 @@ void Entities::DeleteAll(bool includeTemporary)
 
         m_EntityPointerList.erase(m_EntityPointerList.begin() + i);
     }
+
+    m_EntityId = 1;
 }
 
 const std::vector<Entity*>& Entities::GetList()

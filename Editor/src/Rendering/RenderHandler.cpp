@@ -29,6 +29,8 @@ namespace
             m_LevelRenderingContext->Active = Panels::LevelViewport::GetActive() && Panels::LevelViewport::GetVisible();
             m_LevelRenderingContext->Size = Pine::Vector2f(1920, 1080);
 
+            m_LevelRenderingContext->Skybox = m_GameRenderingContext->Skybox;
+
             EditorEntity::Get()->GetComponents()[1]->OnRender(deltaTime);
         }
     }

@@ -25,7 +25,10 @@ namespace
 	private:
 	public:
 		void OnRender(float deltaTime) override
-		{
+        {
+            if (!m_CaptureMouse)
+                return;
+
             const float speed = 2.f;
             const float sensitivity = 0.2f;
 
@@ -34,13 +37,10 @@ namespace
             transform->LocalPosition += transform->GetForward() * m_Forward->GetAxisValue() * deltaTime * speed;
             transform->LocalPosition += transform->GetRight() * m_Sideways->GetAxisValue() * deltaTime * speed;
 
-            if (m_CaptureMouse)
-            {
-                m_ViewAngles.x += m_Pitch->GetAxisValue() * sensitivity;
-                m_ViewAngles.y += m_Yaw->GetAxisValue() * sensitivity;
+            m_ViewAngles.x += m_Pitch->GetAxisValue() * sensitivity;
+            m_ViewAngles.y += m_Yaw->GetAxisValue() * sensitivity;
 
-                transform->SetEulerAngles(Pine::Vector3f(m_ViewAngles, 0.f));
-            }
+            transform->SetEulerAngles(Pine::Vector3f(m_ViewAngles, 0.f));
 		}
 
 		void LoadData(const nlohmann::json& j) override {}

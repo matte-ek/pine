@@ -30,6 +30,12 @@ namespace Pine::Serialization
 
     nlohmann::json StoreAsset(const IAsset* asset);
 
+    template <typename T>
+    nlohmann::json StoreAsset(const AssetHandle<T> asset)
+    {
+        return StoreAsset(asset.Get());
+    }
+
     /* Load */
 
     void LoadVector2(const nlohmann::json& j, const std::string& name, Vector2f& vec);

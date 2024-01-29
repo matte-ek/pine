@@ -57,6 +57,11 @@ void Pine::World::SetActiveLevel(Level *level, bool ignoreLoad)
     }
 
     m_Level = level;
+
+    for (auto& transform : Components::Get<Pine::Transform>())
+    {
+        transform.OnRender(0.f);
+    }
 }
 
 Pine::Level *Pine::World::GetActiveLevel()
@@ -78,12 +83,22 @@ void Pine::World::Update()
 {
     const auto deltaTime = CalculateFrameTime();
 
-    /*
-    for (auto& script : Components::Get<Pine::NativeScript>())
-    {
-        script.OnRender(static_cast<float>(deltaTime));
-    }
-     */
-
     Physics3D::Update(deltaTime);
+}
+
+void Pine::World::Setup()
+{
+    // In the future we'll figure out which startup level to use.
+    Pine::Level* level = nullptr;
+
+    // Fallback to untitled level.
+    if (level == nullptr)
+    {
+        level = new Pine::Level();
+
+        level->SetPath("untitled.lvl");
+        level->SetFilePath("game/untitled.lvl", "game");
+    }
+
+    World::SetActiveLevel(level);
 }

@@ -15,6 +15,7 @@
 #include "Gui/Panels/Engine/EngineAssetsPanel.hpp"
 #include "Gui/MenuBar/MenuBar.hpp"
 #include "Gui/Shared/Commands/Commands.hpp"
+#include "Gui/Panels/LevelPanel/LevelPanel.hpp"
 
 namespace
 {
@@ -161,6 +162,7 @@ namespace
         Panels::EntityList::Render();
         Panels::AssetBrowser::Render();
         Panels::Properties::Render();
+        Panels::LevelPanel::Render();
         Panels::EngineAssetsPanel::Render();
 
         Commands::Update();

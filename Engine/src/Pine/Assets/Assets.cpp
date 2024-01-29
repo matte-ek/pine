@@ -175,8 +175,9 @@ void Assets::Shutdown()
     for (auto& asset : m_Assets)
     {
         Log::Verbose(fmt::format("Disposing asset {}...", asset.first));
-        
-        asset.second->Dispose();
+
+        if (!asset.second->IsDeleted())
+            asset.second->Dispose();
     }
 }
 

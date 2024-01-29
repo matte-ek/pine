@@ -43,6 +43,9 @@ namespace Widgets
     AssetPickerResult AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
     AssetPickerResult AssetPicker(const std::string& str, const std::string& id, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
 
+    EntityPickerResult EntityPicker(const std::string& str, const std::string& id, const Pine::Entity* entity);
+    EntityPickerResult EntityPicker(const std::string& str, const Pine::Entity* entity);
+
     bool Icon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, int size = 64);
 
     void TilesetAtlas(Pine::Tileset* tileset, int& selectedItem);

@@ -1,6 +1,7 @@
 #include "Camera.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::Camera::Camera() :
         IComponent(ComponentType::Camera)
@@ -50,10 +51,20 @@ void Pine::Camera::OnRender(float)
 
 void Pine::Camera::LoadData(const nlohmann::json &j)
 {
+    Serialization::LoadValue(j, "cameraType", m_CameraType);
+    Serialization::LoadValue(j, "nearPlane", m_NearPlane);
+    Serialization::LoadValue(j, "farPlane", m_FarPlane);
+    Serialization::LoadValue(j, "fieldOfView", m_FieldOfView);
+    Serialization::LoadValue(j, "orthographicSize", m_OrthographicSize);
 }
 
 void Pine::Camera::SaveData(nlohmann::json &j)
 {
+    j["cameraType"] = static_cast<int>(m_CameraType);
+    j["nearPlane"] = m_NearPlane;
+    j["farPlane"] = m_FarPlane;
+    j["fieldOfView"] = m_FieldOfView;
+    j["orthographicSize"] = m_OrthographicSize;
 }
 
 const Pine::Matrix4f &Pine::Camera::GetProjectionMatrix() const

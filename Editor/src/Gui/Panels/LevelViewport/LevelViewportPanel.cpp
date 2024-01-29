@@ -3,10 +3,12 @@
 #include "Rendering/RenderHandler.hpp"
 #include "IconsMaterialDesign.h"
 #include "EditorEntity/EditorEntity.hpp"
-#include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/Input/Input.hpp"
+#include "Pine/World/World.hpp"
+#include "Pine/Assets/Level/Level.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -108,6 +110,8 @@ namespace
                 transform->LocalRotation = rotation;
             if (m_GizmoMode == GizmoMode::Scale)
                 transform->LocalScale = scale;
+
+            transform->OnRender(0.f);
         }
 
         ImGui::GetWindowDrawList()->PopClipRect();
@@ -241,6 +245,34 @@ void Panels::LevelViewport::Render()
         }
 
         Pine::Input::SetCursorPosition(m_MouseCapturePosition);
+    }
+
+    // Allow drag dropping some assets to the viewport such as blueprints, levels and sky boxes.
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (ImGui::AcceptDragDropPayload("Asset", ImGuiDragDropFlags_SourceAllowNullID))
+        {
+            const auto asset = *static_cast<Pine::IAsset**>(ImGui::GetDragDropPayload()->Data);
+
+            if (asset->GetType() == Pine::AssetType::Texture3D)
+            {
+                auto currentLevel = Pine::World::GetActiveLevel();
+                auto skybox = dynamic_cast<Pine::Texture3D*>(asset);
+
+                if (currentLevel && skybox)
+                    currentLevel->GetLevelSettings().Skybox = skybox;
+            }
+
+            if (asset->GetType() == Pine::AssetType::Level)
+            {
+                auto level = dynamic_cast<Pine::Level*>(asset);
+
+                if (level)
+                    Pine::World::SetActiveLevel(level);
+            }
+        }
+
+        ImGui::EndDragDropTarget();
     }
 
     EditorEntity::SetCaptureMouse(m_CaptureMouse);

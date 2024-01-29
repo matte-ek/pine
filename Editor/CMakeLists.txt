@@ -18,6 +18,8 @@ add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Gui/Shared/Commands/Commands.hpp
         src/Gui/Shared/Commands/Commands.cpp
         src/Gui/Shared/KeybindSystem/KeybindSystem.hpp
-        src/Gui/Shared/KeybindSystem/KeybindSystem.cpp)
+        src/Gui/Shared/KeybindSystem/KeybindSystem.cpp
+        src/Gui/Panels/LevelPanel/LevelPanel.hpp
+        src/Gui/Panels/LevelPanel/LevelPanel.cpp)
 
 target_link_libraries(Editor Engine freetype)

@@ -70,6 +70,9 @@ namespace
             case Pine::Graphics::TextureFormat::Depth:
                 openglFormat = GL_DEPTH_COMPONENT;
                 break;
+            case Pine::Graphics::TextureFormat::DepthStencil:
+                openglFormat = GL_DEPTH_STENCIL;
+                break;
             case Pine::Graphics::TextureFormat::Alpha:
                 openglFormat = GL_ALPHA;
                 break;

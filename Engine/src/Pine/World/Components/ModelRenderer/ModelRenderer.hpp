@@ -14,6 +14,9 @@ namespace Pine
 
         void SetModel(Model* model);
         Model* GetModel() const;
+
+        void LoadData(const nlohmann::json& j) override;
+        void SaveData(nlohmann::json& j) override;
     };
 
 }

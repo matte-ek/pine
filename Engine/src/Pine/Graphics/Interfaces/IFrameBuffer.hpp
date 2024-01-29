@@ -11,7 +11,7 @@ namespace Pine::Graphics
     {
         ColorBuffer = (1 << 0),
         DepthBuffer = (1 << 1),
-        StencilBuffer = (1 << 2),
+        StencilBuffer = (1 << 2), // Notice: When creating a stencil buffer, a depth buffer must also be created, due to internal implementations.
         NormalBuffer = (1 << 3)
     };
 
@@ -23,6 +23,7 @@ namespace Pine::Graphics
 
         virtual ITexture* GetColorBuffer() = 0;
         virtual ITexture* GetDepthBuffer() = 0;
+        virtual ITexture* GetStencilBuffer() = 0;
         virtual ITexture* GetNormalBuffer() = 0;
 
         virtual Vector2i GetSize() = 0;

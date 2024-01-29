@@ -13,6 +13,7 @@ namespace Pine::Graphics
 
        GLTexture* m_ColorBuffer = nullptr;
        GLTexture* m_DepthBuffer = nullptr;
+       GLTexture* m_DepthStencilBuffer = nullptr;
        GLTexture* m_NormalBuffer = nullptr;
 
        Vector2i m_Size = Vector2i(0);
@@ -29,6 +30,7 @@ namespace Pine::Graphics
        ITexture* GetColorBuffer() override;
        ITexture* GetDepthBuffer() override;
        ITexture* GetNormalBuffer() override;
+       ITexture* GetDepthStencilBuffer() override;
    };
 
 }

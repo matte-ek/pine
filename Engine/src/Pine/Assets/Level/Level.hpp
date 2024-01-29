@@ -13,7 +13,8 @@ namespace Pine
 
     struct LevelSettings
     {
-        Texture3D* Skybox = nullptr;
+        AssetHandle<Texture3D> Skybox;
+        bool HasCamera = false;
         std::uint32_t CameraEntity = 0;
     };
 

@@ -146,6 +146,10 @@ namespace
     {
         ImGui::Text("Has Entity: %s", blueprint->HasEntity() ? "Yes" : "No");
 
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
         EntityPropertiesPanel::Render(blueprint->GetEntity());
     }
 

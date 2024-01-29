@@ -683,5 +683,24 @@ void Panels::AssetBrowser::Render()
 
     ImGui::EndChild();
 
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (ImGui::AcceptDragDropPayload("Entity", ImGuiDragDropFlags_SourceAllowNullID))
+        {
+            const auto entity = *static_cast<Pine::Entity**>(ImGui::GetDragDropPayload()->Data);
+
+            Pine::Blueprint blueprint;
+
+            blueprint.CreateFromEntity(entity);
+            blueprint.SetFilePath(m_SelectedEntry->Path.string() + "/" + entity->GetName() + ".bpt"); // surely the entity name is a valid file name :-)
+            blueprint.SaveToFile();
+            blueprint.Dispose();
+
+            RebuildAssetTree();
+        }
+
+        ImGui::EndDragDropTarget();
+    }
+
     ImGui::End();
 }

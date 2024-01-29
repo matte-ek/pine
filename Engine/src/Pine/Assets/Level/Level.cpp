@@ -2,6 +2,7 @@
 #include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/World/Entities/Entities.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
 Pine::Level::Level()
 {
@@ -11,6 +12,9 @@ Pine::Level::Level()
 
 void Pine::Level::CreateFromWorld()
 {
+    auto primaryRenderingContext = Pine::RenderManager::GetPrimaryRenderingContext();
+    const auto currentCameraEntity = primaryRenderingContext->SceneCamera != nullptr ? primaryRenderingContext->SceneCamera->GetParent() : nullptr;
+
     ClearBlueprints();
 
     for (const auto& entity : Entities::GetList())
@@ -23,6 +27,12 @@ void Pine::Level::CreateFromWorld()
         if (entity->GetTemporary())
             continue;
 
+        if (currentCameraEntity == entity)
+        {
+            m_LevelSettings.HasCamera = true;
+            m_LevelSettings.CameraEntity = m_Blueprints.size();
+        }
+
         auto blueprint = new Blueprint();
 
         blueprint->CreateFromEntity(entity);
@@ -30,16 +40,30 @@ void Pine::Level::CreateFromWorld()
         m_Blueprints.push_back(blueprint);
     }
 
+    m_LevelSettings.Skybox = primaryRenderingContext->Skybox;
+
     m_HasBeenModified = true;
 }
 
 void Pine::Level::Load()
 {
+    auto primaryRenderingContext = Pine::RenderManager::GetPrimaryRenderingContext();
+
     Entities::DeleteAll();
 
-    for (auto blueprint : m_Blueprints)
+    for (int i = 0; i < m_Blueprints.size();i++)
     {
-        blueprint->Spawn();
+        auto entity = m_Blueprints[i]->Spawn();
+
+        if (m_LevelSettings.HasCamera && m_LevelSettings.CameraEntity == i)
+        {
+            primaryRenderingContext->SceneCamera = entity->GetComponent<Pine::Camera>();
+        }
+    }
+
+    if (m_LevelSettings.Skybox.Get())
+    {
+        primaryRenderingContext->Skybox = m_LevelSettings.Skybox.Get();
     }
 
     World::SetActiveLevel(this, true);
@@ -77,15 +101,28 @@ bool Pine::Level::LoadFromFile(AssetLoadStage stage)
         return false;
     }
 
-    if (json.value().contains("entities"))
+    const auto& j = json.value();
+
+    if (j.contains("entities"))
     {
-        for (const auto& blueprintJson : json.value()["entities"])
+        for (const auto& blueprintJson : j["entities"])
         {
             auto blueprint = new Blueprint();
 
             blueprint->FromJson(blueprintJson);
 
             m_Blueprints.push_back(blueprint);
+        }
+    }
+
+    if (j.contains("settings"))
+    {
+        Serialization::LoadValue(j["settings"], "camera", m_LevelSettings.CameraEntity);
+        Serialization::LoadAsset(j["settings"], "skybox", m_LevelSettings.Skybox);
+
+        if (j["settings"].contains("camera"))
+        {
+            m_LevelSettings.HasCamera = true;
         }
     }
 
@@ -102,6 +139,11 @@ bool Pine::Level::SaveToFile()
     {
         j["entities"].push_back(bp->ToJson());
     }
+
+    if (m_LevelSettings.HasCamera)
+        j["settings"]["camera"] = m_LevelSettings.CameraEntity;
+
+    j["settings"]["skybox"] = Serialization::StoreAsset(m_LevelSettings.Skybox);
 
     Serialization::SaveToFile(m_FilePath, j);
 

@@ -28,6 +28,8 @@ bool Pine::Texture3D::LoadFromFile(AssetLoadStage stage)
 
     if (!m_Texture.Get())
     {
+        readyToBuild = true;
+
         for (int i = 0; i < 6;i++)
         {
             Serialization::LoadAsset(json["side"], std::to_string(i), m_SideTextures[i], false);

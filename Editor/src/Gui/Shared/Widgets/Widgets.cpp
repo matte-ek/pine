@@ -326,3 +326,86 @@ void Widgets::TilesetAtlas(Pine::Tileset* tileset, int& selectedItem)
     }
     ImGui::EndChild();
 }
+
+EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::string &id, const Pine::Entity *entity)
+{
+    EntityPickerResult ret;
+
+    if (!id.empty())
+        ImGui::PushID(id.c_str());
+
+    std::string entityName;
+
+    if (entity != nullptr && entity->GetName().size() < 128)
+    {
+        entityName = entity->GetName();
+    }
+
+    PrepareWidget(str);
+
+    char buff[128];
+
+    strcpy(buff, entityName.c_str());
+
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.f);
+
+    ImGui::InputText(std::string("##EntityName" + str).c_str(), buff, 128, ImGuiInputTextFlags_ReadOnly);
+
+    if (ImGui::IsItemClicked() && entity != nullptr)
+    {
+        Selection::Add(const_cast<Pine::Entity*>(entity), true);
+    }
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (const auto payload = ImGui::AcceptDragDropPayload("Entity"))
+        {
+            auto droppedEntity = *static_cast<Pine::Entity**>(payload->Data);
+
+            if (droppedEntity)
+            {
+                ret.hasResult = true;
+                ret.entity = droppedEntity;
+            }
+        }
+
+        ImGui::EndDragDropTarget();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(" ... "))
+    {
+        // TODO: Entity picker
+    }
+
+    ImGui::SameLine();
+
+    if (entity == nullptr)
+    {
+        Widgets::PushDisabled();
+    }
+
+    if (ImGui::Button(ICON_MD_DELETE))
+    {
+        ret.hasResult = true;
+        ret.entity = nullptr;
+    }
+
+    if (entity == nullptr)
+    {
+        Widgets::PopDisabled();
+    }
+
+    FinishWidget();
+
+    if (!id.empty())
+        ImGui::PopID();
+
+    return ret;
+}
+
+EntityPickerResult Widgets::EntityPicker(const std::string &str, const Pine::Entity *entity)
+{
+    return EntityPicker(str, "", entity);
+}

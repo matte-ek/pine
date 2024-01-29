@@ -16,5 +16,6 @@ namespace Pine::World
 	void SetActiveLevel(Level* level, bool ignoreLoad = false);
 	Level* GetActiveLevel();
 
+    void Setup();
     void Update();
 }

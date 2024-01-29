@@ -12,6 +12,7 @@ namespace Pine::Graphics
         RGB16F,
         RGBA16F,
         Depth,
+        DepthStencil,
         Alpha
     };
 
@@ -62,6 +63,8 @@ namespace Pine::Graphics
             return "Depth";
         case TextureFormat::Alpha:
             return "Alpha";
+        case TextureFormat::DepthStencil:
+            return "Depth Stencil";
         default:
             return "Unknown";
         }
