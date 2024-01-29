@@ -10,7 +10,7 @@ namespace
 
 }
 
-void Gizmo2D::Render(Pine::Vector2f position, Pine::Vector2f size)
+void Gizmo::Gizmo2D::Render(Pine::Vector2f position, Pine::Vector2f size)
 {
 
 }

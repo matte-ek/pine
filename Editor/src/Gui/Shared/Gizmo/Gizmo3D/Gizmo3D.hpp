@@ -1,8 +1,10 @@
 #pragma once
 
-namespace Gizmo3D
+#include "Pine/Core/Math/Math.hpp"
+
+namespace Gizmo::Gizmo3D
 {
     void Setup();
 
-    void RenderViewportGizmo();
+    void Render(Pine::Vector2f position);
 }

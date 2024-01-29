@@ -2,12 +2,23 @@
 
 namespace
 {
+
+    void RenderIcon()
+    {
+
+    }
+
+    void RenderSelectedObject()
+    {
+        
+    }
+
 }
 
-void Gizmo3D::Setup()
+void Gizmo::Gizmo3D::Setup()
 {
 }
 
-void Gizmo3D::RenderViewportGizmo()
+void Gizmo::Gizmo3D::Render(Pine::Vector2f position)
 {
 }
