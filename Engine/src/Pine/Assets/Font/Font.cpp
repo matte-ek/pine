@@ -40,7 +40,7 @@ std::uint32_t Pine::Font::Create(float fontSize)
         data.m_TextureFontAtlas = Graphics::GetGraphicsAPI()->CreateTexture();
 
         data.m_TextureFontAtlas->Bind();
-        data.m_TextureFontAtlas->UploadTextureData(1024, 1024, Graphics::TextureFormat::Alpha, Graphics::TextureDataFormat::UnsignedByte, bitmapBuffer);
+        data.m_TextureFontAtlas->UploadTextureData(1024, 1024, Graphics::TextureFormat::SingleChannel, Graphics::TextureDataFormat::UnsignedByte, bitmapBuffer);
 
         free(bitmapBuffer);
 

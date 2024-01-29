@@ -405,6 +405,7 @@ void Renderer2D::AddFilledRoundedRectangle(Vector2f position, Vector2f size, flo
 
 void Renderer2D::AddText(Vector2f position, Color color, const std::string& str)
 {
+    
 }
 
 void Renderer2D::AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId,
