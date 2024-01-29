@@ -23,7 +23,7 @@ namespace Pine::Graphics
 
         virtual ITexture* GetColorBuffer() = 0;
         virtual ITexture* GetDepthBuffer() = 0;
-        virtual ITexture* GetStencilBuffer() = 0;
+        virtual ITexture* GetDepthStencilBuffer() = 0;
         virtual ITexture* GetNormalBuffer() = 0;
 
         virtual Vector2i GetSize() = 0;

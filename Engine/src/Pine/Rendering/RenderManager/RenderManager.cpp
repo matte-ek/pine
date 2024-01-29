@@ -1,5 +1,4 @@
 #include "RenderManager.hpp"
-#include "Pine/Core/Math/Math.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline2D/Pipeline2D.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
@@ -22,13 +21,13 @@ namespace
     // Used to track delta time between frames
     double m_LastFrameTime = 0;
 
-    std::vector<std::function<void(Pine::RenderStage, float)>> m_RenderCallbackFunctions;
+    std::vector<std::function<void(Pine::RenderingContext*, Pine::RenderStage, float)>> m_RenderCallbackFunctions;
 
-    void CallRenderCallback(Pine::RenderStage stage, float deltaTime)
+    void CallRenderCallback(Pine::RenderingContext* context, Pine::RenderStage stage, float deltaTime)
     {
         for (const auto &func: m_RenderCallbackFunctions)
         {
-            func(stage, deltaTime);
+            func(context, stage, deltaTime);
         }
     }
 
@@ -65,9 +64,9 @@ void Pine::RenderManager::Run()
 
     m_LastFrameTime = currentFrameTime;
 
-    CallRenderCallback(RenderStage::PreRender, fDeltaTime);
+    CallRenderCallback(nullptr, RenderStage::PreRender, fDeltaTime);
 
-    for (auto renderingContext: m_RenderingContexts)
+    for (auto renderingContext : m_RenderingContexts)
     {
         if (Pine::World::GetActiveLevel())
             renderingContext->Skybox = Pine::World::GetActiveLevel()->GetLevelSettings().Skybox.Get();
@@ -96,26 +95,43 @@ void Pine::RenderManager::Run()
                                                      static_cast<int>(renderingContext->ClearColor.b * 255.f),
                                                      static_cast<int>(renderingContext->ClearColor.a * 255.f)));
 
-        Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer);
+        Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer | Graphics::StencilBuffer);
 
-        // 3D pass
-        CallRenderCallback(RenderStage::Render3D, fDeltaTime);
-        Pipeline3D::Run(*renderingContext);
+        Graphics::GetGraphicsAPI()->SetStencilTestEnabled(renderingContext->EnableStencilBuffer);
+        
+        if (renderingContext->EnableStencilBuffer)
+        {
+            Graphics::GetGraphicsAPI()->SetStencilFunction(Graphics::TestFunction::Always, 0, 0);
+            Graphics::GetGraphicsAPI()->SetStencilOperation(Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep);
+        }
 
-        // 2D pass
-        CallRenderCallback(RenderStage::Render2D, fDeltaTime);
-        Pipeline2D::Run(*renderingContext);
+        if (renderingContext->UseRenderPipeline)
+        {
+            // 3D pass
+            CallRenderCallback(renderingContext, RenderStage::Render3D, fDeltaTime);
+            Pipeline3D::Run(*renderingContext);
 
-        // Post Processing
-        CallRenderCallback(RenderStage::PostProcessing, fDeltaTime);
+            // 2D pass
+            CallRenderCallback(renderingContext, RenderStage::Render2D, fDeltaTime);
+            Pipeline2D::Run(*renderingContext);
+
+            // Post Processing
+            CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
+        }
+        else
+        {
+            CallRenderCallback(renderingContext, RenderStage::Render3D, fDeltaTime);
+            CallRenderCallback(renderingContext, RenderStage::Render2D, fDeltaTime);
+            CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
+        }
     }
 
     Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
 
-    CallRenderCallback(RenderStage::PostRender, fDeltaTime);
+    CallRenderCallback(nullptr, RenderStage::PostRender, fDeltaTime);
 }
 
-void Pine::RenderManager::AddRenderCallback(const std::function<void(RenderStage, float)> &func)
+void Pine::RenderManager::AddRenderCallback(const std::function<void(RenderingContext*, RenderStage, float)> &func)
 {
     m_RenderCallbackFunctions.push_back(func);
 }

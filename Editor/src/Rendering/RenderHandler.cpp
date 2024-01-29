@@ -16,7 +16,7 @@ namespace
     Pine::RenderingContext* m_GameRenderingContext = nullptr;
     Pine::RenderingContext* m_LevelRenderingContext = nullptr;
 
-    void OnPineRender(Pine::RenderStage stage, float deltaTime)
+    void OnPineRender(Pine::RenderingContext* context, Pine::RenderStage stage, float deltaTime)
     {
         if (!m_GameRenderingContext || !m_LevelRenderingContext)
             return;
@@ -45,7 +45,7 @@ void RenderHandler::Setup()
     m_GameFrameBuffer->Create(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
 
     m_LevelFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_LevelFrameBuffer->Create(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_LevelFrameBuffer->Create(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::StencilBuffer | Pine::Graphics::Buffers::DepthBuffer);
 
     // Prepare rendering contexts
     m_GameRenderingContext = new Pine::RenderingContext;

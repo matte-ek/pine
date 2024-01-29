@@ -113,8 +113,9 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
         m_DepthStencilBuffer->SetSamples(multiSample);
 
         m_DepthStencilBuffer->Bind();
-        m_DepthStencilBuffer->UploadTextureData(width, height, TextureFormat::DepthStencil, TextureDataFormat::Float, nullptr);
+        m_DepthStencilBuffer->UploadTextureData(width, height, TextureFormat::DepthStencil, TextureDataFormat::UnsignedInt24_8, nullptr);
 
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, textureType, m_DepthStencilBuffer->GetId(), 0);
     }
     else
     {

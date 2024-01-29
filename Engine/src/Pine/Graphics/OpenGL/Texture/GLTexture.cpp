@@ -37,6 +37,8 @@ namespace
                 return GL_UNSIGNED_BYTE;
             case Pine::Graphics::TextureDataFormat::Float:
                 return GL_FLOAT;
+            case Pine::Graphics::TextureDataFormat::UnsignedInt24_8:
+                return GL_UNSIGNED_INT_24_8;
             default:
                 throw std::runtime_error("Unsupported texture data format type.");
         }
@@ -72,6 +74,7 @@ namespace
                 break;
             case Pine::Graphics::TextureFormat::DepthStencil:
                 openglFormat = GL_DEPTH_STENCIL;
+                openglInternalFormat = GL_DEPTH24_STENCIL8;
                 break;
             case Pine::Graphics::TextureFormat::Alpha:
                 openglFormat = GL_ALPHA;

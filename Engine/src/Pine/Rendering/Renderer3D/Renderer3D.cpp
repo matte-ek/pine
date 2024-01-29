@@ -147,10 +147,16 @@ bool Pine::Renderer3D::AddInstance(const Matrix4f&transformationMatrix)
     return false;
 }
 
-void Pine::Renderer3D::RenderMesh(const Matrix4f&transformationMatrix)
+void Pine::Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, int writeStencilBuffer)
 {
     ShaderStorages::Transform.Data().TransformationMatrix[0] = transformationMatrix;
     ShaderStorages::Transform.Upload(sizeof(Matrix4f));
+
+    if (writeStencilBuffer != 0)
+    {
+        m_GraphicsAPI->SetStencilOperation(Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep, Graphics::StencilOperation::Replace);
+        m_GraphicsAPI->SetStencilFunction(Graphics::TestFunction::Always, writeStencilBuffer, 0x0);
+    }
 
     if (m_Mesh->HasElementBuffer())
     {
@@ -159,6 +165,12 @@ void Pine::Renderer3D::RenderMesh(const Matrix4f&transformationMatrix)
     else
     {
         m_GraphicsAPI->DrawArrays(Graphics::RenderMode::Triangles, m_Mesh->GetRenderCount());
+    }
+
+    if (writeStencilBuffer != 0)
+    {
+        m_GraphicsAPI->SetStencilOperation(Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep);
+        m_GraphicsAPI->SetStencilFunction(Graphics::TestFunction::Always, 0x0, 0x0);
     }
 }
 

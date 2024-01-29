@@ -75,6 +75,14 @@ namespace
                     {
                         renderer->GetParent()->GetTransform()->OnRender(0.f);
 
+                        if (renderer->GetOverrideStencilBuffer())
+                        {
+                            // This renderer will force us to flush our prepared instanced meshes.
+                            Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix(), renderer->GetStencilBufferValue());
+
+                            continue;
+                        }
+
                         if (Renderer3D::AddInstance(renderer->GetParent()->GetTransform()->GetTransformationMatrix()))
                         {
                             Renderer3D::RenderMeshInstanced();
@@ -89,7 +97,7 @@ namespace
 
                     renderer->GetParent()->GetTransform()->OnRender(0.f);
 
-                    Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix());
+                    Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix(), renderer->GetStencilBufferValue());
                 }
             }
         }

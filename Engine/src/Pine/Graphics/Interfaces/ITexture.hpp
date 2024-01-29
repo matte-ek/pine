@@ -36,7 +36,8 @@ namespace Pine::Graphics
     enum class TextureDataFormat
     {
         UnsignedByte,
-        Float
+        Float,
+        UnsignedInt24_8
     };
 
     enum class TextureFilteringMode

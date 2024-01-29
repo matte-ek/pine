@@ -37,7 +37,7 @@ namespace Pine::Renderer3D
     bool AddInstance(const Matrix4f& transformationMatrix);
 
     // Renders the prepared mesh with a single transform
-    void RenderMesh(const Matrix4f& transformationMatrix);
+    void RenderMesh(const Matrix4f& transformationMatrix, int writeStencilBuffer = 0x00);
 
     // Renders the prepared mesh with the current instance batch, see Renderer3D::AddInstance(...)
     void RenderMeshInstanced();

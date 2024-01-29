@@ -20,6 +20,9 @@ add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Gui/Shared/KeybindSystem/KeybindSystem.hpp
         src/Gui/Shared/KeybindSystem/KeybindSystem.cpp
         src/Gui/Panels/LevelPanel/LevelPanel.hpp
-        src/Gui/Panels/LevelPanel/LevelPanel.cpp)
+        src/Gui/Panels/LevelPanel/LevelPanel.cpp
+        src/Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp
+        src/Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.cpp
+        src/Gui/Shared/Gizmo/Gizmo.hpp)
 
 target_link_libraries(Editor Engine freetype)

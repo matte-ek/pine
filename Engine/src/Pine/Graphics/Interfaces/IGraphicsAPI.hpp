@@ -27,6 +27,18 @@ namespace Pine::Graphics
         NotEqual
     };
 
+    enum class StencilOperation
+    {
+        Keep,
+        Zero,
+        Replace,
+        Increment,
+        IncrementWrap,
+        Decrement,
+        DecrementWrap,
+        Invert
+    };
+
     class IGraphicsAPI
     {
     public:
@@ -60,6 +72,10 @@ namespace Pine::Graphics
         virtual void SetMultisampleEnabled(bool value) = 0;
 
         virtual void SetDepthFunction(TestFunction value) = 0;
+
+        virtual void SetStencilFunction(TestFunction function, int ref, int mask) = 0;
+        virtual void SetStencilOperation(StencilOperation stencilFail, StencilOperation depthFail, StencilOperation depthPass) = 0;
+        virtual void SetStencilMask(int mask) = 0;
 
         virtual IVertexArray* CreateVertexArray() = 0;
         virtual void DestroyVertexArray(IVertexArray* array) = 0;

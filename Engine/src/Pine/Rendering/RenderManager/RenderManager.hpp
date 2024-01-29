@@ -23,7 +23,7 @@ namespace Pine::RenderManager
 
     // Allows the user to provide a function pointer which will be called during specific
     // render events shown in RenderStage
-    void AddRenderCallback(const std::function<void(RenderStage, float)>& func);
+    void AddRenderCallback(const std::function<void(RenderingContext*, RenderStage, float)>& func);
 
     void SetPrimaryRenderingContext(RenderingContext* context);
     RenderingContext* GetPrimaryRenderingContext();

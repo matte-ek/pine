@@ -25,3 +25,23 @@ void Pine::ModelRenderer::SaveData(nlohmann::json &j)
 {
     j["model"] = Serialization::StoreAsset(m_Model);
 }
+
+void Pine::ModelRenderer::SetOverrideStencilBuffer(bool value)
+{
+    m_OverrideStencilBuffer = value;
+}
+
+bool Pine::ModelRenderer::GetOverrideStencilBuffer() const
+{
+    return m_OverrideStencilBuffer;
+}
+
+void Pine::ModelRenderer::SetStencilBufferValue(int value)
+{
+    m_StencilBufferValue = value;
+}
+
+int Pine::ModelRenderer::GetStencilBufferValue() const
+{
+    return m_StencilBufferValue;
+}

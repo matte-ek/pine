@@ -268,3 +268,18 @@ void Pine::Graphics::OpenGL::SetDepthFunction(Pine::Graphics::TestFunction value
 {
     glDepthFunc(TranslateTestFunction(value));
 }
+
+void Pine::Graphics::OpenGL::SetStencilFunction(Pine::Graphics::TestFunction function, int ref, int mask)
+{
+    glStencilFunc(TranslateTestFunction(function), ref, mask);
+}
+
+void Pine::Graphics::OpenGL::SetStencilMask(int mask)
+{
+    glStencilMask(mask);
+}
+
+void Pine::Graphics::OpenGL::SetStencilOperation(Pine::Graphics::StencilOperation stencilFail, Pine::Graphics::StencilOperation depthFail, Pine::Graphics::StencilOperation depthPass)
+{
+    glStencilOp(static_cast<GLenum>(stencilFail), static_cast<GLenum>(depthFail), static_cast<GLenum>(depthPass));
+}

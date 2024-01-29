@@ -36,6 +36,10 @@ namespace Pine::Graphics
 
         void SetDepthFunction(TestFunction value) override;
 
+        void SetStencilFunction(TestFunction function, int ref, int mask) override;
+        void SetStencilOperation(StencilOperation stencilFail, StencilOperation depthFail, StencilOperation depthPass) override;
+        void SetStencilMask(int mask) override;
+
         IVertexArray* CreateVertexArray() override;
         void DestroyVertexArray(IVertexArray* array) override;
 
