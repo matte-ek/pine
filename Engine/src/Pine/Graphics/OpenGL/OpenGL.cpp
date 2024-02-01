@@ -49,6 +49,31 @@ namespace
         }
     }
 
+    std::uint32_t TranslateStencilOperation(Pine::Graphics::StencilOperation stencilOperation)
+    {
+        switch (stencilOperation)
+        {
+            case Pine::Graphics::StencilOperation::Keep:
+                return GL_KEEP;
+            case Pine::Graphics::StencilOperation::Zero:
+                return GL_ZERO;
+            case Pine::Graphics::StencilOperation::Replace:
+                return GL_REPLACE;
+            case Pine::Graphics::StencilOperation::Increment:
+                return GL_INCR;
+            case Pine::Graphics::StencilOperation::IncrementWrap:
+                return GL_INCR_WRAP;
+            case Pine::Graphics::StencilOperation::Decrement:
+                return GL_DECR;
+            case Pine::Graphics::StencilOperation::DecrementWrap:
+                return GL_DECR_WRAP;
+            case Pine::Graphics::StencilOperation::Invert:
+                return GL_INVERT;
+            default:
+                throw std::runtime_error("Invalid stencil operation.");
+        }
+    }
+
     void GLAPIENTRY MessageCallback(GLenum source,
                                     GLenum type,
                                     GLuint id,
@@ -281,5 +306,5 @@ void Pine::Graphics::OpenGL::SetStencilMask(int mask)
 
 void Pine::Graphics::OpenGL::SetStencilOperation(Pine::Graphics::StencilOperation stencilFail, Pine::Graphics::StencilOperation depthFail, Pine::Graphics::StencilOperation depthPass)
 {
-    glStencilOp(static_cast<GLenum>(stencilFail), static_cast<GLenum>(depthFail), static_cast<GLenum>(depthPass));
+    glStencilOp(TranslateStencilOperation(stencilFail), TranslateStencilOperation(depthFail), TranslateStencilOperation(depthPass));
 }

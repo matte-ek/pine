@@ -42,6 +42,8 @@ namespace Pine::Renderer3D
     // Renders the prepared mesh with the current instance batch, see Renderer3D::AddInstance(...)
     void RenderMeshInstanced();
 
+    void SetStencilWrite(int value);
+
     void AddLight(const Light* light);
     void UploadLights();
 

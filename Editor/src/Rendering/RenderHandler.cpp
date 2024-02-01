@@ -60,6 +60,9 @@ void RenderHandler::Setup()
     // For the level rendering context, we'll always force the editor entity's camera
     m_LevelRenderingContext->SceneCamera = EditorEntity::Get()->GetComponent<Pine::Camera>();
 
+    // We'll want to enable the stencil buffer for the level for the selected object outline.
+    m_LevelRenderingContext->EnableStencilBuffer = true;
+
     Pine::RenderManager::SetPrimaryRenderingContext(m_GameRenderingContext);
     Pine::RenderManager::AddRenderingContextPass(m_LevelRenderingContext);
 }
