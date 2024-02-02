@@ -16,6 +16,7 @@
 #include "Gui/MenuBar/MenuBar.hpp"
 #include "Gui/Shared/Commands/Commands.hpp"
 #include "Gui/Panels/LevelPanel/LevelPanel.hpp"
+#include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 
 namespace
 {
@@ -177,6 +178,7 @@ void Gui::Setup()
     InitializeImGui();
 
     Commands::Setup();
+    Gizmo::Gizmo3D::Setup();
 
     Pine::RenderManager::AddRenderCallback(OnPineRender);
 }

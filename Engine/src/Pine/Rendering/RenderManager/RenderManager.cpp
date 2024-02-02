@@ -108,20 +108,20 @@ void Pine::RenderManager::Run()
         if (renderingContext->UseRenderPipeline)
         {
             // 3D pass
-            CallRenderCallback(renderingContext, RenderStage::Render3D, fDeltaTime);
+            CallRenderCallback(renderingContext, RenderStage::PreRender3D, fDeltaTime);
             Pipeline3D::Run(*renderingContext);
+            CallRenderCallback(renderingContext, RenderStage::PostRender3D, fDeltaTime);
 
             // 2D pass
-            CallRenderCallback(renderingContext, RenderStage::Render2D, fDeltaTime);
+            CallRenderCallback(renderingContext, RenderStage::PreRender2D, fDeltaTime);
             Pipeline2D::Run(*renderingContext);
+            CallRenderCallback(renderingContext, RenderStage::PostRender2D, fDeltaTime);
 
             // Post Processing
             CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
         }
         else
         {
-            CallRenderCallback(renderingContext, RenderStage::Render3D, fDeltaTime);
-            CallRenderCallback(renderingContext, RenderStage::Render2D, fDeltaTime);
             CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
         }
     }

@@ -79,6 +79,11 @@ void RenderHandler::Shutdown()
     delete m_LevelRenderingContext;
 }
 
+Pine::RenderingContext *RenderHandler::GetLevelRenderingContext()
+{
+    return m_LevelRenderingContext;
+}
+
 Pine::RenderingContext* RenderHandler::GetGameRenderingContext()
 {
     return m_GameRenderingContext;
@@ -93,3 +98,4 @@ Pine::Graphics::IFrameBuffer* RenderHandler::GetLevelFrameBuffer()
 {
     return m_LevelFrameBuffer;
 }
+

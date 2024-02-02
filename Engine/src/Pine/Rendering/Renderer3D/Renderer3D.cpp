@@ -87,6 +87,7 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         return;
     }
 
+    // ehh
     m_Material = m_RenderingConfiguration.OverrideMaterial ? m_RenderingConfiguration.OverrideMaterial : overrideMaterial ? overrideMaterial : mesh->GetMaterial();
 
     auto shader = m_RenderingConfiguration.OverrideShader ? m_RenderingConfiguration.OverrideShader : m_Material->GetShader();
@@ -201,22 +202,22 @@ void Pine::Renderer3D::SetShader(Shader*shader)
     {
         if (!ShaderStorages::Matrix.AttachShader(shader))
         {
-            Log::Error("Shader is missing 'Matrix' shader storage, expect rendering issues.");
+            Log::Error("Renderer3D: Shader is missing 'Matrix' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Transform.AttachShader(shader))
         {
-            Log::Error("Shader is missing 'Transform' shader storage, expect rendering issues.");
+            Log::Error("Renderer3D: Shader is missing 'Transform' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Material.AttachShader(shader))
         {
-            Log::Error("Shader is missing 'Material' shader storage, expect rendering issues.");
+            Log::Error("Renderer3D: Shader is missing 'Material' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Lights.AttachShader(shader))
         {
-            Log::Error("Shader is missing 'Lights' shader storage, expect rendering issues.");
+            Log::Error("Renderer3D: Shader is missing 'Lights' shader storage, expect rendering issues.");
         }
 
         shader->SetReady(true);

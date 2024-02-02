@@ -7,10 +7,12 @@ namespace Pine
     enum class RenderStage
     {
         PreRender,
-        Render2D,
-        Render3D,
-        PostProcessing,
-        PostRender
+        PostRender,
+        PreRender2D,
+        PostRender2D,
+        PreRender3D,
+        PostRender3D,
+        PostProcessing
     };
 }
 

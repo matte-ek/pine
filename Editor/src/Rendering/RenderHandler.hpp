@@ -8,6 +8,7 @@ namespace RenderHandler
     void Setup();
     void Shutdown();
 
+    Pine::RenderingContext* GetLevelRenderingContext();
     Pine::RenderingContext* GetGameRenderingContext();
 
     Pine::Graphics::IFrameBuffer* GetGameFrameBuffer();
