@@ -1,7 +1,5 @@
 #include "Renderer2D.hpp"
 
-#include <iostream>
-
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Graphics/Interfaces/IGraphicsAPI.hpp"
@@ -11,7 +9,6 @@
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
-#include <stb/stb_truetype.h>
 
 using namespace Pine;
 
@@ -403,9 +400,34 @@ void Renderer2D::AddFilledRoundedRectangle(Vector2f position, Vector2f size, flo
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddText(Vector2f position, Color color, const std::string& str)
-{
-    
+void Renderer2D::AddText(Vector2f position, Color color, const std::string& str, Pine::Font* font) {
+    if (font->GetFontData(0).m_TextureFontAtlas == nullptr)
+    {
+        throw std::runtime_error("Renderer2D::AddText(): Font atlas is not loaded.");
+    }
+
+    const auto& fontData = font->GetFontData(0);
+    const auto textureAtlasSize = Vector2f(fontData.m_TextureFontAtlas->GetWidth(), fontData.m_TextureFontAtlas->GetHeight());
+
+    float cursor = 0.f;
+
+    for (auto chr : str)
+    {
+        if (chr < 32 || chr > 126)
+            continue;
+
+        const auto& chrData = fontData.m_CharData[chr - 32];
+
+       AddFilledTexturedRectangle(position + Vector2f(cursor + chrData.xoff, chrData.yoff),
+                                  Pine::Vector2f(chrData.x1 - chrData.x0, chrData.y1 - chrData.y0),
+                                  0.f,
+                                  color,
+                                  fontData.m_TextureFontAtlas,
+                                  Vector2f(chrData.x0, chrData.y0) / textureAtlasSize,
+                                  Vector2f(chrData.x1 - chrData.x0, chrData.y1 - chrData.y0) / textureAtlasSize);
+
+       cursor += chrData.xadvance;
+    }
 }
 
 void Renderer2D::AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId,
