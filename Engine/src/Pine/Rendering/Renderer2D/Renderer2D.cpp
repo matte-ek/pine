@@ -400,7 +400,8 @@ void Renderer2D::AddFilledRoundedRectangle(Vector2f position, Vector2f size, flo
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddText(Vector2f position, Color color, const std::string& str, Pine::Font* font) {
+void Renderer2D::AddText(Vector2f position, Color color, const std::string& str, Pine::Font* font)
+{
     if (font->GetFontData(0).m_TextureFontAtlas == nullptr)
     {
         throw std::runtime_error("Renderer2D::AddText(): Font atlas is not loaded.");

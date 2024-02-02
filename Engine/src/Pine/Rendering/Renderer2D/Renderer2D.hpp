@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "Pine/Assets/Font/Font.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/Color/Color.hpp"
 #include "Pine/Core/Math/Math.hpp"
@@ -35,7 +36,7 @@ namespace Pine::Renderer2D
 
     void AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId, Color color);
 
-    void AddText(Vector2f position, Color color, const std::string& str);
+    void AddText(Vector2f position, Color color, const std::string& str, Pine::Font* font);
 
 
 }

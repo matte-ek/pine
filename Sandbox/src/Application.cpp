@@ -12,7 +12,7 @@ namespace
 
 void OnPineRender(Pine::RenderingContext*, Pine::RenderStage stage, float deltaTime)
 {
-    if (stage != Pine::RenderStage::Render2D)
+    if (stage != Pine::RenderStage::PreRender2D)
         return;
 
     Pine::RenderingContext context {true, true, Pine::Vector2f(1280, 720) };
