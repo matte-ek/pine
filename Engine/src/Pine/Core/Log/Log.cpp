@@ -29,9 +29,9 @@ namespace
     enum class ConsoleColor
     {
         None,
-        DarkGray = 30,
-        Gray = 30,
-        White = 37,
+        DarkGray = 90,
+        Gray = 37,
+        White = 97,
         Yellow = 33,
         Red = 31
     };
@@ -48,14 +48,13 @@ namespace
     }
 #endif
 
-    void PrintMessage(const char* prefix, ConsoleColor color, const char* str)
+    void PrintMessage(const char* prefix, ConsoleColor color, const char* str, ConsoleColor msgColor = ConsoleColor::None)
     {
         SetConsoleColor(color);
 
         std::cout << prefix << ": ";
 
-        if (color != ConsoleColor::DarkGray)
-            SetConsoleColor(ConsoleColor::White);
+        SetConsoleColor(msgColor);
 
         std::cout << str << std::endl;
     }
@@ -63,7 +62,7 @@ namespace
 
 void Pine::Log::Verbose(const std::string &str)
 {
-    PrintMessage("verbose", ConsoleColor::DarkGray, str.c_str());
+    PrintMessage("verbose", ConsoleColor::DarkGray, str.c_str(), ConsoleColor::DarkGray);
 }
 
 void Pine::Log::Message(const std::string &str)
@@ -83,5 +82,5 @@ void Pine::Log::Error(const std::string &str)
 
 void Pine::Log::Fatal(const std::string &str)
 {
-    PrintMessage("fatal", ConsoleColor::Red, str.c_str());
+    PrintMessage("fatal", ConsoleColor::Red, str.c_str(), ConsoleColor::Red);
 }
