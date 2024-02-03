@@ -35,7 +35,19 @@ std::uint32_t Pine::Font::Create(float fontSize)
         data.m_Size = fontSize;
         data.m_CharData.resize(96);
 
-        stbtt_BakeFontBitmap(reinterpret_cast<const unsigned char*>(buffer.data()), 0, fontSize, static_cast<unsigned char*>(bitmapBuffer), 1024, 1024, 32, 96, data.m_CharData.data());
+        /*
+         * Baked fonts can't have subpixel positioning
+         */
+        // stbtt_BakeFontBitmap(reinterpret_cast<const unsigned char*>(buffer.data()), 0, fontSize, static_cast<unsigned char*>(bitmapBuffer), 1024, 1024, 32, 96, data.m_CharData.data());
+
+        // For several font sizes we use a range array and set the font sizes we want in it then pack it with stbtt_PackFontRanges
+        stbtt_pack_context ctx;
+        stbtt_PackBegin(&ctx, static_cast<unsigned char*>(bitmapBuffer), 1024, 1024, 0, 1, NULL);
+        stbtt_PackSetOversampling(&ctx, 1, 1);
+        stbtt_pack_range range[1] = {{fontSize, 32, nullptr, 96, data.m_CharData.data(), 0, 0}};
+
+        stbtt_PackFontRanges(&ctx, reinterpret_cast<const unsigned char*>(buffer.data()), 0, range, 1);
+        stbtt_PackEnd(&ctx);
 
         data.m_TextureFontAtlas = Graphics::GetGraphicsAPI()->CreateTexture();
 

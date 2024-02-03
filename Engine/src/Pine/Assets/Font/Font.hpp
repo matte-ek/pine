@@ -11,7 +11,7 @@ namespace Pine
     {
         float m_Size = 0.f;
 
-        std::vector<stbtt_bakedchar> m_CharData;
+        std::vector<stbtt_packedchar> m_CharData;
 
         Graphics::ITexture* m_TextureFontAtlas = nullptr;
     };
