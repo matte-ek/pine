@@ -9,9 +9,9 @@
     [X] Add basic actions to menu bar (save/load, windows)
     [X] Add keyboard shortcut functionality
 [X] Add level/assets saving functionality to editor
-[ ] Allow modification to level stuff (skybox, active camera etc)
-[ ] More viewport stuff
-    [ ] Add selected entity outline
+[X] Allow modification to level stuff (skybox, active camera etc)
+[X] More viewport stuff
+    [X] Add selected entity outline
     [ ] Allow clicking on entities to select them
     [ ] Add drag-drop to viewport
 [ ] Add play/stop functionality
