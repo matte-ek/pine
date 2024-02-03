@@ -26,10 +26,8 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/reactphysics3d
-        key: ${{ runner.os }}-cmake-${{ hashFiles('~/reactphysics3d/VERSION') }}
-      restore-keys: |
-        ${{ runner.os }}-cmake-
-      
+        key: ${{ runner.os }}-cmake-reactphysics
+     
     - run: |
         sudo apt install ninja-build cmake lcov valgrind
         cd ~
@@ -50,8 +48,9 @@ jobs:
         cd ${{github.workspace}}
       if: steps.cache-packages.outputs.cache-hit != 'true'
       
-    - run: |
-        cd ${{github.workspace}}/reactphysics3d
+    - name: "Install dependencies"
+      run: |
+        cd ~/reactphysics3d
         sudo cmake --install build/
         cd ${{github.workspace}}
 
