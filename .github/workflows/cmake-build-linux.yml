@@ -21,14 +21,16 @@ jobs:
         sudo apt update
         sudo apt install libstb-dev libglew-dev libglfw3-dev nlohmann-json3-dev libglm-dev libfreetype-dev libfmt-dev libassimp-dev
     
-    - name: Build and cache third-party dependencies
+    - name: Restore third-party dependencies from cache
       id: cache-deps
       uses: actions/cache@v3
       with:
         path: ~/reactphysics3d
         key: ${{ runner.os }}-cmake-reactphysics
      
-    - run: |
+    - name: Build third party dependencies
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      run: |
         sudo apt install ninja-build cmake lcov valgrind
         cd ~
         git clone https://github.com/DanielChappuis/reactphysics3d.git
@@ -46,7 +48,6 @@ jobs:
         cmake --build build/
         #sudo cmake --build build/ --target install --config Release
         cd ${{github.workspace}}
-      if: steps.cache-packages.outputs.cache-hit != 'true'
       
     - name: "Install dependencies"
       run: |
