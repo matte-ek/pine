@@ -44,6 +44,27 @@ namespace
         }
     }
 
+    std::int32_t TranslateSwizzleMaskChannel(Pine::Graphics::SwizzleMaskChannel channel)
+    {
+        switch (channel)
+        {
+            case Pine::Graphics::SwizzleMaskChannel::Red:
+                return GL_RED;
+            case Pine::Graphics::SwizzleMaskChannel::Green:
+                return GL_GREEN;
+            case Pine::Graphics::SwizzleMaskChannel::Blue:
+                return GL_BLUE;
+            case Pine::Graphics::SwizzleMaskChannel::Alpha:
+                return GL_ALPHA;
+            case Pine::Graphics::SwizzleMaskChannel::Zero:
+                return GL_ZERO;
+            case Pine::Graphics::SwizzleMaskChannel::One:
+                return GL_ONE;
+            default:
+                throw std::runtime_error("Unsupported swizzle mask channel.");
+        }
+    }
+
     GLTextureFormat TranslateOpenGLTextureFormat(Pine::Graphics::TextureFormat format)
     {
         int openglFormat;
@@ -133,7 +154,7 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
     auto srcId = *reinterpret_cast<std::uint32_t *>(texture->GetGraphicsIdentifier());
 
     size_t bufferSize = texture->GetWidth() * texture->GetHeight() * (texture->GetTextureFormat() == TextureFormat::RGBA ? 4 : 3);
-    void* buffer = malloc(bufferSize);
+    void *buffer = malloc(bufferSize);
 
     glGetTextureImage(static_cast<int>(srcId), 0, openglFormat, GL_UNSIGNED_BYTE, bufferSize, buffer);
 
@@ -195,6 +216,11 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
 
         glTexParameteri(openglType, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(openglType, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    }
+
+    if (m_HasCustomSwizzleMask)
+    {
+        UpdateSwizzleMask();
     }
 
     m_Width = width;
@@ -318,4 +344,39 @@ void Pine::Graphics::GLTexture::SetSamples(int samples)
 int Pine::Graphics::GLTexture::GetSamples()
 {
     return m_Samples;
+}
+
+bool Pine::Graphics::GLTexture::HasCustomSwizzleMask()
+{
+    return m_HasCustomSwizzleMask;
+}
+
+void Pine::Graphics::GLTexture::SetSwizzleMask(Pine::Graphics::SwizzleMaskChannel r, Pine::Graphics::SwizzleMaskChannel g, Pine::Graphics::SwizzleMaskChannel b, Pine::Graphics::SwizzleMaskChannel a)
+{
+    m_SwizzleMask = { r, g, b, a };
+    m_HasCustomSwizzleMask = true;
+
+    if (m_Id != 0)
+    {
+        UpdateSwizzleMask();
+    }
+}
+
+void Pine::Graphics::GLTexture::ResetSwizzleMask()
+{
+    m_SwizzleMask = {SwizzleMaskChannel::Red, SwizzleMaskChannel::Green, SwizzleMaskChannel::Blue, SwizzleMaskChannel::Alpha};
+    m_HasCustomSwizzleMask = false;
+
+    if (m_Id != 0)
+    {
+        UpdateSwizzleMask();
+    }
+}
+
+void Pine::Graphics::GLTexture::UpdateSwizzleMask()
+{
+    glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_R, TranslateSwizzleMaskChannel(m_SwizzleMask[0]));
+    glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_G, TranslateSwizzleMaskChannel(m_SwizzleMask[1]));
+    glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_B, TranslateSwizzleMaskChannel(m_SwizzleMask[2]));
+    glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_A, TranslateSwizzleMaskChannel(m_SwizzleMask[3]));
 }

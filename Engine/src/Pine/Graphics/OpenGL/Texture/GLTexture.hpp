@@ -13,6 +13,7 @@ namespace Pine::Graphics
         std::uint32_t m_Id = 0;
 
         void UpdateTextureFiltering();
+        void UpdateSwizzleMask();
     public:
         GLTexture();
 
@@ -42,6 +43,10 @@ namespace Pine::Graphics
 
         TextureFormat GetTextureFormat() override;
         TextureDataFormat GetTextureDataFormat() override;
+
+        bool HasCustomSwizzleMask() override;
+        void SetSwizzleMask(SwizzleMaskChannel r, SwizzleMaskChannel g, SwizzleMaskChannel b, SwizzleMaskChannel a) override;
+        void ResetSwizzleMask() override;
 
         void UploadTextureData(int width, int height, TextureFormat format, TextureDataFormat dataFormat, void* data) override;
         void CopyTextureData(ITexture* texture, TextureUploadTarget textureUploadTarget, Vector4i srcRect = Vector4i(-1), Vector2i dstPos = Vector2i(0)) override;

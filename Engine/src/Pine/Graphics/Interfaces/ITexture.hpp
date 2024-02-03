@@ -1,5 +1,6 @@
 #pragma once
 #include "Pine/Core/Math/Math.hpp"
+#include <array>
 
 namespace Pine::Graphics
 {
@@ -46,6 +47,16 @@ namespace Pine::Graphics
         Linear
     };
 
+    enum class SwizzleMaskChannel
+    {
+        Red,
+        Green,
+        Blue,
+        Alpha,
+        Zero,
+        One
+    };
+
     inline const char* TextureFormatToString(TextureFormat format)
     {
         switch (format)
@@ -85,6 +96,9 @@ namespace Pine::Graphics
         TextureFormat m_TextureFormat = TextureFormat::SingleChannel;
         TextureDataFormat m_TextureDataFormat = TextureDataFormat::UnsignedByte;
 
+        bool m_HasCustomSwizzleMask = false;
+        std::array<SwizzleMaskChannel, 4> m_SwizzleMask = { SwizzleMaskChannel::Red, SwizzleMaskChannel::Green, SwizzleMaskChannel::Blue, SwizzleMaskChannel::Alpha };
+
         bool m_HasMipmaps = false;
 
         bool m_MultiSampled = false;
@@ -118,6 +132,10 @@ namespace Pine::Graphics
 
         virtual TextureFormat GetTextureFormat() = 0;
         virtual TextureDataFormat GetTextureDataFormat() = 0;
+
+        virtual bool HasCustomSwizzleMask() = 0;
+        virtual void SetSwizzleMask(SwizzleMaskChannel r, SwizzleMaskChannel g, SwizzleMaskChannel b, SwizzleMaskChannel a) = 0;
+        virtual void ResetSwizzleMask() = 0;
 
         virtual void UploadTextureData(int width, int height, TextureFormat textureFormat, TextureDataFormat dataFormat, void* data) = 0;
         virtual void CopyTextureData(ITexture* texture, TextureUploadTarget textureUploadTarget, Vector4i srcRect = Vector4i(-1), Vector2i dstPos = Vector2i(0)) = 0;
