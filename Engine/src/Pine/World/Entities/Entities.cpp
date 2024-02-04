@@ -198,48 +198,15 @@ void Entities::DeleteAll(bool includeTemporary)
         return;
     }
 
-    std::vector<const Entity*> entityPointerKeepList;
+    auto entityList = m_EntityPointerList;
 
-    for (std::uint32_t i = 0; i < GetHighestEntityIndex();i++)
+    for (auto entity : entityList)
     {
-        if (!m_EntityOccupationArray[i])
+        if (entity->GetTemporary())
             continue;
 
-        const auto& entity = m_Entities[i];
-
-        if (entity.GetTemporary())
-        {
-            entityPointerKeepList.push_back(&entity);
-
-            continue;
-        }
-
-        m_Entities[i].~Entity();
-        m_EntityOccupationArray[i] = false;
+        Delete(entity);
     }
-
-    for (int i = 0; i < m_EntityPointerList.size();i++)
-    {
-        bool ignoreEntity = false;
-
-        for (auto keepEntity : entityPointerKeepList)
-        {
-            if (m_EntityPointerList[i] == keepEntity)
-            {
-                ignoreEntity = true;
-                break;
-            }
-        }
-
-        if (ignoreEntity)
-        {
-            continue;
-        }
-
-        m_EntityPointerList.erase(m_EntityPointerList.begin() + i);
-    }
-
-    m_EntityId = 1;
 }
 
 const std::vector<Entity*>& Entities::GetList()
