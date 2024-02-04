@@ -113,6 +113,28 @@ namespace
             if (m_GizmoMode == GizmoMode::Scale)
                 transform->LocalScale = scale;
 
+            if (Selection::GetSelectedEntities().size() > 1)
+            {
+                glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
+
+                for (auto entity : Selection::GetSelectedEntities())
+                {
+                    if (entity == selectedEntity)
+                        continue;
+
+                    auto entityTransform = entity->GetTransform();
+
+                    if (m_GizmoMode == GizmoMode::Translate)
+                        entityTransform->LocalPosition += position;
+                    if (m_GizmoMode == GizmoMode::Rotate)
+                        entityTransform->LocalRotation *= rotation;
+                    if (m_GizmoMode == GizmoMode::Scale)
+                        entityTransform->LocalScale += scale;
+
+                    entityTransform->OnRender(0.f);
+                }
+            }
+
             transform->OnRender(0.f);
         }
 
