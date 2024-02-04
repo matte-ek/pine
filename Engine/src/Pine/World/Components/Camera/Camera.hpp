@@ -25,6 +25,8 @@ namespace Pine
 
         float m_OrthographicSize = 1.f;
 
+        float m_OverrideAspectRatio = 0.f;
+
     	Matrix4f m_ProjectionMatrix = Matrix4f(1.f);
         Matrix4f m_ViewMatrix = Matrix4f(1.f);
 
@@ -35,6 +37,8 @@ namespace Pine
 
         void SetCameraType(CameraType type);
         CameraType GetCameraType() const;
+
+        void SetOverrideAspectRatio(float value);
 
         void SetNearPlane(float value);
         float GetNearPlane() const;

@@ -3,6 +3,11 @@
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Graphics/Graphics.hpp"
+#include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
+#include "Pine/World/Components/Transform/Transform.hpp"
+#include "Pine/World/Entity/Entity.hpp"
+#include "Pine/Assets/Model/Model.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
 namespace
 {
@@ -23,6 +28,8 @@ namespace
         Pine::Texture2D *Texture = nullptr;
 
         IconType Type = IconType::Static;
+
+        bool m_Dirty = true;
     };
 
     Pine::Texture2D *GetStaticIconFromAsset(Pine::IAsset *asset)
@@ -52,15 +59,110 @@ namespace
         }
     }
 
+    bool ShouldGenerateDynamicIcon(Pine::IAsset *asset)
+    {
+        switch (asset->GetType())
+        {
+            case Pine::AssetType::Material:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void RenderMaterial(Icon &icon)
+    {
+        static auto sphereModel = Pine::Assets::Get<Pine::Model>("editor/models/sphere.fbx");
+        static Pine::Entity* sphereEntity = nullptr;
+
+        if (sphereEntity == nullptr)
+        {
+            sphereEntity = new Pine::Entity(0);
+            sphereEntity->AddComponent(new Pine::Transform());
+
+            sphereEntity->GetTransform()->LocalScale = Pine::Vector3f(10.f);
+            sphereEntity->GetTransform()->LocalPosition = Pine::Vector3f(0, 0, -0.2f);
+            sphereEntity->GetTransform()->OnRender(0.f);
+        }
+
+        Pine::Renderer3D::PrepareMesh(sphereModel->GetMeshes()[0], dynamic_cast<Pine::Material*>(icon.Asset));
+        Pine::Renderer3D::RenderMesh(sphereEntity->GetTransform()->GetTransformationMatrix());
+    }
+
+    void GenerateDynamicIcon(Icon &icon)
+    {
+        if (icon.Type != IconType::Dynamic)
+        {
+            return;
+        }
+
+        static Pine::Entity* lightEntity = nullptr;
+        static Pine::Entity* cameraEntity = nullptr;
+
+        if (lightEntity == nullptr)
+        {
+            lightEntity = new Pine::Entity(0);
+            lightEntity->AddComponent(new Pine::Light());
+        }
+
+        if (cameraEntity == nullptr)
+        {
+            cameraEntity = new Pine::Entity(0);
+            cameraEntity->AddComponent(new Pine::Camera());
+            cameraEntity->GetComponent<Pine::Camera>()->SetOverrideAspectRatio(1.f);
+            cameraEntity->GetComponent<Pine::Camera>()->OnRender(0.f);
+        }
+
+        icon.FrameBuffer->Bind();
+
+        Pine::Graphics::GetGraphicsAPI()->SetViewport(Pine::Vector2i(0), Pine::Vector2i(128, 128));
+        Pine::Graphics::GetGraphicsAPI()->ClearColor(Pine::Color(0, 0, 0, 0));
+        Pine::Graphics::GetGraphicsAPI()->ClearBuffers(Pine::Graphics::Buffers::ColorBuffer);
+        Pine::Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
+
+        Pine::Renderer3D::FrameReset();
+
+        Pine::Renderer3D::SetCamera(cameraEntity->GetComponent<Pine::Camera>());
+        Pine::Renderer3D::AddLight(lightEntity->GetComponent<Pine::Light>());
+        Pine::Renderer3D::UploadLights();
+
+        if (icon.Asset->GetType() == Pine::AssetType::Material)
+        {
+            RenderMaterial(icon);
+        }
+    }
+
     std::unordered_map<std::string, Icon> m_IconCache;
     Pine::Graphics::IFrameBuffer *m_PreviewFrameBuffer = nullptr;
 
+    void OnRender(Pine::RenderingContext*, Pine::RenderStage stage, float)
+    {
+        if (stage != Pine::RenderStage::PreRender)
+            return;
+
+        for (auto &[path, icon]: m_IconCache)
+        {
+            if (icon.Asset->IsDeleted())
+                continue;
+            if (!icon.m_Dirty)
+                continue;
+            if (icon.Type == IconType::Static)
+                continue;
+
+            GenerateDynamicIcon(icon);
+
+            icon.m_Dirty = false;
+        }
+
+    }
 }
 
 void IconStorage::Setup()
 {
     m_PreviewFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
     m_PreviewFrameBuffer->Create(512, 512, Pine::Graphics::Buffers::ColorBuffer);
+
+    Pine::RenderManager::AddRenderCallback(OnRender);
 }
 
 void IconStorage::Update()
@@ -79,7 +181,7 @@ void IconStorage::Update()
 
         if (icon.Type == IconType::Dynamic)
         {
-            // TODO: Remove generated textures and whatnot.
+            icon.FrameBuffer->Dispose();
         }
 
         removeList.push_back(iconAssetPath);
@@ -93,6 +195,9 @@ void IconStorage::Update()
     // Generate icons
     for (const auto &[path, asset]: Pine::Assets::GetAll())
     {
+        if (asset->IsDeleted())
+            continue;
+
         Icon *icon = nullptr;
 
         icon = &m_IconCache[path];
@@ -104,18 +209,48 @@ void IconStorage::Update()
             icon->Asset = asset;
         }
 
+        if (ShouldGenerateDynamicIcon(asset))
+        {
+            icon->Type = IconType::Dynamic;
+
+            if (icon->FrameBuffer == nullptr)
+            {
+                icon->FrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
+                icon->FrameBuffer->Create(128, 128, Pine::Graphics::Buffers::ColorBuffer);
+            }
+
+            icon->m_Dirty = true;
+        }
+
         icon->Texture = GetStaticIconFromAsset(asset);
     }
 }
 
-Pine::Texture2D *IconStorage::GetIconTexture(const std::string &path)
+Pine::Graphics::ITexture *IconStorage::GetIconTexture(const std::string &path)
 {
     static auto invalidAssetIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file.png");
 
     if (!m_IconCache.count(path) || !m_IconCache[path].Texture)
     {
-        return invalidAssetIcon;
+        return invalidAssetIcon->GetGraphicsTexture();
     }
 
-    return m_IconCache[path].Texture;
+    const auto& icon = m_IconCache[path];
+
+    if (icon.Type == IconType::Dynamic)
+    {
+        return icon.FrameBuffer->GetColorBuffer();
+    }
+
+    return m_IconCache[path].Texture->GetGraphicsTexture();
+}
+
+void IconStorage::MarkIconDirty(const std::string &path)
+{
+    if (!m_IconCache.count(path))
+    {
+        return;
+    }
+
+    m_IconCache[path].m_Dirty = true;
 }

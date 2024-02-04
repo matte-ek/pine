@@ -18,6 +18,7 @@
 #include "Gui/Panels/LevelPanel/LevelPanel.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
+#include "Gui/Shared/IconStorage/IconStorage.hpp"
 
 namespace
 {
@@ -181,6 +182,7 @@ void Gui::Setup()
     Commands::Setup();
     Gizmo::Gizmo3D::Setup();
     EntitySelection::Setup();
+    IconStorage::Setup();
 
     Pine::RenderManager::AddRenderCallback(OnPineRender);
 }

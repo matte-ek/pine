@@ -21,7 +21,11 @@ float Pine::Camera::GetOrthographicSize() const
 void Pine::Camera::BuildProjectionMatrix()
 {
     auto renderingContext = RenderManager::GetCurrentRenderingContext();
-    const float aspectRatio = renderingContext->Size.x / renderingContext->Size.y;
+
+    float aspectRatio = m_OverrideAspectRatio;
+
+    if (m_OverrideAspectRatio == 0.f)
+        aspectRatio = renderingContext->Size.x / renderingContext->Size.y;
 
     if (m_CameraType == CameraType::Orthographic)
         m_ProjectionMatrix = glm::ortho(-m_OrthographicSize, m_OrthographicSize, -m_OrthographicSize,
@@ -125,4 +129,9 @@ void Pine::Camera::SetClearColor(Vector4f color)
 const Pine::Vector4f &Pine::Camera::GetClearColor() const
 {
     return m_ClearColor;
+}
+
+void Pine::Camera::SetOverrideAspectRatio(float value)
+{
+    m_OverrideAspectRatio = value;
 }

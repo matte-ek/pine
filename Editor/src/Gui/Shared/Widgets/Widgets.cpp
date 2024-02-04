@@ -253,6 +253,11 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
 
 bool Widgets::Icon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, int size)
 {
+    return Icon(text, texture->GetGraphicsTexture(), showBackground, size);
+}
+
+bool Widgets::Icon(const std::string& text, Pine::Graphics::ITexture *texture, bool showBackground, int size)
+{
     bool ret = false;
 
     ImGui::PushID(text.c_str());
@@ -263,7 +268,7 @@ bool Widgets::Icon(const std::string& text, const Pine::Texture2D* texture, bool
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
     }
 
-    std::uint64_t textureId = *static_cast<std::uint32_t*>(texture->GetGraphicsTexture()->GetGraphicsIdentifier());
+    std::uint64_t textureId = *static_cast<std::uint32_t*>(texture->GetGraphicsIdentifier());
 
     if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(textureId), ImVec2(static_cast<float>(size), static_cast<float>(size)),
                             ImVec2(0, 0), ImVec2(1, 1), 3))

@@ -211,7 +211,7 @@ void AssetPropertiesPanel::Render(Pine::IAsset *asset)
 {
     auto fileIcon = IconStorage::GetIconTexture(asset->GetPath());
 
-    ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(fileIcon->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
+    ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(fileIcon->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
 
     ImGui::SameLine();
 

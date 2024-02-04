@@ -7,6 +7,8 @@ namespace IconStorage
     void Setup();
 	void Update();
 
-	Pine::Texture2D* GetIconTexture(const std::string& path);
+    void MarkIconDirty(const std::string& path);
+
+	Pine::Graphics::ITexture* GetIconTexture(const std::string& path);
 
 }

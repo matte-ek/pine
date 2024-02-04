@@ -41,7 +41,7 @@ namespace
 
         Pine::IAsset* Asset = nullptr;
 
-        Pine::Texture2D* Icon = nullptr;
+        Pine::Graphics::ITexture* Icon = nullptr;
 
         PathEntry* Parent = nullptr;
         std::vector<PathEntry*> Children;
@@ -160,7 +160,7 @@ namespace
         PathEntry* clickedItem = nullptr;
 
         const auto isSelected = Selection::IsSelected(file->Asset);
-        const auto icon = file->Icon == nullptr ? fileIcon : file->Icon;
+        const auto icon = file->Icon == nullptr ? fileIcon->GetGraphicsTexture() : file->Icon;
 
         if (Widgets::Icon(file->DisplayText, icon, isSelected, m_IconSize))
         {
@@ -176,7 +176,7 @@ namespace
 
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
         {
-            ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(icon->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
+            ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(icon->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
             ImGui::SameLine();
 
             ImGui::BeginChild("##DragDropInfo", ImVec2(200.f, 64.f));
@@ -591,6 +591,7 @@ void Panels::AssetBrowser::Render()
 
     if (ImGui::Button(ICON_MD_FOLDER_OPEN " Import"))
     {
+        IconStorage::Update();
     }
 
     ImGui::SameLine();
@@ -700,6 +701,12 @@ void Panels::AssetBrowser::Render()
         }
 
         ImGui::EndDragDropTarget();
+    }
+
+    if (!Selection::GetSelectedAssets().empty())
+    {
+        for (auto& asset : Selection::GetSelectedAssets())
+            IconStorage::MarkIconDirty(asset->GetPath());
     }
 
     ImGui::End();
