@@ -10,6 +10,7 @@
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
+#include "Other/PlayHandler/PlayHandler.hpp"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -191,6 +192,21 @@ void Panels::LevelViewport::Render()
         ImGui::OpenPopup("GizmoContextMenu");
     }
 
+    ImGui::SameLine();
+
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 45.f);
+
+    if (PlayHandler::GetGameState() == PlayHandler::EditorGameState::Stopped)
+    {
+        if (ImGui::Button(ICON_MD_PLAY_ARROW, ImVec2(45.f, 24.f)))
+            PlayHandler::Play();
+    }
+    else
+    {
+        if (ImGui::Button(ICON_MD_STOP, ImVec2(45.f, 24.f)))
+            PlayHandler::Stop();
+    }
+
     ImGui::SetNextWindowSize(ImVec2(150.f, 0.f));
     if (ImGui::BeginPopup("GizmoContextMenu"))
     {
@@ -227,25 +243,7 @@ void Panels::LevelViewport::Render()
 
     ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
 
-    if (ImGui::IsItemClicked())
-    {
-        // Convert the mouse coordinates to the frame buffer position to pass onto
-        // the entity selection system.
-        auto mousePosition = Pine::Vector2i(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
-
-        // Offset the viewport position
-        mousePosition.x -= static_cast<int>(position.x);
-        mousePosition.y -= static_cast<int>(position.y);
-
-        // Since our underlying viewport is in 1920x1080, but we down scale that to fit the viewport, we
-        // now have to up scale our cursor coordinates back to 1920x1080
-        mousePosition = Pine::Vector2f(mousePosition) *  Pine::Vector2f(1920, 1080) / Pine::Vector2f(m_Size);
-
-        // Flip Y axis since the frame buffer is flipped
-        mousePosition.y = 1080 - mousePosition.y;
-
-        EntitySelection::Pick(mousePosition);
-    }
+    bool viewportClicked = ImGui::IsItemClicked();
 
     if (!m_CaptureMouse)
     {
@@ -299,6 +297,26 @@ void Panels::LevelViewport::Render()
     EditorEntity::SetCaptureMouse(m_CaptureMouse);
 
     RenderGizmo(position);
+
+    if (viewportClicked && !ImGuizmo::IsUsing())
+    {
+        // Convert the mouse coordinates to the frame buffer position to pass onto
+        // the entity selection system.
+        auto mousePosition = Pine::Vector2i(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
+
+        // Offset the viewport position
+        mousePosition.x -= static_cast<int>(position.x);
+        mousePosition.y -= static_cast<int>(position.y);
+
+        // Since our underlying viewport is in 1920x1080, but we down scale that to fit the viewport, we
+        // now have to up scale our cursor coordinates back to 1920x1080
+        mousePosition = Pine::Vector2f(mousePosition) *  Pine::Vector2f(1920, 1080) / Pine::Vector2f(m_Size);
+
+        // Flip Y axis since the frame buffer is flipped
+        mousePosition.y = 1080 - mousePosition.y;
+
+        EntitySelection::Pick(mousePosition);
+    }
 
     ImGui::End();
 }
