@@ -25,6 +25,8 @@ namespace Pine::Graphics
 
        void Blit(IFrameBuffer* source, Vector4i srcRect = Vector4i(-1), Vector4i dstRect = Vector4i(-1)) override;
 
+       void ReadPixels(Vector2i position, Vector2i size, ReadFormat readFormat, TextureDataFormat dataFormat, size_t bufferSize, void* buffer) override;
+
        Vector2i GetSize() override;
 
        ITexture* GetColorBuffer() override;

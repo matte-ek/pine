@@ -4,22 +4,62 @@
 #include <GL/glew.h>
 #include <vector>
 
+namespace
+{
+
+    inline std::uint32_t TranslateReadFormat(Pine::Graphics::ReadFormat format)
+    {
+        switch (format)
+        {
+            case Pine::Graphics::ReadFormat::Depth:
+                return GL_DEPTH_COMPONENT;
+            case Pine::Graphics::ReadFormat::Stencil:
+                return GL_STENCIL_INDEX;
+            case Pine::Graphics::ReadFormat::RGBA:
+                return GL_RGBA;
+            case Pine::Graphics::ReadFormat::RGB:
+                return GL_RGB;
+            case Pine::Graphics::ReadFormat::RG:
+                return GL_RG;
+            case Pine::Graphics::ReadFormat::R:
+                return GL_RED;
+            default:
+                return GL_RGBA;
+        }
+    }
+
+    inline std::uint32_t TranslateTextureDataFormatType(Pine::Graphics::TextureDataFormat type)
+    {
+        switch (type)
+        {
+            case Pine::Graphics::TextureDataFormat::UnsignedByte:
+                return GL_UNSIGNED_BYTE;
+            case Pine::Graphics::TextureDataFormat::Float:
+                return GL_FLOAT;
+            case Pine::Graphics::TextureDataFormat::UnsignedInt24_8:
+                return GL_UNSIGNED_INT_24_8;
+            default:
+                throw std::runtime_error("Unsupported texture data format type.");
+        }
+    }
+}
+
 Pine::Vector2i Pine::Graphics::GLFrameBuffer::GetSize()
 {
     return m_Size;
 }
 
-Pine::Graphics::ITexture* Pine::Graphics::GLFrameBuffer::GetColorBuffer()
+Pine::Graphics::ITexture *Pine::Graphics::GLFrameBuffer::GetColorBuffer()
 {
     return m_ColorBuffer;
 }
 
-Pine::Graphics::ITexture* Pine::Graphics::GLFrameBuffer::GetDepthBuffer()
+Pine::Graphics::ITexture *Pine::Graphics::GLFrameBuffer::GetDepthBuffer()
 {
     return m_DepthBuffer;
 }
 
-Pine::Graphics::ITexture* Pine::Graphics::GLFrameBuffer::GetNormalBuffer()
+Pine::Graphics::ITexture *Pine::Graphics::GLFrameBuffer::GetNormalBuffer()
 {
     return m_NormalBuffer;
 }
@@ -116,8 +156,7 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
         m_DepthStencilBuffer->UploadTextureData(width, height, TextureFormat::DepthStencil, TextureDataFormat::UnsignedInt24_8, nullptr);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, textureType, m_DepthStencilBuffer->GetId(), 0);
-    }
-    else
+    } else
     {
         if (buffers & DepthBuffer)
         {
@@ -137,8 +176,7 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
     if (!attachedDrawBuffers.empty())
     {
         glDrawBuffers(static_cast<std::int32_t>(attachedDrawBuffers.size()), attachedDrawBuffers.data());
-    }
-    else
+    } else
     {
         // Tell OpenGL we don't have any draw buffer.
         glDrawBuffer(GL_NONE);
@@ -168,11 +206,16 @@ void Pine::Graphics::GLFrameBuffer::Blit(Pine::Graphics::IFrameBuffer *source, P
     if (dstRect == Vector4i(-1))
         dstRect = Vector4i(0, 0, m_Size.x, m_Size.y);
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, dynamic_cast<GLFrameBuffer*>(source)->m_Id);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, dynamic_cast<GLFrameBuffer *>(source)->m_Id);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_Id);
 
     glBlitFramebuffer(srcRect.x, srcRect.y, srcRect.z, srcRect.w, dstRect.x, dstRect.y, dstRect.z, dstRect.w, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+}
+
+void Pine::Graphics::GLFrameBuffer::ReadPixels(Pine::Vector2i position, Pine::Vector2i size, Pine::Graphics::ReadFormat readFormat, Pine::Graphics::TextureDataFormat dataFormat, size_t bufferSize, void *buffer)
+{
+    glReadPixels(position.x, position.y, size.x, size.y, TranslateReadFormat(readFormat), TranslateTextureDataFormatType(dataFormat), buffer);
 }

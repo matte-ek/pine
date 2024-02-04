@@ -24,6 +24,8 @@ add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp
         src/Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.cpp
         src/Gui/Shared/Gizmo/Gizmo.hpp
-        src/Gui/Shared/Gizmo/Gizmo.cpp)
+        src/Gui/Shared/Gizmo/Gizmo.cpp
+        src/Other/EntitySelection/EntitySelection.hpp
+        src/Other/EntitySelection/EntitySelection.cpp)
 
 target_link_libraries(Editor Engine freetype)

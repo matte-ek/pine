@@ -159,7 +159,8 @@ Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVar
         if (uniformLocation >= 0)
         {
             m_UniformVariables[name] = new GLUniformVariable(uniformLocation);
-        } else
+        }
+        else
         {
             Log::Warning("Failed to find uniform variable: " + name);
 

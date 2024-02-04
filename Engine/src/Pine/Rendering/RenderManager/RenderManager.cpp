@@ -105,6 +105,8 @@ void Pine::RenderManager::Run()
             Graphics::GetGraphicsAPI()->SetStencilOperation(Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep);
         }
 
+        CallRenderCallback(renderingContext, RenderStage::RenderContext, fDeltaTime);
+
         if (renderingContext->UseRenderPipeline)
         {
             // 3D pass
@@ -118,10 +120,6 @@ void Pine::RenderManager::Run()
             CallRenderCallback(renderingContext, RenderStage::PostRender2D, fDeltaTime);
 
             // Post Processing
-            CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
-        }
-        else
-        {
             CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
         }
     }

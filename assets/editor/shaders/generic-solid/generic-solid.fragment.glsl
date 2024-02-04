@@ -18,7 +18,9 @@ in VertexData
 	vec3 lightDir[4];
 }vIn;
 
+uniform vec3 m_Color;
+
 void main(void)
 {
-    m_OutputColor = vec4(1.f, 0.f, 0.f, 1.f);
+    m_OutputColor = vec4(m_Color, 1.f);
 }

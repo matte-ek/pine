@@ -17,6 +17,7 @@
 #include "Gui/Shared/Commands/Commands.hpp"
 #include "Gui/Panels/LevelPanel/LevelPanel.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
+#include "Other/EntitySelection/EntitySelection.hpp"
 
 namespace
 {
@@ -179,6 +180,7 @@ void Gui::Setup()
 
     Commands::Setup();
     Gizmo::Gizmo3D::Setup();
+    EntitySelection::Setup();
 
     Pine::RenderManager::AddRenderCallback(OnPineRender);
 }

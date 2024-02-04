@@ -8,6 +8,7 @@ namespace Pine
     {
         PreRender,
         PostRender,
+        RenderContext,
         PreRender2D,
         PostRender2D,
         PreRender3D,

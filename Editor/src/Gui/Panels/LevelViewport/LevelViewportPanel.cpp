@@ -2,13 +2,14 @@
 
 #include "Rendering/RenderHandler.hpp"
 #include "IconsMaterialDesign.h"
-#include "EditorEntity/EditorEntity.hpp"
+#include "Other/EditorEntity/EditorEntity.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/Input/Input.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Other/EntitySelection/EntitySelection.hpp"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -225,6 +226,26 @@ void Panels::LevelViewport::Render()
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
     ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
+
+    if (ImGui::IsItemClicked())
+    {
+        // Convert the mouse coordinates to the frame buffer position to pass onto
+        // the entity selection system.
+        auto mousePosition = Pine::Vector2i(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
+
+        // Offset the viewport position
+        mousePosition.x -= static_cast<int>(position.x);
+        mousePosition.y -= static_cast<int>(position.y);
+
+        // Since our underlying viewport is in 1920x1080, but we down scale that to fit the viewport, we
+        // now have to up scale our cursor coordinates back to 1920x1080
+        mousePosition = Pine::Vector2f(mousePosition) *  Pine::Vector2f(1920, 1080) / Pine::Vector2f(m_Size);
+
+        // Flip Y axis since the frame buffer is flipped
+        mousePosition.y = 1080 - mousePosition.y;
+
+        EntitySelection::Pick(mousePosition);
+    }
 
     if (!m_CaptureMouse)
     {

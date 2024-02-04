@@ -1,6 +1,6 @@
 #include "RenderHandler.hpp"
 
-#include "EditorEntity/EditorEntity.hpp"
+#include "Other/EditorEntity/EditorEntity.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"

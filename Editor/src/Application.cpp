@@ -5,7 +5,7 @@
 #include "Rendering/RenderHandler.hpp"
 #include <Pine/Pine.hpp>
 
-#include "EditorEntity/EditorEntity.hpp"
+#include "Other/EditorEntity/EditorEntity.hpp"
 
 int main()
 {
