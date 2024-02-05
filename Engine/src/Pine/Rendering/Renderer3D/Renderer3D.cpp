@@ -181,13 +181,6 @@ void Pine::Renderer3D::RenderMeshInstanced()
     if (m_CurrentInstanceIndex == 0)
         return;
 
-    if (m_CurrentInstanceIndex == 1)
-    {
-        RenderMesh(ShaderStorages::Transform.Data().TransformationMatrix[0]);
-
-        return;
-    }
-
     ShaderStorages::Transform.Upload(sizeof(Matrix4f) * m_CurrentInstanceIndex);
 
     if (m_Mesh->HasElementBuffer())

@@ -115,7 +115,7 @@ namespace
 
             if (pickedEntity)
             {
-                Selection::AddEntity(pickedEntity);
+                Selection::Add(pickedEntity, true);
             }
             else
             {

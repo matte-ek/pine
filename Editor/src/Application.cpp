@@ -6,6 +6,7 @@
 #include <Pine/Pine.hpp>
 
 #include "Other/EditorEntity/EditorEntity.hpp"
+#include "Pine/World/World.hpp"
 
 int main()
 {
@@ -23,6 +24,8 @@ int main()
 
     Pine::Assets::LoadDirectory("editor", false);
     Pine::Assets::LoadDirectory("game");
+
+    Pine::World::SetPaused(true);
 
     // Setup Editor
     EditorEntity::Setup();

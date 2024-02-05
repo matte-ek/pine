@@ -50,14 +50,20 @@ void Commands::Copy()
 
 void Commands::Paste()
 {
+    Selection::Clear();
+
     for (auto& entity : ClipboardEntities)
     {
         Pine::Blueprint blueprint;
 
         blueprint.CreateFromEntity(entity);
         blueprint.GetEntity()->SetName(blueprint.GetEntity()->GetName() + " (Copy)");
-        blueprint.Spawn();
+
+        auto spawnedEntity = blueprint.Spawn();
+
         blueprint.Dispose();
+
+        Selection::Add(spawnedEntity);
     }
 }
 

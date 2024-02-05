@@ -8,9 +8,9 @@
 
 namespace
 {
-	using namespace Pine;
+    using namespace Pine;
 
-    typedef std::unordered_map<Model*, std::vector<ModelRenderer*>> ObjectMapBatch;
+    typedef std::unordered_map<Model *, std::vector<ModelRenderer *>> ObjectMapBatch;
 
     struct RenderBatchData
     {
@@ -24,18 +24,18 @@ namespace
     };
 
     RenderBatchData GetRenderingBatch()
-	{
+    {
         RenderBatchData renderBatch;
 
-		for (auto& modelRenderer : Components::Get<ModelRenderer>())
-		{
-			if (!modelRenderer.GetModel())
-			{
-				continue;
-			}
+        for (auto &modelRenderer: Components::Get<ModelRenderer>())
+        {
+            if (!modelRenderer.GetModel())
+            {
+                continue;
+            }
 
             bool hasTransparentMaterial = false;
-            for (const auto& mesh : modelRenderer.GetModel()->GetMeshes())
+            for (const auto &mesh: modelRenderer.GetModel()->GetMeshes())
             {
                 if (mesh->GetMaterial() && mesh->GetMaterial()->GetRenderingMode() == MaterialRenderingMode::Transparent)
                 {
@@ -49,16 +49,16 @@ namespace
             {
                 renderBatch.BlendObjects[modelRenderer.GetModel()].push_back(&modelRenderer);
             }
-		}
+        }
 
-		return renderBatch;
-	}
+        return renderBatch;
+    }
 
-    void RenderBatch(const ObjectMapBatch& mapBatch, MaterialRenderingMode materialRenderingMode)
+    void RenderBatch(const ObjectMapBatch &mapBatch, MaterialRenderingMode materialRenderingMode)
     {
-        for (const auto& [model, renderers] : mapBatch)
+        for (const auto &[model, renderers]: mapBatch)
         {
-            for (auto mesh : model->GetMeshes())
+            for (auto mesh: model->GetMeshes())
             {
                 if (mesh->GetMaterial() && mesh->GetMaterial()->GetRenderingMode() != materialRenderingMode)
                 {
@@ -68,52 +68,52 @@ namespace
 
                 Renderer3D::PrepareMesh(mesh);
 
-                // If we have multiple entities to render, use instanced rendering.
-                if (renderers.size() > 1)
+                bool hasStencilBufferOverride = false;
+
+                for (auto renderer: renderers)
                 {
-                    for (auto renderer : renderers)
-                    {
-                        renderer->GetParent()->GetTransform()->OnRender(0.f);
-
-                        if (renderer->GetOverrideStencilBuffer())
-                        {
-                            // This renderer will force us to flush our prepared instanced meshes.
-                            Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix(), renderer->GetStencilBufferValue());
-
-                            continue;
-                        }
-
-                        if (Renderer3D::AddInstance(renderer->GetParent()->GetTransform()->GetTransformationMatrix()))
-                        {
-                            Renderer3D::RenderMeshInstanced();
-                        }
-                    }
-
-                    Renderer3D::RenderMeshInstanced();
-                }
-                else
-                {
-                    auto renderer = renderers[0];
-
                     renderer->GetParent()->GetTransform()->OnRender(0.f);
 
-                    Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix(), renderer->GetStencilBufferValue());
+                    if (renderer->GetOverrideStencilBuffer())
+                    {
+                        hasStencilBufferOverride = true;
+                        continue;
+                    }
+
+                    if (Renderer3D::AddInstance(renderer->GetParent()->GetTransform()->GetTransformationMatrix()))
+                    {
+                        Renderer3D::RenderMeshInstanced();
+                    }
+                }
+
+                Renderer3D::RenderMeshInstanced();
+
+                if (hasStencilBufferOverride)
+                {
+                    for (auto renderer: renderers)
+                    {
+                        if (renderer->GetOverrideStencilBuffer())
+                        {
+                            renderer->GetParent()->GetTransform()->OnRender(0.f);
+                            Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix(), renderer->GetStencilBufferValue());
+                        }
+                    }
                 }
             }
         }
     }
 
-	std::vector<Light*> GetLights()
-	{
-		std::vector<Light*> lights;
+    std::vector<Light *> GetLights()
+    {
+        std::vector<Light *> lights;
 
-		for (auto& light : Components::Get<Light>())
-		{
-			lights.push_back(&light);
-		}
+        for (auto &light: Components::Get<Light>())
+        {
+            lights.push_back(&light);
+        }
 
-		return lights;
-	}
+        return lights;
+    }
 }
 
 void Pipeline3D::Setup()
@@ -126,29 +126,29 @@ void Pipeline3D::Shutdown()
     Renderer::Skybox::Shutdown();
 }
 
-void Pipeline3D::Run(const RenderingContext& context)
+void Pipeline3D::Run(const RenderingContext &context)
 {
     Renderer3D::FrameReset();
 
-	if (context.SceneCamera)
-		Renderer3D::SetCamera(context.SceneCamera);
+    if (context.SceneCamera)
+        Renderer3D::SetCamera(context.SceneCamera);
 
-	Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
-	Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
+    Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
+    Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
 
-	// Prepare Data
-	const auto renderingBatch = GetRenderingBatch();
-	const auto lights = GetLights();
+    // Prepare Data
+    const auto renderingBatch = GetRenderingBatch();
+    const auto lights = GetLights();
 
-	// Upload Data
-	for (auto light : lights)
-	{
-		Renderer3D::AddLight(light);
-	}
+    // Upload Data
+    for (auto light: lights)
+    {
+        Renderer3D::AddLight(light);
+    }
 
-	Renderer3D::UploadLights();
+    Renderer3D::UploadLights();
 
-	// Render fully opaque objects.
+    // Render fully opaque objects.
     RenderBatch(renderingBatch.Objects, MaterialRenderingMode::Opaque);
 
     // Render objects which require discarding
@@ -156,7 +156,7 @@ void Pipeline3D::Run(const RenderingContext& context)
 
     // TODO: Render semi-transparent objects, we'll have to sort all objects by distance as well.
 
-	// Sky box
+    // Sky box
     if (context.Skybox != nullptr)
     {
         Renderer::Skybox::Render(context.Skybox);
