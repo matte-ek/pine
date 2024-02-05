@@ -162,7 +162,9 @@ Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVar
         }
         else
         {
-            Log::Warning("Failed to find uniform variable: " + name);
+            // Spams console if model doesn't have tangent data... Annoying
+            if(name != "hasTangentData")
+                Log::Warning("Failed to find uniform variable: " + name);
 
             return nullptr;
         }

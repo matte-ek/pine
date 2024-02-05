@@ -133,7 +133,8 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
 
     ShaderStorages::Material.Upload();
 
-    m_HasTangentData->LoadInteger(m_Material->GetNormal() != nullptr);
+    if(m_HasTangentData)
+        m_HasTangentData->LoadInteger(m_Material->GetNormal() != nullptr);
 }
 
 bool Pine::Renderer3D::AddInstance(const Matrix4f&transformationMatrix)
@@ -227,8 +228,6 @@ void Pine::Renderer3D::SetShader(Shader*shader)
     m_Shader = shader->GetProgram();
 
     m_Shader->Use();
-
-    assert(m_HasTangentData);
 }
 
 void Pine::Renderer3D::SetCamera(Camera*camera)
