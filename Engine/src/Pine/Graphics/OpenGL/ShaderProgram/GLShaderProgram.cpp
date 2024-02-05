@@ -151,6 +151,8 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
 
 Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVariable(const std::string &name)
 {
+    assert(m_ActiveShader == m_Id);
+
     if (m_UniformVariables.count(name) == 0)
     {
         // Attempt to find the variable, and create an GLUniformVariable object if we do
@@ -162,9 +164,10 @@ Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVar
         }
         else
         {
-            // Spams console if model doesn't have tangent data... Annoying
-            if(name != "hasTangentData")
-                Log::Warning("Failed to find uniform variable: " + name);
+            // Insert an empty pointer to indicate that we have already tried to find the variable.
+            m_UniformVariables[name] = nullptr;
+
+            Log::Warning("Failed to find uniform variable: " + name);
 
             return nullptr;
         }

@@ -133,7 +133,7 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
 
     ShaderStorages::Material.Upload();
 
-    if(m_HasTangentData)
+    if (m_HasTangentData)
         m_HasTangentData->LoadInteger(m_Material->GetNormal() != nullptr);
 }
 
@@ -179,7 +179,12 @@ void Pine::Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, int writ
 void Pine::Renderer3D::RenderMeshInstanced()
 {
     if (m_CurrentInstanceIndex == 0)
+        return;
+
+    if (m_CurrentInstanceIndex == 1)
     {
+        RenderMesh(ShaderStorages::Transform.Data().TransformationMatrix[0]);
+
         return;
     }
 
@@ -224,10 +229,10 @@ void Pine::Renderer3D::SetShader(Shader*shader)
         shader->SetReady(true);
     }
 
-    m_HasTangentData = shader->GetProgram()->GetUniformVariable("hasTangentData");
     m_Shader = shader->GetProgram();
-
     m_Shader->Use();
+
+    m_HasTangentData = shader->GetProgram()->GetUniformVariable("hasTangentData");
 }
 
 void Pine::Renderer3D::SetCamera(Camera*camera)
