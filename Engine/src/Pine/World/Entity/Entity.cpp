@@ -11,12 +11,14 @@ Pine::Entity::Entity(std::uint32_t id, bool createTransform)
 
 Pine::Entity::~Entity()
 {
-    for (const auto component : m_Components)
+    for (auto& component : m_Components)
     {
         if (!Components::Destroy(component))
         {
             Log::Error("~Entity(): Error destroying component.");
         }
+
+        component = nullptr;
     }
 
     m_Components.clear();

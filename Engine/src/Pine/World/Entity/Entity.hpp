@@ -99,7 +99,7 @@ namespace Pine
         {
             for (auto component : m_Components)
             {
-                if (typeid(*component) == typeid(T))
+                if (component && typeid(*component) == typeid(T))
                 {
                     return dynamic_cast<T*>(component);
                 }
