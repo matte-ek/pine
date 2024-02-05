@@ -62,15 +62,21 @@ namespace
             modelRenderer->SetStencilBufferValue(0x00);
 
             // Render the model
-            auto transformationMatrix = entity->GetTransform()->GetTransformationMatrix();
+            auto oldScale = entity->GetTransform()->LocalScale;
 
-            transformationMatrix = glm::scale(transformationMatrix, Pine::Vector3f(1.05f));
+            entity->GetTransform()->LocalScale += Pine::Vector3f(0.30f);
+            entity->GetTransform()->OnRender(0.f);
+            entity->GetTransform()->LocalScale = oldScale;
+
+            auto transformationMatrix = entity->GetTransform()->GetTransformationMatrix();
 
             for (auto mesh : modelRenderer->GetModel()->GetMeshes())
             {
                 Pine::Renderer3D::PrepareMesh(mesh);
                 Pine::Renderer3D::RenderMesh(transformationMatrix);
             }
+
+            entity->GetTransform()->OnRender(0.f);
         }
 
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = nullptr;
