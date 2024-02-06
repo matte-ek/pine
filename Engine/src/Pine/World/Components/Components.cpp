@@ -1,8 +1,10 @@
 #include "Components.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Engine/Engine.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
+#include "Pine/World/Components/IComponent/IComponent.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
@@ -260,4 +262,11 @@ bool Components::Destroy(IComponent* targetComponent)
 ComponentDataBlock<IComponent>& Components::GetData(ComponentType type)
 {
     return *m_ComponentDataBlocks[static_cast<int>(type)];
+}
+
+Pine::IComponent* Pine::Components::GetByInternalId(ComponentType type, int internalId)
+{
+    auto& block = GetData(type);
+
+    return block.GetComponent(internalId);
 }

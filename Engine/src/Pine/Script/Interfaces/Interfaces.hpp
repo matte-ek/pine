@@ -12,6 +12,11 @@ namespace Pine::Script::Interfaces
         void Setup();
     }
 
+    namespace Component
+    {
+        void Setup();
+    }
+
     namespace Transform
     {
         void Setup();

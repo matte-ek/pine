@@ -218,4 +218,6 @@ namespace Pine::Components
 
         return block.GetComponent(internalId);
     }
+
+    IComponent* GetByInternalId(Pine::ComponentType type, int internalId);
 }

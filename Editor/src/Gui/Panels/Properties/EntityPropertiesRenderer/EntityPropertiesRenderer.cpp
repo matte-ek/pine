@@ -1,3 +1,6 @@
+#include "Pine/Core/Math/Math.hpp"
+#include "mono/metadata/object.h"
+#include <fmt/core.h>
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "ArgumentSelectionDefects"
 
@@ -17,6 +20,8 @@
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
+#include "Pine/Script/Scripts/ScriptData.hpp"
+#include "Pine/Script/Scripts/ScriptField.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include "imgui.h"
 #include "Pine/Core/String/String.hpp"
@@ -233,6 +238,88 @@ namespace
 
             if (newScriptSet)
                 scriptComponent->SetScript(dynamic_cast<Pine::CSharpScript *>(newScript));
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            if (scriptComponent->GetScript() && 
+                scriptComponent->GetScript()->GetScriptData() &&
+                scriptComponent->GetScript()->GetScriptData()->IsReady && 
+                scriptComponent->GetScriptObjectHandle()->Object != nullptr)
+            {  
+                const auto scriptData = scriptComponent->GetScript()->GetScriptData();
+                
+                if (scriptData->Fields.empty())
+                {
+                    ImGui::Text("No fields avaliable.");
+                }
+
+                const auto object = mono_gchandle_get_target(scriptComponent->GetScriptObjectHandle()->Handle);
+
+                for (const auto& field : scriptData->Fields)
+                {
+                    if (field->GetType() == Pine::ScriptFieldType::Float)
+                    {
+                        float value = field->Get<float>(object);
+
+                        if (Widgets::InputFloat(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+
+                    if (field->GetType() == Pine::ScriptFieldType::Integer)
+                    {
+                        int value = field->Get<int>(object);
+
+                        if (Widgets::InputInt(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+
+                    if (field->GetType() == Pine::ScriptFieldType::Boolean)
+                    {
+                        bool value = field->Get<bool>(object);
+
+                        if (Widgets::Checkbox(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+
+                    if (field->GetType() == Pine::ScriptFieldType::Vector3)
+                    {
+                        Pine::Vector3f value = field->Get<Pine::Vector3f>(object);
+
+                        if (Widgets::Vector3(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+
+                    if (field->GetType() == Pine::ScriptFieldType::Vector2)
+                    {
+                        Pine::Vector2f value = field->Get<Pine::Vector2f>(object);
+
+                        if (Widgets::Vector2(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+                }
+            }
         }
 
         void Render(Pine::IComponent *component, int index)
