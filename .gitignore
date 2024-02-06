@@ -11,3 +11,8 @@ x64/
 
 # Other
 game/
+assets/engine/script
+ScriptRuntime/obj
+ScriptRuntime/bin
+assets/game-template/runtime/bin/Release
+assets/game-template/runtime/obj

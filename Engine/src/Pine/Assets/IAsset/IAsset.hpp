@@ -1,4 +1,5 @@
 #pragma once
+
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -22,39 +23,42 @@ namespace Pine
         Font,
         Tileset,
         Tilemap,
+        CSharpScript,
         Count
     };
 
-    inline const char* AssetTypeToString(AssetType type)
+    inline const char *AssetTypeToString(AssetType type)
     {
         switch (type)
         {
-        case AssetType::Invalid:
-            return "Invalid";
-        case AssetType::Blueprint:
-            return "Blueprint";
-        case AssetType::Level:
-            return "Level";
-        case AssetType::Material:
-            return "Material";
-        case AssetType::Mesh:
-            return "Mesh";
-        case AssetType::Model:
-            return "Model";
-        case AssetType::Shader:
-            return "Shader";
-        case AssetType::Texture2D:
-            return "Texture2D";
-        case AssetType::Texture3D:
-            return "Texture3D";
-        case AssetType::Font:
-            return "Font";
-        case AssetType::Tileset:
-            return "Tileset";
-        case AssetType::Tilemap:
-            return "Tilemap";
-        default:
-            return "Unknown";
+            case AssetType::Invalid:
+                return "Invalid";
+            case AssetType::Blueprint:
+                return "Blueprint";
+            case AssetType::Level:
+                return "Level";
+            case AssetType::Material:
+                return "Material";
+            case AssetType::Mesh:
+                return "Mesh";
+            case AssetType::Model:
+                return "Model";
+            case AssetType::Shader:
+                return "Shader";
+            case AssetType::Texture2D:
+                return "Texture2D";
+            case AssetType::Texture3D:
+                return "Texture3D";
+            case AssetType::Font:
+                return "Font";
+            case AssetType::Tileset:
+                return "Tileset";
+            case AssetType::Tilemap:
+                return "Tilemap";
+            case AssetType::CSharpScript:
+                return "Script";
+            default:
+                return "Unknown";
         }
     }
 
@@ -79,7 +83,7 @@ namespace Pine
         Finish
     };
 
-    template <class T>
+    template<class T>
     class AssetHandle;
 
     class IAsset
@@ -124,64 +128,78 @@ namespace Pine
         bool m_IsDeleted = false;
 
         template<typename>
-        friend class AssetHandle;
+        friend
+        class AssetHandle;
+
     public:
         virtual ~IAsset() = default;
 
-        const std::string& GetFileName() const;
+        const std::string &GetFileName() const;
 
         AssetType GetType() const;
 
-        void SetPath(const std::string& path);
-        const std::string& GetPath() const;
+        void SetPath(const std::string &path);
 
-        void SetFilePath(const std::filesystem::path& path);
-        void SetFilePath(const std::filesystem::path& path, const std::filesystem::path& root);
-        const std::filesystem::path& GetFilePath() const;
-        const std::filesystem::path& GetFileRootPath() const;
+        const std::string &GetPath() const;
+
+        void SetFilePath(const std::filesystem::path &path);
+
+        void SetFilePath(const std::filesystem::path &path, const std::filesystem::path &root);
+
+        const std::filesystem::path &GetFilePath() const;
+
+        const std::filesystem::path &GetFileRootPath() const;
 
         virtual void MarkAsUpdated();
+
         virtual bool HasBeenUpdated() const;
 
         bool HasFile() const;
+
         bool HasMetadata() const;
+
         bool HasDependencies() const;
 
         bool IsDeleted() const;
+
         void MarkAsDeleted();
 
         bool IsModified() const;
+
         void MarkAsModified();
 
-        const std::vector<std::string>& GetDependencies() const;
+        const std::vector<std::string> &GetDependencies() const;
 
         AssetState GetState() const;
+
         AssetLoadMode GetLoadMode() const;
 
         void LoadMetadata();
+
         void SaveMetadata();
 
         virtual bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default);
+
         virtual bool SaveToFile();
 
         virtual void Dispose() = 0;
     };
 
-    template <class T>
+    template<class T>
     class AssetHandle
     {
     private:
-        mutable T* m_Asset = nullptr;
+        mutable T *m_Asset = nullptr;
     public:
 
-        T* Get() const
+        T *Get() const
         {
             // Make sure to remove any pending deletion assets
             if (m_Asset)
             {
-                if (reinterpret_cast<IAsset*>(m_Asset)->m_IsDeleted)
+                if (reinterpret_cast<IAsset *>(m_Asset)->m_IsDeleted)
                 {
-                    reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount--;
+                    reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount--;
 
                     m_Asset = nullptr;
                 }
@@ -190,28 +208,28 @@ namespace Pine
             return m_Asset;
         }
 
-        T* operator->()
+        T *operator->()
         {
             return m_Asset;
         }
 
-        AssetHandle& operator=(IAsset* asset)
+        AssetHandle &operator=(IAsset *asset)
         {
             // Decrease the ref count on the asset we already have
             if (m_Asset != nullptr)
-                --reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount;
+                --reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount;
 
             // Assign the new asset
-            m_Asset = static_cast<T*>(asset);
+            m_Asset = static_cast<T *>(asset);
 
             // Make sure the new asset updates its reference count
             if (asset != nullptr)
-				++reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount;
+                ++reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount;
 
             return *this;
         }
 
-        inline bool operator==(const IAsset* b)
+        inline bool operator==(const IAsset *b)
         {
             return m_Asset == b;
         }
@@ -220,6 +238,6 @@ namespace Pine
     struct AssetResolveReference
     {
         std::string m_Path;
-        AssetHandle<IAsset>* m_AssetHandle;
+        AssetHandle<IAsset> *m_AssetHandle;
     };
 }

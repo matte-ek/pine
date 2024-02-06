@@ -54,6 +54,8 @@ namespace
                 return Pine::Assets::Get<Pine::Texture2D>("editor/icons/blueprint.png");
             case Pine::AssetType::Material:
                 return Pine::Assets::Get<Pine::Texture2D>("editor/icons/material.png");
+            case Pine::AssetType::CSharpScript:
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/script.png");
             default:
                 return nullptr;
         }
@@ -102,12 +104,14 @@ namespace
         if (lightEntity == nullptr)
         {
             lightEntity = new Pine::Entity(0);
+            lightEntity->AddComponent(new Pine::Transform());
             lightEntity->AddComponent(new Pine::Light());
         }
 
         if (cameraEntity == nullptr)
         {
             cameraEntity = new Pine::Entity(0);
+            cameraEntity->AddComponent(new Pine::Transform());
             cameraEntity->AddComponent(new Pine::Camera());
             cameraEntity->GetComponent<Pine::Camera>()->SetOverrideAspectRatio(1.f);
             cameraEntity->GetComponent<Pine::Camera>()->OnRender(0.f);

@@ -3,7 +3,7 @@ project(Editor)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(src include imgui ${CMAKE_SOURCE_DIR}/Engine/src ${CMAKE_SOURCE_DIR}/Engine/include /usr/include/freetype2)
+include_directories(src include imgui ${CMAKE_SOURCE_DIR}/Engine/src ${CMAKE_SOURCE_DIR}/Engine/include /usr/include/freetype2 /usr/include/mono-2.0)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE IMGUI_SOURCES "imgui/*.cpp")

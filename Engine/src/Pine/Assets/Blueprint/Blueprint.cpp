@@ -50,7 +50,7 @@ namespace
         {
             for (const auto& childData : j["children"])
             {
-                auto child = new Pine::Entity(0, false);
+                auto child = new Pine::Entity(0);
 
                 entity->AddChild(child);
 
@@ -90,7 +90,7 @@ void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, bool createInst
         if (createInstance)
             newChild = Entity::Create();
         else
-            newChild = new Entity(0, false);
+            newChild = new Entity(0);
 
         dst->AddChild(newChild);
 
@@ -112,7 +112,7 @@ bool Pine::Blueprint::HasEntity() const
 
 void Pine::Blueprint::CreateFromEntity(const Entity* entity)
 {
-    m_Entity = new Entity(0, false);
+    m_Entity = new Entity(0);
 
    CopyEntity(m_Entity, entity, false);
 
@@ -135,7 +135,7 @@ Pine::Entity* Pine::Blueprint::Spawn() const
 
 void Pine::Blueprint::FromJson(const nlohmann::json& j)
 {
-   m_Entity = new Entity(0, false);
+   m_Entity = new Entity(0);
 
    LoadEntity(j, m_Entity);
 }

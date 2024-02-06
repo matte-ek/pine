@@ -18,4 +18,6 @@ namespace Pine::World
 
     void Setup();
     void Update();
+    
+    void OnStart();
 }

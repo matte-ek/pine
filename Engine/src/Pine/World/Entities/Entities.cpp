@@ -98,7 +98,7 @@ Entity* Entities::Create()
     const auto entityPtr = &m_Entities[availableEntityIndex];
 
     // Call constructor on the entity
-    new(entityPtr) Entity(m_EntityId++);
+    new(entityPtr) Entity(m_EntityId++, availableEntityIndex);
 
     // Mark the slot as occupied
     m_EntityOccupationArray[availableEntityIndex] = true;
@@ -235,4 +235,9 @@ void Entities::MoveEntity(Entity* entity, std::size_t newIndex)
     }
 
     MoveElementInVector(m_EntityPointerList, oldIndex, newIndex);
+}
+
+Entity *Entities::GetByInternalId(int internalId)
+{
+    return &m_Entities[internalId];
 }

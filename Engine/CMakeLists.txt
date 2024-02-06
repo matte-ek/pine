@@ -3,7 +3,7 @@ project(Engine)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(src include)
+include_directories(src include /usr/include/mono-2.0)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
@@ -29,6 +29,20 @@ add_library(Engine ${SOURCES}
         src/Pine/Rendering/Features/Skybox/Skybox.cpp
         src/Pine/Input/Input.hpp
         src/Pine/Input/Input.cpp
+        src/Pine/Script/Runtime/ScriptingRuntime.hpp
+        src/Pine/Script/Runtime/ScriptingRuntime.cpp
+        src/Pine/Script/Scripts/ScriptData.hpp
+        src/Pine/Script/Scripts/ScriptField.hpp
+        src/Pine/Script/ScriptManager.hpp
+        src/Pine/Script/ScriptManager.cpp
+        src/Pine/World/Components/Script/ScriptComponent.hpp
+        src/Pine/World/Components/Script/ScriptComponent.cpp
+        src/Pine/Script/Factory/ScriptObjectFactory.hpp
+        src/Pine/Script/Factory/ScriptObjectFactory.cpp
+        src/Pine/Script/Interfaces/Interfaces.hpp
+        src/Pine/Script/Interfaces/ScriptInterfaceEntity.cpp
+        src/Pine/Script/Interfaces/ScriptInterfaceLog.cpp
+        src/Pine/Script/Interfaces/ScriptInterfaceTransform.cpp
 )
 
-target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D)
+target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D mono-2.0)

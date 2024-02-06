@@ -308,6 +308,8 @@ void Pine::Collider::OnPrePhysicsUpdate()
 
 void Pine::Collider::OnDestroyed()
 {
+    IComponent::OnDestroyed();
+
     const auto rigidBody = m_Parent->GetComponent<Pine::RigidBody>();
 
     if (rigidBody)
@@ -330,6 +332,8 @@ void Pine::Collider::OnDestroyed()
 
 void Pine::Collider::OnCopied()
 {
+    IComponent::OnCopied();
+
     m_CollisionBody = nullptr;
     m_CollisionShape = nullptr;
 }
