@@ -86,6 +86,11 @@ void Pine::World::Update()
     const auto deltaTime = CalculateFrameTime();
 
     Physics3D::Update(deltaTime);
+
+    if (!m_Paused)
+    {
+        Script::Manager::OnUpdate(deltaTime);
+    }
 }
 
 void Pine::World::Setup()

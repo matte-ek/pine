@@ -2,16 +2,20 @@
 #include "Pine/Script/Runtime/ScriptingRuntime.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
+#include "Pine/Script/Scripts/ScriptField.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 #include "Pine/World/Entity/Entity.hpp"
+#include "mono/metadata/class.h"
 
+#include <cstring>
 #include <vector>
 
 #include <mono/metadata/appdomain.h>
+#include <mono/metadata/attrdefs.h>
 
 namespace
 {
@@ -44,6 +48,28 @@ namespace
         return scripts;
     }
 
+    void ProcessScriptFields(Pine::ScriptData* scriptData)
+    {
+        MonoClassField* field = nullptr;
+        void* iterator = nullptr;
+        while ((field = mono_class_get_fields(scriptData->Class, &iterator)))
+        {
+            const auto name = mono_field_get_name(field);
+
+            if (strcmp(name, "Parent") == 0)
+                continue;
+
+            const auto accessFlag = mono_field_get_flags(field) & MONO_FIELD_ATTR_FIELD_ACCESS_MASK;
+
+            if (!(accessFlag & MONO_FIELD_ATTR_PUBLIC))
+                continue;
+
+            const auto type = mono_field_get_type(field);
+
+            scriptData->Fields.push_back(new Pine::ScriptField(name, field, scriptData, mono_type_get_name(type)));
+        }
+    }
+
     void ResolveScriptData(Pine::ScriptData* scriptData)
     {
         const auto fileName = scriptData->Asset->GetFilePath().stem().string();
@@ -59,11 +85,15 @@ namespace
 
         scriptData->MethodOnStart = mono_class_get_method_from_name(scriptData->Class, "OnStart", 0);
         scriptData->MethodOnDestroy = mono_class_get_method_from_name(scriptData->Class, "OnDestroy", 0);
-        scriptData->MethodOnUpdate = mono_class_get_method_from_name(scriptData->Class, "OnUpdate", 0);
-        scriptData->MethodOnRender = mono_class_get_method_from_name(scriptData->Class, "OnRender", 0);
-        scriptData->FieldEntity = mono_class_get_field_from_name(scriptData->Class, "Parent");
+        scriptData->MethodOnUpdate = mono_class_get_method_from_name(scriptData->Class, "OnUpdate", 1);
+        scriptData->MethodOnRender = mono_class_get_method_from_name(scriptData->Class, "OnRender", 1);
+        scriptData->ComponentParentField = mono_class_get_field_from_name(scriptData->Class, "Parent");
+        scriptData->ComponentTypeField = mono_class_get_field_from_name(scriptData->Class, "ComponentType");
+        scriptData->ComponentInternalIdField = mono_class_get_field_from_name(scriptData->Class, "_internalId");
 
-        scriptData->IsReady = monoClass && scriptData->FieldEntity;
+        ProcessScriptFields(scriptData);
+
+        scriptData->IsReady = monoClass && scriptData->ComponentParentField;
     }
 }
 
@@ -129,6 +159,11 @@ void Pine::Script::Manager::ReloadScripts()
 {
     for (const auto& script : m_ScriptData)
     {
+        for (const auto field : script->Fields)
+        {
+            delete field;
+        }
+
         script->Asset->SetScriptData(nullptr);
 
         delete script;
@@ -165,7 +200,7 @@ void Pine::Script::Manager::OnStart()
 
         auto scriptData = script->GetScriptData();
 
-        if (!scriptData || !scriptData->IsReady)
+        if (!scriptData || !scriptData->IsReady || !scriptData->MethodOnStart)
         {
             continue;
         }
@@ -182,7 +217,32 @@ void Pine::Script::Manager::OnStart()
 
 void Pine::Script::Manager::OnUpdate(float deltaTime)
 {
+    for (auto& scriptComponent : Components::Get<Pine::ScriptComponent>())
+    {
+        auto script = scriptComponent.GetScript();
 
+        if (!script)
+        {
+            continue;
+        }
+
+        auto scriptData = script->GetScriptData();
+
+        if (!scriptData || !scriptData->IsReady || !scriptData->MethodOnUpdate)
+        {
+            continue;
+        }
+
+        auto objectHandle = scriptComponent.GetScriptObjectHandle();
+        if (!objectHandle || objectHandle->Object == nullptr)
+        {
+            continue;
+        }
+
+        void* args[1] = { &deltaTime };
+
+        mono_runtime_invoke(scriptData->MethodOnUpdate, objectHandle->Object, args, nullptr);
+    }
 }
 
 void Pine::Script::Manager::OnRender(float deltaTime)
