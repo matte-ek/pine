@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace Pine
 {
@@ -65,16 +66,26 @@ namespace Pine
     protected:
         bool m_Active = true;
 
-        // If this component is part of the ECS or is just an object in memory.
-        bool m_Standalone = false;
+        // If this component is part of the ECF or is just an object in memory.
+        bool m_Standalone = true;
+
+        Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
 
         ComponentType m_Type = ComponentType::Transform;
 
+        int m_InternalId = 0;
+
         Entity *m_Parent = nullptr;
+
+        void CreateScriptInstance();
+        void DestroyScriptInstance();
     public:
         explicit IComponent(ComponentType type);
 
         virtual ~IComponent() = default;
+
+        void SetInternalId(int id);
+        int GetInternalId() const;
 
         void SetActive(bool value);
         bool GetActive() const;
@@ -89,8 +100,9 @@ namespace Pine
 
         ComponentType GetType() const;
 
-        virtual void OnCreated();
+        Script::ObjectHandle* GetComponentScriptHandle();
 
+        virtual void OnCreated();
         virtual void OnDestroyed();
 
         // Whenever this component's memory is copied to a new component.

@@ -12,6 +12,7 @@
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
+#include "Pine/World/Components/Script/ScriptComponent.hpp"
 
 using namespace Pine;
 
@@ -117,6 +118,8 @@ void Components::Setup()
     CreateComponentDataBlock<RigidBody2D>();
     CreateComponentDataBlock<SpriteRenderer>();
     CreateComponentDataBlock<TilemapRenderer>();
+    CreateComponentDataBlock<NativeScript>(1); // Stub
+    CreateComponentDataBlock<ScriptComponent>();
 
     std::size_t totalSize = 0;
 
@@ -149,6 +152,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
     auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
 
     IComponent* component;
+    int componentLookupId = 0;
 
     // Get a pointer to some free memory for the new component, depending on if we want a standalone
     // or in the data block
@@ -170,6 +174,8 @@ IComponent* Components::Create(ComponentType type, bool standalone)
 
         component = componentDataBlock->GetComponent(newTargetSlot);
 
+        componentLookupId = newTargetSlot;
+
         // Mark the index as occupied
         componentDataBlock->m_ComponentOccupationArray[newTargetSlot] = true;
 
@@ -186,7 +192,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
     memcpy((void*)component, (void*)componentDataBlock->m_Component, componentDataBlock->m_ComponentSize);
 
     component->SetStandalone(standalone);
-    component->OnCreated();
+    component->SetInternalId(componentLookupId);
 
     return component;
 }
@@ -215,6 +221,10 @@ bool Components::Destroy(IComponent* targetComponent)
     }
 
     targetComponent->OnDestroyed();
+
+    // Extra fail-safe to make sure the script object handle is removed, to avoid memory leaks
+    // within the scripting engine.
+    assert(targetComponent->GetComponentScriptHandle()->Object == nullptr);
 
     // If the component is standalone (i.e. it isn't in the "ECS"), we can just free
     // the memory and move on.

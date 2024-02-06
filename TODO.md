@@ -12,11 +12,11 @@
 [X] Allow modification to level stuff (skybox, active camera etc)
 [X] More viewport stuff
     [X] Add selected entity outline
-    [ ] Allow clicking on entities to select them
-    [ ] Add drag-drop to viewport
-[ ] Add play/stop functionality
-[ ] Asset Icons
-    [ ] Add more static icons for assets
-    [ ] Dynamic icons
-        [ ] Add icons for asset browser (material/model)
+    [X] Allow clicking on entities to select them
+    [X] Add drag-drop to viewport
+[X] Add play/stop functionality
+[X] Asset Icons
+    [X] Add more static icons for assets
+    [X] Dynamic icons
+        [~] Add icons for asset browser (material/model)
         [ ] Add selected asset large preview (material/model)

@@ -23,8 +23,7 @@ int main()
     }
 
     Pine::Assets::LoadDirectory("editor", false);
-    Pine::Assets::LoadDirectory("game");
-
+    Pine::Assets::LoadDirectory("game/assets");
     Pine::World::SetPaused(true);
 
     // Setup Editor

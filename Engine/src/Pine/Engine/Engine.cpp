@@ -13,6 +13,8 @@
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
+#include "Pine/Script/Runtime/ScriptingRuntime.hpp"
+#include "Pine/Script/ScriptManager.hpp"
 
 #include <GLFW/glfw3.h>
 #include <stdexcept>
@@ -89,6 +91,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     Physics3D::Setup();
     Input::Setup();
     World::Setup();
+    Script::Manager::Setup();
     Utilities::HotReload::Setup();
 
     // Finish initialization
@@ -114,7 +117,11 @@ void Pine::Engine::Run()
     // 1. Initialize the engine without making a visible frozen window.
     // 2. Allow the user to modify the window, without the window flickering during startup.
     // So we'll have to restore it here.
-    WindowManager::SetWindowVisible(true); 
+    WindowManager::SetWindowVisible(true);
+
+    // At this point the user should have loaded their game assembly, so we can allow the
+    // script manager to start preparing all the scripts.
+    Script::Manager::ReloadScripts();
 
     // The main rendering loop itself
     while (WindowManager::IsWindowOpen())
@@ -151,6 +158,7 @@ void Pine::Engine::Shutdown()
     RenderManager::Shutdown();
     Assets::Shutdown();
     Graphics::Shutdown();
+    Script::Manager::Dispose();
 
     WindowManager::Internal::DestroyWindow();
 

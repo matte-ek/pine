@@ -185,6 +185,8 @@ void Pine::RigidBody::OnPostPhysicsUpdate()
 
 void Pine::RigidBody::OnCopied()
 {
+    IComponent::OnCopied();
+
     m_RigidBody = nullptr;
 }
 

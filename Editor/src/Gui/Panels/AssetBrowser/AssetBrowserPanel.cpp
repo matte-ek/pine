@@ -558,7 +558,7 @@ void Panels::AssetBrowser::RebuildAssetTree()
     }
 
     Pine::Assets::RefreshAll();
-    Pine::Assets::LoadDirectory("game");
+    Pine::Assets::LoadDirectory("game/assets");
 
     // First update the icon cache, as we grab the icons from the IconStorage
     // as we fill out this tree.
@@ -570,7 +570,7 @@ void Panels::AssetBrowser::RebuildAssetTree()
     m_Root->Path = "game";
 
     MapDirectoryEntry("engine", "engine", m_Root);
-    ProcessDirectoryTree("game", m_Root);
+    ProcessDirectoryTree("game/assets", m_Root);
 
     m_SelectedEntry = m_Root;
 

@@ -3,6 +3,8 @@
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
 #include "Pine/World/Components/NativeScript/NativeScript.hpp"
+#include "Pine/World/Components/Script/ScriptComponent.hpp"
+#include "Pine/Script/ScriptManager.hpp"
 
 namespace
 {
@@ -101,4 +103,14 @@ void Pine::World::Setup()
     }
 
     World::SetActiveLevel(level);
+}
+
+void Pine::World::OnStart()
+{
+    if (m_Paused)
+    {
+        return;
+    }
+
+    Script::Manager::OnStart();
 }

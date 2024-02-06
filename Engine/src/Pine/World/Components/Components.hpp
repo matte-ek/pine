@@ -208,4 +208,14 @@ namespace Pine::Components
 
         return block;
     }
+
+    template<typename T>
+    T* GetByInternalId(int internalId)
+    {
+        static auto type = GetType<T>();
+
+        auto& block = *reinterpret_cast<ComponentDataBlock<T>*>(&GetData(type));
+
+        return block.GetComponent(internalId);
+    }
 }
