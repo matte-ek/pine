@@ -6,7 +6,7 @@ namespace Pine.World
     public class Entity
     {
         public readonly uint Id =  0;
-        private readonly int _internalId = 0;
+        private readonly uint _internalId = 0;
     
         public string Name
         {
@@ -21,11 +21,11 @@ namespace Pine.World
         public Transform Transform => GetTransform(_internalId);
     
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern string GetName(int id);
+        private static extern string GetName(uint id);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetName(int id, string name);
+        private static extern void SetName(uint id, string name);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern Transform GetTransform(int id);
+        private static extern Transform GetTransform(uint id);
     }
 }
 

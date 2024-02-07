@@ -7,7 +7,7 @@ Pine::Entity::Entity(std::uint32_t id)
 {
 }
 
-Pine::Entity::Entity(std::uint32_t id, int internalId)
+Pine::Entity::Entity(std::uint32_t id, std::uint32_t internalId)
         : m_Id(id)
 {
     AddComponent<Transform>();

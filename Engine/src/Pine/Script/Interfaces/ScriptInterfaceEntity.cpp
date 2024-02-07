@@ -4,17 +4,17 @@
 
 namespace
 {
-    MonoString* GetEntityName(int internalId)
+    MonoString* GetEntityName(std::uint32_t internalId)
     {
         return mono_string_new(mono_domain_get(), Pine::Entities::GetByInternalId(internalId)->GetName().c_str());
     }
 
-    void SetEntityName(int internalId, MonoString* name)
+    void SetEntityName(std::uint32_t internalId, MonoString* name)
     {
         Pine::Entities::GetByInternalId(internalId)->SetName(mono_string_to_utf8(name));
     }
 
-    MonoObject* GetTransform(int internalId)
+    MonoObject* GetTransform(std::uint32_t internalId)
     {
         return mono_gchandle_get_target(Pine::Entities::GetByInternalId(internalId)->GetTransform()->GetComponentScriptHandle()->Handle);
     }

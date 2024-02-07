@@ -2,51 +2,52 @@
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
+#include <cstdint>
 #include <mono/metadata/appdomain.h>
 
 namespace
 {
-    void GetPosition(int internalId, Pine::Vector3f *position)
+    void GetPosition(std::uint32_t internalId, Pine::Vector3f *position)
     {
         *position = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalPosition;
     }
 
-    void SetPosition(int internalId, Pine::Vector3f *position)
+    void SetPosition(std::uint32_t internalId, Pine::Vector3f *position)
     {
         Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalPosition = *position;
     }
 
-    void GetRotation(int internalId, Pine::Quaternion *rotation)
+    void GetRotation(std::uint32_t internalId, Pine::Quaternion *rotation)
     {
         *rotation = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalRotation;
     }
 
-    void SetRotation(int internalId, Pine::Quaternion *rotation)
+    void SetRotation(std::uint32_t internalId, Pine::Quaternion *rotation)
     {
         Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalRotation = *rotation;
     }
 
-    void GetScale(int internalId, Pine::Vector3f *scale)
+    void GetScale(std::uint32_t internalId, Pine::Vector3f *scale)
     {
         *scale = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalScale;
     }
 
-    void SetScale(int internalId, Pine::Vector3f *scale)
+    void SetScale(std::uint32_t internalId, Pine::Vector3f *scale)
     {
         Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalScale = *scale;
     }
 
-    void GetUp(int internalId, Pine::Vector3f *up)
+    void GetUp(std::uint32_t internalId, Pine::Vector3f *up)
     {
         *up = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetUp();
     }
 
-    void GetRight(int internalId, Pine::Vector3f *right)
+    void GetRight(std::uint32_t internalId, Pine::Vector3f *right)
     {
         *right = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetRight();
     }
 
-    void GetForward(int internalId, Pine::Vector3f *forward)
+    void GetForward(std::uint32_t internalId, Pine::Vector3f *forward)
     {
         *forward = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetForward();
     }

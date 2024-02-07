@@ -115,12 +115,12 @@ void Pine::IComponent::DestroyScriptInstance()
     Script::ObjectFactory::DestroyComponent(&m_ScriptObjectHandle);
 }
 
-void Pine::IComponent::SetInternalId(int id)
+void Pine::IComponent::SetInternalId(std::uint32_t id)
 {
     m_InternalId = id;
 }
 
-int Pine::IComponent::GetInternalId() const
+std::uint32_t Pine::IComponent::GetInternalId() const
 {
     return m_InternalId;
 }
