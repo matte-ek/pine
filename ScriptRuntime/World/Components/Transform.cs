@@ -72,22 +72,22 @@ namespace Pine.World.Components
         }
         
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetLocalPosition(int id, ref Vector3 position);
+        private static extern void SetLocalPosition(uint id, ref Vector3 position);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetLocalPosition(int id, out Vector3 position);
+        private static extern void GetLocalPosition(uint id, out Vector3 position);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetLocalRotation(int id, ref Quaternion rotation);
+        private static extern void SetLocalRotation(uint id, ref Quaternion rotation);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetLocalRotation(int id, out Quaternion rotation);
+        private static extern void GetLocalRotation(uint id, out Quaternion rotation);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetLocalScale(int id, ref Vector3 scale);
+        private static extern void SetLocalScale(uint id, ref Vector3 scale);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetLocalScale(int id, out Vector3 scale);
+        private static extern void GetLocalScale(uint id, out Vector3 scale);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetUp(int id, out Vector3 up);
+        private static extern void GetUp(uint id, out Vector3 up);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetRight(int id, out Vector3 right);
+        private static extern void GetRight(uint id, out Vector3 right);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetForward(int id, out Vector3 forward);
+        private static extern void GetForward(uint id, out Vector3 forward);
     }
 }

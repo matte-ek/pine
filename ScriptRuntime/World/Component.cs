@@ -24,7 +24,7 @@ namespace Pine.World
         public readonly Entity Parent;
         public readonly ComponentType ComponentType;
         
-        protected int _internalId = 0;
+        protected uint _internalId = 0;
         
         public bool Active
         {
@@ -33,8 +33,8 @@ namespace Pine.World
         }
         
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool GetActive(int id, int type);
+        private static extern bool GetActive(uint id, int type);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetActive(int id, int type, bool active);
+        private static extern void SetActive(uint id, int type, bool active);
     }
 }

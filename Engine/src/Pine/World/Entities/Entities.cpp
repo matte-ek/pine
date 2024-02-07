@@ -237,7 +237,7 @@ void Entities::MoveEntity(Entity* entity, std::size_t newIndex)
     MoveElementInVector(m_EntityPointerList, oldIndex, newIndex);
 }
 
-Entity *Entities::GetByInternalId(int internalId)
+Entity *Entities::GetByInternalId(std::uint32_t internalId)
 {
     return &m_Entities[internalId];
 }

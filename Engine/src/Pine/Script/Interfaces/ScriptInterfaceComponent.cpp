@@ -6,12 +6,12 @@
 
 namespace
 {
-    bool GetActive(int internalId, int type)
+    bool GetActive(std::uint32_t internalId, int type)
     {
         return Pine::Components::GetByInternalId(static_cast<Pine::ComponentType>(type), internalId)->GetActive();
     }
 
-    void SetPosition(int internalId, int type, bool active)
+    void SetPosition(std::uint32_t internalId, int type, bool active)
     {
         Pine::Components::GetByInternalId(static_cast<Pine::ComponentType>(type), internalId)->SetActive(active);
     }

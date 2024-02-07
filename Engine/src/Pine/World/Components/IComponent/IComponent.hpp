@@ -73,7 +73,7 @@ namespace Pine
 
         ComponentType m_Type = ComponentType::Transform;
 
-        int m_InternalId = 0;
+        std::uint32_t m_InternalId = 0;
 
         Entity *m_Parent = nullptr;
 
@@ -84,8 +84,8 @@ namespace Pine
 
         virtual ~IComponent() = default;
 
-        void SetInternalId(int id);
-        int GetInternalId() const;
+        void SetInternalId(std::uint32_t id);
+        std::uint32_t GetInternalId() const;
 
         void SetActive(bool value);
         bool GetActive() const;

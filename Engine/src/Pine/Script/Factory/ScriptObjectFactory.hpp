@@ -24,7 +24,7 @@ namespace Pine::Script::ObjectFactory
     ObjectHandle CreateScriptObject(Pine::CSharpScript* script, Pine::IComponent* component);
     void DestroyScriptObject(ObjectHandle* component);
 
-    ObjectHandle CreateEntity(std::uint32_t entityId, int internalId);
+    ObjectHandle CreateEntity(std::uint32_t entityId, std::uint32_t internalId);
     void DestroyEntity(ObjectHandle* entity);
 
     ObjectHandle CreateComponent(Pine::IComponent* component);

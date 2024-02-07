@@ -32,7 +32,7 @@ namespace Pine
         Entity* m_Parent = nullptr;
     public:
         explicit Entity(std::uint32_t id);
-        Entity(std::uint32_t id, int internalId);
+        Entity(std::uint32_t id, std::uint32_t internalId);
         ~Entity();
 
         std::uint32_t GetId() const;

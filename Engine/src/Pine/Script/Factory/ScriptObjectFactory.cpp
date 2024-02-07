@@ -49,7 +49,7 @@ void Pine::Script::ObjectFactory::Setup()
     assert(m_ComponentTypeField);
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, int internalId)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, std::uint32_t internalId)
 {
     auto entity = mono_object_new(m_Domain, m_EntityClass);
 

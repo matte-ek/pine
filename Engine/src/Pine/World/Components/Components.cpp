@@ -264,7 +264,7 @@ ComponentDataBlock<IComponent>& Components::GetData(ComponentType type)
     return *m_ComponentDataBlocks[static_cast<int>(type)];
 }
 
-Pine::IComponent* Pine::Components::GetByInternalId(ComponentType type, int internalId)
+Pine::IComponent* Pine::Components::GetByInternalId(ComponentType type, std::uint32_t internalId)
 {
     auto& block = GetData(type);
 

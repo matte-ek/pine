@@ -210,7 +210,7 @@ namespace Pine::Components
     }
 
     template<typename T>
-    T* GetByInternalId(int internalId)
+    T* GetByInternalId(std::uint32_t internalId)
     {
         static auto type = GetType<T>();
 
@@ -219,5 +219,5 @@ namespace Pine::Components
         return block.GetComponent(internalId);
     }
 
-    IComponent* GetByInternalId(Pine::ComponentType type, int internalId);
+    IComponent* GetByInternalId(Pine::ComponentType type, std::uint32_t internalId);
 }
