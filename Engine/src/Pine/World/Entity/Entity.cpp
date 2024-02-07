@@ -41,7 +41,7 @@ Pine::Entity::~Entity()
 
     if (m_EntityScriptHandle.Object != nullptr)
     {
-        Script::ObjectFactory::DestroyEntity(&m_EntityScriptHandle);
+        Script::ObjectFactory::DisposeObject(&m_EntityScriptHandle);
     }
 }
 

@@ -46,6 +46,8 @@ namespace Pine::Assets
         return dynamic_cast<T*>(Get(path));
     }
 
+    IAsset* GetById(std::uint32_t id);
+
     IAsset* GetOrLoad(const std::string& path, bool includeFilePath = false);
 
     // Moves an already existing asset to a new path, the newPath needs to be a file system path,

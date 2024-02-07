@@ -1,5 +1,6 @@
 #include "Assets.hpp"
 
+#include "Pine/Assets/IAsset/IAsset.hpp"
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Font/Font.hpp"
@@ -17,6 +18,7 @@
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include <thread>
@@ -32,11 +34,15 @@ namespace
     // valid assets, or loaded assets.
     std::unordered_map<std::string, IAsset*> m_Assets;
 
-    // This is more or less a read-only mirror of `m_Assets`, but has the file path as a key instead.
+    // These are more or less a read-only mirrors of `m_Assets`, but has the file path or id as a key instead.
     std::unordered_map<std::string, IAsset*> m_AssetsFilePath;
+    std::unordered_map<std::uint32_t, IAsset*> m_AssetsId;
 
     // Which assets paths we need to resolve to asset pointers during the end of an ongoing load
     std::vector<AssetResolveReference> m_AssetResolveReferences;
+
+    // Keeps track of the current incremental asset id
+    std::uint32_t m_CurrentId = 0;
 
     struct AssetFactory
     {
@@ -137,6 +143,7 @@ namespace
 
         asset->SetFilePath(filePath, rootPath);
         asset->SetPath(path);
+        asset->SetId(m_CurrentId++);
 
         asset->LoadMetadata();
 
@@ -186,6 +193,7 @@ void Assets::Shutdown()
 IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::string& rootPath,
                              const std::string& mapPath)
 {
+    bool hasExistingAsset = false;
     IAsset* asset;
 
     if (auto existingAsset = FindExistingAssetFromFile(path, rootPath, mapPath))
@@ -198,6 +206,8 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
         asset = existingAsset;
 
         asset->Dispose();
+
+        hasExistingAsset = true;
     }
     else
     {
@@ -215,16 +225,16 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
     {
         // Unlike LoadDirectory, we're only going to be doing single threaded asset load here.
 
-        if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Prepare))
+        if (!(LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Prepare) && 
+              LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Finish)))
         {
             m_State = AssetManagerState::Idle;
 
-            return nullptr;
-        }
-
-        if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Finish))
-        {
-            m_State = AssetManagerState::Idle;
+            if (!hasExistingAsset)
+            {
+                asset->DestoryScriptHandle();
+                delete asset;
+            }
 
             return nullptr;
         }
@@ -235,14 +245,26 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
         {
             m_State = AssetManagerState::Idle;
 
+            if (!hasExistingAsset)
+            {
+                asset->DestoryScriptHandle();
+                delete asset;
+            }
+
             return nullptr;
         }
     }
 
     asset->MarkAsUpdated();
 
+    if (asset->GetScriptHandle()->Object == nullptr)
+    {
+        asset->CreateScriptHandle();
+    }
+
     m_Assets[asset->GetPath()] = asset;
     m_AssetsFilePath[asset->GetFilePath().string()] = asset;
+    m_AssetsId[asset->GetId()] = asset;
 
     return asset;
 }
@@ -416,8 +438,14 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
 
         asset->MarkAsUpdated();
 
+        if (asset->GetScriptHandle()->Object == nullptr)
+        {
+            asset->CreateScriptHandle();
+        }
+
         m_Assets[asset->GetPath()] = asset;
         m_AssetsFilePath[asset->GetFilePath().string()] = asset;
+        m_AssetsId[asset->GetId()] = asset;
     }
 
     // At this point we may now load the remaining assets that has dependencies.
@@ -480,8 +508,14 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
 
         asset->MarkAsUpdated();
 
+        if (asset->GetScriptHandle()->Object == nullptr)
+        {
+            asset->CreateScriptHandle();
+        }
+
         m_Assets[asset->GetPath()] = asset;
         m_AssetsFilePath[asset->GetFilePath().string()] = asset;
+        m_AssetsId[asset->GetId()] = asset;
     }
 
     // During the load of all assets, some assets may have created resolve references, for assets that may not have
@@ -539,6 +573,14 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
         return nullptr;
 
     return m_Assets[path];
+}
+
+IAsset* Assets::GetById(std::uint32_t id)
+{
+    if (m_AssetsId.count(id) == 0)
+        return nullptr;
+
+    return m_AssetsId[id];
 }
 
 IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)

@@ -66,6 +66,10 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     Graphics::GetGraphicsAPI()->EnableErrorLogging();
 
+    // We have to set up our script runtime first, since all other parts of the engine needs to
+    // be able to register objects to the runtime.
+    Script::Manager::Setup();
+
     // Load engine assets, order is important, we want the shaders ready
     // before the other stuff.
 
@@ -91,7 +95,6 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     Physics3D::Setup();
     Input::Setup();
     World::Setup();
-    Script::Manager::Setup();
     Utilities::HotReload::Setup();
 
     // Finish initialization
@@ -150,6 +153,7 @@ void Pine::Engine::Shutdown()
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
 
+    Script::Manager::Dispose();
     Utilities::HotReload::Shutdown();
     Input::Shutdown();
     Renderer3D::Shutdown();
@@ -158,7 +162,6 @@ void Pine::Engine::Shutdown()
     RenderManager::Shutdown();
     Assets::Shutdown();
     Graphics::Shutdown();
-    Script::Manager::Dispose();
 
     WindowManager::Internal::DestroyWindow();
 

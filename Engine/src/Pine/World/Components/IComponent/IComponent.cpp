@@ -1,4 +1,5 @@
 #include "IComponent.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
 Pine::IComponent::IComponent(ComponentType type)
@@ -112,7 +113,7 @@ void Pine::IComponent::DestroyScriptInstance()
         return;
     }
 
-    Script::ObjectFactory::DestroyComponent(&m_ScriptObjectHandle);
+    Script::ObjectFactory::DisposeObject(&m_ScriptObjectHandle);
 }
 
 void Pine::IComponent::SetInternalId(std::uint32_t id)

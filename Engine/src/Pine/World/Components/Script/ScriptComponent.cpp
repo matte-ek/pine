@@ -86,7 +86,7 @@ void Pine::ScriptComponent::DestroyInstance()
         return;
     }
 
-    Script::ObjectFactory::DestroyScriptObject(&m_ScriptObjectHandle);
+    Script::ObjectFactory::DisposeObject(&m_ScriptObjectHandle);
 }
 
 Pine::Script::ObjectHandle *Pine::ScriptComponent::GetScriptObjectHandle()

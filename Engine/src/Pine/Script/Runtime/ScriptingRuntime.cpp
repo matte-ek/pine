@@ -45,6 +45,7 @@ bool Pine::Script::Runtime::Setup()
     Interfaces::Entity::Setup();
     Interfaces::Component::Setup();
     Interfaces::Transform::Setup();
+    Interfaces::Asset::Setup();
 
     return true;
 }

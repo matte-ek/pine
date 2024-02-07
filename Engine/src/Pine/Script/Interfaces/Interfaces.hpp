@@ -21,4 +21,9 @@ namespace Pine::Script::Interfaces
     {
         void Setup();
     }
+
+    namespace Asset
+    {
+        void Setup();
+    }
 }

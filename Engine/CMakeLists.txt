@@ -43,6 +43,7 @@ add_library(Engine ${SOURCES}
         src/Pine/Script/Interfaces/ScriptInterfaceEntity.cpp
         src/Pine/Script/Interfaces/ScriptInterfaceLog.cpp
         src/Pine/Script/Interfaces/ScriptInterfaceTransform.cpp
+        src/Pine/Script/Interfaces/ScriptInterfaceAsset.cpp
 )
 
 target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D mono-2.0)

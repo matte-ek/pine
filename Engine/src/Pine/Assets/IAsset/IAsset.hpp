@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
+#include <cstdint>
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -97,6 +99,9 @@ namespace Pine
         // the path of the file on the drive.
         std::string m_Path;
 
+        // Unique id for this asset for faster lookups
+        std::uint32_t m_Id;
+
         // If this asset has a corresponding file path, and should be a file.
         // Otherwise, it may have been generated during run-time.
         bool m_HasFile = false;
@@ -127,61 +132,56 @@ namespace Pine
         int m_ReferenceCount = 0;
         bool m_IsDeleted = false;
 
-        template<typename>
-        friend
-        class AssetHandle;
+        Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
 
+        template<typename>
+        friend class AssetHandle;
     public:
         virtual ~IAsset() = default;
 
-        const std::string &GetFileName() const;
+        void SetId(std::uint32_t id);
+        std::uint32_t GetId() const;
 
+        void CreateScriptHandle();
+        void DestoryScriptHandle();
+
+        Script::ObjectHandle* GetScriptHandle();
+
+        const std::string &GetFileName() const;
         AssetType GetType() const;
 
         void SetPath(const std::string &path);
-
         const std::string &GetPath() const;
 
         void SetFilePath(const std::filesystem::path &path);
-
         void SetFilePath(const std::filesystem::path &path, const std::filesystem::path &root);
 
         const std::filesystem::path &GetFilePath() const;
-
         const std::filesystem::path &GetFileRootPath() const;
 
         virtual void MarkAsUpdated();
-
         virtual bool HasBeenUpdated() const;
 
         bool HasFile() const;
-
         bool HasMetadata() const;
-
         bool HasDependencies() const;
 
-        bool IsDeleted() const;
-
         void MarkAsDeleted();
-
-        bool IsModified() const;
-
         void MarkAsModified();
 
-        const std::vector<std::string> &GetDependencies() const;
+        bool IsDeleted() const;
+        bool IsModified() const;
 
         AssetState GetState() const;
-
         AssetLoadMode GetLoadMode() const;
 
         void LoadMetadata();
-
         void SaveMetadata();
 
+        const std::vector<std::string> &GetDependencies() const;
+
         virtual bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default);
-
         virtual bool SaveToFile();
-
         virtual void Dispose() = 0;
     };
 
