@@ -1,11 +1,12 @@
 #pragma once
 #include <mono/metadata/image.h>
 #include <cstdint>
-#include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 
 namespace Pine
 {
     class IComponent;
+    class IAsset;
+    class CSharpScript;
 }
 
 namespace Pine::Script
@@ -22,11 +23,9 @@ namespace Pine::Script::ObjectFactory
     void Setup();
 
     ObjectHandle CreateScriptObject(Pine::CSharpScript* script, Pine::IComponent* component);
-    void DestroyScriptObject(ObjectHandle* component);
-
     ObjectHandle CreateEntity(std::uint32_t entityId, std::uint32_t internalId);
-    void DestroyEntity(ObjectHandle* entity);
-
     ObjectHandle CreateComponent(Pine::IComponent* component);
-    void DestroyComponent(ObjectHandle* component);
+    ObjectHandle CreateAsset(Pine::IAsset* asset);
+
+    void DisposeObject(ObjectHandle* handle);
 }

@@ -7,6 +7,8 @@
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/World/Entity/Entity.hpp"
+#include "Pine/Assets/CSharpScript/CSharpScript.hpp"
+#include "mono/metadata/class.h"
 
 namespace
 {
@@ -22,6 +24,10 @@ namespace
     MonoClassField *m_ComponentInternalIdField = nullptr;
     MonoClassField *m_ComponentParentField = nullptr;
     MonoClassField *m_ComponentTypeField = nullptr;
+
+    MonoClass* m_AssetClass = nullptr;
+    MonoClassField* m_AssetInternalIdField = nullptr;
+    MonoClassField* m_AssetTypeField = nullptr;
 }
 
 void Pine::Script::ObjectFactory::Setup()
@@ -39,6 +45,10 @@ void Pine::Script::ObjectFactory::Setup()
     m_ComponentParentField = mono_class_get_field_from_name(m_ComponentClass, "Parent");
     m_ComponentTypeField = mono_class_get_field_from_name(m_ComponentClass, "ComponentType");
 
+    m_AssetClass = mono_class_from_name(m_PineImage, "Pine.Assets", "Asset");
+    m_AssetInternalIdField = mono_class_get_field_from_name(m_AssetClass, "_internalId");
+    m_AssetTypeField = mono_class_get_field_from_name(m_AssetClass, "Type");
+
     assert(m_EntityClass);
     assert(m_EntityInternalIdField);
     assert(m_EntityIdProperty);
@@ -47,6 +57,10 @@ void Pine::Script::ObjectFactory::Setup()
     assert(m_ComponentInternalIdField);
     assert(m_ComponentParentField);
     assert(m_ComponentTypeField);
+
+    assert(m_AssetClass);
+    assert(m_AssetInternalIdField);
+    assert(m_AssetTypeField);
 }
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, std::uint32_t internalId)
@@ -61,13 +75,6 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32
     auto handle = mono_gchandle_new(entity, true);
 
     return {entity, handle};
-}
-
-void Pine::Script::ObjectFactory::DestroyEntity(ObjectHandle *entity)
-{
-    entity->Object = nullptr;
-
-    mono_gchandle_free(entity->Handle);
 }
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(Pine::IComponent *engineComponent)
@@ -86,13 +93,6 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(Pine::IC
     auto handle = mono_gchandle_new(component, true);
 
     return {component, handle};
-}
-
-void Pine::Script::ObjectFactory::DestroyComponent(Pine::Script::ObjectHandle *component)
-{
-    component->Object = nullptr;
-
-    mono_gchandle_free(component->Handle);
 }
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine::CSharpScript *script, Pine::IComponent *component)
@@ -119,9 +119,26 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine:
     return {object, handle};
 }
 
-void Pine::Script::ObjectFactory::DestroyScriptObject(ObjectHandle *component)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(Pine::IAsset *asset)
 {
-    component->Object = nullptr;
+    auto object = mono_object_new(m_Domain, m_AssetClass);
 
-    mono_gchandle_free(component->Handle);
+    mono_runtime_object_init(object);
+
+    auto internalId = asset->GetId();
+    auto type = static_cast<int>(asset->GetType());
+
+    mono_field_set_value(object, m_AssetInternalIdField, &internalId);
+    mono_field_set_value(object, m_AssetTypeField, &type);
+
+    auto handle = mono_gchandle_new(object, true);
+
+    return {object, handle};
+}
+
+void Pine::Script::ObjectFactory::DisposeObject(Pine::Script::ObjectHandle *object)
+{
+    object->Object = nullptr;
+
+    mono_gchandle_free(object->Handle);
 }
