@@ -57,6 +57,8 @@ void Pine::RenderManager::Run()
         return;
     }
 
+    static auto engineConfig = Engine::GetEngineConfiguration();
+
     double currentFrameTime = glfwGetTime();
 
     double deltaTime = currentFrameTime - m_LastFrameTime;
@@ -65,6 +67,16 @@ void Pine::RenderManager::Run()
     m_LastFrameTime = currentFrameTime;
 
     CallRenderCallback(nullptr, RenderStage::PreRender, fDeltaTime);
+
+    // If we're in for example the editor, we'll always want to update
+    // the transformation matrices etc.
+    if (!engineConfig.m_ProductionMode)
+    {
+        for (auto& transform : Components::Get<Pine::Transform>(true))
+        {
+            transform.OnRender(fDeltaTime);
+        }
+    }
 
     for (auto renderingContext : m_RenderingContexts)
     {
@@ -84,9 +96,22 @@ void Pine::RenderManager::Run()
         else
             Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr); // This will just render everything onto the screen.
 
-        // Make sure we got the camera's projection and view matrix ready for the scene
-        if (renderingContext->SceneCamera)
-            renderingContext->SceneCamera->OnRender(0.f);
+        if (engineConfig.m_ProductionMode)
+        {
+            // Make sure we got the camera's projection and view matrix ready for the scene
+            if (renderingContext->SceneCamera)
+            {
+                renderingContext->SceneCamera->GetParent()->GetTransform()->OnRender(0.f);
+                renderingContext->SceneCamera->OnRender(0.f);
+            }
+        }
+        else
+        {
+            for (auto& camera : Components::Get<Pine::Camera>(true))
+            {
+                camera.OnRender(fDeltaTime);
+            }
+        }
 
         Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), renderingContext->Size);
 

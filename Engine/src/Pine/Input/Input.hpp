@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma once
 
 #include <string>
@@ -9,7 +11,7 @@
 namespace Pine
 {
 
-    enum class KeyCodes
+    enum class KeyCode
     {
         Space = 32,
         Apostrophe = 39,
@@ -137,7 +139,7 @@ namespace Pine
 
     enum class MouseButton
     {
-        Left,
+        Left = 0,
         Right,
         Middle
     };
@@ -219,7 +221,6 @@ namespace Pine
 
         InputContext* CreateContext(const std::string& name);
         InputContext* GetDefaultContext();
-
         void OverrideContext(InputContext* context);
 
         void SetCursorAutoCenter(bool value);
@@ -229,6 +230,14 @@ namespace Pine
         Pine::Vector2i GetCursorPosition();
 
         InputBind* CreateInputBind(const std::string& name, InputType type = InputType::Axis);
+        InputBind* FindInputBind(const std::string& name);
+
+        KeyState GetKeyState(KeyCode key);
+        KeyState GetMouseButtonState(MouseButton button);
+
+        bool IsKeyDown(KeyCode key);
+        bool IsMouseButtonDown(KeyCode code);
     }
 
 }
+#pragma clang diagnostic pop

@@ -104,15 +104,27 @@ namespace
             Pine::Vector4f perspective;
             Pine::Quaternion rotation;
 
-            glm::decompose(matrix, scale, rotation, position, skew, perspective);
 
-            if (m_GizmoMode == GizmoMode::Translate)
-                transform->LocalPosition = position;
-            if (m_GizmoMode == GizmoMode::Rotate)
-                transform->LocalRotation = rotation;
-            if (m_GizmoMode == GizmoMode::Scale)
-                transform->LocalScale = scale;
+            if (selectedEntity->GetParent() != nullptr)
+            {
+                glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
 
+                if (m_GizmoMode == GizmoMode::Translate)
+                    transform->LocalPosition += position;
+                if (m_GizmoMode == GizmoMode::Rotate)
+                    transform->LocalRotation *= rotation;
+            }
+            else
+            {
+                glm::decompose(matrix, scale, rotation, position, skew, perspective);
+
+                if (m_GizmoMode == GizmoMode::Translate)
+                    transform->LocalPosition = position;
+                if (m_GizmoMode == GizmoMode::Rotate)
+                    transform->LocalRotation = rotation;
+                if (m_GizmoMode == GizmoMode::Scale)
+                    transform->LocalScale = scale;
+            }
             transform->OnRender(0.f);
         }
 
