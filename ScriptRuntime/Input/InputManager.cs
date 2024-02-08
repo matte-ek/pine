@@ -29,12 +29,19 @@ namespace Pine.Input
                 return position;
             }
         }
-        
+
+        public static bool IsKeyDown(KeyCode key) => PineIsKeyDown((int)key);
+        public static bool IsMouseButtonDown(MouseButton mouseButton) => PineIsMouseButtonDown((int)mouseButton);
+
         public static KeyState GetKeyState(KeyCode key) => (KeyState)PineGetKeyState((int)key);
         public static KeyState GetMouseButtonState(MouseButton mouseButton) => (KeyState)PineGetMouseButtonState((int)mouseButton);
         
         public static InputBind FindInputBind(string name) => PineFindInputBinding(name);
-        
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool PineIsKeyDown(int key);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool PineIsMouseButtonDown(int key);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern int PineGetKeyState(int key);
         [MethodImpl(MethodImplOptions.InternalCall)]

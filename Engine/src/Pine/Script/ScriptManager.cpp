@@ -50,7 +50,7 @@ namespace
 
     void ProcessScriptFields(Pine::ScriptData* scriptData)
     {
-        MonoClassField* field = nullptr;
+        MonoClassField* field;
         void* iterator = nullptr;
         while ((field = mono_class_get_fields(scriptData->Class, &iterator)))
         {
@@ -93,7 +93,8 @@ namespace
 
         ProcessScriptFields(scriptData);
 
-        scriptData->IsReady = monoClass && scriptData->ComponentParentField;
+        // Realistically the only requirement is that the script is inheriting from the `Script` class.
+        scriptData->IsReady = scriptData->ComponentParentField && scriptData->ComponentTypeField;
     }
 }
 

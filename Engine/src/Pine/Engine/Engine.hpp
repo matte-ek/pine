@@ -24,6 +24,10 @@ namespace Pine::Engine
         // Whether to enable engine debug tools, such as hot reload
         bool m_EnableDebugTools = true;
 
+        // Whether to enable the engine's "production mode", which will handle stuff more efficiently,
+        // but wouldn't play as nice for the editor.
+        bool m_ProductionMode = true;
+
         // Whether to pause and wait for new events instead of rendering a new frame instantly.
         bool m_WaitEvents = false;
 

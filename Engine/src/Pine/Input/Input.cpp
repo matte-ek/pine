@@ -12,12 +12,14 @@ namespace
 
     Pine::CursorMode m_CursorMode = Pine::CursorMode::Normal;
 
-    int m_KeyStates[GLFW_KEY_LAST] = { };
-    int m_KeyStatesOld[GLFW_KEY_LAST] = { };
+    std::array<int, GLFW_KEY_LAST> m_KeyStates = {};
+    std::array<int, GLFW_KEY_LAST> m_PreviousKeyStates = {};
 
-    Pine::Vector2d m_LastMousePosition;
+    std::array<int, GLFW_MOUSE_BUTTON_LAST> m_MouseButtonStates = {};
+    std::array<int, GLFW_MOUSE_BUTTON_LAST> m_PreviousMouseButtonStates = {};
 
     Pine::Vector2i m_MousePosition;
+    Pine::Vector2d m_LastMousePosition;
     Pine::Vector2i m_MouseDelta;
 
     Pine::InputContext* m_Context = nullptr;
@@ -116,7 +118,7 @@ void Pine::InputBind::Update()
         for (auto& key : m_KeyboardBindings)
         {
             if (m_KeyStates[key.Key] == GLFW_PRESS &&
-                m_KeyStatesOld[key.Key] == GLFW_RELEASE)
+                m_PreviousKeyStates[key.Key] == GLFW_RELEASE)
             {
                 m_ActionState = true;
                 
@@ -146,10 +148,16 @@ void Pine::Input::Update()
     m_Window = window;
 
     // Update keys
-    memcpy(m_KeyStatesOld, m_KeyStates, sizeof(m_KeyStates));
+    memcpy(m_PreviousKeyStates.data(), m_KeyStates.data(), sizeof(m_KeyStates));
     
     for (int i = 0; i < GLFW_KEY_LAST; i++)
         m_KeyStates[i] = glfwGetKey(window, i);
+
+    // Update mouse positions
+    memcpy(m_PreviousMouseButtonStates.data(), m_MouseButtonStates.data(), sizeof(m_MouseButtonStates));
+
+    for (int i = 0; i < GLFW_MOUSE_BUTTON_LAST; i++)
+        m_MouseButtonStates[i] = glfwGetMouseButton(window, i);
 
     // Update mouse position
     Vector2d mousePosition;
@@ -230,9 +238,44 @@ Pine::Vector2i Pine::Input::GetCursorPosition()
     return { cursorX, cursorY };
 }
 
-void Pine::Input::SetCursorMode(Pine::CursorMode mode)
+Pine::KeyState Pine::Input::GetKeyState(Pine::KeyCode key)
 {
-    m_CursorMode = mode;
+    const auto currentKeyState = m_KeyStates[static_cast<int>(key)];
+    const auto previousKeyState = m_PreviousKeyStates[static_cast<int>(key)];
+
+    if (currentKeyState == GLFW_PRESS)
+    {
+        return previousKeyState == GLFW_RELEASE ? Pine::KeyState::Pressed : Pine::KeyState::Held;
+    }
+    else
+    {
+        return previousKeyState == GLFW_PRESS ? Pine::KeyState::Released : Pine::KeyState::None;
+    }
+}
+
+Pine::KeyState Pine::Input::GetMouseButtonState(Pine::MouseButton button)
+{
+    const auto currentKeyState = m_MouseButtonStates[static_cast<int>(button)];
+    const auto previousKeyState = m_PreviousMouseButtonStates[static_cast<int>(button)];
+
+    if (currentKeyState == GLFW_PRESS)
+    {
+        return previousKeyState == GLFW_RELEASE ? Pine::KeyState::Pressed : Pine::KeyState::Held;
+    }
+    else
+    {
+        return previousKeyState == GLFW_PRESS ? Pine::KeyState::Released : Pine::KeyState::None;
+    }
+}
+
+bool Pine::Input::IsKeyDown(Pine::KeyCode key)
+{
+    return m_KeyStates[static_cast<int>(key)] == GLFW_PRESS;
+}
+
+bool Pine::Input::IsMouseButtonDown(Pine::KeyCode code)
+{
+    return m_MouseButtonStates[static_cast<int>(code)] == GLFW_PRESS;
 }
 
 Pine::InputContext::InputContext(const std::string& name)
@@ -244,4 +287,3 @@ Pine::InputBind* Pine::InputContext::CreateInputBinding(const std::string& name,
 {
     InputBindings.push_back(new InputBind(name, type));
     return InputBindings[InputBindings.size() - 1];
-}

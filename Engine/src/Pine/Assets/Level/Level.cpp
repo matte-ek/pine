@@ -20,6 +20,7 @@ void Pine::Level::CreateFromWorld()
     for (const auto& entity : Entities::GetList())
     {
         // Ignore children as we take care of those when processing their parents.
+        // TODO: Fix bug where cameras are not being set correctly when they are children of other entities.
         if (entity->GetParent() != nullptr)
             continue;
 
