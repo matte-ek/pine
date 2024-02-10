@@ -88,7 +88,7 @@ namespace
         scriptData->MethodOnUpdate = mono_class_get_method_from_name(scriptData->Class, "OnUpdate", 1);
         scriptData->MethodOnRender = mono_class_get_method_from_name(scriptData->Class, "OnRender", 1);
         scriptData->ComponentParentField = mono_class_get_field_from_name(scriptData->Class, "Parent");
-        scriptData->ComponentTypeField = mono_class_get_field_from_name(scriptData->Class, "ComponentType");
+        scriptData->ComponentTypeField = mono_class_get_field_from_name(scriptData->Class, "Type");     
         scriptData->ComponentInternalIdField = mono_class_get_field_from_name(scriptData->Class, "_internalId");
 
         ProcessScriptFields(scriptData);
@@ -100,14 +100,6 @@ namespace
 
 void Pine::Script::Manager::Setup()
 {
-    if (!Runtime::Setup())
-    {
-        // We should already be logging out relevant information in the Runtime::Setup function.
-        return;
-    }
-
-    ObjectFactory::Setup();
-
     // Attempt to find the game runtime at the default location
     if (!std::filesystem::exists("game/runtime-bin/Game.dll"))
     {
@@ -120,7 +112,6 @@ void Pine::Script::Manager::Setup()
 
 void Pine::Script::Manager::Dispose()
 {
-    Runtime::Dispose();
 }
 
 bool Pine::Script::Manager::HasGameAssembly()
@@ -146,14 +137,15 @@ void Pine::Script::Manager::ReloadGameAssembly()
 {
     assert(m_HasGameAssembly);
 
-    if (!Script::Runtime::UnloadAssembly(m_GameAssembly))
-    {
-        Log::Error("Failed to unload game assembly.");
-        return;
-    }
+    Script::Runtime::Reset();
 
     LoadGameAssembly(m_GameAssemblyPath);
     ReloadScripts();
+
+    for (auto& scriptComponent : Components::Get<Pine::ScriptComponent>(true))
+    {
+        scriptComponent.CreateInstance();
+    }
 }
 
 void Pine::Script::Manager::ReloadScripts()

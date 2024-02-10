@@ -105,6 +105,8 @@ namespace
         // Hopefully all components specified in the enum is also created in this vector though.
         return *m_ComponentDataBlocks[static_cast<int>(type)]->m_ComponentArray;
     }
+
+    bool m_IgnoreSetHighestEntityIndexFlag = false;
 }
 
 void Components::Setup()
@@ -238,25 +240,17 @@ bool Components::Destroy(IComponent* targetComponent)
     }
 
     auto& data = GetData(targetComponent->GetType());
+    const auto internalId = targetComponent->GetInternalId();
 
-    for (int i = 0; i < data.GetHighestComponentIndex();i++)
-    {
-        const auto componentPointer = data.GetComponent(i);
+    // We don't have to free any memory or anything, so marking the slot as "available"
+    // should be sufficient.
+    data.m_ComponentOccupationArray[internalId] = false;
 
-        if (componentPointer == targetComponent)
-        {
-            // We don't have to free any memory or anything, so marking the slot as "available"
-            // should be sufficient.
-            data.m_ComponentOccupationArray[i] = false;
+    // Store the new highest index
+    if (!m_IgnoreSetHighestEntityIndexFlag)
+        data.m_HighestComponentIndex = data.GetHighestComponentIndex();
 
-            // Store the new highest index
-            data.m_HighestComponentIndex = data.GetHighestComponentIndex();
-
-            return true;
-        }
-    }
-
-    return false;
+    return true;
 }
 
 ComponentDataBlock<IComponent>& Components::GetData(ComponentType type)
@@ -269,4 +263,17 @@ Pine::IComponent* Pine::Components::GetByInternalId(ComponentType type, std::uin
     auto& block = GetData(type);
 
     return block.GetComponent(internalId);
+}
+
+void Components::SetIgnoreHighestEntityIndexFlag(bool ignore)
+{
+    m_IgnoreSetHighestEntityIndexFlag = ignore;
+}
+
+void Components::RecomputeHighestComponentIndex()
+{
+    for (const auto block : m_ComponentDataBlocks)
+    {
+        block->m_HighestComponentIndex = block->GetHighestComponentIndex();
+    }
 }

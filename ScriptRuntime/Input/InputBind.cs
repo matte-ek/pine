@@ -10,17 +10,26 @@ namespace Pine.Input
     
     public class InputBind
     {
+        public string Name => PineGetInputBindName(_id);
+        public InputBindType Type => (InputBindType)PineGetInputBindType(_id);
+        
+        public float Value => PineGetInputBindValue(_id);
+        public bool ActionState => PinePollInputBindActionState(_id);
+        
+        private readonly int _id;
+        
         internal InputBind(int id)
         {
             _id = id;
         }
-
-        private int _id = -1;
-        
-        public readonly string Name;
-        public readonly InputBindType Type;
         
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern int PineGetKeyState(int key);
+        private static extern int PineGetInputBindType(int id);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern string PineGetInputBindName(int id);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern float PineGetInputBindValue(int id);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool PinePollInputBindActionState(int id);
     }
 }

@@ -16,6 +16,7 @@
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Material/Material.hpp"
+#include "Pine/Script/ScriptManager.hpp"
 
 namespace
 {
@@ -429,7 +430,7 @@ namespace
                     if (asset)
                     {
                         // TODO: Append file extension if required.
-                        asset->SetFilePath(m_SelectedEntry->Path.string() + "/" + buffer);
+                        asset->SetFilePath(m_SelectedEntry->Path.string() + "/assets/" + buffer);
                         asset->SaveToFile();
                         asset->Dispose();
 
@@ -591,7 +592,7 @@ void Panels::AssetBrowser::Render()
 
     if (ImGui::Button(ICON_MD_FOLDER_OPEN " Import"))
     {
-        IconStorage::Update();
+        Pine::Script::Manager::ReloadGameAssembly();
     }
 
     ImGui::SameLine();
@@ -693,7 +694,7 @@ void Panels::AssetBrowser::Render()
             Pine::Blueprint blueprint;
 
             blueprint.CreateFromEntity(entity);
-            blueprint.SetFilePath(m_SelectedEntry->Path.string() + "/" + entity->GetName() + ".bpt"); // surely the entity name is a valid file name :-)
+            blueprint.SetFilePath(m_SelectedEntry->Path.string() + "/assets/" + entity->GetName() + ".bpt"); // surely the entity name is a valid file name :-)
             blueprint.SaveToFile();
             blueprint.Dispose();
 

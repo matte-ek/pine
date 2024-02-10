@@ -18,7 +18,7 @@ void Pine::IAsset::CreateScriptHandle()
     m_ScriptObjectHandle = Script::ObjectFactory::CreateAsset(this);
 }
 
-void Pine::IAsset::DestoryScriptHandle()
+void Pine::IAsset::DestroyScriptHandle()
 {
     if (m_ScriptObjectHandle.Object == nullptr)
     {

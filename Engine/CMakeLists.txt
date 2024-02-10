@@ -42,7 +42,6 @@ add_library(Engine ${SOURCES}
         src/Pine/Script/Interfaces/Interfaces.hpp
         src/Pine/Script/Interfaces/ScriptInterfaceEntity.cpp
         src/Pine/Script/Interfaces/ScriptInterfaceLog.cpp
-        src/Pine/Script/Interfaces/ScriptInterfaceTransform.cpp
         src/Pine/Script/Interfaces/ScriptInterfaceAsset.cpp
         src/Pine/Script/Interfaces/ScriptInterfaceInput.cpp
 )

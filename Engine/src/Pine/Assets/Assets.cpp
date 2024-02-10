@@ -232,7 +232,7 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
 
             if (!hasExistingAsset)
             {
-                asset->DestoryScriptHandle();
+                asset->DestroyScriptHandle();
                 delete asset;
             }
 
@@ -247,7 +247,7 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
 
             if (!hasExistingAsset)
             {
-                asset->DestoryScriptHandle();
+                asset->DestroyScriptHandle();
                 delete asset;
             }
 

@@ -17,22 +17,36 @@ void Pine::Level::CreateFromWorld()
 
     ClearBlueprints();
 
+    if (currentCameraEntity != nullptr)
+    {
+        int id = 0;
+
+        for (const auto& entity : Entities::GetList())
+        {
+            id++;
+
+            if (entity->GetTemporary())
+            {
+                continue;
+            }
+
+            if (entity == currentCameraEntity)
+            {
+                m_LevelSettings.CameraEntity = id;
+                m_LevelSettings.HasCamera = true;
+                break;
+            }
+        }
+    }
+
     for (const auto& entity : Entities::GetList())
     {
         // Ignore children as we take care of those when processing their parents.
-        // TODO: Fix bug where cameras are not being set correctly when they are children of other entities.
         if (entity->GetParent() != nullptr)
             continue;
-
         // See comment for m_Temporary
         if (entity->GetTemporary())
             continue;
-
-        if (currentCameraEntity == entity)
-        {
-            m_LevelSettings.HasCamera = true;
-            m_LevelSettings.CameraEntity = m_Blueprints.size();
-        }
 
         auto blueprint = new Blueprint();
 
@@ -52,13 +66,21 @@ void Pine::Level::Load()
 
     Entities::DeleteAll();
 
-    for (int i = 0; i < m_Blueprints.size();i++)
-    {
-        auto entity = m_Blueprints[i]->Spawn();
+    const auto entityOffset = Entities::GetList().size();
 
-        if (m_LevelSettings.HasCamera && m_LevelSettings.CameraEntity == i)
+    for (const auto& blueprint : m_Blueprints)
+    {
+        blueprint->Spawn();
+    }
+
+    if (m_LevelSettings.HasCamera)
+    {
+        const auto& entityList = Entities::GetList();
+        const auto entityCameraIndex = m_LevelSettings.CameraEntity - entityOffset;
+
+        if (entityCameraIndex < entityList.size())
         {
-            primaryRenderingContext->SceneCamera = entity->GetComponent<Pine::Camera>();
+            primaryRenderingContext->SceneCamera = entityList[m_LevelSettings.CameraEntity - entityOffset]->GetComponent<Pine::Camera>();
         }
     }
 

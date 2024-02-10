@@ -68,6 +68,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     // We have to set up our script runtime first, since all other parts of the engine needs to
     // be able to register objects to the runtime.
+    Script::Runtime::Setup();
     Script::Manager::Setup();
 
     // Load engine assets, order is important, we want the shaders ready
@@ -154,6 +155,7 @@ void Pine::Engine::Shutdown()
     }
 
     Script::Manager::Dispose();
+    Script::Runtime::Dispose();
     Utilities::HotReload::Shutdown();
     Input::Shutdown();
     Renderer3D::Shutdown();

@@ -28,6 +28,8 @@ add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Other/EntitySelection/EntitySelection.hpp
         src/Other/EntitySelection/EntitySelection.cpp
         src/Other/PlayHandler/PlayHandler.hpp
-        src/Other/PlayHandler/PlayHandler.cpp)
+        src/Other/PlayHandler/PlayHandler.cpp
+        src/Scripting/ScriptReload.hpp
+        src/Scripting/ScriptReload.cpp)
 
 target_link_libraries(Editor Engine freetype)

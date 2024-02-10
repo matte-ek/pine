@@ -139,14 +139,11 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
 
 bool Pine::Renderer3D::AddInstance(const Matrix4f&transformationMatrix)
 {
-    if (m_CurrentInstanceIndex >= Specifications::General::MAX_INSTANCE_COUNT)
-    {
-        return true;
-    }
+    bool isFull = m_CurrentInstanceIndex == Specifications::General::MAX_INSTANCE_COUNT - 1;
 
     ShaderStorages::Transform.Data().TransformationMatrix[m_CurrentInstanceIndex++] = transformationMatrix;
 
-    return false;
+    return !isFull;
 }
 
 void Pine::Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, int writeStencilBuffer)

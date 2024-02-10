@@ -13,14 +13,14 @@ namespace Pine
         AssetHandle<CSharpScript> m_Script;
 
         Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
-
-        void CreateInstance();
-        void DestroyInstance();
     public:
         ScriptComponent();
 
         void SetScript(CSharpScript* script);
         CSharpScript* GetScript() const;
+
+        void CreateInstance();
+        void DestroyInstance();
 
         Script::ObjectHandle* GetScriptObjectHandle();
 

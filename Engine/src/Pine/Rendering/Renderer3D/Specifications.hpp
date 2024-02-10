@@ -5,7 +5,7 @@ namespace Pine::Renderer3D::Specifications
     namespace General
     {
         constexpr int DYNAMIC_LIGHT_COUNT = 32;
-        constexpr int MAX_INSTANCE_COUNT = 128;
+        constexpr int MAX_INSTANCE_COUNT = 512;
     }
 
     namespace Samplers

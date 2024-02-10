@@ -41,6 +41,9 @@
     <ItemGroup>
         <Compile Include="Assets\Asset.cs" />
         <Compile Include="Assets\AssetManager.cs" />
+        <Compile Include="Assets\Blueprint.cs" />
+        <Compile Include="Assets\Level.cs" />
+        <Compile Include="Assets\Material.cs" />
         <Compile Include="Assets\Model.cs" />
         <Compile Include="Core\Log.cs" />
         <Compile Include="Core\Script.cs" />

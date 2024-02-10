@@ -220,4 +220,9 @@ namespace Pine::Components
     }
 
     IComponent* GetByInternalId(Pine::ComponentType type, std::uint32_t internalId);
+
+    // Internal hints that may be set by the engine to optimize component iteration
+    void SetIgnoreHighestEntityIndexFlag(bool ignore);
+
+    void RecomputeHighestComponentIndex();
 }

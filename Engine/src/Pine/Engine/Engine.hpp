@@ -19,7 +19,7 @@ namespace Pine::Engine
         int m_AssetsLoadThreadCount = 4;
 
         // Refers to both entity and component count
-        std::uint32_t m_MaxObjectCount = 2048;
+        std::uint32_t m_MaxObjectCount = 8096;
 
         // Whether to enable engine debug tools, such as hot reload
         bool m_EnableDebugTools = true;

@@ -7,6 +7,7 @@
 
 #include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
 #include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
+#include "Pine/Core/Log/Log.hpp"
 
 namespace
 {

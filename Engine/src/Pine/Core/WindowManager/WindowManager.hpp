@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <functional>
 #include "../Math/Math.hpp"
 
 // Handles OS window creation, modification etc.
@@ -47,8 +48,6 @@ namespace Pine::WindowManager
     bool IsWindowCreated();
     bool IsWindowOpen();
 
-    // Managing the window obviously requires IsWindowCreated() to return true.
-
     void SetWindowPosition(Vector2i position);
     void SetWindowSize(Vector2i size);
     void SetWindowTitle(const std::string& title);
@@ -60,6 +59,11 @@ namespace Pine::WindowManager
     bool GetWindowVisible();
     const std::string& GetWindowTitle();
     ScreenType GetWindowScreenType();
+
+    // Callbacks
+    void InstallWindowCallbacks(); // This is normally called by the engine itself, but ImGui might steal some of them, so we need to call this again after ImGui has been initialized.
+    void AddWindowResizeCallback(const std::function<void(int, int)>& callback);
+    void AddWindowFocusCallback(const std::function<void()>& callback);
 
     // Pointer to the underlying OS "handle", for example, on Windows
     // systems this will be the HWND.
