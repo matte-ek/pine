@@ -22,6 +22,14 @@
 
 namespace
 {
+    void OnWindowFocus()
+    {
+        if (!Pine::WindowManager::GetWindowPointer())
+            return;
+
+        ImGui_ImplGlfw_WindowFocusCallback(reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
+    }
+
     void SetTheme()
     {
         // TODO: Do a nice green dark theme
@@ -179,6 +187,10 @@ namespace
 void Gui::Setup()
 {
     InitializeImGui();
+
+    Pine::WindowManager::InstallWindowCallbacks();
+
+    Pine::WindowManager::AddWindowFocusCallback(OnWindowFocus);
 
     Commands::Setup();
     Gizmo::Gizmo3D::Setup();

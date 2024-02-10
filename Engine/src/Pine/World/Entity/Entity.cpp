@@ -8,11 +8,11 @@ Pine::Entity::Entity(std::uint32_t id)
 }
 
 Pine::Entity::Entity(std::uint32_t id, std::uint32_t internalId)
-        : m_Id(id)
+        : m_Id(id), m_InternalId(internalId)
 {
     AddComponent<Transform>();
 
-    m_EntityScriptHandle = Script::ObjectFactory::CreateEntity(id, internalId);
+    CreateScriptHandle();
 }
 
 Pine::Entity::~Entity()
@@ -39,10 +39,7 @@ Pine::Entity::~Entity()
         m_Parent->RemoveChild(this);
     }
 
-    if (m_EntityScriptHandle.Object != nullptr)
-    {
-        Script::ObjectFactory::DisposeObject(&m_EntityScriptHandle);
-    }
+    DestroyScriptHandle();
 }
 
 std::uint32_t Pine::Entity::GetId() const
@@ -218,4 +215,19 @@ Pine::Entity* Pine::Entity::Create(const std::string& name)
 Pine::Script::ObjectHandle *Pine::Entity::GetScriptHandle()
 {
     return &m_EntityScriptHandle;
+}
+
+void Pine::Entity::CreateScriptHandle()
+{
+    m_EntityScriptHandle = Script::ObjectFactory::CreateEntity(m_Id, m_InternalId);
+}
+
+void Pine::Entity::DestroyScriptHandle()
+{
+    if (m_EntityScriptHandle.Object == nullptr)
+    {
+        return;
+    }
+
+    Script::ObjectFactory::DisposeObject(&m_EntityScriptHandle);
 }

@@ -22,14 +22,14 @@ namespace Pine.World
     public class Component
     {
         public readonly Entity Parent;
-        public readonly ComponentType ComponentType;
+        public readonly ComponentType Type;
         
         protected uint _internalId = 0;
         
         public bool Active
         {
-            get => GetActive(_internalId, (int)ComponentType);
-            set => SetActive(_internalId, (int)ComponentType, value);
+            get => GetActive(_internalId, (int)Type);
+            set => SetActive(_internalId, (int)Type, value);
         }
         
         [MethodImpl(MethodImplOptions.InternalCall)]

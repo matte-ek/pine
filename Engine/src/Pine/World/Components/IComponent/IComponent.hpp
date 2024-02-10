@@ -31,6 +31,41 @@ namespace Pine
             case ComponentType::Transform:
                 return "Transform";
             case ComponentType::ModelRenderer:
+                return "ModelRenderer";
+            case ComponentType::TerrainRenderer:
+                return "TerrainRenderer";
+            case ComponentType::Camera:
+                return "Camera";
+            case ComponentType::Light:
+                return "Light";
+            case ComponentType::Collider:
+                return "Collider";
+            case ComponentType::RigidBody:
+                return "RigidBody";
+            case ComponentType::Collider2D:
+                return "Collider2D";
+            case ComponentType::RigidBody2D:
+                return "RigidBody2D";
+            case ComponentType::SpriteRenderer:
+                return "SpriteRenderer";
+            case ComponentType::TilemapRenderer:
+                return "TilemapRenderer";
+            case ComponentType::NativeScript:
+                return "NativeScript";
+            case ComponentType::Script:
+                return "Script";
+        }
+
+        return "N/A";
+    }
+
+    inline const char *ComponentTypeToHumanString(ComponentType type)
+    {
+        switch (type)
+        {
+            case ComponentType::Transform:
+                return "Transform";
+            case ComponentType::ModelRenderer:
                 return "Model Renderer";
             case ComponentType::TerrainRenderer:
                 return "Terrain Renderer";
@@ -76,9 +111,6 @@ namespace Pine
         std::uint32_t m_InternalId = 0;
 
         Entity *m_Parent = nullptr;
-
-        void CreateScriptInstance();
-        void DestroyScriptInstance();
     public:
         explicit IComponent(ComponentType type);
 
@@ -100,6 +132,8 @@ namespace Pine
 
         ComponentType GetType() const;
 
+        void CreateScriptInstance();
+        void DestroyScriptInstance();
         Script::ObjectHandle* GetComponentScriptHandle();
 
         virtual void OnCreated();

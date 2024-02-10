@@ -2,6 +2,9 @@
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/assembly.h>
 #include <cassert>
+#include <unordered_map>
+#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/World/Components/IComponent/IComponent.hpp"
 #include "ScriptObjectFactory.hpp"
 #include "Pine/Script/Runtime/ScriptingRuntime.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
@@ -12,7 +15,7 @@
 
 namespace
 {
-    MonoDomain *m_Domain = nullptr;
+    MonoDomain *m_RootDomain = nullptr;
     MonoAssembly *m_PineAssembly = nullptr;
     MonoImage *m_PineImage = nullptr;
 
@@ -20,19 +23,31 @@ namespace
     MonoClassField *m_EntityInternalIdField = nullptr;
     MonoClassField *m_EntityIdProperty = nullptr;
 
-    MonoClass *m_ComponentClass = nullptr;
-    MonoClassField *m_ComponentInternalIdField = nullptr;
-    MonoClassField *m_ComponentParentField = nullptr;
-    MonoClassField *m_ComponentTypeField = nullptr;
+    struct ComponentTypeData
+    {
+        MonoClass *m_ComponentClass = nullptr;
+        MonoClassField *m_ComponentInternalIdField = nullptr;
+        MonoClassField *m_ComponentParentField = nullptr;
+        MonoClassField *m_ComponentTypeField = nullptr;
+    };
 
-    MonoClass* m_AssetClass = nullptr;
-    MonoClassField* m_AssetInternalIdField = nullptr;
-    MonoClassField* m_AssetTypeField = nullptr;
+    struct AssetTypeData
+    {
+        MonoClass* m_AssetClass = nullptr;
+        MonoClassField* m_AssetInternalIdField = nullptr;
+        MonoClassField* m_AssetTypeField = nullptr;
+    };
+
+    std::unordered_map<Pine::AssetType, AssetTypeData*> m_AssetObjectFactory;
+    std::unordered_map<Pine::ComponentType, ComponentTypeData*> m_ComponentObjectFactory;
 }
 
 void Pine::Script::ObjectFactory::Setup()
 {
-    m_Domain = Pine::Script::Runtime::GetDomain();
+    m_AssetObjectFactory.clear();
+    m_ComponentObjectFactory.clear();
+
+    m_RootDomain = Pine::Script::Runtime::GetDomain();
     m_PineAssembly = Pine::Script::Runtime::GetPineAssembly();
     m_PineImage = Pine::Script::Runtime::GetPineImage();
 
@@ -40,32 +55,14 @@ void Pine::Script::ObjectFactory::Setup()
     m_EntityInternalIdField = mono_class_get_field_from_name(m_EntityClass, "_internalId");
     m_EntityIdProperty = mono_class_get_field_from_name(m_EntityClass, "Id");
 
-    m_ComponentClass = mono_class_from_name(m_PineImage, "Pine.World", "Component");
-    m_ComponentInternalIdField = mono_class_get_field_from_name(m_ComponentClass, "_internalId");
-    m_ComponentParentField = mono_class_get_field_from_name(m_ComponentClass, "Parent");
-    m_ComponentTypeField = mono_class_get_field_from_name(m_ComponentClass, "ComponentType");
-
-    m_AssetClass = mono_class_from_name(m_PineImage, "Pine.Assets", "Asset");
-    m_AssetInternalIdField = mono_class_get_field_from_name(m_AssetClass, "_internalId");
-    m_AssetTypeField = mono_class_get_field_from_name(m_AssetClass, "Type");
-
     assert(m_EntityClass);
     assert(m_EntityInternalIdField);
     assert(m_EntityIdProperty);
-
-    assert(m_ComponentClass);
-    assert(m_ComponentInternalIdField);
-    assert(m_ComponentParentField);
-    assert(m_ComponentTypeField);
-
-    assert(m_AssetClass);
-    assert(m_AssetInternalIdField);
-    assert(m_AssetTypeField);
 }
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, std::uint32_t internalId)
 {
-    auto entity = mono_object_new(m_Domain, m_EntityClass);
+    auto entity = mono_object_new(m_RootDomain, m_EntityClass);
 
     mono_runtime_object_init(entity);
 
@@ -79,16 +76,47 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(Pine::IComponent *engineComponent)
 {
-    auto component = mono_object_new(m_Domain, m_ComponentClass);
+    const auto componentType = engineComponent->GetType();
+    ComponentTypeData* componentTypeData;
+
+    if (m_ComponentObjectFactory.count(componentType) == 0)
+    {
+        auto monoClass = mono_class_from_name(m_PineImage, "Pine.World.Components", Pine::ComponentTypeToString(componentType));
+
+        if (!monoClass)
+        {
+            m_ComponentObjectFactory[componentType] = nullptr;
+
+            return {nullptr, 0};
+        }
+
+        componentTypeData = new ComponentTypeData();
+
+        componentTypeData->m_ComponentClass = monoClass;
+        componentTypeData->m_ComponentInternalIdField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "_internalId");
+        componentTypeData->m_ComponentParentField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "Parent");
+        componentTypeData->m_ComponentTypeField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "Type");
+
+        m_ComponentObjectFactory[componentType] = componentTypeData;
+    }
+
+    componentTypeData = m_ComponentObjectFactory[componentType];
+
+    if (!componentTypeData)
+    {
+        return {nullptr, 0};
+    }
+
+    auto component = mono_object_new(m_RootDomain, componentTypeData->m_ComponentClass);
 
     mono_runtime_object_init(component);
 
     auto internalId = engineComponent->GetInternalId();
     auto type = static_cast<int>(engineComponent->GetType());
 
-    mono_field_set_value(component, m_ComponentInternalIdField, &internalId);
-    mono_field_set_value(component, m_ComponentTypeField, &type);
-    mono_field_set_value(component, m_ComponentParentField, (void *) mono_gchandle_get_target(engineComponent->GetParent()->GetScriptHandle()->Handle));
+    mono_field_set_value(component, componentTypeData->m_ComponentInternalIdField, &internalId);
+    mono_field_set_value(component, componentTypeData->m_ComponentTypeField, &type);
+    mono_field_set_value(component, componentTypeData->m_ComponentParentField, (void *) mono_gchandle_get_target(engineComponent->GetParent()->GetScriptHandle()->Handle));
 
     auto handle = mono_gchandle_new(component, true);
 
@@ -104,7 +132,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine:
         return {};
     }
 
-    auto object = mono_object_new(m_Domain, data->Class);
+    auto object = mono_object_new(m_RootDomain, data->Class);
 
     auto internalId = component->GetInternalId();
     auto type = static_cast<int>(component->GetType());
@@ -121,15 +149,44 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine:
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(Pine::IAsset *asset)
 {
-    auto object = mono_object_new(m_Domain, m_AssetClass);
+    AssetTypeData* assetTypeData = nullptr;
+
+    if (m_AssetObjectFactory.count(asset->GetType()) == 0)
+    {
+        auto monoClass = mono_class_from_name(m_PineImage, "Pine.Assets", Pine::AssetTypeToString(asset->GetType()));
+
+        if (!monoClass)
+        {
+            m_AssetObjectFactory[asset->GetType()] = nullptr;
+            
+            return { nullptr, 0 };
+        }
+
+        assetTypeData = new AssetTypeData();
+
+        assetTypeData->m_AssetClass = monoClass;
+        assetTypeData->m_AssetInternalIdField = mono_class_get_field_from_name(monoClass, "_internalId");
+        assetTypeData->m_AssetTypeField = mono_class_get_field_from_name(monoClass, "Type");
+
+        m_AssetObjectFactory[asset->GetType()] = assetTypeData;
+    }
+
+    assetTypeData = m_AssetObjectFactory[asset->GetType()];
+
+    if (!assetTypeData)
+    {
+        return { nullptr, 0 };
+    }
+
+    auto object = mono_object_new(m_RootDomain, assetTypeData->m_AssetClass);
 
     mono_runtime_object_init(object);
 
     auto internalId = asset->GetId();
     auto type = static_cast<int>(asset->GetType());
 
-    mono_field_set_value(object, m_AssetInternalIdField, &internalId);
-    mono_field_set_value(object, m_AssetTypeField, &type);
+    mono_field_set_value(object, assetTypeData->m_AssetInternalIdField, &internalId);
+    mono_field_set_value(object, assetTypeData->m_AssetTypeField, &type);
 
     auto handle = mono_gchandle_new(object, true);
 

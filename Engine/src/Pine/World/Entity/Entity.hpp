@@ -14,6 +14,7 @@ namespace Pine
     {
     private:
         std::uint32_t m_Id = 0;
+        std::uint32_t m_InternalId = 0;
 
         bool m_Active = true;
         bool m_Static = false;
@@ -52,6 +53,9 @@ namespace Pine
         void SetParent(Entity* entity);
         Entity* GetParent() const;
 
+        void CreateScriptHandle();
+        void DestroyScriptHandle();
+
         Script::ObjectHandle* GetScriptHandle();
 
         // Creates and attaches the component to the entity
@@ -61,6 +65,7 @@ namespace Pine
             auto& component = Components::Create<T>();
 
             component.SetParent(this);
+            component.OnCreated();
 
             m_Components.push_back(&component);
 

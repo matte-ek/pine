@@ -26,5 +26,6 @@ namespace Pine::Script::Runtime
     void RunGarbageCollector();
 
     bool Setup();
+    void Reset();
     void Dispose();
 }

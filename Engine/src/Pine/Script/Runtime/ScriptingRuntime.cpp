@@ -1,38 +1,54 @@
 #include "ScriptingRuntime.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Script/Interfaces/Interfaces.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/CSharpScript/CSharpScript.hpp"
+#include "Pine/Script/ScriptManager.hpp"
+#include "Pine/World/Entities/Entities.hpp"
+#include "Pine/World/Components/Script/ScriptComponent.hpp"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/assembly.h>
-#include <mono/metadata/tokentype.h>
 #include <mono/metadata/mono-gc.h>
 #include <mono/metadata/mono-config.h>
 #include <vector>
 
 namespace
 {
-    MonoDomain *m_Domain;
+    MonoDomain *m_RootDomain;
+    MonoDomain *m_AppDomain;
     MonoAssembly *m_PineAssembly;
     MonoImage *m_PineImage;
 
     std::vector<Pine::Script::RuntimeAssembly> m_Assemblies;
+
+    bool m_IsReloading = false;
 }
 
 bool Pine::Script::Runtime::Setup()
 {
-    m_Domain = mono_jit_init("PineRuntime");
-
-    if (!m_Domain)
+    if (!m_IsReloading)
     {
-        Log::Error("Failed to initialize Mono runtime.");
-        return false;
+        m_RootDomain = mono_jit_init("PineRuntime");
+
+        if (!m_RootDomain)
+        {
+            Log::Error("Failed to initialize Mono runtime.");
+            return false;
+        }
     }
+
+    const char* domainName = "PineAppDomain";
+
+    m_AppDomain = mono_domain_create_appdomain(const_cast<char*>(domainName), nullptr);
+
+    mono_domain_set(m_AppDomain, false);
 
     // TODO: Figure out how we'll handle this on Winblows
     mono_config_parse("/etc/mono/config");
 
-    m_PineAssembly = mono_domain_assembly_open(m_Domain, "engine/script/Pine.dll");
+    m_PineAssembly = mono_domain_assembly_open(m_AppDomain, "engine/script/Pine.dll");
     if (!m_PineAssembly)
     {
         Log::Error("Failed to open Pine assembly.");
@@ -44,20 +60,77 @@ bool Pine::Script::Runtime::Setup()
     Interfaces::Log::Setup();
     Interfaces::Entity::Setup();
     Interfaces::Component::Setup();
-    Interfaces::Transform::Setup();
     Interfaces::Asset::Setup();
+    Interfaces::Input::Setup();
+    ObjectFactory::Setup();
+
+    if (m_IsReloading)
+    {
+        for (const auto& [assetPath, asset] : Assets::GetAll())
+        {
+            if (asset->IsDeleted())
+                continue;
+
+            asset->CreateScriptHandle();
+        }
+
+        for (const auto& entity : Entities::GetList())
+        {
+            entity->CreateScriptHandle();
+
+            for (const auto& component : entity->GetComponents())
+            {
+                component->CreateScriptInstance();
+            }
+        }
+    }
 
     return true;
 }
 
 void Pine::Script::Runtime::Dispose()
 {
-    mono_jit_cleanup(m_Domain);
+    for (const auto& [assetPath, asset] : Assets::GetAll())
+    {
+        if (asset->GetType() == AssetType::CSharpScript)
+        {
+            auto script = dynamic_cast<CSharpScript*>(asset);
+
+            if (script->GetScriptHandle()->Object != nullptr)
+                mono_gchandle_free(script->GetScriptHandle()->Handle);
+        }
+
+        asset->DestroyScriptHandle();
+    }
+
+    for (const auto& entity : Entities::GetList())
+    {
+        entity->DestroyScriptHandle();
+
+        for (const auto& component : entity->GetComponents())
+        {
+            if (component->GetType() == ComponentType::Script)
+            {
+                auto scriptComponent = dynamic_cast<ScriptComponent*>(component);
+
+                scriptComponent->DestroyInstance();
+            }
+
+            component->DestroyScriptInstance();
+        }
+    }
+
+    mono_domain_set(mono_get_root_domain(), false);
+    mono_domain_unload(m_AppDomain);
+
+    m_AppDomain = nullptr;
+    m_IsReloading = true;
+    m_Assemblies.clear();
 }
 
 Pine::Script::RuntimeAssembly* Pine::Script::Runtime::LoadAssembly(const std::filesystem::path &path)
 {
-    if (!m_Domain)
+    if (!m_RootDomain)
     {
         Log::Error("Mono runtime not initialized.");
         return nullptr;
@@ -72,7 +145,7 @@ Pine::Script::RuntimeAssembly* Pine::Script::Runtime::LoadAssembly(const std::fi
         }
     }
 
-    auto assembly = mono_domain_assembly_open(m_Domain, path.string().c_str());
+    auto assembly = mono_domain_assembly_open(m_AppDomain, path.string().c_str());
     if (!assembly)
     {
         Log::Error(fmt::format("Failed to open assembly: {}", path.string()));
@@ -95,7 +168,7 @@ Pine::Script::RuntimeAssembly* Pine::Script::Runtime::LoadAssembly(const std::fi
 
 bool Pine::Script::Runtime::UnloadAssembly(Pine::Script::RuntimeAssembly *assembly)
 {
-    if (!m_Domain)
+    if (!m_RootDomain)
     {
         Log::Error("Mono runtime not initialized.");
         return false;
@@ -135,7 +208,7 @@ MonoAssembly *Pine::Script::Runtime::GetPineAssembly()
 
 MonoDomain *Pine::Script::Runtime::GetDomain()
 {
-    return m_Domain;
+    return m_AppDomain;
 }
 
 MonoImage *Pine::Script::Runtime::GetPineImage()
@@ -150,4 +223,10 @@ void Pine::Script::Runtime::RunGarbageCollector()
     mono_gc_collect(mono_gc_max_generation());
 
     Log::Verbose(fmt::format("mono_gc_get_heap_size(): {}", mono_gc_get_heap_size()));
+}
+
+void Pine::Script::Runtime::Reset()
+{
+    Dispose();
+    Setup();
 }

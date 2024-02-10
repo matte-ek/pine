@@ -5,6 +5,7 @@
 #include "Pine/World/Components/NativeScript/NativeScript.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 #include "Pine/Script/ScriptManager.hpp"
+#include "Pine/Core/Log/Log.hpp"
 
 namespace
 {

@@ -143,7 +143,7 @@ namespace Pine
         std::uint32_t GetId() const;
 
         void CreateScriptHandle();
-        void DestoryScriptHandle();
+        void DestroyScriptHandle();
 
         Script::ObjectHandle* GetScriptHandle();
 

@@ -62,6 +62,8 @@ namespace
         auto selectedEntity = Selection::GetSelectedEntities()[0];
         auto transform = selectedEntity->GetTransform();
 
+        transform->SetDirty();
+
         Pine::Matrix4f matrix = transform->GetTransformationMatrix();
         Pine::Matrix4f deltaMatrix;
 
@@ -103,7 +105,6 @@ namespace
             Pine::Vector3f position, scale, skew;
             Pine::Vector4f perspective;
             Pine::Quaternion rotation;
-
 
             if (selectedEntity->GetParent() != nullptr)
             {

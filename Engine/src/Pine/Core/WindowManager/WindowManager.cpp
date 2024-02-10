@@ -20,10 +20,18 @@ namespace
 
     Pine::WindowManager::ScreenType m_CurrentScreenType;
 
+    std::vector<std::function<void(int, int)>> m_WindowResizeCallbacks;
+    std::vector<std::function<void()>> m_WindowFocusCallbacks;
+
     void OnWindowSizeChanged(GLFWwindow* window, int width, int height)
     {
         if (window != m_Window)
             return;
+
+        for (auto &callback : m_WindowResizeCallbacks)
+        {
+            callback(width, height);
+        }
 
         m_WindowSize = Pine::Vector2i(width, height);
     }
@@ -36,6 +44,19 @@ namespace
         m_WindowPosition = Pine::Vector2i(x, y);
     }
 
+    void OnWindowFocusChanged(GLFWwindow* window, int focused)
+    {
+        if (window != m_Window)
+            return;
+
+        if (focused == GLFW_TRUE)
+        {
+            for (auto &callback : m_WindowFocusCallbacks)
+            {
+                callback();
+            }
+        }
+    }
 
 }
 
@@ -83,6 +104,7 @@ bool Pine::WindowManager::Internal::CreateWindow(Vector2i position, Vector2i req
 
     glfwSetWindowPosCallback(m_Window, OnWindowPositionChanged);
     glfwSetWindowSizeCallback(m_Window, OnWindowSizeChanged);
+    glfwSetWindowFocusCallback(m_Window, OnWindowFocusChanged);
 
     return true;
 }
@@ -218,4 +240,19 @@ void* Pine::WindowManager::GetWindowHandlePointer()
 void* Pine::WindowManager::GetWindowPointer()
 {
     return m_Window;
+}
+
+void Pine::WindowManager::AddWindowFocusCallback(const std::function<void()>& callback)
+{
+    m_WindowFocusCallbacks.push_back(callback);
+}
+
+void Pine::WindowManager::AddWindowResizeCallback(const std::function<void(int, int)> &callback)
+{
+    m_WindowResizeCallbacks.push_back(callback);
+}
+
+void Pine::WindowManager::InstallWindowCallbacks()
+{
+    glfwSetWindowFocusCallback(m_Window, OnWindowFocusChanged);
 }

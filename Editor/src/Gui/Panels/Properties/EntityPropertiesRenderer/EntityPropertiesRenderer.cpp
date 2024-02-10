@@ -40,6 +40,8 @@ namespace
             auto rotation = isApplyingRotation ? eulerAngles : transform->GetEulerAngles();
             auto scale = transform->LocalScale;
 
+            transform->SetDirty();
+
             if (Widgets::Vector3("Position", position))
             {
                 transform->LocalPosition = position;

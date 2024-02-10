@@ -6,6 +6,11 @@ namespace Pine::Script::Interfaces
     {
         void Setup();
     }
+    
+    namespace Input
+    {
+        void Setup();
+    }
 
     namespace Entity
     {
@@ -13,11 +18,6 @@ namespace Pine::Script::Interfaces
     }
 
     namespace Component
-    {
-        void Setup();
-    }
-
-    namespace Transform
     {
         void Setup();
     }

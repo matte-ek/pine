@@ -16,10 +16,20 @@ void Transform::CalculateTransformationMatrix()
     m_TransformationMatrix = translate(m_TransformationMatrix, GetPosition());
     m_TransformationMatrix *= toMat4(GetRotation());
     m_TransformationMatrix = scale(m_TransformationMatrix, GetScale());
+
+    m_IsDirty = false;
 }
 
 void Transform::OnRender(float deltaTime)
 {
+    if (m_Parent->GetStatic())
+    {
+        if (!m_IsDirty)
+        {
+            return;
+        }
+    }
+
     CalculateTransformationMatrix();
 }
 
@@ -101,4 +111,9 @@ void Transform::SetEulerAngles(Vector3f angle)
 const Matrix4f &Transform::GetTransformationMatrix() const
 {
     return m_TransformationMatrix;
+}
+
+void Transform::SetDirty()
+{
+    m_IsDirty = true;
 }

@@ -9,11 +9,16 @@ namespace Pine
     class Transform : public IComponent
     {
     private:
+        bool m_IsDirty = true;
         Matrix4f m_TransformationMatrix = Matrix4f(1.f);
 
         void CalculateTransformationMatrix();
     public:
         explicit Transform();
+
+        // If the parent is static, and we want the transform to update, you have
+        // to manually call SetDirty() to update the transformation matrix.
+        void SetDirty();
 
         void OnRender(float deltaTime) override;
 
