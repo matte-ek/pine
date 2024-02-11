@@ -22,11 +22,13 @@ namespace
     MonoClass *m_EntityClass = nullptr;
     MonoClassField *m_EntityInternalIdField = nullptr;
     MonoClassField *m_EntityIdProperty = nullptr;
+    MonoClassField *m_EntityValidProperty = nullptr;
 
     struct ComponentTypeData
     {
         MonoClass *m_ComponentClass = nullptr;
         MonoClassField *m_ComponentInternalIdField = nullptr;
+        MonoClassField *m_ComponentIsValidField = nullptr;
         MonoClassField *m_ComponentParentField = nullptr;
         MonoClassField *m_ComponentTypeField = nullptr;
     };
@@ -53,11 +55,13 @@ void Pine::Script::ObjectFactory::Setup()
 
     m_EntityClass = mono_class_from_name(m_PineImage, "Pine.World", "Entity");
     m_EntityInternalIdField = mono_class_get_field_from_name(m_EntityClass, "_internalId");
+    m_EntityValidProperty = mono_class_get_field_from_name(m_EntityClass, "_isValid");
     m_EntityIdProperty = mono_class_get_field_from_name(m_EntityClass, "Id");
 
     assert(m_EntityClass);
     assert(m_EntityInternalIdField);
     assert(m_EntityIdProperty);
+    assert(m_EntityValidProperty);
 }
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, std::uint32_t internalId)
@@ -94,6 +98,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(Pine::IC
 
         componentTypeData->m_ComponentClass = monoClass;
         componentTypeData->m_ComponentInternalIdField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "_internalId");
+        componentTypeData->m_ComponentIsValidField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "_isValid");
         componentTypeData->m_ComponentParentField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "Parent");
         componentTypeData->m_ComponentTypeField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "Type");
 
@@ -149,7 +154,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine:
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(Pine::IAsset *asset)
 {
-    AssetTypeData* assetTypeData = nullptr;
+    AssetTypeData* assetTypeData;
 
     if (m_AssetObjectFactory.count(asset->GetType()) == 0)
     {
@@ -198,4 +203,24 @@ void Pine::Script::ObjectFactory::DisposeObject(Pine::Script::ObjectHandle *obje
     object->Object = nullptr;
 
     mono_gchandle_free(object->Handle);
+}
+
+void Pine::Script::ObjectFactory::DisposeEntity(Pine::Script::ObjectHandle *handle)
+{
+    int newValidState = 0;
+
+    mono_field_set_value(mono_gchandle_get_target(handle->Handle), m_EntityValidProperty, &newValidState);
+
+    DisposeObject(handle);
+}
+
+void Pine::Script::ObjectFactory::DisposeComponent(IComponent* component, Pine::Script::ObjectHandle *handle)
+{
+    const auto& componentData = m_ComponentObjectFactory[component->GetType()];
+
+    bool newValidState = false;
+
+    mono_field_set_value(mono_gchandle_get_target(handle->Handle), componentData->m_ComponentIsValidField, &newValidState);
+
+    DisposeObject(handle);
 }

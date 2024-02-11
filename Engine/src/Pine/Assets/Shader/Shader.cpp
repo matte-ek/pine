@@ -71,7 +71,7 @@ namespace
                 }
             }
 
-            Pine::Log::Message(src);
+            Pine::Log::Info(src);
         }
         else
         {

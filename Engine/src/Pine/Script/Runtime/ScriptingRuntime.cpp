@@ -24,6 +24,7 @@ namespace
     std::vector<Pine::Script::RuntimeAssembly> m_Assemblies;
 
     bool m_IsReloading = false;
+    int m_ReloadIndex = 0;
 }
 
 bool Pine::Script::Runtime::Setup()
@@ -39,9 +40,11 @@ bool Pine::Script::Runtime::Setup()
         }
     }
 
-    const char* domainName = "PineAppDomain";
+    char buff[64];
 
-    m_AppDomain = mono_domain_create_appdomain(const_cast<char*>(domainName), nullptr);
+    sprintf(buff, "PineAppDomain%d", m_ReloadIndex++);
+
+    m_AppDomain = mono_domain_create_appdomain(const_cast<char*>(buff), nullptr);
 
     mono_domain_set(m_AppDomain, false);
 
@@ -121,7 +124,11 @@ void Pine::Script::Runtime::Dispose()
     }
 
     mono_domain_set(mono_get_root_domain(), false);
+    mono_domain_finalize(m_AppDomain, 0);
     mono_domain_unload(m_AppDomain);
+    //mono_jit_cleanup(m_AppDomain);
+
+//    RunGarbageCollector();
 
     m_AppDomain = nullptr;
     m_IsReloading = true;

@@ -12,14 +12,15 @@
 #include "Panels/EntityList/EntityListPanel.hpp"
 #include "Panels/GameViewport/GameViewportPanel.hpp"
 #include "Panels/LevelViewport/LevelViewportPanel.hpp"
-#include "Gui/Panels/Engine/EngineAssetsPanel.hpp"
+#include "Panels/LevelPanel/LevelPanel.hpp"
+#include "Panels/Engine/EngineAssetsPanel.hpp"
+#include "Panels/Console/ConsolePanel.hpp"
+#include "Panels/Profiler/ProfilerPanel.hpp"
 #include "Gui/MenuBar/MenuBar.hpp"
 #include "Gui/Shared/Commands/Commands.hpp"
-#include "Gui/Panels/LevelPanel/LevelPanel.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
-#include "Other/EntitySelection/EntitySelection.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
-
+#include "Other/EntitySelection/EntitySelection.hpp"
 namespace
 {
     void OnWindowFocus()
@@ -175,6 +176,8 @@ namespace
         Panels::AssetBrowser::Render();
         Panels::Properties::Render();
         Panels::LevelPanel::Render();
+        Panels::Console::Render();
+        Panels::Profiler::Render();
         Panels::EngineAssetsPanel::Render();
 
         Commands::Update();

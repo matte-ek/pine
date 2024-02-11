@@ -45,7 +45,7 @@ namespace
 
         if (m_ReloadGameAssemblyRequest)
         {
-            Pine::Log::Message("Reloading updated game assembly...");
+            Pine::Log::Info("Reloading updated game assembly...");
 
             Pine::Script::Manager::ReloadGameAssembly();
 

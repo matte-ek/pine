@@ -66,7 +66,7 @@ namespace
             auto oldScale = entity->GetTransform()->LocalScale;
             const auto distance = glm::length(RenderHandler::GetLevelRenderingContext()->SceneCamera->GetParent()->GetTransform()->LocalPosition - entity->GetTransform()->LocalPosition);
 
-            entity->GetTransform()->LocalScale += Pine::Vector3f(0.3f * distance);
+            entity->GetTransform()->LocalScale += Pine::Vector3f((0.06f * oldScale)  * distance);
             entity->GetTransform()->OnRender(0.f);
             entity->GetTransform()->LocalScale = oldScale;
 

@@ -5,29 +5,21 @@ namespace Pine.World.Components
 {
     public class Transform : Component
     {
-        public Vector3 Position
+        public Vector3 Position 
         {
             get
             {
-                GetLocalPosition(_internalId, out var position);
+                GetPosition(InternalId, out var position);
                 return position;
-            }
-            set
-            {
-                SetLocalPosition(_internalId, ref value);
             }
         }
         
-        public Quaternion Rotation
+        public Vector3 Rotation
         {
             get
             {
-                GetLocalRotation(_internalId, out var rotation);
+                GetRotation(InternalId, out var rotation);
                 return rotation;
-            }
-            set
-            {
-                SetLocalRotation(_internalId, ref value);
             }
         }
         
@@ -35,12 +27,47 @@ namespace Pine.World.Components
         {
             get
             {
-                GetLocalScale(_internalId, out var scale);
+                GetScale(InternalId, out var scale);
+                return scale;
+            }
+        }
+        
+        public Vector3 LocalPosition
+        {
+            get
+            {
+                GetLocalPosition(InternalId, out var position);
+                return position;
+            }
+            set
+            {
+                SetLocalPosition(InternalId, ref value);
+            }
+        }
+        
+        public Quaternion LocalRotation
+        {
+            get
+            {
+                GetLocalRotation(InternalId, out var rotation);
+                return rotation;
+            }
+            set
+            {
+                SetLocalRotation(InternalId, ref value);
+            }
+        }
+        
+        public Vector3 LocalScale
+        {
+            get
+            {
+                GetLocalScale(InternalId, out var scale);
                 return scale;
             }
             set
             {
-                SetLocalScale(_internalId, ref value);
+                SetLocalScale(InternalId, ref value);
             }
         }
         
@@ -48,7 +75,7 @@ namespace Pine.World.Components
         {
             get
             {
-                GetUp(_internalId, out var up);
+                GetUp(InternalId, out var up);
                 return up;
             }
         }
@@ -57,7 +84,7 @@ namespace Pine.World.Components
         {
             get
             {
-                GetRight(_internalId, out var right);
+                GetRight(InternalId, out var right);
                 return right;
             }
         }
@@ -66,11 +93,17 @@ namespace Pine.World.Components
         {
             get
             {
-                GetForward(_internalId, out var forward);
+                GetForward(InternalId, out var forward);
                 return forward;
             }
         }
         
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetPosition(uint id, out Vector3 position);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetRotation(uint id, out Vector3 position);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetScale(uint id, out Vector3 position);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetLocalPosition(uint id, ref Vector3 position);
         [MethodImpl(MethodImplOptions.InternalCall)]

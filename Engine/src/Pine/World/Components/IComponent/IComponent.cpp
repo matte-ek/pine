@@ -113,7 +113,7 @@ void Pine::IComponent::DestroyScriptInstance()
         return;
     }
 
-    Script::ObjectFactory::DisposeObject(&m_ScriptObjectHandle);
+    Script::ObjectFactory::DisposeComponent(this, &m_ScriptObjectHandle);
 }
 
 void Pine::IComponent::SetInternalId(std::uint32_t id)

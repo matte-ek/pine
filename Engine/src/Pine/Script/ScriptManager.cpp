@@ -16,6 +16,7 @@
 
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/attrdefs.h>
+#include <mono/metadata/exception.h>
 
 namespace
 {
@@ -204,7 +205,16 @@ void Pine::Script::Manager::OnStart()
             continue;
         }
 
-        mono_runtime_invoke(scriptData->MethodOnStart, objectHandle->Object, nullptr, nullptr);
+        MonoObject *exception = nullptr;
+
+        mono_runtime_invoke(scriptData->MethodOnStart, objectHandle->Object, nullptr, &exception);
+
+        if (exception != nullptr)
+        {
+            auto str = mono_object_to_string(exception, nullptr);
+
+            Log::Error(fmt::format("Exception thrown in script '{}': {}", script->GetFileName(), mono_string_to_utf8(str)));
+        }
     }
 }
 
@@ -233,8 +243,16 @@ void Pine::Script::Manager::OnUpdate(float deltaTime)
         }
 
         void* args[1] = { &deltaTime };
+        MonoObject *exception = nullptr;
 
-        mono_runtime_invoke(scriptData->MethodOnUpdate, objectHandle->Object, args, nullptr);
+        mono_runtime_invoke(scriptData->MethodOnUpdate, objectHandle->Object, args, &exception);
+
+        if (exception != nullptr)
+        {
+            auto str = mono_object_to_string(exception, nullptr);
+
+            Log::Error(fmt::format("Exception thrown in script '{}': {}", script->GetFileName(), mono_string_to_utf8(str)));
+        }
     }
 }
 

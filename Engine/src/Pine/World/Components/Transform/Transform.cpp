@@ -77,7 +77,7 @@ Vector3f Transform::GetScale() const
 
     if (m_Parent->GetParent() != nullptr)
     {
-        scale += m_Parent->GetParent()->GetTransform()->GetScale();
+        scale *= m_Parent->GetParent()->GetTransform()->GetScale();
     }
 
     return scale;

@@ -8,8 +8,8 @@ namespace Pine.World.Components
     {
         public Model Model
         {
-            get => (Model)GetModel(_internalId);
-            set => SetModel(_internalId, value._internalId);
+            get => (Model)GetModel(InternalId);
+            set => SetModel(InternalId, value._internalId);
         }
         
         [MethodImpl(MethodImplOptions.InternalCall)]

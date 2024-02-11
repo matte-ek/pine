@@ -8,6 +8,7 @@
 #include <cstring>
 #include <mono/metadata/object.h>
 #include <mono/metadata/appdomain.h>
+#include <mono/metadata/exception.h>
 #include <unordered_map>
 
 namespace
@@ -16,36 +17,51 @@ namespace
 
     MonoString* GetEntityName(std::uint32_t internalId)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
         return mono_string_new(mono_domain_get(), Pine::Entities::GetByInternalId(internalId)->GetName().c_str());
     }
 
     void SetEntityName(std::uint32_t internalId, MonoString* name)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Entities::GetByInternalId(internalId)->SetName(mono_string_to_utf8(name));
     }
 
     bool GetEntityActive(std::uint32_t internalId)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
         return Pine::Entities::GetByInternalId(internalId)->GetActive();
     }
 
     void SetEntityActive(std::uint32_t internalId, bool active)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Entities::GetByInternalId(internalId)->SetActive(active);
     }
 
     bool GetEntityStatic(std::uint32_t internalId)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
         return Pine::Entities::GetByInternalId(internalId)->GetStatic();
     }
 
     void SetEntityStatic(std::uint32_t internalId, bool active)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Entities::GetByInternalId(internalId)->SetStatic(active);
+    }
+
+    void DestroyEntity(std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Entities::Delete(Pine::Entities::GetByInternalId(internalId));
     }
 
     MonoObject* GetTransform(std::uint32_t internalId)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+
         return mono_gchandle_get_target(Pine::Entities::GetByInternalId(internalId)->GetTransform()->GetComponentScriptHandle()->Handle);
     }
 
@@ -76,6 +92,8 @@ namespace
 
     bool HasComponent(std::uint32_t id, MonoReflectionType* reflectionType)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == id) return false;
+
         auto componentType = GetComponentType(reflectionType);
 
         for (const auto& component : Pine::Entities::GetByInternalId(id)->GetComponents())
@@ -91,6 +109,8 @@ namespace
 
     MonoObject* GetComponent(std::uint32_t id, MonoReflectionType* reflectionType)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == id) return nullptr;
+
         auto componentType = GetComponentType(reflectionType);
 
         for (const auto& component : Pine::Entities::GetByInternalId(id)->GetComponents())
@@ -106,6 +126,8 @@ namespace
 
     MonoObject* AddComponent(std::uint32_t id, MonoReflectionType* reflectionType)
     {
+        if (std::numeric_limits<std::uint32_t>::max() == id) return nullptr;
+
         auto componentType = GetComponentType(reflectionType);
 
         return mono_gchandle_get_target(Pine::Entities::GetByInternalId(id)->AddComponent(componentType)->GetComponentScriptHandle()->Handle);
@@ -133,4 +155,5 @@ void Pine::Script::Interfaces::Entity::Setup()
     mono_add_internal_call("Pine.World.Entity::GetComponent", reinterpret_cast<void*>(GetComponent));
     mono_add_internal_call("Pine.World.Entity::AddComponent", reinterpret_cast<void*>(AddComponent));
     mono_add_internal_call("Pine.World.Entity::CreateEntity", reinterpret_cast<void*>(CreateEntity));
+    mono_add_internal_call("Pine.World.Entity::DestroyEntity", reinterpret_cast<void*>(DestroyEntity));
 }

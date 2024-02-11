@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Pine.Core;
 
 namespace Pine.World
 {
@@ -24,13 +25,28 @@ namespace Pine.World
         public readonly Entity Parent;
         public readonly ComponentType Type;
         
-        protected uint _internalId = 0;
-        
         public bool Active
         {
-            get => GetActive(_internalId, (int)Type);
-            set => SetActive(_internalId, (int)Type, value);
+            get => GetActive(InternalId, (int)Type);
+            set => SetActive(InternalId, (int)Type, value);
         }
+        
+        internal uint InternalId
+        {
+            get
+            {
+                if (!_isValid)
+                {
+                    Log.Error("Attempt to access invalid component");
+                    return uint.MaxValue;
+                }
+                
+                return _internalId;
+            }
+        } 
+        
+        private uint _internalId = 0;
+        private bool _isValid = true;
         
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool GetActive(uint id, int type);

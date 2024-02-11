@@ -638,7 +638,7 @@ void Assets::SaveAll()
         savedAssets++;
     }
 
-    Log::Message(fmt::format("Saved {} modified assets.", savedAssets));
+    Log::Info(fmt::format("Saved {} modified assets.", savedAssets));
 }
 
 void Assets::RefreshAll()

@@ -12,7 +12,7 @@ namespace Pine
         Repeat
     };
 
-    class SpriteRenderer : public IComponent
+    class SpriteRenderer final : public IComponent
     {
     private:
         AssetHandle<Texture2D> m_StaticTexture;

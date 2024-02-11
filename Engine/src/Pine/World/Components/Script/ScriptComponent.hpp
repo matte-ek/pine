@@ -7,7 +7,7 @@
 namespace Pine
 {
 
-    class ScriptComponent : public IComponent
+    class ScriptComponent final : public IComponent
     {
     private:
         AssetHandle<CSharpScript> m_Script;
