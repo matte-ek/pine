@@ -58,29 +58,51 @@ namespace
 
         std::cout << str << std::endl;
     }
+
+    std::vector<Pine::LogMessage> m_LogMessages;
+
+    void AddLogMessage(const Pine::LogMessage& message)
+    {
+        m_LogMessages.push_back(message);
+
+        if (m_LogMessages.size() > 256)
+        {
+            m_LogMessages.erase(m_LogMessages.begin());
+        }
+    }
 }
 
 void Pine::Log::Verbose(const std::string &str)
 {
     PrintMessage("verbose", ConsoleColor::DarkGray, str.c_str(), ConsoleColor::DarkGray);
+    AddLogMessage({str, Pine::LogSeverity::Verbose});
 }
 
-void Pine::Log::Message(const std::string &str)
+void Pine::Log::Info(const std::string &str)
 {
     PrintMessage("info", ConsoleColor::White, str.c_str());
+    AddLogMessage({str, Pine::LogSeverity::Info});
 }
 
 void Pine::Log::Warning(const std::string &str)
 {
     PrintMessage("warning", ConsoleColor::Yellow, str.c_str());
+    AddLogMessage({str, Pine::LogSeverity::Warning});
 }
 
 void Pine::Log::Error(const std::string &str)
 {
     PrintMessage("error", ConsoleColor::Red, str.c_str());
+    AddLogMessage({str, Pine::LogSeverity::Error});
 }
 
 void Pine::Log::Fatal(const std::string &str)
 {
     PrintMessage("fatal", ConsoleColor::Red, str.c_str(), ConsoleColor::Red);
+    AddLogMessage({str, Pine::LogSeverity::Fatal});
+}
+
+const std::vector<Pine::LogMessage> &Pine::Log::GetLogMessages()
+{
+    return m_LogMessages;
 }

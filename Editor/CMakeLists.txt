@@ -30,6 +30,10 @@ add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Other/PlayHandler/PlayHandler.hpp
         src/Other/PlayHandler/PlayHandler.cpp
         src/Scripting/ScriptReload.hpp
-        src/Scripting/ScriptReload.cpp)
+        src/Scripting/ScriptReload.cpp
+        src/Gui/Panels/Console/ConsolePanel.hpp
+        src/Gui/Panels/Console/ConsolePanel.cpp
+        src/Gui/Panels/Profiler/ProfilerPanel.hpp
+        src/Gui/Panels/Profiler/ProfilerPanel.cpp)
 
 target_link_libraries(Editor Engine freetype)

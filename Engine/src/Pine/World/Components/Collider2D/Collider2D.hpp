@@ -13,7 +13,7 @@ namespace Pine
         Tilemap
     };
 
-    class Collider2D : public IComponent
+    class Collider2D final : public IComponent
     {
         Collider2DType m_ColliderType = Collider2DType::Box;
 

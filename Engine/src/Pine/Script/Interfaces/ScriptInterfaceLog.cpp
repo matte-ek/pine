@@ -15,7 +15,7 @@ namespace
     void PineInfo(MonoString* string)
     {
         auto str = mono_string_to_utf8(string);
-        Pine::Log::Message(str);
+        Pine::Log::Info(str);
         mono_free(str);
     }
 

@@ -5,7 +5,7 @@
 namespace Pine
 {
 
-    class ModelRenderer : public IComponent
+    class ModelRenderer final : public IComponent
     {
     private:
         AssetHandle<Model> m_Model;

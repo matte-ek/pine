@@ -17,7 +17,7 @@ namespace Pine
         HeightField
     };
 
-    class Collider : public IComponent
+    class Collider final : public IComponent
     {
     private:
         ColliderType m_ColliderType = ColliderType::Box;

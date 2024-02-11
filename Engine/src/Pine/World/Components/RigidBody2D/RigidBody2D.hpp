@@ -5,7 +5,7 @@
 namespace Pine
 {
 
-    class RigidBody2D : public IComponent
+    class RigidBody2D final : public IComponent
     {
     private:
     public:

@@ -27,5 +27,7 @@ namespace Pine::Script::ObjectFactory
     ObjectHandle CreateComponent(Pine::IComponent* component);
     ObjectHandle CreateAsset(Pine::IAsset* asset);
 
+    void DisposeEntity(ObjectHandle* handle);
+    void DisposeComponent(IComponent* component, ObjectHandle* handle);
     void DisposeObject(ObjectHandle* handle);
 }

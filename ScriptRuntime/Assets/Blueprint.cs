@@ -6,7 +6,7 @@ namespace Pine.Assets
     public class Blueprint : Asset
     {
         public bool HasEntity => GetHasEntity(_internalId);
-        public void CreateFromEntity(Entity entity) => CreateFromEntity(_internalId, entity._internalId);
+        public void CreateFromEntity(Entity entity) => CreateFromEntity(_internalId, entity.InternalId);
         public Entity SpawnEntity() => SpawnEntity(_internalId);
         
         [MethodImpl(MethodImplOptions.InternalCall)]

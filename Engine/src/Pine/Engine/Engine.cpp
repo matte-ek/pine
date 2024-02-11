@@ -102,7 +102,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     m_IsInitialized = true;
     m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
-    Log::Message("Pine was successfully initialized.");
+    Log::Info("Pine was successfully initialized.");
 
     return true;
 }

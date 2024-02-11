@@ -6,7 +6,7 @@
 namespace Pine
 {
 
-    class TilemapRenderer : public IComponent
+    class TilemapRenderer final : public IComponent
     {
     private:
         AssetHandle<Tilemap> m_Tilemap;

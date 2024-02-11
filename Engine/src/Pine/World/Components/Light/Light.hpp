@@ -12,7 +12,7 @@ namespace Pine
         SpotLight
     };
 
-    class Light : public IComponent
+    class Light final  : public IComponent
     {
     private:
         LightType m_LightType = LightType::Directional;

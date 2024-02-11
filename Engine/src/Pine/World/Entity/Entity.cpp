@@ -229,5 +229,5 @@ void Pine::Entity::DestroyScriptHandle()
         return;
     }
 
-    Script::ObjectFactory::DisposeObject(&m_EntityScriptHandle);
+    Script::ObjectFactory::DisposeEntity(&m_EntityScriptHandle);
 }

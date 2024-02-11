@@ -6,7 +6,7 @@
 namespace Pine
 {
 
-    class Transform : public IComponent
+    class Transform final : public IComponent
     {
     private:
         bool m_IsDirty = true;
@@ -20,7 +20,7 @@ namespace Pine
         // to manually call SetDirty() to update the transformation matrix.
         void SetDirty();
 
-        void OnRender(float deltaTime) override;
+        void OnRender(float deltaTime) final;
 
         void LoadData(const nlohmann::json& j) override;
         void SaveData(nlohmann::json& j) override;
