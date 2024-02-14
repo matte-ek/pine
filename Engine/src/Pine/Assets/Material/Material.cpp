@@ -168,6 +168,7 @@ bool Pine::Material::LoadFromFile(AssetLoadStage stage)
 	Serialization::LoadValue(j, "shininess", m_Shininess);
 	Serialization::LoadValue(j, "textureScale", m_TextureScale);
 
+    m_IsMeshGeneratedMaterial = false;
 	m_State = AssetState::Loaded;
 
 	return true;
@@ -199,4 +200,9 @@ bool Pine::Material::SaveToFile()
 
 void Pine::Material::Dispose()
 {
+}
+
+bool Pine::Material::IsMeshGenerated() const
+{
+    return m_IsMeshGeneratedMaterial;
 }

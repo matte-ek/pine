@@ -7,6 +7,9 @@ namespace Pine
 {
     struct MeshLoadData
     {
+        bool HasMaterial = false;
+        std::string MaterialPath;
+
         Pine::Material* Material = nullptr;
 
         Vector3f* Vertices = nullptr;
@@ -46,6 +49,7 @@ namespace Pine
         void AddMeshLoadData(const MeshLoadData& data);
 
         bool LoadFromFile(AssetLoadStage stage) override;
+        bool SaveToFile() override;
 
         void Dispose() override;
 
