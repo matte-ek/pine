@@ -199,25 +199,32 @@ void Model::UploadModel()
             mesh->SetIndices(reinterpret_cast<unsigned int *>(loadData.Indices),
                              sizeof(std::uint32_t) * loadData.IndicesLength);
 
-        if (loadData.Material)
+        if (loadData.HasMaterial)
         {
-            // Set any texture maps if we have to
-            if (!loadData.DiffuseMap.empty())
-                loadData.Material->SetDiffuse(loadData.DiffuseMap);
-            if (!loadData.SpecularMap.empty())
-                loadData.Material->SetSpecular(loadData.SpecularMap);
-            if (!loadData.NormalMap.empty())
-                loadData.Material->SetNormal(loadData.NormalMap);
+            mesh->SetMaterial(loadData.MaterialPath);
+        }
+        else
+        {
+            if (loadData.Material)
+            {
+                // Set any texture maps if we have to
+                if (!loadData.DiffuseMap.empty())
+                    loadData.Material->SetDiffuse(loadData.DiffuseMap);
+                if (!loadData.SpecularMap.empty())
+                    loadData.Material->SetSpecular(loadData.SpecularMap);
+                if (!loadData.NormalMap.empty())
+                    loadData.Material->SetNormal(loadData.NormalMap);
 
-            // If a material is supplied here, we know it was generated from the model data, so check if
-            // the user has its own material before using this.
-            if (m_Metadata.contains("material"))
-            {
-                mesh->SetMaterial(m_Metadata["material"].get<std::string>());
-            }
-            else
-            {
-                mesh->SetMaterial(loadData.Material);
+                // If a material is supplied here, we know it was generated from the model data, so check if
+                // the user has its own material before using this.
+                if (m_Metadata.contains("material"))
+                {
+                    mesh->SetMaterial(m_Metadata["material"].get<std::string>());
+                }
+                else
+                {
+                    mesh->SetMaterial(loadData.Material);
+                }
             }
         }
 
@@ -259,6 +266,23 @@ bool Model::LoadFromFile(AssetLoadStage stage)
         return LoadModel();
     }
 
+    if (m_Metadata.contains("material"))
+    {
+        for (int i = 0; i < m_MeshLoadData.size();i++)
+        {
+            if (!m_Metadata["material"].contains(std::to_string(i)))
+                continue;
+
+            const auto& materialPath = m_Metadata["material"][std::to_string(i)].get<std::string>();
+
+            if (materialPath.empty() || materialPath == "null")
+                continue;
+
+            m_MeshLoadData[i].HasMaterial = true;
+            m_MeshLoadData[i].MaterialPath = materialPath;
+        }
+    }
+
     UploadModel();
 
     return true;
@@ -276,4 +300,23 @@ void Model::Dispose()
     }
 
     m_Meshes.clear();
+}
+
+bool Model::SaveToFile()
+{
+    for (int i = 0; i < m_Meshes.size();i++)
+    {
+        auto mesh = m_Meshes[i];
+
+        if (!mesh->GetMaterial())
+            continue;
+
+        if (!mesh->GetMaterial()->IsMeshGenerated())
+        {
+            m_HasMetadata = true;
+            m_Metadata["material"][std::to_string(i)] = mesh->GetMaterial()->GetPath();
+        }
+    }
+
+    return true;
 }
