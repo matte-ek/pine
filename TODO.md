@@ -18,5 +18,11 @@
 [X] Asset Icons
     [X] Add more static icons for assets
     [X] Dynamic icons
-        [~] Add icons for asset browser (material/model)
-        [ ] Add selected asset large preview (material/model)
+        [-] Add icons for asset browser (material/model)
+        [-] Add selected asset large preview (material/model)
+[ ] Fix asset creation resulting in weird paths
+    - This could also be fucked for the `generate custom material` button.
+[ ] Fix model importer model rotation (and scale?)
+[ ] Duplicated children should have the same parent
+[ ] Fix broken material dynamic icons
+[ ] Make sure the generate custom material button reloads assets properly
