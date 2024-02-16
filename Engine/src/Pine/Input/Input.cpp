@@ -278,6 +278,11 @@ bool Pine::Input::IsMouseButtonDown(Pine::KeyCode code)
     return m_MouseButtonStates[static_cast<int>(code)] == GLFW_PRESS;
 }
 
+void Pine::Input::SetCursorMode(Pine::CursorMode mode)
+{
+    m_CursorMode = mode;
+}
+
 Pine::InputContext::InputContext(const std::string& name)
 {
     Name = name;
