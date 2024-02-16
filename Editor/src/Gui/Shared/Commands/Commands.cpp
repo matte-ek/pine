@@ -61,6 +61,11 @@ void Commands::Paste()
 
         auto spawnedEntity = blueprint.Spawn();
 
+        if (entity->GetParent() != nullptr)
+        {
+            entity->GetParent()->AddChild(spawnedEntity);
+        }
+
         blueprint.Dispose();
 
         Selection::Add(spawnedEntity);

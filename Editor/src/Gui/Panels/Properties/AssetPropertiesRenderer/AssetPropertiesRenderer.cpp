@@ -170,6 +170,8 @@ namespace
                         auto loadedMat = dynamic_cast<Pine::Material*>(Pine::Assets::LoadFromFile(material->GetFilePath(), model->GetFileRootPath()));
 
                         mesh->SetMaterial(loadedMat);
+
+                        Panels::AssetBrowser::RebuildAssetTree();
                     }
                 }
             }
