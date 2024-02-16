@@ -15,6 +15,13 @@ namespace Pine
         Action
     };
 
+    enum class CursorMode
+    {
+        Normal,
+        Hidden,
+        Disabled
+    };
+
     enum class Axis
     {
         None,
@@ -89,8 +96,7 @@ namespace Pine
 
         void OverrideContext(InputContext* context);
 
-        void SetCursorAutoCenter(bool value);
-        void SetCursorVisible(bool value);
+        void SetCursorMode(CursorMode mode);
 
         void SetCursorPosition(Pine::Vector2i position);
         Pine::Vector2i GetCursorPosition();

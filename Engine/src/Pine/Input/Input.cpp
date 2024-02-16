@@ -10,8 +10,7 @@
 namespace 
 {
 
-    bool m_AutoCenterCursor = false;
-    bool m_CursorVisible = true;
+    Pine::CursorMode m_CursorMode = Pine::CursorMode::Normal;
 
     int m_KeyStates[GLFW_KEY_LAST] = { };
     int m_KeyStatesOld[GLFW_KEY_LAST] = { };
@@ -174,22 +173,17 @@ void Pine::Input::Update()
         }
     }
 
-    if (m_AutoCenterCursor)
+    switch (m_CursorMode)
     {
-        const auto windowSize = Pine::WindowManager::GetWindowSize();
-
-        glfwSetCursorPos(window, windowSize.x / 2.0, windowSize.y / 2.0);
-    
-        m_LastMousePosition = Pine::Vector2i(windowSize.x / 2.0, windowSize.y / 2.0);
-    }
-
-    if (m_CursorVisible)
-    {
+    case CursorMode::Normal:
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-    else
-    {
+        break;
+    case CursorMode::Hidden:
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        break;
+    case CursorMode::Disabled:
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        break;
     }
 }
 
@@ -201,16 +195,6 @@ Pine::InputContext* Pine::Input::GetDefaultContext()
 void Pine::Input::OverrideContext(Pine::InputContext* context)
 {
     m_Context = context;
-}
-
-void Pine::Input::SetCursorAutoCenter(bool value)
-{
-    m_AutoCenterCursor = value;
-}
-
-void Pine::Input::SetCursorVisible(bool value)
-{
-    m_CursorVisible = value;
 }
 
 Pine::InputBind* Pine::Input::CreateInputBind(const std::string& name, Pine::InputType type)
@@ -255,4 +239,3 @@ Pine::InputBind* Pine::InputContext::CreateInputBinding(const std::string& name,
 {
     InputBindings.push_back(new InputBind(name, type));
     return InputBindings[InputBindings.size() - 1];
-}

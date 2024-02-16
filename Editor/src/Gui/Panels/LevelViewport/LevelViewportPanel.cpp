@@ -252,7 +252,7 @@ void Panels::LevelViewport::Render()
             m_CaptureMouse = true;
             m_MouseCapturePosition = Pine::Input::GetCursorPosition();
 
-            Pine::Input::SetCursorVisible(false);
+            Pine::Input::SetCursorMode(Pine::CursorMode::Disabled);
         }
     }
     else
@@ -260,10 +260,8 @@ void Panels::LevelViewport::Render()
         if (!ImGui::IsMouseDown(ImGuiMouseButton_::ImGuiMouseButton_Right))
         {
             m_CaptureMouse = false;
-            Pine::Input::SetCursorVisible(true);
+            Pine::Input::SetCursorMode(Pine::CursorMode::Normal);
         }
-
-        Pine::Input::SetCursorPosition(m_MouseCapturePosition);
     }
 
     // Allow drag dropping some assets to the viewport such as blueprints, levels and sky boxes.
