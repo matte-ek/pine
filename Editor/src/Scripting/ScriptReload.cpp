@@ -16,6 +16,9 @@ namespace
 
     bool PollGameAssemblyWriteTime()
     {
+        if (!std::filesystem::exists(GameAssemblyPath))
+            return false;
+
         const auto writeTime = std::filesystem::last_write_time(GameAssemblyPath);
 
         if (writeTime != m_LastGameAssemblyWriteTime)

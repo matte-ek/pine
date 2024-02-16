@@ -75,6 +75,11 @@ namespace
     {
         const auto fileName = scriptData->Asset->GetFilePath().stem().string();
 
+        if (!m_GameAssembly)
+        {
+            return;
+        }
+
         auto monoClass = mono_class_from_name(m_GameAssembly->Image, "Game", fileName.c_str());
         if (!monoClass)
         {
