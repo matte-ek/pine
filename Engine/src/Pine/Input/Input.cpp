@@ -292,3 +292,4 @@ Pine::InputBind* Pine::InputContext::CreateInputBinding(const std::string& name,
 {
     InputBindings.push_back(new InputBind(name, type));
     return InputBindings[InputBindings.size() - 1];
+}
