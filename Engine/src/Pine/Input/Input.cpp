@@ -230,6 +230,11 @@ Pine::Vector2i Pine::Input::GetCursorPosition()
     return { cursorX, cursorY };
 }
 
+void Pine::Input::SetCursorMode(Pine::CursorMode mode)
+{
+    m_CursorMode = mode;
+}
+
 Pine::InputContext::InputContext(const std::string& name)
 {
     Name = name;
@@ -239,3 +244,4 @@ Pine::InputBind* Pine::InputContext::CreateInputBinding(const std::string& name,
 {
     InputBindings.push_back(new InputBind(name, type));
     return InputBindings[InputBindings.size() - 1];
+}
