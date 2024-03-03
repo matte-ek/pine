@@ -8,6 +8,7 @@ include_directories(src include)
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 find_package(ReactPhysics3D REQUIRED)
+find_package(OpenAL REQUIRED)
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
@@ -31,4 +32,4 @@ add_library(Engine ${SOURCES}
         src/Pine/Input/Input.cpp
 )
 
-target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D)
+target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D OpenAL::OpenAL)

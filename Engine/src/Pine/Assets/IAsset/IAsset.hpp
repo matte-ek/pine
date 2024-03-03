@@ -22,7 +22,8 @@ namespace Pine
         Font,
         Tileset,
         Tilemap,
-        Count
+        Count,
+        Audio
     };
 
     inline const char* AssetTypeToString(AssetType type)
@@ -53,6 +54,8 @@ namespace Pine
             return "Tileset";
         case AssetType::Tilemap:
             return "Tilemap";
+        case AssetType::Audio:
+            return "Audio";
         default:
             return "Unknown";
         }

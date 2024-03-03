@@ -14,6 +14,7 @@
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 
 #include <cmath>
 #include <functional>
@@ -58,7 +59,8 @@ namespace
         AssetFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
         AssetFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
         AssetFactory( { { "tileset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
-        AssetFactory( { { "tilemap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } )
+        AssetFactory( { { "tilemap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
+        AssetFactory( { { "wav", "flac", "ogg" }, AssetType::Audio, [](){ return new AudioFile(); } } )
     };
 
     // Attempts to find an asset factory with the file name extension (can be full path as well)
