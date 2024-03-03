@@ -1,6 +1,7 @@
 #include "Mesh.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 
 using namespace Pine::Renderer3D::Specifications;
@@ -39,6 +40,11 @@ bool Pine::Mesh::HasElementBuffer() const
 void Pine::Mesh::SetMaterial(Material*material)
 {
     m_Material = material;
+
+    if (material && !material->IsMeshGenerated())
+    {
+        m_Model->MarkAsModified();
+    }
 }
 
 void Pine::Mesh::SetMaterial(const std::string &fileReference)

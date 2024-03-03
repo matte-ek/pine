@@ -14,6 +14,8 @@ namespace Pine::Entities
     Entity* Find(const std::string& name);
     Entity* Find(std::uint32_t id);
 
+    Entity* GetByInternalId(std::uint32_t internalId);
+
     bool Delete(Entity* entity);
     void DeleteAll(bool includeTemporary = false);
 

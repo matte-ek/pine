@@ -15,7 +15,7 @@ namespace Pine
 
     class Collider;
 
-    class RigidBody : public IComponent
+    class RigidBody final : public IComponent
     {
     private:
         RigidBodyType m_RigidBodyType = RigidBodyType::Dynamic;

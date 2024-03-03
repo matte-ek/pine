@@ -6,6 +6,7 @@
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Rendering/RenderHandler.hpp"
+#include "Pine/Core/Log/Log.hpp"
 
 namespace
 {
@@ -49,7 +50,7 @@ namespace
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader;
 
         m_ObjectSolidShader->GetProgram()->Use();
-        m_ObjectSolidShader->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(1.f, 0.f, 0.f));
+        m_ObjectSolidShader->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(1.f, 0.5f, 0.f));
 
         for (auto& entity : selectedEntities)
         {
@@ -63,8 +64,9 @@ namespace
 
             // Render the model
             auto oldScale = entity->GetTransform()->LocalScale;
+            const auto distance = glm::length(RenderHandler::GetLevelRenderingContext()->SceneCamera->GetParent()->GetTransform()->LocalPosition - entity->GetTransform()->LocalPosition);
 
-            entity->GetTransform()->LocalScale += Pine::Vector3f(0.30f);
+            entity->GetTransform()->LocalScale += Pine::Vector3f((0.06f * oldScale)  * distance);
             entity->GetTransform()->OnRender(0.f);
             entity->GetTransform()->LocalScale = oldScale;
 

@@ -355,7 +355,7 @@ void Panels::EntityList::Render()
         {
             auto newChild = primaryEntity->CreateChild();
 
-            Selection::Add(newChild);
+            Selection::Add(newChild, true);
 
             ImGui::CloseCurrentPopup();
         }

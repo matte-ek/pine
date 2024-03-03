@@ -2,6 +2,8 @@
 #include "PlayHandler.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/World/World.hpp"
+#include "Pine/Script/Runtime/ScriptingRuntime.hpp"
+#include "Gui/Shared/Selection/Selection.hpp"
 
 namespace
 {
@@ -18,6 +20,7 @@ void PlayHandler::Play()
     m_LevelSnapshot.CreateFromWorld();
 
     Pine::World::SetPaused(false);
+    Pine::World::OnStart();
 }
 
 void PlayHandler::Pause()
@@ -41,6 +44,10 @@ void PlayHandler::Stop()
 
     Pine::World::SetActiveLevel(oldLoadedLevel, true);
     Pine::World::SetPaused(true);
+
+    Selection::Clear();
+
+    Pine::Script::Runtime::RunGarbageCollector();
 }
 
 PlayHandler::EditorGameState PlayHandler::GetGameState()

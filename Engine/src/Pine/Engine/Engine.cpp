@@ -14,6 +14,8 @@
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
+#include "Pine/Script/Runtime/ScriptingRuntime.hpp"
+#include "Pine/Script/ScriptManager.hpp"
 
 #include <GLFW/glfw3.h>
 #include <stdexcept>
@@ -66,6 +68,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     Graphics::GetGraphicsAPI()->EnableErrorLogging();
 
+
     if(!Audio::Setup()) {
         Log::Fatal("Failed to setup audio API");
 
@@ -75,6 +78,11 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
         return false;
     }
+
+    // We have to set up our script runtime first, since all other parts of the engine needs to
+    // be able to register objects to the runtime.
+    Script::Runtime::Setup();
+    Script::Manager::Setup();
 
     // Load engine assets, order is important, we want the shaders ready
     // before the other stuff.
@@ -107,7 +115,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     m_IsInitialized = true;
     m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
-    Log::Message("Pine was successfully initialized.");
+    Log::Info("Pine was successfully initialized.");
 
     return true;
 }
@@ -126,7 +134,11 @@ void Pine::Engine::Run()
     // 1. Initialize the engine without making a visible frozen window.
     // 2. Allow the user to modify the window, without the window flickering during startup.
     // So we'll have to restore it here.
-    WindowManager::SetWindowVisible(true); 
+    WindowManager::SetWindowVisible(true);
+
+    // At this point the user should have loaded their game assembly, so we can allow the
+    // script manager to start preparing all the scripts.
+    Script::Manager::ReloadScripts();
 
     // The main rendering loop itself
     while (WindowManager::IsWindowOpen())
@@ -155,6 +167,8 @@ void Pine::Engine::Shutdown()
         throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
     }
 
+    Script::Manager::Dispose();
+    Script::Runtime::Dispose();
     Utilities::HotReload::Shutdown();
     Input::Shutdown();
     Renderer3D::Shutdown();

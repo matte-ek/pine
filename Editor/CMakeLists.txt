@@ -3,7 +3,7 @@ project(Editor)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(src include imgui ${CMAKE_SOURCE_DIR}/Engine/src ${CMAKE_SOURCE_DIR}/Engine/include /usr/include/freetype2)
+include_directories(src include imgui ${CMAKE_SOURCE_DIR}/Engine/src ${CMAKE_SOURCE_DIR}/Engine/include /usr/include/freetype2 /usr/include/mono-2.0)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE IMGUI_SOURCES "imgui/*.cpp")
@@ -28,6 +28,12 @@ add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Other/EntitySelection/EntitySelection.hpp
         src/Other/EntitySelection/EntitySelection.cpp
         src/Other/PlayHandler/PlayHandler.hpp
-        src/Other/PlayHandler/PlayHandler.cpp)
+        src/Other/PlayHandler/PlayHandler.cpp
+        src/Scripting/ScriptReload.hpp
+        src/Scripting/ScriptReload.cpp
+        src/Gui/Panels/Console/ConsolePanel.hpp
+        src/Gui/Panels/Console/ConsolePanel.cpp
+        src/Gui/Panels/Profiler/ProfilerPanel.hpp
+        src/Gui/Panels/Profiler/ProfilerPanel.cpp)
 
 target_link_libraries(Editor Engine freetype)

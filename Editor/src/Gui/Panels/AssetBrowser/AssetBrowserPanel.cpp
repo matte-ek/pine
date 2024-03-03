@@ -16,6 +16,7 @@
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Material/Material.hpp"
+#include "Pine/Script/ScriptManager.hpp"
 
 namespace
 {
@@ -61,7 +62,7 @@ namespace
     char m_SearchBuffer[64];
 
     PathEntry* m_Root = nullptr;
-    PathEntry* m_SelectedEntry = nullptr;
+    PathEntry* m_CurrentDirectory = nullptr;
     PathEntry* m_SelectedItem = nullptr;
 
     void ProcessDirectoryTree(const std::filesystem::path& path, PathEntry* entry)
@@ -389,38 +390,50 @@ namespace
 
         static auto createItemDialog = [&](bool refresh)
         {
-            ImGui::SetNextWindowSize(ImVec2(300.f, 140.f));
+            ImGui::SetNextWindowSize(ImVec2(320.f, 135.f));
 
             if (ImGui::BeginPopupModal("CreateItemDialog", nullptr, ImGuiWindowFlags_NoResize))
             {
                 static char buffer[64];
 
+                ImGui::Text("Item Name:");
+
                 if (refresh)
                 {
                     strcpy(buffer, "");
+                    ImGui::SetKeyboardFocusHere();
                 }
 
-                ImGui::Text("Item Name:");
+                ImGui::SetNextItemWidth(300.f);
                 ImGui::InputText("##ItemName", buffer, IM_ARRAYSIZE(buffer));
 
-                if ((ImGui::Button("Create") || ImGui::IsKeyPressed(ImGuiKey_Enter)) && strlen(buffer) > 0)
+                ImGui::Spacing();
+                ImGui::Spacing();
+                ImGui::Spacing();
+
+                if ((ImGui::Button("Create", ImVec2(100.f, 30.f)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) && strlen(buffer) > 0)
                 {
                     Pine::IAsset* asset = nullptr;
+                    const char* fileExtension = nullptr;
+                    std::string finalAssetPath;
 
                     switch (itemCreationType)
                     {
                         case 0:
                             // not going to error check the buffer here, going to blame user error if something goes wrong :-)
-                            std::filesystem::create_directory(m_SelectedEntry->Path.string() + "/" + buffer);
+                            std::filesystem::create_directory(m_CurrentDirectory->Path.string() + "/" + buffer);
                             break;
                         case 1:
                             asset = new Pine::Material();
+                            fileExtension = ".mat";
                             break;
                         case 2:
                             asset = new Pine::Level();
+                            fileExtension = ".lvl";
                             break;
                         case 3:
                             asset = new Pine::Texture3D();
+                            fileExtension = ".cmap";
                             break;
                         default:
                             break;
@@ -428,10 +441,17 @@ namespace
 
                     if (asset)
                     {
-                        // TODO: Append file extension if required.
-                        asset->SetFilePath(m_SelectedEntry->Path.string() + "/" + buffer);
+                        if (!std::filesystem::path(buffer).has_extension())
+                        {
+                            assert(fileExtension != nullptr);
+                            strcat(buffer, fileExtension);
+                        }
+
+                        asset->SetFilePath(m_CurrentDirectory->Path.string() + "/" + buffer);
                         asset->SaveToFile();
                         asset->Dispose();
+
+                        finalAssetPath = asset->GetFilePath().string();
 
                         delete asset;
                     }
@@ -440,12 +460,21 @@ namespace
 
                     Panels::AssetBrowser::RebuildAssetTree();
 
+                    if (!finalAssetPath.empty())
+                    {
+                        auto newAsset = Pine::Assets::Get(finalAssetPath, true);
+                        if (newAsset)
+                        {
+                            Selection::AddAsset(newAsset);
+                        }
+                    }
+
                     ImGui::CloseCurrentPopup();
                 }
 
                 ImGui::SameLine();
 
-                if (ImGui::Button("Cancel"))
+                if (ImGui::Button("Cancel", ImVec2(100.f, 30.f)))
                 {
                     itemCreationType = -1;
 
@@ -542,10 +571,10 @@ void Panels::AssetBrowser::RebuildAssetTree()
 
     m_SelectedItem = nullptr;
 
-    if (m_SelectedEntry != nullptr)
+    if (m_CurrentDirectory != nullptr)
     {
-        restoreDirectory = m_SelectedEntry->Path.string();
-        m_SelectedEntry = nullptr;
+        restoreDirectory = m_CurrentDirectory->Path.string();
+        m_CurrentDirectory = nullptr;
     }
 
     if (m_Root != nullptr)
@@ -558,7 +587,7 @@ void Panels::AssetBrowser::RebuildAssetTree()
     }
 
     Pine::Assets::RefreshAll();
-    Pine::Assets::LoadDirectory("game");
+    Pine::Assets::LoadDirectory("game/assets");
 
     // First update the icon cache, as we grab the icons from the IconStorage
     // as we fill out this tree.
@@ -567,16 +596,16 @@ void Panels::AssetBrowser::RebuildAssetTree()
     m_Root = new PathEntry;
 
     m_Root->Type = EntryType::Directory;
-    m_Root->Path = "game";
+    m_Root->Path = "game/assets";
 
     MapDirectoryEntry("engine", "engine", m_Root);
-    ProcessDirectoryTree("game", m_Root);
+    ProcessDirectoryTree("game/assets", m_Root);
 
-    m_SelectedEntry = m_Root;
+    m_CurrentDirectory = m_Root;
 
     if (!restoreDirectory.empty())
     {
-        m_SelectedEntry = FindDirectoryEntry(m_Root, restoreDirectory);
+        m_CurrentDirectory = FindDirectoryEntry(m_Root, restoreDirectory);
     }
 }
 
@@ -591,7 +620,7 @@ void Panels::AssetBrowser::Render()
 
     if (ImGui::Button(ICON_MD_FOLDER_OPEN " Import"))
     {
-        IconStorage::Update();
+        Pine::Script::Manager::ReloadGameAssembly();
     }
 
     ImGui::SameLine();
@@ -628,7 +657,7 @@ void Panels::AssetBrowser::Render()
     {
         const std::string searchQuery = Pine::String::ToLower(m_SearchBuffer);
 
-        if (const auto selectedEntry = RenderEntrySearch(m_SelectedEntry, searchQuery))
+        if (const auto selectedEntry = RenderEntrySearch(m_CurrentDirectory, searchQuery))
         {
             if (selectedEntry->Type == EntryType::File)
             {
@@ -641,11 +670,11 @@ void Panels::AssetBrowser::Render()
     {
         bool rebuildTree = false;
 
-        if (const auto newEntrySelection = RenderEntry(m_SelectedEntry, rebuildTree))
+        if (const auto newEntrySelection = RenderEntry(m_CurrentDirectory, rebuildTree))
         {
             if (newEntrySelection->Type == EntryType::Directory)
             {
-                m_SelectedEntry = newEntrySelection;
+                m_CurrentDirectory = newEntrySelection;
                 m_SelectedItem = newEntrySelection;
             }
             else
@@ -693,7 +722,7 @@ void Panels::AssetBrowser::Render()
             Pine::Blueprint blueprint;
 
             blueprint.CreateFromEntity(entity);
-            blueprint.SetFilePath(m_SelectedEntry->Path.string() + "/" + entity->GetName() + ".bpt"); // surely the entity name is a valid file name :-)
+            blueprint.SetFilePath(m_CurrentDirectory->Path.string() + "/assets/" + entity->GetName() + ".bpt"); // surely the entity name is a valid file name :-)
             blueprint.SaveToFile();
             blueprint.Dispose();
 

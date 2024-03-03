@@ -7,6 +7,7 @@
 
 #include "Other/EditorEntity/EditorEntity.hpp"
 #include "Pine/World/World.hpp"
+#include "Scripting/ScriptReload.hpp"
 
 int main()
 {
@@ -16,6 +17,7 @@ int main()
     engineConfiguration.m_WindowTitle = "Pine Engine Editor";
     engineConfiguration.m_WindowPosition = Pine::Vector2i(20, 20);
     engineConfiguration.m_WindowSize = Pine::Vector2i(1920, 1080);
+    engineConfiguration.m_ProductionMode = false;
 
     if (!Pine::Engine::Setup(engineConfiguration))
     {
@@ -23,14 +25,14 @@ int main()
     }
 
     Pine::Assets::LoadDirectory("editor", false);
-    Pine::Assets::LoadDirectory("game");
-
+    Pine::Assets::LoadDirectory("game/assets");
     Pine::World::SetPaused(true);
 
     // Setup Editor
     EditorEntity::Setup();
     RenderHandler::Setup();
     Gui::Setup();
+    ScriptReload::Setup();
 
     // Enter main loop
     Pine::Engine::Run();
@@ -42,7 +44,6 @@ int main()
 
     // Engine clean up
     Pine::Engine::Shutdown();
-
 
     return 0;
 }

@@ -62,6 +62,8 @@ namespace
         auto selectedEntity = Selection::GetSelectedEntities()[0];
         auto transform = selectedEntity->GetTransform();
 
+        transform->SetDirty();
+
         Pine::Matrix4f matrix = transform->GetTransformationMatrix();
         Pine::Matrix4f deltaMatrix;
 
@@ -104,15 +106,26 @@ namespace
             Pine::Vector4f perspective;
             Pine::Quaternion rotation;
 
-            glm::decompose(matrix, scale, rotation, position, skew, perspective);
+            if (selectedEntity->GetParent() != nullptr)
+            {
+                glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
 
-            if (m_GizmoMode == GizmoMode::Translate)
-                transform->LocalPosition = position;
-            if (m_GizmoMode == GizmoMode::Rotate)
-                transform->LocalRotation = rotation;
-            if (m_GizmoMode == GizmoMode::Scale)
-                transform->LocalScale = scale;
+                if (m_GizmoMode == GizmoMode::Translate)
+                    transform->LocalPosition += position;
+                if (m_GizmoMode == GizmoMode::Rotate)
+                    transform->LocalRotation *= rotation;
+            }
+            else
+            {
+                glm::decompose(matrix, scale, rotation, position, skew, perspective);
 
+                if (m_GizmoMode == GizmoMode::Translate)
+                    transform->LocalPosition = position;
+                if (m_GizmoMode == GizmoMode::Rotate)
+                    transform->LocalRotation = rotation;
+                if (m_GizmoMode == GizmoMode::Scale)
+                    transform->LocalScale = scale;
+            }
             transform->OnRender(0.f);
         }
 
@@ -252,7 +265,7 @@ void Panels::LevelViewport::Render()
             m_CaptureMouse = true;
             m_MouseCapturePosition = Pine::Input::GetCursorPosition();
 
-            Pine::Input::SetCursorVisible(false);
+            Pine::Input::SetCursorMode(Pine::CursorMode::Disabled);
         }
     }
     else
@@ -260,10 +273,8 @@ void Panels::LevelViewport::Render()
         if (!ImGui::IsMouseDown(ImGuiMouseButton_::ImGuiMouseButton_Right))
         {
             m_CaptureMouse = false;
-            Pine::Input::SetCursorVisible(true);
+            Pine::Input::SetCursorMode(Pine::CursorMode::Normal);
         }
-
-        Pine::Input::SetCursorPosition(m_MouseCapturePosition);
     }
 
     // Allow drag dropping some assets to the viewport such as blueprints, levels and sky boxes.

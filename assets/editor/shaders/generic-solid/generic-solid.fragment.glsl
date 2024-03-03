@@ -12,10 +12,6 @@ in VertexData
 {
 	vec2 uv;
 	vec3 worldPosition;
-    vec3 cameraPos;
-	vec3 cameraDir;
-	vec3 normalDir;
-	vec3 lightDir[4];
 }vIn;
 
 uniform vec3 m_Color;

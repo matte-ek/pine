@@ -12,16 +12,25 @@
 #include "Panels/EntityList/EntityListPanel.hpp"
 #include "Panels/GameViewport/GameViewportPanel.hpp"
 #include "Panels/LevelViewport/LevelViewportPanel.hpp"
-#include "Gui/Panels/Engine/EngineAssetsPanel.hpp"
+#include "Panels/LevelPanel/LevelPanel.hpp"
+#include "Panels/Engine/EngineAssetsPanel.hpp"
+#include "Panels/Console/ConsolePanel.hpp"
+#include "Panels/Profiler/ProfilerPanel.hpp"
 #include "Gui/MenuBar/MenuBar.hpp"
 #include "Gui/Shared/Commands/Commands.hpp"
-#include "Gui/Panels/LevelPanel/LevelPanel.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
-#include "Other/EntitySelection/EntitySelection.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
-
+#include "Other/EntitySelection/EntitySelection.hpp"
 namespace
 {
+    void OnWindowFocus()
+    {
+        if (!Pine::WindowManager::GetWindowPointer())
+            return;
+
+        ImGui_ImplGlfw_WindowFocusCallback(reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
+    }
+
     void SetTheme()
     {
         // TODO: Do a nice green dark theme
@@ -104,6 +113,7 @@ namespace
 
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
         SetFonts();
         SetTheme();
@@ -166,6 +176,8 @@ namespace
         Panels::AssetBrowser::Render();
         Panels::Properties::Render();
         Panels::LevelPanel::Render();
+        Panels::Console::Render();
+        Panels::Profiler::Render();
         Panels::EngineAssetsPanel::Render();
 
         Commands::Update();
@@ -178,6 +190,10 @@ namespace
 void Gui::Setup()
 {
     InitializeImGui();
+
+    Pine::WindowManager::InstallWindowCallbacks();
+
+    Pine::WindowManager::AddWindowFocusCallback(OnWindowFocus);
 
     Commands::Setup();
     Gizmo::Gizmo3D::Setup();

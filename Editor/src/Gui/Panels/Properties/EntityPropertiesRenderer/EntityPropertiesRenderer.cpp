@@ -1,3 +1,9 @@
+#include "Pine/Core/Math/Math.hpp"
+#include "mono/metadata/object.h"
+#include <fmt/core.h>
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "ArgumentSelectionDefects"
+
 #include "EntityPropertiesRenderer.hpp"
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "IconsMaterialDesign.h"
@@ -13,6 +19,9 @@
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
+#include "Pine/World/Components/Script/ScriptComponent.hpp"
+#include "Pine/Script/Scripts/ScriptData.hpp"
+#include "Pine/Script/Scripts/ScriptField.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include "imgui.h"
 #include "Pine/Core/String/String.hpp"
@@ -22,7 +31,7 @@ namespace
 {
     namespace Components
     {
-        void RenderTransform(Pine::Transform* transform)
+        void RenderTransform(Pine::Transform *transform)
         {
             static bool isApplyingRotation = false;
             static Pine::Vector3f eulerAngles;
@@ -30,6 +39,8 @@ namespace
             auto position = transform->LocalPosition;
             auto rotation = isApplyingRotation ? eulerAngles : transform->GetEulerAngles();
             auto scale = transform->LocalScale;
+
+            transform->SetDirty();
 
             if (Widgets::Vector3("Position", position))
             {
@@ -59,15 +70,15 @@ namespace
             }
         }
 
-        void RenderModelRenderer(Pine::ModelRenderer* modelRenderer)
+        void RenderModelRenderer(Pine::ModelRenderer *modelRenderer)
         {
-            auto [newModelSet, newModel] = Widgets::AssetPicker("Model", reinterpret_cast<Pine::IAsset*>(modelRenderer->GetModel()), Pine::AssetType::Model);
+            auto [newModelSet, newModel] = Widgets::AssetPicker("Model", reinterpret_cast<Pine::IAsset *>(modelRenderer->GetModel()), Pine::AssetType::Model);
 
             if (newModelSet)
-                modelRenderer->SetModel(dynamic_cast<Pine::Model*>(newModel));
+                modelRenderer->SetModel(dynamic_cast<Pine::Model *>(newModel));
         }
 
-        void RenderCamera(Pine::Camera* camera)
+        void RenderCamera(Pine::Camera *camera)
         {
             int cameraType = static_cast<int>(camera->GetCameraType());
             float nearPlane = camera->GetNearPlane();
@@ -98,10 +109,10 @@ namespace
             if (Widgets::Checkbox("Use Camera", &isActiveCamera))
             {
                 RenderHandler::GetGameRenderingContext()->SceneCamera = isActiveCamera ? camera : nullptr;
-            }            
+            }
         }
 
-        void RenderLight(Pine::Light* light)
+        void RenderLight(Pine::Light *light)
         {
             int lightType = static_cast<int>(light->GetLightType());
             Pine::Vector3f lightColor = light->GetLightColor();
@@ -117,7 +128,7 @@ namespace
             }
         }
 
-        void RenderCollider(Pine::Collider* collider)
+        void RenderCollider(Pine::Collider *collider)
         {
             auto colliderType = static_cast<int>(collider->GetColliderType());
             auto position = collider->GetPosition();
@@ -139,8 +150,7 @@ namespace
                 {
                     collider->SetSize(size);
                 }
-            }
-            else
+            } else
             {
                 if (Widgets::InputFloat("Collider Radius", &size.x))
                 {
@@ -154,12 +164,12 @@ namespace
             }
         }
 
-        void RenderRigidBody(Pine::RigidBody* rigidBody)
+        void RenderRigidBody(Pine::RigidBody *rigidBody)
         {
             auto type = static_cast<int>(rigidBody->GetRigidBodyType());
             auto mass = rigidBody->GetMass();
             auto gravityEnabled = rigidBody->GetGravityEnabled();
-            auto& rotationLock = rigidBody->GetRotationLock();
+            auto &rotationLock = rigidBody->GetRotationLock();
 
             if (Widgets::Combobox("Rigid Body Type", &type, "Static\0Kinematic\0Dynamic\0"))
             {
@@ -177,15 +187,15 @@ namespace
             }
         }
 
-        void RenderSpriteRenderer(Pine::SpriteRenderer* spriteRenderer)
+        void RenderSpriteRenderer(Pine::SpriteRenderer *spriteRenderer)
         {
             int scalingMode = static_cast<int>(spriteRenderer->GetScalingMode());
             int order = spriteRenderer->GetOrder();
 
-            auto [newStaticTextureSet, newStaticTexture] = Widgets::AssetPicker("Static Texture", reinterpret_cast<Pine::IAsset*>(spriteRenderer->GetTexture()));
+            auto [newStaticTextureSet, newStaticTexture] = Widgets::AssetPicker("Static Texture", reinterpret_cast<Pine::IAsset *>(spriteRenderer->GetTexture()));
 
             if (newStaticTextureSet)
-                spriteRenderer->SetTexture(dynamic_cast<Pine::Texture2D*>(newStaticTexture));
+                spriteRenderer->SetTexture(dynamic_cast<Pine::Texture2D *>(newStaticTexture));
 
             if (Widgets::Combobox("Scaling Mode", &scalingMode, "Stretch\0Repeat\0"))
                 spriteRenderer->SetScalingMode(static_cast<Pine::SpriteScalingMode>(scalingMode));
@@ -194,15 +204,15 @@ namespace
                 spriteRenderer->SetOrder(order);
         }
 
-        void RenderTilemapRenderer(Pine::TilemapRenderer* tilemapRenderer)
+        void RenderTilemapRenderer(Pine::TilemapRenderer *tilemapRenderer)
         {
             int order = tilemapRenderer->GetOrder();
 
             auto [newTilemapSet, newTilemap] = Widgets::AssetPicker("Tile map", tilemapRenderer->GetTilemap());
 
             if (newTilemapSet)
-                tilemapRenderer->SetTilemap(dynamic_cast<Pine::Tilemap*>(newTilemap));
-        
+                tilemapRenderer->SetTilemap(dynamic_cast<Pine::Tilemap *>(newTilemap));
+
             if (Widgets::InputInt("Order", &order))
                 tilemapRenderer->SetOrder(order);
 
@@ -224,7 +234,97 @@ namespace
             }
         }
 
-        void Render(Pine::IComponent* component, int index)
+        void RenderScript(Pine::ScriptComponent *scriptComponent)
+        {
+            auto [newScriptSet, newScript] = Widgets::AssetPicker("Script", scriptComponent->GetScript(), Pine::AssetType::CSharpScript);
+
+            if (newScriptSet)
+                scriptComponent->SetScript(dynamic_cast<Pine::CSharpScript *>(newScript));
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            if (scriptComponent->GetScript() && 
+                scriptComponent->GetScript()->GetScriptData() &&
+                scriptComponent->GetScript()->GetScriptData()->IsReady && 
+                scriptComponent->GetScriptObjectHandle()->Object != nullptr)
+            {  
+                const auto scriptData = scriptComponent->GetScript()->GetScriptData();
+                
+                if (scriptData->Fields.empty())
+                {
+                    ImGui::Text("No fields avaliable.");
+                }
+
+                const auto object = mono_gchandle_get_target(scriptComponent->GetScriptObjectHandle()->Handle);
+
+                for (const auto& field : scriptData->Fields)
+                {
+                    if (field->GetType() == Pine::ScriptFieldType::Float)
+                    {
+                        float value = field->Get<float>(object);
+
+                        if (Widgets::InputFloat(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+
+                    if (field->GetType() == Pine::ScriptFieldType::Integer)
+                    {
+                        int value = field->Get<int>(object);
+
+                        if (Widgets::InputInt(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+
+                    if (field->GetType() == Pine::ScriptFieldType::Boolean)
+                    {
+                        bool value = field->Get<bool>(object);
+
+                        if (Widgets::Checkbox(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+
+                    if (field->GetType() == Pine::ScriptFieldType::Vector3)
+                    {
+                        Pine::Vector3f value = field->Get<Pine::Vector3f>(object);
+
+                        if (Widgets::Vector3(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+
+                    if (field->GetType() == Pine::ScriptFieldType::Vector2)
+                    {
+                        Pine::Vector2f value = field->Get<Pine::Vector2f>(object);
+
+                        if (Widgets::Vector2(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), value))
+                        {
+                            field->Set(object, value);
+                        }
+
+                        continue;
+                    }
+                }
+            }
+        }
+
+        void Render(Pine::IComponent *component, int index)
         {
             const std::string displayText = std::string(Pine::ComponentTypeToString(component->GetType())) + "##" + std::to_string(index);
 
@@ -261,39 +361,42 @@ namespace
 
                 switch (component->GetType())
                 {
-                case Pine::ComponentType::Transform:
-                    RenderTransform(dynamic_cast<Pine::Transform*>(component));
-                    break;
-                case Pine::ComponentType::ModelRenderer:
-                    RenderModelRenderer(dynamic_cast<Pine::ModelRenderer*>(component));
-                    break;
-                case Pine::ComponentType::Camera:
-                    RenderCamera(dynamic_cast<Pine::Camera*>(component));
-                    break;
-                case Pine::ComponentType::Light:
-                    RenderLight(dynamic_cast<Pine::Light*>(component));
-                    break;
-                case Pine::ComponentType::Collider:
-                    RenderCollider(dynamic_cast<Pine::Collider*>(component));
-                    break;
-                case Pine::ComponentType::RigidBody:
-                    RenderRigidBody(dynamic_cast<Pine::RigidBody*>(component));
-                    break;
-                case Pine::ComponentType::SpriteRenderer:
-                    RenderSpriteRenderer(dynamic_cast<Pine::SpriteRenderer*>(component));
-                    break;
-                case Pine::ComponentType::TilemapRenderer:
-                    RenderTilemapRenderer(dynamic_cast<Pine::TilemapRenderer*>(component));
-                    break;
-                default:
-                    break;
+                    case Pine::ComponentType::Transform:
+                        RenderTransform(dynamic_cast<Pine::Transform *>(component));
+                        break;
+                    case Pine::ComponentType::ModelRenderer:
+                        RenderModelRenderer(dynamic_cast<Pine::ModelRenderer *>(component));
+                        break;
+                    case Pine::ComponentType::Camera:
+                        RenderCamera(dynamic_cast<Pine::Camera *>(component));
+                        break;
+                    case Pine::ComponentType::Light:
+                        RenderLight(dynamic_cast<Pine::Light *>(component));
+                        break;
+                    case Pine::ComponentType::Collider:
+                        RenderCollider(dynamic_cast<Pine::Collider *>(component));
+                        break;
+                    case Pine::ComponentType::RigidBody:
+                        RenderRigidBody(dynamic_cast<Pine::RigidBody *>(component));
+                        break;
+                    case Pine::ComponentType::SpriteRenderer:
+                        RenderSpriteRenderer(dynamic_cast<Pine::SpriteRenderer *>(component));
+                        break;
+                    case Pine::ComponentType::TilemapRenderer:
+                        RenderTilemapRenderer(dynamic_cast<Pine::TilemapRenderer *>(component));
+                        break;
+                    case Pine::ComponentType::Script:
+                        RenderScript(dynamic_cast<Pine::ScriptComponent *>(component));
+                        break;
+                    default:
+                        break;
                 }
             }
         }
     }
 }
 
-void EntityPropertiesPanel::Render(Pine::Entity* entity)
+void EntityPropertiesPanel::Render(Pine::Entity *entity)
 {
     char nameBuffer[128];
 
@@ -322,7 +425,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 
     // Components
     int index = 0;
-    for (auto component : entity->GetComponents())
+    for (auto component: entity->GetComponents())
     {
         Components::Render(component, index);
 
@@ -333,22 +436,25 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
     static char componentSearchBuffer[64];
 
     static int selectedComponent = 0;
-    static std::vector<const char*> componentSearchBox;
+    static std::vector<const char *> componentSearchBox;
 
     static bool setKeyboardFocus = false;
 
-    static auto componentSearch = [&]() 
-    {
-        const auto& componentList = Pine::Components::GetComponentTypes();
+    static auto componentSearch = [&]() {
+        const auto &componentList = Pine::Components::GetComponentTypes();
 
         componentSearchBox.clear();
 
-        for (const auto& component : componentList)
+        for (const auto &component: componentList)
         {
-            const char* componentName = Pine::ComponentTypeToString(component->m_Component->GetType());
+            const char *componentName = Pine::ComponentTypeToString(component->m_Component->GetType());
 
             // Do not allow multiple transform components.
             if (component->m_Component->GetType() == Pine::ComponentType::Transform)
+                continue;
+
+            // Native scripts are not allowed to be added through the GUI either.
+            if (component->m_Component->GetType() == Pine::ComponentType::NativeScript)
                 continue;
 
             if (strlen(componentSearchBuffer) == 0)
@@ -403,15 +509,15 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
             if (!componentSearchBox.empty())
             {
                 // Find the component type from the selected string
-                const auto& componentList = Pine::Components::GetComponentTypes();
+                const auto &componentList = Pine::Components::GetComponentTypes();
                 const auto selectedComponentStr = componentSearchBox[selectedComponent];
 
                 auto selectedComponentType = Pine::ComponentType::SpriteRenderer;
                 bool foundComponentType = false;
 
-                for (const auto& component : componentList)
+                for (const auto &component: componentList)
                 {
-                    const char* componentName = Pine::ComponentTypeToString(component->m_Component->GetType());
+                    const char *componentName = Pine::ComponentTypeToString(component->m_Component->GetType());
 
                     if (strcmp(componentName, selectedComponentStr) == 0)
                     {
@@ -435,3 +541,5 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
         ImGui::EndPopup();
     }
 }
+
+#pragma clang diagnostic pop

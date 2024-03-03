@@ -1,4 +1,5 @@
 #include "IComponent.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
 Pine::IComponent::IComponent(ComponentType type)
@@ -43,14 +44,23 @@ Pine::Entity* Pine::IComponent::GetParent() const
 
 void Pine::IComponent::OnCreated()
 {
+    if (m_Standalone)
+        return;
+
+    CreateScriptInstance();
 }
 
 void Pine::IComponent::OnDestroyed()
 {
+    if (m_Standalone)
+        return;
+
+    DestroyScriptInstance();
 }
 
 void Pine::IComponent::OnCopied()
 {
+    m_ScriptObjectHandle = { nullptr, 0 };
 }
 
 void Pine::IComponent::OnSetup()
@@ -84,4 +94,34 @@ void Pine::IComponent::SaveData(nlohmann::json& j)
 bool Pine::IComponent::IsWorldEnabled() const
 {
     return m_Active && m_Parent->GetActive();
+}
+
+Pine::Script::ObjectHandle *Pine::IComponent::GetComponentScriptHandle()
+{
+    return &m_ScriptObjectHandle;
+}
+
+void Pine::IComponent::CreateScriptInstance()
+{
+    m_ScriptObjectHandle = Script::ObjectFactory::CreateComponent(this);
+}
+
+void Pine::IComponent::DestroyScriptInstance()
+{
+    if (m_ScriptObjectHandle.Object == nullptr)
+    {
+        return;
+    }
+
+    Script::ObjectFactory::DisposeComponent(this, &m_ScriptObjectHandle);
+}
+
+void Pine::IComponent::SetInternalId(std::uint32_t id)
+{
+    m_InternalId = id;
+}
+
+std::uint32_t Pine::IComponent::GetInternalId() const
+{
+    return m_InternalId;
 }

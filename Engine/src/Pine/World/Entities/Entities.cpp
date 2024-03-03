@@ -33,6 +33,9 @@ namespace
         return highestIndex;
     }
 
+    // Cached version of GetHighestEntityIndex()
+    std::uint32_t m_HighestEntityIndex = 0;
+
     // Gets the first available element index in m_Entities
     std::uint32_t GetAvailableEntityIndex()
     {
@@ -98,7 +101,7 @@ Entity* Entities::Create()
     const auto entityPtr = &m_Entities[availableEntityIndex];
 
     // Call constructor on the entity
-    new(entityPtr) Entity(m_EntityId++);
+    new(entityPtr) Entity(m_EntityId++, availableEntityIndex);
 
     // Mark the slot as occupied
     m_EntityOccupationArray[availableEntityIndex] = true;
@@ -161,7 +164,8 @@ bool Entities::Delete(Entity* entity)
         return false;
     }
 
-    for (std::uint32_t i = 0; i < GetHighestEntityIndex();i++)
+    auto a = GetHighestEntityIndex();
+    for (std::uint32_t i = 0; i < a;i++)
     {
         if (!m_EntityOccupationArray[i])
             continue;
@@ -198,14 +202,36 @@ void Entities::DeleteAll(bool includeTemporary)
         return;
     }
 
-    auto entityList = m_EntityPointerList;
+    std::vector<Pine::Entity*> entitiesToRestore;
 
-    for (auto entity : entityList)
+    const auto highestEntityIndex = GetHighestEntityIndex();
+
+    Pine::Components::SetIgnoreHighestEntityIndexFlag(true);
+
+    for (std::uint32_t i = 0; i < highestEntityIndex;i++)
     {
-        if (entity->GetTemporary())
+        if (!m_EntityOccupationArray[i])
             continue;
 
-        Delete(entity);
+        if (m_Entities[i].GetTemporary())
+        {
+            entitiesToRestore.push_back(&m_Entities[i]);
+        }
+        else
+        {
+            m_Entities[i].~Entity();
+            m_EntityOccupationArray[i] = false;
+        }
+    }
+
+    Pine::Components::SetIgnoreHighestEntityIndexFlag(false);
+    Pine::Components::RecomputeHighestComponentIndex();
+
+    m_EntityPointerList.clear();
+
+    for (auto entity : entitiesToRestore)
+    {
+        m_EntityPointerList.push_back(entity);
     }
 }
 
@@ -235,4 +261,9 @@ void Entities::MoveEntity(Entity* entity, std::size_t newIndex)
     }
 
     MoveElementInVector(m_EntityPointerList, oldIndex, newIndex);
+}
+
+Entity *Entities::GetByInternalId(std::uint32_t internalId)
+{
+    return &m_Entities[internalId];
 }

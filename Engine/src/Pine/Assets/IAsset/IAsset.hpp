@@ -1,4 +1,7 @@
 #pragma once
+
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
+#include <cstdint>
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -22,11 +25,12 @@ namespace Pine
         Font,
         Tileset,
         Tilemap,
-        Count,
-        Audio
+        Audio,
+        CSharpScript,
+        Count
     };
 
-    inline const char* AssetTypeToString(AssetType type)
+    inline const char *AssetTypeToString(AssetType type)
     {
         switch (type)
         {
@@ -56,6 +60,8 @@ namespace Pine
             return "Tilemap";
         case AssetType::Audio:
             return "Audio";
+        case AssetType::CSharpScript:
+            return "Script";
         default:
             return "Unknown";
         }
@@ -82,7 +88,7 @@ namespace Pine
         Finish
     };
 
-    template <class T>
+    template<class T>
     class AssetHandle;
 
     class IAsset
@@ -95,6 +101,9 @@ namespace Pine
         // The asset's fake path within the engine, does not exactly mean
         // the path of the file on the drive.
         std::string m_Path;
+
+        // Unique id for this asset for faster lookups
+        std::uint32_t m_Id;
 
         // If this asset has a corresponding file path, and should be a file.
         // Otherwise, it may have been generated during run-time.
@@ -126,22 +135,32 @@ namespace Pine
         int m_ReferenceCount = 0;
         bool m_IsDeleted = false;
 
+        Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
+
         template<typename>
         friend class AssetHandle;
     public:
         virtual ~IAsset() = default;
 
-        const std::string& GetFileName() const;
+        void SetId(std::uint32_t id);
+        std::uint32_t GetId() const;
 
+        void CreateScriptHandle();
+        void DestroyScriptHandle();
+
+        Script::ObjectHandle* GetScriptHandle();
+
+        const std::string &GetFileName() const;
         AssetType GetType() const;
 
-        void SetPath(const std::string& path);
-        const std::string& GetPath() const;
+        void SetPath(const std::string &path);
+        const std::string &GetPath() const;
 
-        void SetFilePath(const std::filesystem::path& path);
-        void SetFilePath(const std::filesystem::path& path, const std::filesystem::path& root);
-        const std::filesystem::path& GetFilePath() const;
-        const std::filesystem::path& GetFileRootPath() const;
+        void SetFilePath(const std::filesystem::path &path);
+        void SetFilePath(const std::filesystem::path &path, const std::filesystem::path &root);
+
+        const std::filesystem::path &GetFilePath() const;
+        const std::filesystem::path &GetFileRootPath() const;
 
         virtual void MarkAsUpdated();
         virtual bool HasBeenUpdated() const;
@@ -150,13 +169,11 @@ namespace Pine
         bool HasMetadata() const;
         bool HasDependencies() const;
 
-        bool IsDeleted() const;
         void MarkAsDeleted();
-
-        bool IsModified() const;
         void MarkAsModified();
 
-        const std::vector<std::string>& GetDependencies() const;
+        bool IsDeleted() const;
+        bool IsModified() const;
 
         AssetState GetState() const;
         AssetLoadMode GetLoadMode() const;
@@ -164,27 +181,28 @@ namespace Pine
         void LoadMetadata();
         void SaveMetadata();
 
+        const std::vector<std::string> &GetDependencies() const;
+
         virtual bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default);
         virtual bool SaveToFile();
-
         virtual void Dispose() = 0;
     };
 
-    template <class T>
+    template<class T>
     class AssetHandle
     {
     private:
-        mutable T* m_Asset = nullptr;
+        mutable T *m_Asset = nullptr;
     public:
 
-        T* Get() const
+        T *Get() const
         {
             // Make sure to remove any pending deletion assets
             if (m_Asset)
             {
-                if (reinterpret_cast<IAsset*>(m_Asset)->m_IsDeleted)
+                if (reinterpret_cast<IAsset *>(m_Asset)->m_IsDeleted)
                 {
-                    reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount--;
+                    reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount--;
 
                     m_Asset = nullptr;
                 }
@@ -193,28 +211,28 @@ namespace Pine
             return m_Asset;
         }
 
-        T* operator->()
+        T *operator->()
         {
             return m_Asset;
         }
 
-        AssetHandle& operator=(IAsset* asset)
+        AssetHandle &operator=(IAsset *asset)
         {
             // Decrease the ref count on the asset we already have
             if (m_Asset != nullptr)
-                --reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount;
+                --reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount;
 
             // Assign the new asset
-            m_Asset = static_cast<T*>(asset);
+            m_Asset = static_cast<T *>(asset);
 
             // Make sure the new asset updates its reference count
             if (asset != nullptr)
-				++reinterpret_cast<IAsset*>(m_Asset)->m_ReferenceCount;
+                ++reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount;
 
             return *this;
         }
 
-        inline bool operator==(const IAsset* b)
+        inline bool operator==(const IAsset *b)
         {
             return m_Asset == b;
         }
@@ -223,6 +241,6 @@ namespace Pine
     struct AssetResolveReference
     {
         std::string m_Path;
-        AssetHandle<IAsset>* m_AssetHandle;
+        AssetHandle<IAsset> *m_AssetHandle;
     };
 }

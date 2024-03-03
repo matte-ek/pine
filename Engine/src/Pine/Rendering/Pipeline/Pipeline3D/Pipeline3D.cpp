@@ -12,6 +12,8 @@ namespace
 
     typedef std::unordered_map<Model *, std::vector<ModelRenderer *>> ObjectMapBatch;
 
+    std::unordered_map<Model*, std::uint32_t> m_ModelInstanceCountHint;
+
     struct RenderBatchData
     {
         ObjectMapBatch Objects;
@@ -43,12 +45,25 @@ namespace
                 }
             }
 
+            if (renderBatch.Objects.count(modelRenderer.GetModel()) == 0)
+            {
+                if (m_ModelInstanceCountHint.count(modelRenderer.GetModel()) != 0)
+                {
+                    renderBatch.Objects[modelRenderer.GetModel()].reserve(m_ModelInstanceCountHint[modelRenderer.GetModel()]);
+                }
+            }
+
             renderBatch.Objects[modelRenderer.GetModel()].push_back(&modelRenderer);
 
             if (hasTransparentMaterial)
             {
                 renderBatch.BlendObjects[modelRenderer.GetModel()].push_back(&modelRenderer);
             }
+        }
+
+        for (const auto& models : renderBatch.Objects)
+        {
+            m_ModelInstanceCountHint[models.first] = models.second.size();
         }
 
         return renderBatch;

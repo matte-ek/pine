@@ -2,6 +2,7 @@
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/IComponent/IComponent.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -13,6 +14,7 @@ namespace Pine
     {
     private:
         std::uint32_t m_Id = 0;
+        std::uint32_t m_InternalId = 0;
 
         bool m_Active = true;
         bool m_Static = false;
@@ -26,9 +28,12 @@ namespace Pine
         std::vector<IComponent*> m_Components;
         std::vector<Entity*> m_Children;
 
+        Script::ObjectHandle m_EntityScriptHandle = { nullptr, 0 };
+
         Entity* m_Parent = nullptr;
     public:
-        explicit Entity(std::uint32_t id, bool createTransform = true);
+        explicit Entity(std::uint32_t id);
+        Entity(std::uint32_t id, std::uint32_t internalId);
         ~Entity();
 
         std::uint32_t GetId() const;
@@ -48,6 +53,11 @@ namespace Pine
         void SetParent(Entity* entity);
         Entity* GetParent() const;
 
+        void CreateScriptHandle();
+        void DestroyScriptHandle();
+
+        Script::ObjectHandle* GetScriptHandle();
+
         // Creates and attaches the component to the entity
         template <typename T>
         T* AddComponent()
@@ -55,6 +65,7 @@ namespace Pine
             auto& component = Components::Create<T>();
 
             component.SetParent(this);
+            component.OnCreated();
 
             m_Components.push_back(&component);
 

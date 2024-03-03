@@ -12,7 +12,7 @@ namespace Pine
         Orthographic
     };
 
-    class Camera : public IComponent
+    class Camera final : public IComponent
     {
     private:
         CameraType m_CameraType = CameraType::Perspective;

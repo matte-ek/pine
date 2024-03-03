@@ -2,11 +2,17 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
-Pine::Entity::Entity(std::uint32_t id, bool createTransform)
+Pine::Entity::Entity(std::uint32_t id)
     : m_Id(id)
 {
-    if (createTransform)
-        AddComponent<Transform>();
+}
+
+Pine::Entity::Entity(std::uint32_t id, std::uint32_t internalId)
+        : m_Id(id), m_InternalId(internalId)
+{
+    AddComponent<Transform>();
+
+    CreateScriptHandle();
 }
 
 Pine::Entity::~Entity()
@@ -32,6 +38,8 @@ Pine::Entity::~Entity()
     {
         m_Parent->RemoveChild(this);
     }
+
+    DestroyScriptHandle();
 }
 
 std::uint32_t Pine::Entity::GetId() const
@@ -94,6 +102,7 @@ Pine::IComponent* Pine::Entity::AddComponent(ComponentType type)
     const auto component = Components::Create(type);
 
     component->SetParent(this);
+    component->OnCreated();
 
     m_Components.push_back(component);
 
@@ -103,6 +112,7 @@ Pine::IComponent* Pine::Entity::AddComponent(ComponentType type)
 Pine::IComponent* Pine::Entity::AddComponent(IComponent* component)
 {
     component->SetParent(this);
+    component->OnCreated();
 
     m_Components.push_back(component);
 
@@ -200,4 +210,24 @@ Pine::Entity* Pine::Entity::Create()
 Pine::Entity* Pine::Entity::Create(const std::string& name)
 {
     return Entities::Create(name);
+}
+
+Pine::Script::ObjectHandle *Pine::Entity::GetScriptHandle()
+{
+    return &m_EntityScriptHandle;
+}
+
+void Pine::Entity::CreateScriptHandle()
+{
+    m_EntityScriptHandle = Script::ObjectFactory::CreateEntity(m_Id, m_InternalId);
+}
+
+void Pine::Entity::DestroyScriptHandle()
+{
+    if (m_EntityScriptHandle.Object == nullptr)
+    {
+        return;
+    }
+
+    Script::ObjectFactory::DisposeEntity(&m_EntityScriptHandle);
 }

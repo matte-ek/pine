@@ -69,7 +69,7 @@ vec3 calculateBaseLightning(vec3 lightDirection, int lightIndex)
     vec3 normal;
 
     if (hasTangentData)
-        normal = normalize((2.0 * texture(textureSamplers.normal, vIn.uv * material.uvScale)).xyz);
+        normal = normalize((2.0 * texture(textureSamplers.normal, vIn.uv * material.uvScale) - 1.0).xyz);
     else
         normal = vIn.normalDir;
 
@@ -80,7 +80,7 @@ vec3 calculateBaseLightning(vec3 lightDirection, int lightIndex)
     vec3 halfwayDirection = normalize(lightDirection + vIn.cameraDir);
     float specularFactor = pow(max(dot(normal, halfwayDirection), 0.0), material.shininess);
 
-    vec3 ambient = diffuseColor * material.ambientColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz + vec3(0.1f);
+    vec3 ambient = material.ambientColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
     vec3 diffuse = lights[lightIndex].color * diffuseColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz * diffuseFactor;
     vec3 specular = lights[lightIndex].color * material.specularColor * texture(textureSamplers.specular, vIn.uv * material.uvScale).xyz * specularFactor;
 

@@ -208,4 +208,21 @@ namespace Pine::Components
 
         return block;
     }
+
+    template<typename T>
+    T* GetByInternalId(std::uint32_t internalId)
+    {
+        static auto type = GetType<T>();
+
+        auto& block = *reinterpret_cast<ComponentDataBlock<T>*>(&GetData(type));
+
+        return block.GetComponent(internalId);
+    }
+
+    IComponent* GetByInternalId(Pine::ComponentType type, std::uint32_t internalId);
+
+    // Internal hints that may be set by the engine to optimize component iteration
+    void SetIgnoreHighestEntityIndexFlag(bool ignore);
+
+    void RecomputeHighestComponentIndex();
 }
