@@ -9,6 +9,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 find_package(ReactPhysics3D REQUIRED)
 find_package(OpenAL REQUIRED)
+find_package(FLAC REQUIRED)
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
@@ -48,4 +49,4 @@ add_library(Engine ${SOURCES}
 )
 
 
-target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D mono-2.0 OpenAL::OpenAL)
+target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D mono-2.0 OpenAL::OpenAL FLAC::FLAC)
