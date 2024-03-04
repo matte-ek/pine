@@ -2,7 +2,8 @@
 
 namespace Pine::Audio
 {
-    class IAudioObject {
+    class IAudioObject
+    {
     public:
         virtual ~IAudioObject() = default;
         virtual bool Setup() = 0;

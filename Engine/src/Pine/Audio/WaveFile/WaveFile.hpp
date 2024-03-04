@@ -9,13 +9,15 @@
 
 #pragma pack(push, 1)
 
-struct RIFFHeader {
+struct RIFFHeader
+{
     char chunk[4];
     uint32_t chunkSize;
     char format[4];
 };
 
-struct FMTHeader {
+struct FMTHeader
+{
     uint16_t audioFormat;
     uint16_t numChannels;
     uint32_t sampleRate;
@@ -24,13 +26,15 @@ struct FMTHeader {
     uint16_t bitsPerSample;
 };
 
-struct DataHeader {
+struct DataHeader
+{
     char chunk[4];
     char* data;
     uint32_t size;
 };
 
-struct TmpHeader {
+struct TmpHeader
+{
     char chunk[4];
     uint32_t chunkSize;
 };
