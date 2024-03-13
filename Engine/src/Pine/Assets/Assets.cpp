@@ -15,7 +15,9 @@
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
+
 
 #include <cmath>
 #include <cstdint>
@@ -66,6 +68,7 @@ namespace
         AssetFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
         AssetFactory( { { "tileset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
         AssetFactory( { { "tilemap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
+        AssetFactory( { { "wav", "wave", "flac", "ogg", "oga", "spx" }, AssetType::Audio, [](){ return new AudioFile(); } } ),
         AssetFactory( {{ "cs" }, AssetType::CSharpScript, [](){ return new CSharpScript(); } } )
     };
 

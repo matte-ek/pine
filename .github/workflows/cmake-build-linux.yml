@@ -19,7 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install libstb-dev libglew-dev libglfw3-dev nlohmann-json3-dev libglm-dev libfreetype-dev libfmt-dev libassimp-dev libmono-2.0-dev
+        sudo apt install libstb-dev libglew-dev libglfw3-dev nlohmann-json3-dev libglm-dev libfreetype-dev libfmt-dev libassimp-dev libmono-2.0-dev libopenal-dev libflac++-dev
     
     - name: Restore third-party dependencies from cache
       id: cache-deps
