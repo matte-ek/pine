@@ -7,6 +7,7 @@ namespace Pine::Audio
 
     WaveFile::WaveFile(std::string filePath) : m_FilePath(std::move(filePath)) {}
 
+
     /**
      * @brief Performs the setup for the AudioFile object.
      *
@@ -32,6 +33,12 @@ namespace Pine::Audio
                 return false;
             }
         }
+
+        alGenBuffers(1, &m_ALBuffer);
+
+        if (!LoadAudioData())
+            return false;
+
         return true;
     }
 
@@ -40,7 +47,7 @@ namespace Pine::Audio
         m_File.open(m_FilePath, std::ios_base::binary);
         if (!m_File.is_open())
         {
-            Pine::Log::Warning("Failed to load AudioFile");
+            Pine::Log::Warning("Failed to load AudioWaveFile");
             return false;
         }
         return true;
@@ -95,14 +102,73 @@ namespace Pine::Audio
         return true;
     }
 
+    bool WaveFile::LoadAudioData()
+    {
+        ALenum format;
+        if (m_FMTHeader.bitsPerSample == 8)
+            format = (m_FMTHeader.numChannels == 1) ? AL_FORMAT_MONO8 : AL_FORMAT_STEREO8;
+        else if (m_FMTHeader.bitsPerSample == 16)
+            format = (m_FMTHeader.numChannels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+        ALvoid* data = static_cast<ALvoid*>(m_DataHeader.data);
+
+        alBufferData(m_ALBuffer, format, data, m_DataHeader.size, m_FMTHeader.sampleRate);
+
+        /* Make this a utility function */
+        ALenum err = alGetError();
+        if(err != AL_NO_ERROR)
+        {
+            std::string errStr;
+            switch(err)
+            {
+                case AL_INVALID_NAME:
+                    errStr = "AL_INVALID_NAME: a bad name (ID) was passed to an OpenAL function";
+                    break;
+                case AL_INVALID_ENUM:
+                    errStr = "AL_INVALID_ENUM: an invalid enum value was passed to an OpenAL function";
+                    break;
+                case AL_INVALID_VALUE:
+                    errStr = "AL_INVALID_VALUE: an invalid value was passed to an OpenAL function";
+                    break;
+                case AL_INVALID_OPERATION:
+                    errStr = "AL_INVALID_OPERATION: the requested operation is not valid";
+                    break;
+                case AL_OUT_OF_MEMORY:
+                    errStr = "AL_OUT_OF_MEMORY: the requested operation resulted in OpenAL running out of memory";
+                    break;
+                default:
+                    errStr = "UNKNOWN ERROR: Unknown OpenAL error";
+            }
+            Pine::Log::Error(errStr);
+            return false;
+        }
+
+        return true;
+    }
+
     bool WaveFile::Transcode()
     {
 
+    }
+
+    void WaveFile::Play()
+    {
+
+    }
+
+    void WaveFile::Stop()
+    {
+
+    }
+
+    int WaveFile::GetID()
+    {
+        return m_ALBuffer;
     }
 
     void WaveFile::Dispose()
     {
         delete[] m_DataHeader.data;
         m_DataHeader.data = nullptr;
+        alDeleteBuffers(1, &m_ALBuffer);
     }
 }

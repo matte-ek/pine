@@ -1,4 +1,5 @@
 #include "AudioFile.hpp"
+#include "Pine/Audio/FlacFile/FlacFile.hpp"
 
 namespace Pine
 {
@@ -22,6 +23,7 @@ namespace Pine
                 m_AudioObject = new Pine::Audio::WaveFile(m_FilePath);
                 break;
             case AudioFileFormat::Flac:
+                //m_AudioObject = new Pine::Audio::FlacFile(m_FilePath);
             case AudioFileFormat::Ogg:
                 return false;
             case AudioFileFormat::Unknown:
@@ -33,6 +35,8 @@ namespace Pine
         {
             return false;
         }
+
+        m_AudioSource = new Audio::AudioSource(m_AudioObject->GetID());
 
         return true;
     }
@@ -59,6 +63,13 @@ namespace Pine
 
     }
 
+    void AudioFile::Play()
+    {
+        //m_AudioObject->Play();
+        if (m_AudioSource)
+            alSourcePlay(m_AudioSource->GetID());
+    }
+
     bool AudioFile::LoadFromFile(Pine::AssetLoadStage stage)
     {
         m_State = AssetState::Loaded;
@@ -67,7 +78,11 @@ namespace Pine
 
     void AudioFile::Dispose()
     {
-            m_AudioObject->Dispose();
+            if(m_AudioObject)
+                m_AudioObject->Dispose();
             delete m_AudioObject;
+            delete m_AudioSource;
+            m_AudioObject = nullptr;
+            m_AudioSource = nullptr;
     }
 }
