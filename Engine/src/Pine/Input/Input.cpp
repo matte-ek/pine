@@ -3,6 +3,7 @@
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 
 #include <string.h>
+#include <array>
 #include <utility>
 #include <vector>
 #include <GLFW/glfw3.h>

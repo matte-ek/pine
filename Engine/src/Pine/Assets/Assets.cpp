@@ -606,13 +606,13 @@ void Assets::MoveAsset(Pine::IAsset *asset, const std::filesystem::path &newFile
     const auto oldFilePath = asset->GetFilePath();
 
     asset->SetPath(newPath);
-    asset->SetFilePath(newFilePath, String::StartsWith(newFilePath, asset->GetFileRootPath().string()) ? asset->GetFileRootPath() : "");
+    asset->SetFilePath(newFilePath, String::StartsWith(newFilePath.string(), asset->GetFileRootPath().string()) ? asset->GetFileRootPath() : "");
 
     m_Assets.erase(oldPath);
     m_AssetsFilePath.erase(oldFilePath.string());
 
     m_Assets[newPath] = asset;
-    m_AssetsFilePath[newFilePath] = asset;
+    m_AssetsFilePath[newFilePath.string()] = asset;
 }
 
 const std::unordered_map<std::string, IAsset*>& Assets::GetAll()
