@@ -9,7 +9,22 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 find_package(ReactPhysics3D REQUIRED)
 find_package(OpenAL REQUIRED)
-find_package(FLAC REQUIRED)
+find_package(FLAC)
+if(${FLAC_FOUND})
+else(${FLAC_FOUND})
+    ExternalProject_Add(
+            FLAC
+            URL "http://downloads.xiph.org/releases/flac/flac-1.4.3.tar.xz"
+            CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/lib/flac/configure --prefix=<INSTALL_DIR>
+            BUILD_COMMAND ${MAKE}
+            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/flac
+            UPDATE_COMMAND ""
+            INSTALL_COMMAND ""
+            LOG_DOWNLOAD ON
+            LOG_CONFIGURE ON
+            LOG_BUILD ON
+    )
+endif(${FLAC_FOUND})
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
