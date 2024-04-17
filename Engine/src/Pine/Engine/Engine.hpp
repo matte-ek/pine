@@ -1,6 +1,7 @@
 #pragma once
 #include <Pine/Core/Math/Math.hpp>
 #include <Pine/Graphics/Graphics.hpp>
+#include <Pine/Audio/Audio.hpp>
 
 #include <string>
 

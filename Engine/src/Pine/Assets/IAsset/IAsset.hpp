@@ -25,6 +25,7 @@ namespace Pine
         Font,
         Tileset,
         Tilemap,
+        Audio,
         CSharpScript,
         Count
     };
@@ -33,34 +34,36 @@ namespace Pine
     {
         switch (type)
         {
-            case AssetType::Invalid:
-                return "Invalid";
-            case AssetType::Blueprint:
-                return "Blueprint";
-            case AssetType::Level:
-                return "Level";
-            case AssetType::Material:
-                return "Material";
-            case AssetType::Mesh:
-                return "Mesh";
-            case AssetType::Model:
-                return "Model";
-            case AssetType::Shader:
-                return "Shader";
-            case AssetType::Texture2D:
-                return "Texture2D";
-            case AssetType::Texture3D:
-                return "Texture3D";
-            case AssetType::Font:
-                return "Font";
-            case AssetType::Tileset:
-                return "Tileset";
-            case AssetType::Tilemap:
-                return "Tilemap";
-            case AssetType::CSharpScript:
-                return "Script";
-            default:
-                return "Unknown";
+        case AssetType::Invalid:
+            return "Invalid";
+        case AssetType::Blueprint:
+            return "Blueprint";
+        case AssetType::Level:
+            return "Level";
+        case AssetType::Material:
+            return "Material";
+        case AssetType::Mesh:
+            return "Mesh";
+        case AssetType::Model:
+            return "Model";
+        case AssetType::Shader:
+            return "Shader";
+        case AssetType::Texture2D:
+            return "Texture2D";
+        case AssetType::Texture3D:
+            return "Texture3D";
+        case AssetType::Font:
+            return "Font";
+        case AssetType::Tileset:
+            return "Tileset";
+        case AssetType::Tilemap:
+            return "Tilemap";
+        case AssetType::Audio:
+            return "Audio";
+        case AssetType::CSharpScript:
+            return "Script";
+        default:
+            return "Unknown";
         }
     }
 

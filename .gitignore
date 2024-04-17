@@ -8,10 +8,19 @@
 cmake-build*
 build/
 x64/
+cmake_install.cmake
+CMakeCache.txt
+.cmake/
+CMakeFiles/
+Makefile
+CMakeFiles/
+CMakeCache.txt
 
 # Other
+Testing/
 game/
 assets/engine/script
+assets/mono_*
 ScriptRuntime/obj
 ScriptRuntime/bin
 assets/game-template/runtime/bin/Release

@@ -4,6 +4,7 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 #include "Pine/Graphics/Graphics.hpp"
+#include "Pine/Audio/Audio.hpp"
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
 #include "Pine/Input/Input.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
@@ -25,6 +26,7 @@ namespace
 
     Pine::Engine::EngineConfiguration m_EngineConfiguration;
     Pine::Graphics::IGraphicsAPI* m_GraphicsAPI;
+    Pine::Audio::IAudioAPI* m_AudioAPI;
 }
 
 bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
@@ -65,6 +67,17 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     }
 
     Graphics::GetGraphicsAPI()->EnableErrorLogging();
+
+
+    if(!Audio::Setup()) {
+        Log::Fatal("Failed to setup audio API");
+
+        WindowManager::Internal::DestroyWindow();
+
+        glfwTerminate();
+
+        return false;
+    }
 
     // We have to set up our script runtime first, since all other parts of the engine needs to
     // be able to register objects to the runtime.
