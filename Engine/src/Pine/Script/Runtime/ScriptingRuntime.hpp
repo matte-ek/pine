@@ -28,4 +28,6 @@ namespace Pine::Script::Runtime
     bool Setup();
     void Reset();
     void Dispose();
+
+    bool IsAvailable();
 }

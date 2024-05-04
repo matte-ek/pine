@@ -25,6 +25,8 @@ namespace
 
     bool m_IsReloading = false;
     int m_ReloadIndex = 0;
+
+    bool m_IsAvailable = false;
 }
 
 bool Pine::Script::Runtime::Setup()
@@ -87,6 +89,8 @@ bool Pine::Script::Runtime::Setup()
             }
         }
     }
+
+    m_IsAvailable = true;
 
     return true;
 }
@@ -236,4 +240,9 @@ void Pine::Script::Runtime::Reset()
 {
     Dispose();
     Setup();
+}
+
+bool Pine::Script::Runtime::IsAvailable()
+{
+    return m_IsAvailable;
 }

@@ -154,6 +154,11 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine:
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(Pine::IAsset *asset)
 {
+    if (!m_PineImage)
+    {
+        return {nullptr, 0};
+    }
+
     AssetTypeData* assetTypeData;
 
     if (m_AssetObjectFactory.count(asset->GetType()) == 0)
