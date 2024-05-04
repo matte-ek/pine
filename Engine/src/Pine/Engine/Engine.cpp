@@ -68,8 +68,8 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     Graphics::GetGraphicsAPI()->EnableErrorLogging();
 
-
-    if(!Audio::Setup()) {
+    if(!Audio::Setup())
+    {
         Log::Fatal("Failed to setup audio API");
 
         WindowManager::Internal::DestroyWindow();

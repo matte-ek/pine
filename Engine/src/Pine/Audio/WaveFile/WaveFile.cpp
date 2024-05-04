@@ -45,11 +45,13 @@ namespace Pine::Audio
     bool WaveFile::OpenFile()
     {
         m_File.open(m_FilePath, std::ios_base::binary);
+
         if (!m_File.is_open())
         {
             Pine::Log::Warning("Failed to load AudioWaveFile");
             return false;
         }
+
         return true;
     }
 
@@ -62,6 +64,7 @@ namespace Pine::Audio
             Pine::Log::Error("Faulty wave formatting");
             return false;
         }
+
         return true;
     }
 
@@ -104,11 +107,13 @@ namespace Pine::Audio
 
     bool WaveFile::LoadAudioData()
     {
-        ALenum format;
+        ALenum format = 0;
+
         if (m_FMTHeader.bitsPerSample == 8)
             format = (m_FMTHeader.numChannels == 1) ? AL_FORMAT_MONO8 : AL_FORMAT_STEREO8;
         else if (m_FMTHeader.bitsPerSample == 16)
             format = (m_FMTHeader.numChannels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+
         ALvoid* data = static_cast<ALvoid*>(m_DataHeader.data);
 
         alBufferData(m_ALBuffer, format, data, m_DataHeader.size, m_FMTHeader.sampleRate);
@@ -138,7 +143,9 @@ namespace Pine::Audio
                 default:
                     errStr = "UNKNOWN ERROR: Unknown OpenAL error";
             }
+
             Pine::Log::Error(errStr);
+
             return false;
         }
 
@@ -162,7 +169,7 @@ namespace Pine::Audio
 
     int WaveFile::GetID()
     {
-        return m_ALBuffer;
+        return static_cast<int>(m_ALBuffer);
     }
 
     void WaveFile::Dispose()

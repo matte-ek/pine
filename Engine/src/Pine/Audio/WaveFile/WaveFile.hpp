@@ -64,7 +64,6 @@ namespace Pine::Audio
         bool CheckWaveFormat();
         bool ReadChunk();
         bool LoadAudioData();
-
     public:
         explicit WaveFile(std::string filePath);
 

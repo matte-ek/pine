@@ -13,14 +13,14 @@ namespace Pine
         if(m_FilePath.empty())
             return false;
 
-        m_FileExtension = m_FilePath.extension();
+        m_FileExtension = m_FilePath.extension().string();
 
         m_AudioFileFormat = GetAudioFileFormat();
 
         switch (m_AudioFileFormat)
         {
             case AudioFileFormat::Wave:
-                m_AudioObject = new Pine::Audio::WaveFile(m_FilePath);
+                m_AudioObject = new Pine::Audio::WaveFile(m_FilePath.string());
                 break;
             case AudioFileFormat::Flac:
                 //m_AudioObject = new Pine::Audio::FlacFile(m_FilePath);
@@ -72,17 +72,19 @@ namespace Pine
 
     bool AudioFile::LoadFromFile(Pine::AssetLoadStage stage)
     {
-        m_State = AssetState::Loaded;
+        // TODO: Actually load the asset from here.
         return true;
     }
 
     void AudioFile::Dispose()
     {
-            if(m_AudioObject)
-                m_AudioObject->Dispose();
-            delete m_AudioObject;
-            delete m_AudioSource;
-            m_AudioObject = nullptr;
-            m_AudioSource = nullptr;
+        if (m_AudioObject)
+            m_AudioObject->Dispose();
+
+        delete m_AudioObject;
+        delete m_AudioSource;
+
+        m_AudioObject = nullptr;
+        m_AudioSource = nullptr;
     }
 }

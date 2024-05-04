@@ -16,7 +16,6 @@ namespace Pine::Audio
 
         ALCdevice* m_Device = nullptr;
         ALCcontext* m_Context = nullptr;
-
     public:
         bool Setup() override;
         void Shutdown() override;

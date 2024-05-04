@@ -2,23 +2,23 @@
 
 #include <cstring>
 #include <cstdio>
-#include <fstream>
+
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Assets/IAsset/IAsset.hpp"
 #include "Pine/Audio/WaveFile/WaveFile.hpp"
 #include "Pine/Audio/AudioSource/AudioSource.hpp"
 
-enum class AudioFileFormat
-{
-    Wave,
-    Flac,
-    Ogg,
-    Unknown
-};
-
 namespace Pine
 {
+    enum class AudioFileFormat
+    {
+        Wave,
+        Flac,
+        Ogg,
+        Unknown
+    };
+
     class AudioFile : public IAsset
     {
     private:
@@ -28,7 +28,6 @@ namespace Pine
         Pine::Audio::AudioSource* m_AudioSource = nullptr;
 
         AudioFileFormat GetAudioFileFormat();
-
     public:
         AudioFile();
 

@@ -34,11 +34,15 @@ namespace Pine::Audio
 
     void OpenAL::GetAudioDevices(const ALCchar *devices)
     {
-        while (*devices != '\0') {
+        while (*devices != '\0')
+        {
             std::string deviceName(devices);
-            if (std::find(m_DeviceList.begin(), m_DeviceList.end(), deviceName) == m_DeviceList.end()) {
+
+            if (std::find(m_DeviceList.begin(), m_DeviceList.end(), deviceName) == m_DeviceList.end())
+            {
                 m_DeviceList.emplace_back(deviceName);
             }
+
             devices += deviceName.size() + 1;
         }
     }
