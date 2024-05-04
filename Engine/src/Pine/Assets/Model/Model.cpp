@@ -10,139 +10,126 @@
 namespace
 {
     using namespace Pine;
+}
 
-    void ProcessMesh(Model *engineModel, aiMesh *mesh, const aiScene *scene)
+void Model::ProcessMesh(aiMesh *mesh, const aiScene *scene)
+{
+    MeshLoadData loadData;
+
+    loadData.FacesCount = mesh->mNumFaces;
+    loadData.VertexCount = mesh->mNumVertices;
+    loadData.Vertices = static_cast<Vector3f *>(malloc(loadData.VertexCount * sizeof(Vector3f)));
+
+    memcpy(loadData.Vertices, mesh->mVertices, loadData.VertexCount * sizeof(Vector3f));
+
+    if (mesh->HasNormals())
     {
-        MeshLoadData loadData;
-
-        loadData.Faces = mesh->mNumFaces;
-        loadData.VertexCount = mesh->mNumVertices;
-        loadData.Vertices = static_cast<Vector3f *>(malloc(loadData.VertexCount * sizeof(Vector3f)));
-
-        memcpy(loadData.Vertices, mesh->mVertices, loadData.VertexCount * sizeof(Vector3f));
-
-        if (mesh->HasNormals())
-        {
-            loadData.Normals = static_cast<Vector3f *>(malloc(loadData.VertexCount * sizeof(Vector3f)));
-            memcpy(loadData.Normals, mesh->mNormals, loadData.VertexCount * sizeof(Vector3f));
-        }
-
-        if (mesh->HasTangentsAndBitangents())
-        {
-            loadData.Tangents = static_cast<Vector3f *>(malloc(loadData.VertexCount * sizeof(Vector3f)));
-            memcpy(loadData.Tangents, mesh->mVertices, loadData.VertexCount * sizeof(Vector3f));
-        }
-
-        if (mesh->HasTextureCoords(0))
-        {
-            loadData.UVs = static_cast<Vector2f *>(malloc(loadData.VertexCount * sizeof(Vector2f)));
-
-            memset(loadData.UVs, 0, loadData.VertexCount * sizeof(Vector2f));
-
-            for (std::uint32_t i = 0; i < loadData.VertexCount;i++)
-            {
-                loadData.UVs[i] = Vector2f(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-            }
-        }
-
-        std::vector<std::uint32_t> indices;
-
-        for (unsigned int i = 0; i < mesh->mNumFaces; i++)
-        {
-            aiFace face = mesh->mFaces[i];
-            for (unsigned int j = 0; j < face.mNumIndices; j++)
-                indices.push_back(face.mIndices[j]);
-        }
-
-        if (!indices.empty())
-        {
-            // This should always be a normal 4 byte integer array but w/e
-            loadData.Indices = static_cast<std::uint32_t *>(malloc(sizeof(std::uint32_t) * indices.size()));
-            loadData.IndicesLength = static_cast<std::uint32_t>(indices.size());
-
-            memcpy(loadData.Indices, indices.data(), sizeof(std::uint32_t) * indices.size());
-        }
-
-        if (scene->HasMaterials())
-        {
-            auto material = scene->mMaterials[mesh->mMaterialIndex];
-            if (material && strcmp(material->GetName().C_Str(), AI_DEFAULT_MATERIAL_NAME) != 0)
-            {
-                auto modelDirectory = engineModel->GetFilePath().parent_path().string() + "/";
-                auto modelName = engineModel->GetFilePath().stem().string();
-
-                auto engineMaterial = new Material;
-
-                // This is sort of messy.
-                engineMaterial->SetPath(std::filesystem::path(engineModel->GetPath()).parent_path().string() + "/" + modelName + ".mat");
-                engineMaterial->SetFilePath(modelDirectory + modelName + ".mat");
-
-                aiColor3D diffuse_color(1.f, 1.f, 1.f);
-                aiColor3D ambient_color(1.f, 1.f, 1.f);
-
-                float shininess = 1.f;
-
-                material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse_color);
-                material->Get(AI_MATKEY_COLOR_AMBIENT, ambient_color);
-                material->Get(AI_MATKEY_SHININESS, shininess);
-
-                engineMaterial->SetDiffuseColor(Vector3f(diffuse_color.r, diffuse_color.g, diffuse_color.b));
-                engineMaterial->SetAmbientColor(Vector3f(ambient_color.r, ambient_color.g, ambient_color.b));
-
-                engineMaterial->SetShininess(shininess);
-
-                if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
-                {
-                    aiString filePath;
-                    material->GetTexture(aiTextureType_DIFFUSE, 0, &filePath);
-
-                    std::string filePathStr = filePath.C_Str();
-
-                    loadData.DiffuseMap = modelDirectory + filePathStr;
-                }
-
-                if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
-                {
-                    aiString filePath;
-                    material->GetTexture(aiTextureType_SPECULAR, 0, &filePath);
-
-                    std::string filePathStr = filePath.C_Str();
-
-                    loadData.SpecularMap = modelDirectory + filePathStr;
-                }
-
-                if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
-                {
-                    aiString filePath;
-                    material->GetTexture(aiTextureType_NORMALS, 0, &filePath);
-
-                    std::string filePathStr = filePath.C_Str();
-
-                    loadData.NormalMap = modelDirectory + filePathStr;
-                }
-
-                loadData.Material = engineMaterial;
-            }
-        }
-
-        engineModel->AddMeshLoadData(loadData);
+        loadData.Normals = static_cast<Vector3f *>(malloc(loadData.VertexCount * sizeof(Vector3f)));
+        memcpy(loadData.Normals, mesh->mNormals, loadData.VertexCount * sizeof(Vector3f));
     }
 
-    void ProcessNode(Model *model, aiNode *node, const aiScene *scene)
+    if (mesh->HasTangentsAndBitangents())
     {
-        // Loop through all the meshes within the model
-        for (std::uint32_t i = 0; i < node->mNumMeshes; i++)
-        {
-            const auto mesh = scene->mMeshes[node->mMeshes[i]];
+        loadData.Tangents = static_cast<Vector3f *>(malloc(loadData.VertexCount * sizeof(Vector3f)));
+        memcpy(loadData.Tangents, mesh->mVertices, loadData.VertexCount * sizeof(Vector3f));
+    }
 
-            ProcessMesh(model, mesh, scene);
-        }
+    if (mesh->HasTextureCoords(0))
+    {
+        loadData.UVs = static_cast<Vector2f *>(malloc(loadData.VertexCount * sizeof(Vector2f)));
 
-        // Process additional nodes via the magic of recursion
-        for (std::uint32_t i = 0; i < node->mNumChildren; i++)
+        memset(loadData.UVs, 0, loadData.VertexCount * sizeof(Vector2f));
+
+        for (std::uint32_t i = 0; i < loadData.VertexCount;i++)
         {
-            ProcessNode(model, node->mChildren[i], scene);
+            loadData.UVs[i] = Vector2f(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
         }
+    }
+
+    std::vector<std::uint32_t> indices;
+
+    for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+    {
+        aiFace face = mesh->mFaces[i];
+        for (unsigned int j = 0; j < face.mNumIndices; j++)
+            indices.push_back(face.mIndices[j]);
+    }
+
+    if (!indices.empty())
+    {
+        // This should always be a normal 4 byte integer array but w/e
+        loadData.Indices = static_cast<std::uint32_t *>(malloc(sizeof(std::uint32_t) * indices.size()));
+        loadData.IndicesCount = static_cast<std::uint32_t>(indices.size());
+
+        memcpy(loadData.Indices, indices.data(), sizeof(std::uint32_t) * indices.size());
+    }
+
+    if (scene->HasMaterials())
+    {
+        auto material = scene->mMaterials[mesh->mMaterialIndex];
+        if (material && strcmp(material->GetName().C_Str(), AI_DEFAULT_MATERIAL_NAME) != 0)
+        {
+            aiColor3D diffuse_color(1.f, 1.f, 1.f);
+            aiColor3D ambient_color(1.f, 1.f, 1.f);
+
+            float shininess = 1.f;
+
+            material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse_color);
+            material->Get(AI_MATKEY_COLOR_AMBIENT, ambient_color);
+            material->Get(AI_MATKEY_SHININESS, shininess);
+
+            loadData.DefaultMaterial.DiffuseColor = Vector3f(diffuse_color.r, diffuse_color.g, diffuse_color.b);
+            loadData.DefaultMaterial.AmbientColor = Vector3f(ambient_color.r, ambient_color.g, ambient_color.b);
+            loadData.DefaultMaterial.Shininess = shininess;
+
+            if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+            {
+                aiString filePath;
+
+                material->GetTexture(aiTextureType_DIFFUSE, 0, &filePath);
+
+                loadData.DefaultMaterial.DiffuseMap = filePath.C_Str();
+            }
+
+            if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
+            {
+                aiString filePath;
+
+                material->GetTexture(aiTextureType_SPECULAR, 0, &filePath);
+
+                loadData.DefaultMaterial.SpecularMap = filePath.C_Str();
+            }
+
+            if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
+            {
+                aiString filePath;
+
+                material->GetTexture(aiTextureType_NORMALS, 0, &filePath);
+
+                loadData.DefaultMaterial.NormalMap = filePath.C_Str();
+            }
+
+            loadData.HasDefaultMaterial = true;
+        }
+    }
+
+    m_MeshLoadData.push_back(loadData);
+}
+
+void Model::ProcessNode(aiNode *node, const aiScene *scene)
+{
+    // Loop through all the meshes within the model
+    for (std::uint32_t i = 0; i < node->mNumMeshes; i++)
+    {
+        const auto mesh = scene->mMeshes[node->mMeshes[i]];
+
+        ProcessMesh(mesh, scene);
+    }
+
+    // Process additional nodes via the magic of recursion
+    for (std::uint32_t i = 0; i < node->mNumChildren; i++)
+    {
+        ProcessNode(node->mChildren[i], scene);
     }
 }
 
@@ -157,7 +144,7 @@ bool Model::LoadModel()
     Assimp::Importer importer;
 
     const auto scene = importer.ReadFile(
-            m_FilePath.string(), aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenNormals |
+            m_FilePath.string().c_str(), aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenNormals |
                                  aiProcess_TransformUVCoords | aiProcess_FlipUVs | aiProcess_GenBoundingBoxes |
                                  aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
                                  aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph);
@@ -168,7 +155,7 @@ bool Model::LoadModel()
         return false;
     }
 
-    ProcessNode(this, scene->mRootNode, scene);
+    ProcessNode(scene->mRootNode, scene);
 
     m_State = AssetState::Preparing;
 
@@ -183,8 +170,9 @@ void Model::UploadModel()
         return;
     }
 
-    for (const auto &loadData: m_MeshLoadData)
+    for (int i = 0; i < m_MeshLoadData.size();i++)
     {
+        const auto& loadData = m_MeshLoadData[i];
         auto mesh = CreateMesh();
 
         mesh->SetVertices(reinterpret_cast<float *>(loadData.Vertices), sizeof(Vector3f) * loadData.VertexCount);
@@ -197,34 +185,41 @@ void Model::UploadModel()
             mesh->SetTangents(reinterpret_cast<float *>(loadData.Tangents), sizeof(Vector3f) * loadData.VertexCount);
         if (loadData.Indices)
             mesh->SetIndices(reinterpret_cast<unsigned int *>(loadData.Indices),
-                             sizeof(std::uint32_t) * loadData.IndicesLength);
+                             sizeof(std::uint32_t) * loadData.IndicesCount);
 
-        if (loadData.HasMaterial)
+        bool hasEngineMaterialKey = m_Metadata.contains("material") && m_Metadata["material"].contains(std::to_string(i));
+        std::string engineMaterial = hasEngineMaterialKey ? m_Metadata["material"][std::to_string(i)] : "null";
+
+        if (engineMaterial != "null")
         {
-            mesh->SetMaterial(loadData.MaterialPath);
+            mesh->SetMaterial(engineMaterial);
         }
         else
         {
-            if (loadData.Material)
+            // If this mesh had any default material stored alongside it, we will create a new
+            // Pine material with those properties.
+            if (loadData.HasDefaultMaterial)
             {
-                // Set any texture maps if we have to
-                if (!loadData.DiffuseMap.empty())
-                    loadData.Material->SetDiffuse(loadData.DiffuseMap);
-                if (!loadData.SpecularMap.empty())
-                    loadData.Material->SetSpecular(loadData.SpecularMap);
-                if (!loadData.NormalMap.empty())
-                    loadData.Material->SetNormal(loadData.NormalMap);
+                auto parentDirectory = m_FilePath.parent_path().string() + "/";
+                auto modelName = m_FilePath.stem().string();
 
-                // If a material is supplied here, we know it was generated from the model data, so check if
-                // the user has its own material before using this.
-                if (m_Metadata.contains("material"))
-                {
-                    mesh->SetMaterial(m_Metadata["material"].get<std::string>());
-                }
-                else
-                {
-                    mesh->SetMaterial(loadData.Material);
-                }
+                auto material = new Pine::Material;
+
+                material->SetPath(std::filesystem::path(m_Path).parent_path().string() + "/" + modelName + std::to_string(i) + ".mat");
+                material->SetFilePath(parentDirectory + modelName + std::to_string(i) + ".mat");
+
+                material->SetDiffuseColor(loadData.DefaultMaterial.DiffuseColor);
+                material->SetAmbientColor(loadData.DefaultMaterial.AmbientColor);
+                material->SetShininess(loadData.DefaultMaterial.Shininess);
+
+                if (!loadData.DefaultMaterial.DiffuseMap.empty())
+                    material->SetDiffuse(parentDirectory + loadData.DefaultMaterial.DiffuseMap);
+                if (!loadData.DefaultMaterial.SpecularMap.empty())
+                    material->SetSpecular(parentDirectory + loadData.DefaultMaterial.SpecularMap);
+                if (!loadData.DefaultMaterial.NormalMap.empty())
+                    material->SetNormal(parentDirectory + loadData.DefaultMaterial.NormalMap);
+
+                mesh->SetMaterial(material);
             }
         }
 
@@ -254,33 +249,11 @@ const std::vector<Mesh*> &Model::GetMeshes() const
     return m_Meshes;
 }
 
-void Model::AddMeshLoadData(const MeshLoadData &data)
-{
-    m_MeshLoadData.push_back(data);
-}
-
 bool Model::LoadFromFile(AssetLoadStage stage)
 {
     if (stage == AssetLoadStage::Prepare)
     {
         return LoadModel();
-    }
-
-    if (m_Metadata.contains("material"))
-    {
-        for (int i = 0; i < m_MeshLoadData.size();i++)
-        {
-            if (!m_Metadata["material"].contains(std::to_string(i)))
-                continue;
-
-            const auto& materialPath = m_Metadata["material"][std::to_string(i)].get<std::string>();
-
-            if (materialPath.empty() || materialPath == "null")
-                continue;
-
-            m_MeshLoadData[i].HasMaterial = true;
-            m_MeshLoadData[i].MaterialPath = materialPath;
-        }
     }
 
     UploadModel();

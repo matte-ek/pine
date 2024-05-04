@@ -56,7 +56,7 @@ void Pine::Collider::UpdateBody()
     }
 }
 
-reactphysics3d::TriangleMesh* Pine::Collider::LoadTriangleMesh()
+reactphysics3d::ConvexMesh* Pine::Collider::LoadTriangleMesh()
 {
     auto modelRenderer = m_Parent->GetComponent<Pine::ModelRenderer>();
 
@@ -71,9 +71,48 @@ reactphysics3d::TriangleMesh* Pine::Collider::LoadTriangleMesh()
     if (model->m_MeshLoadData.empty())
         return nullptr;
 
-    // TODO: Fix after ReactPhysics update.
+    const auto& mesh = model->m_MeshLoadData.front();
 
-    return nullptr;
+    reactphysics3d::VertexArray vertexArray(mesh.Vertices,
+                                            3 * sizeof(float),
+                                            mesh.VertexCount,
+                                            reactphysics3d::VertexArray::DataType::VERTEX_FLOAT_TYPE);
+
+    std::vector<reactphysics3d::Message> messages;
+    auto convexMesh = Pine::Physics3D::GetCommon()->createConvexMesh(vertexArray, messages);
+
+    if (!messages.empty())
+    {
+        for (const auto& message : messages)
+        {
+            switch (message.type)
+            {
+            case reactphysics3d::Message::Type::Information:
+                Log::Info(message.text);
+                break;
+            case reactphysics3d::Message::Type::Warning:
+                Log::Warning(message.text);
+                break;
+            case reactphysics3d::Message::Type::Error:
+                Log::Error(message.text);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    // Free the mesh data since we don't need it anymore
+    for (const auto& meshData : model->m_MeshLoadData)
+    {
+        free(meshData.Vertices);
+        free(meshData.Normals);
+        free(meshData.UVs);
+        free(meshData.Tangents);
+        free(meshData.Indices);
+    }
+
+    return convexMesh;
 }
 
 void Pine::Collider::CreateShape()
@@ -93,7 +132,7 @@ void Pine::Collider::CreateShape()
             break;
     }
 
-    if (m_ColliderType == ColliderType::ConcaveMesh)
+    if (m_ColliderType == ColliderType::ConvexMesh)
     {
         auto mesh = LoadTriangleMesh();
         
@@ -101,7 +140,8 @@ void Pine::Collider::CreateShape()
         {
             const auto& scale = m_Parent->GetTransform()->GetScale();
 
-            m_CollisionShape = Pine::Physics3D::GetCommon()->createConcaveMeshShape(mesh, reactphysics3d::Vector3(32.f, 32.f, 32.f));
+            // TODO: Figure out how we're going to deal with scaling here.
+            m_CollisionShape = Pine::Physics3D::GetCommon()->createConvexMeshShape(mesh, reactphysics3d::Vector3(1.f, 1.f, 1.f));
         }
     }
 

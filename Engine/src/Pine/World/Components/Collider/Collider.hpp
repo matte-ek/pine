@@ -45,7 +45,7 @@ namespace Pine
         void DisposeShape();
         void UpdateShape();
 
-        reactphysics3d::TriangleMesh* LoadTriangleMesh();
+        reactphysics3d::ConvexMesh* LoadTriangleMesh();
     public:
         Collider();
 

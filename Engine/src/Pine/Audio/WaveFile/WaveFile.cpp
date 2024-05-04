@@ -154,7 +154,7 @@ namespace Pine::Audio
 
     bool WaveFile::Transcode()
     {
-
+        return false;
     }
 
     void WaveFile::Play()
