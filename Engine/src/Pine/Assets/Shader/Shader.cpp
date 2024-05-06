@@ -13,28 +13,20 @@
 
 namespace
 {
-
-    struct ShaderHook
-    {
-        std::string Name; // ex "PreVertex"
-        std::string HookMacro; // ex "#PreVertex"
-        Pine::Graphics::ShaderType Type;
-    }; 
-
-    const std::array<const char*, 3> StrShaderTypes = { "Vertex", "Fragment", "Compute" };
+    const std::array<const char*, 3> ShaderTypesString = { "Vertex", "Fragment", "Compute" };
 
     bool LoadAndCompileShader(const std::string& filePath,
                               const nlohmann::json& json,
+                              Pine::Graphics::IShaderProgram* program,
                               Pine::Shader* shader,
-                              Pine::Graphics::ShaderType type)
+                              Pine::Graphics::ShaderType type,
+                              const std::vector<std::string>& versionMacros)
     {
-        assert(StrShaderTypes.size() == static_cast<int>(Pine::Graphics::ShaderType::ShaderTypeCount));
+        assert(ShaderTypesString.size() == static_cast<int>(Pine::Graphics::ShaderType::ShaderTypeCount));
 
-        const auto shaderTypeStr = StrShaderTypes[static_cast<int>(type)];
+        const auto shaderTypeStr = ShaderTypesString[static_cast<int>(type)];
         const auto hasParentShader = !shader->IsBaseShader();
         const auto parentShader = shader->GetParentShader();
-
-        auto program = shader->GetProgram();
 
         if (!std::filesystem::exists(filePath) && !hasParentShader)
         {
@@ -52,7 +44,7 @@ namespace
         }
 
         if (hasParentShader)
-        {   
+        {
             const auto parentShaderSource = Pine::File::ReadFile(parentShader->GetShaderSourceFile(type).value()).value();
 
             src = Pine::String::Replace(parentShaderSource, "#shader hooks", file);
@@ -83,6 +75,18 @@ namespace
         src = Pine::String::Replace(src, fmt::format("#shader post{}", shaderTypeStr), "");
         src = Pine::String::Replace(src, "#shader hooks", "");
 
+        // Insert any macros for pre-processor if we have to
+        if (!versionMacros.empty())
+        {
+            // Since we need to add the macros after the version, find that first
+            const auto offset = src.find('\n') + 1;
+
+            for (const auto& macro : versionMacros)
+            {
+                src = src.insert(offset, fmt::format("#define {}\n", macro));
+            }
+        }
+
         if (!program->CompileAndLoadShader(src, type))
         {
             Pine::Log::Error(fmt::format("Error occurred in file {}", filePath));
@@ -103,11 +107,6 @@ namespace
         return assetParentDirectory + "/" + filePath;
     }
 
-    bool LoadShaderPackage(nlohmann::json& j)
-    {
-        return false;
-    }
-
 }
 
 Pine::Shader::Shader()
@@ -125,16 +124,23 @@ bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
 
     const auto j = jsonOpt.value();
 
-    if (!LoadShaderPackage(j))
+    // First we'll always try to deal with the default version
+    if (!LoadShaderPackage(j, 0, {}))
     {
         return false;
     }
 
-    if (j.contains("generate_discard"))
+    if (j.contains("versions"))
     {
-        auto discardJson = j;
-
-        discardJson[""];
+        for (const auto& version : j["versions"].items())
+        {
+            // We'll most likely want to deal with combinations of different versions in the future, however
+            // we want some pre-defined combinations as I don't want it to be compiling every unique version possible.
+            if (!LoadShaderPackage(j, version.value().get<std::uint32_t>(), { version.key() }))
+            {
+                return false;
+            }
+        }
     }
 
     m_State = AssetState::Loaded;
@@ -144,22 +150,23 @@ bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
 
 void Pine::Shader::Dispose()
 {
-    if (m_ShaderProgram)
+    for (auto shaderProgram : m_ShaderPrograms)
     {
-        Graphics::GetGraphicsAPI()->DestroyShaderProgram(m_ShaderProgram);
-
-        m_ShaderProgram = nullptr;
+        Graphics::GetGraphicsAPI()->DestroyShaderProgram(shaderProgram);
     }
 
+    m_ShaderPrograms.clear();
     m_ShaderFiles.clear();
+
     m_Ready = false;
 
     m_State = AssetState::Unloaded;
 }
 
-Pine::Graphics::IShaderProgram* Pine::Shader::GetProgram() const
+Pine::Graphics::IShaderProgram* Pine::Shader::GetProgram(ShaderVersion version) const
 {
-    return m_ShaderProgram;
+    // surely the user has called HasShaderVersion(...) beforehand and this won't ever crash
+    return m_ShaderPrograms[m_ShaderVersionsMap.at(static_cast<std::uint32_t>(version))];
 }
 
 bool Pine::Shader::HasBeenUpdated() const
@@ -219,15 +226,15 @@ std::optional<std::string> Pine::Shader::GetShaderSourceFile(Graphics::ShaderTyp
         return std::nullopt;
 
     const auto j = jsonOpt.value();
-    const auto shaderTypeString = Pine::String::ToLower(StrShaderTypes[static_cast<int>(type)]);
+    const auto shaderTypeString = Pine::String::ToLower(ShaderTypesString[static_cast<int>(type)]);
 
     if (!j.contains(shaderTypeString))
         return std::nullopt;
-    
+
     return std::make_optional(GetAbsolutePath(this, j[shaderTypeString]));
 }
 
-bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j)
+bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shaderVersion, const std::vector<std::string>& versionMacros)
 {
     // Get all shader file paths
     std::string vertexPath, fragmentPath, computePath;
@@ -248,7 +255,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j)
     }
 
     // Prepare graphics shader program
-    m_ShaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
+    auto shaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
 
     if (j.contains("parent"))
     {
@@ -265,41 +272,50 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j)
     // Load and compile all specified shaders
     if (!vertexPath.empty())
     {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, vertexPath), j, this, Graphics::ShaderType::Vertex))
+        if (!LoadAndCompileShader(GetAbsolutePath(this, vertexPath), j, shaderProgram, this, Graphics::ShaderType::Vertex, versionMacros))
         {
             return false;
         }
 
-        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, vertexPath)));
+        if (versionMacros.empty())
+        {
+            m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, vertexPath)));
+        }
     }
 
     if (!fragmentPath.empty())
     {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, fragmentPath), j, this, Graphics::ShaderType::Fragment))
+        if (!LoadAndCompileShader(GetAbsolutePath(this, fragmentPath), j, shaderProgram, this, Graphics::ShaderType::Fragment, versionMacros))
         {
             return false;
         }
 
-        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, fragmentPath)));
+        if (versionMacros.empty())
+        {
+            m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, fragmentPath)));
+        }
     }
 
     if (!computePath.empty())
     {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, computePath), j, this, Graphics::ShaderType::Compute))
+        if (!LoadAndCompileShader(GetAbsolutePath(this, computePath), j, shaderProgram, this, Graphics::ShaderType::Compute, versionMacros))
         {
             return false;
         }
 
-        m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, computePath)));
+        if (versionMacros.empty())
+        {
+            m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, computePath)));
+        }
     }
 
     // Finally attempt to link the program
-    if (!m_ShaderProgram->LinkProgram())
+    if (!shaderProgram->LinkProgram())
     {
         return false;
     }
 
-    m_ShaderProgram->Use();
+    shaderProgram->Use();
 
     // Setup texture samplers
     if (j.contains("texture_samplers"))
@@ -323,7 +339,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j)
 
         for (const auto& [name, value] : textureSamplers)
         {
-            auto uniformVariable = m_ShaderProgram->GetUniformVariable(name);
+            auto uniformVariable = shaderProgram->GetUniformVariable(name);
 
             if (uniformVariable == nullptr)
             {
@@ -335,15 +351,18 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j)
         }
     }
 
+    m_ShaderPrograms.push_back(shaderProgram);
+    m_ShaderVersionsMap[shaderVersion] = m_ShaderPrograms.size() - 1;
+
     return true;
 }
 
-bool Pine::Shader::LoadFromJson(const nlohmann::json &j)
+bool Pine::Shader::HasShaderVersion(Pine::ShaderVersion version) const
 {
-    return LoadShaderPackage(j);
-}
+    if (version == ShaderVersion::Default)
+    {
+        return !m_ShaderPrograms.empty();
+    }
 
-Pine::Shader *Pine::Shader::GetDiscardShader() const
-{
-    return m_DiscardShader;
+    return m_ShaderVersionsMap.count(static_cast<std::uint32_t>(version)) != 0;
 }
