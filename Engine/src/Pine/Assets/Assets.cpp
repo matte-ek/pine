@@ -573,7 +573,10 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
     }
 
     if (m_Assets.count(path) == 0)
+    {
+        Log::Warning(fmt::format("Assets::Get(): Failed to find asset by path, {}", inputPath));
         return nullptr;
+    }
 
     return m_Assets[path];
 }

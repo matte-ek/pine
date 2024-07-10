@@ -5,6 +5,11 @@
 
 namespace Pine
 {
+    namespace Math
+    {
+
+    }
+
     using Vector2i = glm::ivec2;
     using Vector3i = glm::ivec3;
     using Vector4i = glm::ivec4;

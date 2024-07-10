@@ -9,6 +9,7 @@
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
+#include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 
 namespace
 {
@@ -280,6 +281,17 @@ void Panels::EntityList::Render()
                 auto entity = Pine::Entity::Create();
 
                 entity->AddComponent<Pine::ModelRenderer>();
+
+                Selection::Add(entity, true);
+
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::MenuItem("Sprite Renderer"))
+            {
+                auto entity = Pine::Entity::Create();
+
+                entity->AddComponent<Pine::SpriteRenderer>();
 
                 Selection::Add(entity, true);
 

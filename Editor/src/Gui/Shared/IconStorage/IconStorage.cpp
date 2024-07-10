@@ -174,7 +174,7 @@ void IconStorage::Update()
     std::vector<std::string> removeList;
 
     // Find and remove unloaded assets from the icon cache
-    for (const auto &[iconAssetPath, icon]: m_IconCache)
+    for (auto &[iconAssetPath, icon]: m_IconCache)
     {
         auto asset = Pine::Assets::Get(iconAssetPath);
 
@@ -185,7 +185,8 @@ void IconStorage::Update()
 
         if (icon.Type == IconType::Dynamic)
         {
-            icon.FrameBuffer->Dispose();
+            Pine::Graphics::GetGraphicsAPI()->DestroyFrameBuffer(icon.FrameBuffer);
+            icon.FrameBuffer = nullptr;
         }
 
         removeList.push_back(iconAssetPath);
@@ -257,4 +258,20 @@ void IconStorage::MarkIconDirty(const std::string &path)
     }
 
     m_IconCache[path].m_Dirty = true;
+}
+
+void IconStorage::Dispose()
+{
+    for (auto &[iconAssetPath, icon]: m_IconCache)
+    {
+        if (icon.Type == IconType::Dynamic && icon.FrameBuffer != nullptr)
+        {
+            Pine::Graphics::GetGraphicsAPI()->DestroyFrameBuffer(icon.FrameBuffer);
+            icon.FrameBuffer = nullptr;
+        }
+    }
+
+    Pine::Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_PreviewFrameBuffer);
+
+    m_PreviewFrameBuffer = nullptr;
 }

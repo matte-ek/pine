@@ -28,6 +28,12 @@ namespace Pine
         int g = 0;
         int b = 0;
         int a = 0;
+
+        static const Color White;
+        static const Color Black;
+        static const Color Red;
+        static const Color Green;
+        static const Color Blue;
     };
 
 }

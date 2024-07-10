@@ -5,6 +5,7 @@ namespace IconStorage
 {
 
     void Setup();
+    void Dispose();
 	void Update();
 
     void MarkIconDirty(const std::string& path);

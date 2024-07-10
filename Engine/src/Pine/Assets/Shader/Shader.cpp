@@ -62,8 +62,6 @@ namespace
                         src = Pine::String::Replace(src, fmt::format("#shader post{}", shaderTypeStr), fmt::format("{}();", hook.value().get<std::string>()));
                 }
             }
-
-            Pine::Log::Info(src);
         }
         else
         {

@@ -151,6 +151,7 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
 
 Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVariable(const std::string &name)
 {
+    // Make sure you bind the shader before attempting to grab a uniform variable!
     assert(m_ActiveShader == m_Id);
 
     if (m_UniformVariables.count(name) == 0)
@@ -191,4 +192,9 @@ bool Pine::Graphics::GLShaderProgram::AttachUniformBuffer(IUniformBuffer*buffer,
     glUniformBlockBinding(m_Id, bufferIndex, buffer->GetBindIndex());
 
     return true;
+}
+
+void Pine::Graphics::GLShaderProgram::ResetChangeTracking()
+{
+    m_ActiveShader = std::numeric_limits<std::uint32_t>::max();
 }

@@ -21,6 +21,8 @@
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
+#include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
+
 namespace
 {
     void OnWindowFocus()
@@ -196,6 +198,7 @@ void Gui::Setup()
     Pine::WindowManager::AddWindowFocusCallback(OnWindowFocus);
 
     Commands::Setup();
+    Gizmo::Gizmo2D::Setup();
     Gizmo::Gizmo3D::Setup();
     EntitySelection::Setup();
     IconStorage::Setup();
@@ -206,6 +209,8 @@ void Gui::Setup()
 void Gui::Shutdown()
 {
     Commands::Dispose();
+    EntitySelection::Dispose();
+    IconStorage::Dispose();
 
     ShutdownImGui();
 }

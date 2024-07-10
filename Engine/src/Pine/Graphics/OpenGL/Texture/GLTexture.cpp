@@ -7,8 +7,8 @@
 namespace
 {
 
-    std::uint32_t m_ActiveTexture = 10000;
-    std::uint32_t m_BoundTextures[64] = {10000};
+    std::uint32_t m_ActiveTexture = std::numeric_limits<std::uint32_t>::max();
+    std::uint32_t m_BoundTextures[64] = {std::numeric_limits<std::uint32_t>::max() };
 
     struct GLTextureFormat
     {
@@ -379,4 +379,14 @@ void Pine::Graphics::GLTexture::UpdateSwizzleMask()
     glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_G, TranslateSwizzleMaskChannel(m_SwizzleMask[1]));
     glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_B, TranslateSwizzleMaskChannel(m_SwizzleMask[2]));
     glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_A, TranslateSwizzleMaskChannel(m_SwizzleMask[3]));
+}
+
+void Pine::Graphics::GLTexture::ResetChangeTracking()
+{
+    for (unsigned int & boundTexture : m_BoundTextures)
+    {
+        boundTexture = std::numeric_limits<std::uint32_t>::max();
+    }
+
+    m_ActiveTexture = std::numeric_limits<std::uint32_t>::max();
 }

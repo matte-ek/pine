@@ -57,6 +57,6 @@ namespace Pine::Engine
 
     // Returns the engine configuration used during Setup(), values such as
     // window parameters are not updated.
-    const EngineConfiguration& GetEngineConfiguration();
+    EngineConfiguration& GetEngineConfiguration();
 
 }

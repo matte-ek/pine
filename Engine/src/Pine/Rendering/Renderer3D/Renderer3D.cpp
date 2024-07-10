@@ -90,11 +90,23 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     // ehh
     m_Material = m_RenderingConfiguration.OverrideMaterial ? m_RenderingConfiguration.OverrideMaterial : overrideMaterial ? overrideMaterial : mesh->GetMaterial();
 
+    if (!m_Material)
+    {
+        return;
+    }
+
+    ShaderVersion version = ShaderVersion::Default;
+
+    if (m_Material->GetRenderingMode() == MaterialRenderingMode::Discard)
+    {
+        version = ShaderVersion::Discard;
+    }
+
     auto shader = m_RenderingConfiguration.OverrideShader ? m_RenderingConfiguration.OverrideShader : m_Material->GetShader();
     if (shader->GetProgram() != m_Shader ||
         !shader->IsReady())
     {
-        SetShader(shader);
+        SetShader(shader, version);
     }
 
     if (!m_Shader)
@@ -102,7 +114,7 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         return;
     }
 
-    /* Apply Textures */
+    // Apply Textures
 
     // Diffuse
     if (m_Material->GetDiffuse())
@@ -192,7 +204,7 @@ void Pine::Renderer3D::RenderMeshInstanced()
     m_CurrentInstanceIndex = 0;
 }
 
-void Pine::Renderer3D::SetShader(Shader*shader)
+void Pine::Renderer3D::SetShader(Shader* shader, ShaderVersion preferredVersion)
 {
     if (!shader->IsReady())
     {
@@ -219,10 +231,18 @@ void Pine::Renderer3D::SetShader(Shader*shader)
         shader->SetReady(true);
     }
 
-    m_Shader = shader->GetProgram();
+    ShaderVersion version = preferredVersion;
+
+    if (!shader->HasShaderVersion(preferredVersion))
+    {
+        Log::Warning("Requested shader version not found, rendering may be affected.");
+        version = ShaderVersion::Default;
+    }
+
+    m_Shader = shader->GetProgram(version);
     m_Shader->Use();
 
-    m_HasTangentData = shader->GetProgram()->GetUniformVariable("hasTangentData");
+    m_HasTangentData = m_Shader->GetUniformVariable("hasTangentData");
 }
 
 void Pine::Renderer3D::SetCamera(Camera*camera)

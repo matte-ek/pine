@@ -11,7 +11,7 @@
 namespace
 {
 
-    Pine::Shader* m_ObjectSolidShader = nullptr;
+    Pine::Shader* m_ObjectSolidShader3D = nullptr;
 
     void RenderIcon()
     {
@@ -47,10 +47,10 @@ namespace
         // Set stencil configuration, so we only render outside the stencil buffer
         Pine::Graphics::GetGraphicsAPI()->SetStencilFunction(Pine::Graphics::TestFunction::NotEqual, 0xFF, 0xFF);
 
-        Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader;
+        Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader3D;
 
-        m_ObjectSolidShader->GetProgram()->Use();
-        m_ObjectSolidShader->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(1.f, 0.5f, 0.f));
+        m_ObjectSolidShader3D->GetProgram()->Use();
+        m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(1.f, 0.5f, 0.f));
 
         for (auto& entity : selectedEntities)
         {
@@ -111,7 +111,7 @@ namespace
 
 void Gizmo::Gizmo3D::Setup()
 {
-    m_ObjectSolidShader = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid.shader");
+    m_ObjectSolidShader3D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid.shader");
 
     Pine::RenderManager::AddRenderCallback(OnRender);
 }

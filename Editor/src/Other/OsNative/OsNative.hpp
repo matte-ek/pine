@@ -1,8 +1,8 @@
-//
-// Created by matte on 2024-07-03.
-//
+#pragma once
 
-#ifndef PINE_OSNATIVE_HPP
-#define PINE_OSNATIVE_HPP
+#include <filesystem>
 
-#endif //PINE_OSNATIVE_HPP
+namespace Editor::OsNative
+{
+    void OpenFileExplorer(const std::filesystem::path& path);
+}

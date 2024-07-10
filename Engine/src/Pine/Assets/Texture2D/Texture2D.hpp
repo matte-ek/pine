@@ -12,7 +12,7 @@ namespace Pine
         int m_Width = 0;
         int m_Height = 0;
 
-        bool m_GenerateMipmaps = true;
+        bool m_GenerateMipmaps = false;
 
         Graphics::TextureFormat m_Format = Graphics::TextureFormat::SingleChannel;
 

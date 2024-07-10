@@ -1,5 +1,4 @@
 #include "AudioFile.hpp"
-#include "Pine/Audio/FlacFile/FlacFile.hpp"
 
 namespace Pine
 {
@@ -60,7 +59,7 @@ namespace Pine
 
     bool AudioFile::Transcode()
     {
-
+        return false;
     }
 
     void AudioFile::Play()

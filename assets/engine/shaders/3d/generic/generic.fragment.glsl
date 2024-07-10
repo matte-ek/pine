@@ -80,7 +80,7 @@ vec3 calculateBaseLightning(vec3 lightDirection, int lightIndex)
     vec3 halfwayDirection = normalize(lightDirection + vIn.cameraDir);
     float specularFactor = pow(max(dot(normal, halfwayDirection), 0.0), material.shininess);
 
-    vec3 ambient = material.ambientColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
+    vec3 ambient = (material.ambientColor + vec3(0.1f)) * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
     vec3 diffuse = lights[lightIndex].color * diffuseColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz * diffuseFactor;
     vec3 specular = lights[lightIndex].color * material.specularColor * texture(textureSamplers.specular, vIn.uv * material.uvScale).xyz * specularFactor;
 
@@ -95,6 +95,13 @@ vec3 calculateDirectionalLight()
 void main(void)
 {
     #shader preFragment
+
+#ifdef discard
+    if (texture(textureSamplers.diffuse, vIn.uv * material.uvScale).w < 0.01f)
+    {
+        discard;
+    }
+#endif
 
     vec4 directionalLight = vec4(calculateDirectionalLight(), 1.0);
 

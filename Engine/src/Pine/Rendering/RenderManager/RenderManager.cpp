@@ -81,10 +81,14 @@ void Pine::RenderManager::Run()
     for (auto renderingContext : m_RenderingContexts)
     {
         if (Pine::World::GetActiveLevel())
+        {
             renderingContext->Skybox = Pine::World::GetActiveLevel()->GetLevelSettings().Skybox.Get();
+        }
 
         if (!renderingContext->Active)
+        {
             continue;
+        }
 
         m_CurrentRenderingContext = renderingContext;
 
@@ -92,9 +96,13 @@ void Pine::RenderManager::Run()
         renderingContext->DrawCalls = 0;
 
         if (renderingContext->FrameBuffer)
+        {
             renderingContext->FrameBuffer->Bind();
+        }
         else
+        {
             Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr); // This will just render everything onto the screen.
+        }
 
         if (engineConfig.m_ProductionMode)
         {

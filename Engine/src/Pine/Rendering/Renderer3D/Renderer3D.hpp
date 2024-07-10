@@ -50,5 +50,5 @@ namespace Pine::Renderer3D
     void SetCamera(Camera* camera);
     Camera* GetCamera();
 
-    void SetShader(Shader* shader);
+    void SetShader(Shader* shader, ShaderVersion preferredVersion = ShaderVersion::Default);
 }

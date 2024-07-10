@@ -17,6 +17,7 @@
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Script/ScriptManager.hpp"
+#include "Other/OsNative/OsNative.hpp"
 
 namespace
 {
@@ -523,6 +524,11 @@ namespace
                 }
 
                 ImGui::EndMenu();
+            }
+
+            if (ImGui::MenuItem("Open in File Browser"))
+            {
+                Editor::OsNative::OpenFileExplorer(std::filesystem::absolute(m_CurrentDirectory->Path));
             }
 
             ImGui::Separator();

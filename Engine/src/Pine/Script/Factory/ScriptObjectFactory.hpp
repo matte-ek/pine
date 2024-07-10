@@ -22,12 +22,12 @@ namespace Pine::Script::ObjectFactory
 {
     void Setup();
 
-    ObjectHandle CreateScriptObject(Pine::CSharpScript* script, Pine::IComponent* component);
+    ObjectHandle CreateScriptObject(const Pine::CSharpScript* script, const Pine::IComponent* component);
     ObjectHandle CreateEntity(std::uint32_t entityId, std::uint32_t internalId);
-    ObjectHandle CreateComponent(Pine::IComponent* component);
-    ObjectHandle CreateAsset(Pine::IAsset* asset);
+    ObjectHandle CreateComponent(const Pine::IComponent* engineComponent);
+    ObjectHandle CreateAsset(const Pine::IAsset* asset);
 
     void DisposeEntity(ObjectHandle* handle);
-    void DisposeComponent(IComponent* component, ObjectHandle* handle);
+    void DisposeComponent(const IComponent* component, ObjectHandle* handle);
     void DisposeObject(ObjectHandle* handle);
 }

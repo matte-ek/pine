@@ -25,6 +25,8 @@ namespace
 
     Rendering::CoordinateSystem m_CoordinateSystem = Rendering::CoordinateSystem::Screen;
 
+    Pine::Shader* m_OverrideShader = nullptr;
+
     // Matrices store globally for each PrepareFrame() call
     Matrix4f m_ProjectionMatrix;
 	Matrix4f m_ViewMatrix;
@@ -140,13 +142,16 @@ namespace
 
             void Render(RenderingContext* context, const std::vector<Rectangle>& rects) const
             {
-                m_Shader->GetProgram()->Use();
+                const Pine::Shader* shader = m_OverrideShader == nullptr ? m_Shader : m_OverrideShader;
+
+                shader->GetProgram()->Use();
+
                 m_VertexArray->Bind();
 
                 m_DefaultTexture->Bind();
 
-                m_Shader->GetProgram()->GetUniformVariable("m_ViewMatrix")->LoadMatrix4(m_ViewMatrix);
-                m_Shader->GetProgram()->GetUniformVariable("m_ProjectionMatrix")->LoadMatrix4(m_ProjectionMatrix);
+                shader->GetProgram()->GetUniformVariable("m_ViewMatrix")->LoadMatrix4(m_ViewMatrix);
+                shader->GetProgram()->GetUniformVariable("m_ProjectionMatrix")->LoadMatrix4(m_ProjectionMatrix);
 
                 // Prepare the new instance data for the next batch of rectangles
                 std::vector<Vector4f> rectPositionSizeData;
@@ -460,4 +465,14 @@ void Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem coordinateSyste
 Rendering::CoordinateSystem Renderer2D::GetCoordinateSystem()
 {
     return m_CoordinateSystem;
+}
+
+void Pine::Renderer2D::SetOverrideShader(Pine::Shader* shader)
+{
+    m_OverrideShader = shader;
+}
+
+Pine::Shader* Pine::Renderer2D::GetOverrideShader()
+{
+    return m_OverrideShader;
 }

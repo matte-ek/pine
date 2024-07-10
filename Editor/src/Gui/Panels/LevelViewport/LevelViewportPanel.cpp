@@ -11,6 +11,8 @@
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
 #include "Other/PlayHandler/PlayHandler.hpp"
+#include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
+#include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -52,7 +54,7 @@ namespace
 
     float m_SnapRange = 1.f;
 
-    void RenderGizmo(ImVec2 viewportPosition)
+    void RenderTranslationGizmo(ImVec2 viewportPosition)
     {
         static auto camera = EditorEntity::Get()->GetComponent<Pine::Camera>();
 
@@ -88,6 +90,8 @@ namespace
             case GizmoMode::Scale:
                 operation = ImGuizmo::OPERATION::SCALE;
                 break;
+            default:
+                return;
         }
 
         const auto shouldSnap = m_SnapMode == SnapMode::Always || (m_SnapMode == SnapMode::OnKey && ImGui::GetIO().KeyCtrl);
@@ -126,6 +130,7 @@ namespace
                 if (m_GizmoMode == GizmoMode::Scale)
                     transform->LocalScale = scale;
             }
+
             transform->OnRender(0.f);
         }
 
@@ -244,6 +249,23 @@ void Panels::LevelViewport::Render()
             ImGui::EndMenu();
         }
 
+        ImGui::Separator();
+
+        if (ImGui::BeginMenu("Perspective"))
+        {
+            if (ImGui::MenuItem("2D", nullptr, EditorEntity::GetPerspective2D()))
+            {
+                EditorEntity::SetPerspective2D(true);
+            }
+
+            if (ImGui::MenuItem("3D", nullptr, !EditorEntity::GetPerspective2D()))
+            {
+                EditorEntity::SetPerspective2D(false);
+            }
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndPopup();
     }
 
@@ -256,7 +278,8 @@ void Panels::LevelViewport::Render()
 
     ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
 
-    bool viewportClicked = ImGui::IsItemClicked();
+    const bool viewportClicked = ImGui::IsItemClicked();
+    const bool viewportHovered = ImGui::IsItemHovered();
 
     if (!m_CaptureMouse)
     {
@@ -307,7 +330,34 @@ void Panels::LevelViewport::Render()
 
     EditorEntity::SetCaptureMouse(m_CaptureMouse);
 
-    RenderGizmo(position);
+    RenderTranslationGizmo(position);
+
+    if (EditorEntity::GetPerspective2D())
+    {
+        // Handle view port zooming
+        if (viewportHovered)
+        {
+            const auto camera= RenderHandler::GetLevelRenderingContext()->SceneCamera;
+            const float zoomFactor = camera->GetOrthographicSize();
+            const float wheelDelta = ImGui::GetIO().MouseWheel * 0.1f * zoomFactor;
+
+            if (wheelDelta != 0.f)
+            {
+                float newSize = camera->GetOrthographicSize() - wheelDelta;
+
+                if (0.f > newSize)
+                    newSize = 0.f;
+
+                camera->SetOrthographicSize(newSize);
+            }
+        }
+
+        Gizmo::Gizmo2D::Render(Pine::Vector2f(position.x, position.y), m_Size);
+    }
+    else
+    {
+        //Gizmo::Gizmo3D::Render();
+    }
 
     if (viewportClicked && !ImGuizmo::IsUsing())
     {

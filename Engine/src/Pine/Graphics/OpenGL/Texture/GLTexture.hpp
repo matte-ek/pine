@@ -52,6 +52,8 @@ namespace Pine::Graphics
         void CopyTextureData(ITexture* texture, TextureUploadTarget textureUploadTarget, Vector4i srcRect = Vector4i(-1), Vector2i dstPos = Vector2i(0)) override;
 
         void GenerateMipmaps() override;
+
+        static void ResetChangeTracking();
     };
 
 }

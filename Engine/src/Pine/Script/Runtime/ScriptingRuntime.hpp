@@ -17,7 +17,7 @@ namespace Pine::Script
 namespace Pine::Script::Runtime
 {
     RuntimeAssembly* LoadAssembly(const std::filesystem::path& path);
-    bool UnloadAssembly(RuntimeAssembly* assembly);
+    bool UnloadAssembly(const RuntimeAssembly* assembly);
 
     MonoDomain* GetDomain();
     MonoAssembly* GetPineAssembly();

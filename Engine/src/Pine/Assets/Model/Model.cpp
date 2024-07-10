@@ -144,10 +144,12 @@ bool Model::LoadModel()
     Assimp::Importer importer;
 
     const auto scene = importer.ReadFile(
-            m_FilePath.string().c_str(), aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_GenNormals |
-                                 aiProcess_TransformUVCoords | aiProcess_FlipUVs | aiProcess_GenBoundingBoxes |
+            m_FilePath.string().c_str(),
+                          aiProcess_Triangulate | aiProcess_GenUVCoords |
+                                 aiProcess_GenNormals | aiProcess_GenBoundingBoxes |
                                  aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
-                                 aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph);
+                                 aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph |
+                                 aiProcess_GlobalScale);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {

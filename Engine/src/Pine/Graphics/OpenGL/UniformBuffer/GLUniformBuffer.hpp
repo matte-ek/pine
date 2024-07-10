@@ -21,6 +21,7 @@ namespace Pine::Graphics
         void Create(std::size_t size, int bindingIndex) override;
         void UploadData(void* data, std::size_t size, std::size_t offset) override;
 
+        static void ResetChangeTracking();
     };
 
 }

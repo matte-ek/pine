@@ -55,6 +55,8 @@ namespace Pine
         void SetClearColor(Vector4f color);
         const Vector4f& GetClearColor() const;
 
+        Vector3f WorldToScreenPoint(const Vector3f& position) const;
+
         void OnRender(float) override;
 
         void LoadData(const nlohmann::json& j) override;

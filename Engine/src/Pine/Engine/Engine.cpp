@@ -68,6 +68,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     Graphics::GetGraphicsAPI()->EnableErrorLogging();
 
+    /*
     if (!Audio::Setup())
     {
         Log::Fatal("Failed to setup audio API");
@@ -78,6 +79,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
         return false;
     }
+    */
 
     // We have to set up our script runtime first, since all other parts of the engine needs to
     // be able to register objects to the runtime.
@@ -188,7 +190,7 @@ bool Pine::Engine::IsInitialized()
     return m_IsInitialized;
 }
 
-const Pine::Engine::EngineConfiguration &Pine::Engine::GetEngineConfiguration()
+Pine::Engine::EngineConfiguration &Pine::Engine::GetEngineConfiguration()
 {
     return m_EngineConfiguration;
 }

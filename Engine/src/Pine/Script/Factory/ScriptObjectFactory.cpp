@@ -66,6 +66,11 @@ void Pine::Script::ObjectFactory::Setup()
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, std::uint32_t internalId)
 {
+    if (!m_PineImage)
+    {
+        return {nullptr, 0};
+    }
+
     auto entity = mono_object_new(m_RootDomain, m_EntityClass);
 
     mono_runtime_object_init(entity);
@@ -78,8 +83,13 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32
     return {entity, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(Pine::IComponent *engineComponent)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Pine::IComponent *engineComponent)
 {
+    if (!m_PineImage || engineComponent->GetParent()->GetScriptHandle()->Handle == 0)
+    {
+        return {nullptr, 0};
+    }
+
     const auto componentType = engineComponent->GetType();
     ComponentTypeData* componentTypeData;
 
@@ -118,17 +128,17 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(Pine::IC
 
     auto internalId = engineComponent->GetInternalId();
     auto type = static_cast<int>(engineComponent->GetType());
-
+    
     mono_field_set_value(component, componentTypeData->m_ComponentInternalIdField, &internalId);
     mono_field_set_value(component, componentTypeData->m_ComponentTypeField, &type);
-    mono_field_set_value(component, componentTypeData->m_ComponentParentField, (void *) mono_gchandle_get_target(engineComponent->GetParent()->GetScriptHandle()->Handle));
+    mono_field_set_value(component, componentTypeData->m_ComponentParentField, mono_gchandle_get_target(engineComponent->GetParent()->GetScriptHandle()->Handle));
 
     auto handle = mono_gchandle_new(component, true);
 
     return {component, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine::CSharpScript *script, Pine::IComponent *component)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const Pine::CSharpScript *script, const Pine::IComponent *component)
 {
     auto data = script->GetScriptData();
     if (!data || !data->IsReady)
@@ -143,7 +153,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine:
     auto type = static_cast<int>(component->GetType());
 
     mono_runtime_object_init(object);
-    mono_field_set_value(object, data->ComponentParentField, (void *) mono_gchandle_get_target(component->GetParent()->GetScriptHandle()->Handle));
+    mono_field_set_value(object, data->ComponentParentField, mono_gchandle_get_target(component->GetParent()->GetScriptHandle()->Handle));
     mono_field_set_value(object, data->ComponentInternalIdField, &internalId);
     mono_field_set_value(object, data->ComponentTypeField, &type);
 
@@ -152,7 +162,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(Pine:
     return {object, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(Pine::IAsset *asset)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::IAsset *asset)
 {
     if (!m_PineImage)
     {
@@ -203,11 +213,11 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(Pine::IAsset
     return {object, handle};
 }
 
-void Pine::Script::ObjectFactory::DisposeObject(Pine::Script::ObjectHandle *object)
+void Pine::Script::ObjectFactory::DisposeObject(Pine::Script::ObjectHandle *handle)
 {
-    object->Object = nullptr;
+    handle->Object = nullptr;
 
-    mono_gchandle_free(object->Handle);
+    mono_gchandle_free(handle->Handle);
 }
 
 void Pine::Script::ObjectFactory::DisposeEntity(Pine::Script::ObjectHandle *handle)
@@ -219,7 +229,7 @@ void Pine::Script::ObjectFactory::DisposeEntity(Pine::Script::ObjectHandle *hand
     DisposeObject(handle);
 }
 
-void Pine::Script::ObjectFactory::DisposeComponent(IComponent* component, Pine::Script::ObjectHandle *handle)
+void Pine::Script::ObjectFactory::DisposeComponent(const IComponent* component, Pine::Script::ObjectHandle *handle)
 {
     const auto& componentData = m_ComponentObjectFactory[component->GetType()];
 

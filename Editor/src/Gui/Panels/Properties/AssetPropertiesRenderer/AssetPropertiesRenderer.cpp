@@ -167,7 +167,7 @@ namespace
                         material->SetFilePath(fmt::format("{}/{}_Material{}.mat", modelDirectory, std::filesystem::path(model->GetFileName()).stem().string(), i));
                         material->SaveToFile();
 
-                        auto loadedMat = dynamic_cast<Pine::Material*>(Pine::Assets::LoadFromFile(material->GetFilePath(), model->GetFileRootPath()));
+                        auto loadedMat = dynamic_cast<Pine::Material*>(Pine::Assets::LoadFromFile(material->GetFilePath(), model->GetFileRootPath().string()));
 
                         mesh->SetMaterial(loadedMat);
 

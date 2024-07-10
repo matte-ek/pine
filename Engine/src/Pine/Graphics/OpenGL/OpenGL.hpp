@@ -20,6 +20,8 @@ namespace Pine::Graphics
         void EnableErrorLogging() override;
         void DisableErrorLogging() override;
 
+        void ResetInternalChangeTracking() override;
+
         const char* GetName() const override;
         const char* GetVersionString() const override;
         const char* GetGraphicsAdapter() const override;
@@ -29,10 +31,13 @@ namespace Pine::Graphics
 
         void SetViewport(Vector2i position, Vector2i size) override;
 
+        void SetBlendingEnabled(bool value) override;
         void SetDepthTestEnabled(bool value) override;
         void SetStencilTestEnabled(bool value) override;
         void SetFaceCullingEnabled(bool value) override;
-        void SetMultisampleEnabled(bool value) override;
+        void SetMultiSampleEnabled(bool value) override;
+
+        void SetBlendingFunction(BlendingFunction source, BlendingFunction destination) override;
 
         void SetDepthFunction(TestFunction value) override;
 

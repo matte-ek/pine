@@ -8,6 +8,9 @@
 #include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
 #include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Engine/Engine.hpp"
 
 namespace
 {
@@ -24,6 +27,8 @@ namespace
 
         if (stage == Pine::RenderStage::PreRender)
         {
+            Pine::Graphics::GetGraphicsAPI()->ResetInternalChangeTracking();
+
             m_GameRenderingContext->Active = Panels::GameViewport::GetActive() && Panels::GameViewport::GetVisible();
             m_GameRenderingContext->Size = Pine::Vector2f(1920, 1080);
 
@@ -31,6 +36,8 @@ namespace
             m_LevelRenderingContext->Size = Pine::Vector2f(1920, 1080);
 
             m_LevelRenderingContext->Skybox = m_GameRenderingContext->Skybox;
+
+            //Pine::Engine::GetEngineConfiguration().m_WaitEvents = !Panels::GameViewport::GetVisible();
 
             EditorEntity::Get()->GetComponents()[1]->OnRender(deltaTime);
         }
