@@ -119,6 +119,16 @@ namespace Pine
             return nullptr;
         }
 
+        template<typename T>
+        bool HasComponent()
+        {
+            return GetComponent<T>() != nullptr;
+        }
+
+        IComponent* GetComponent(ComponentType type) const;
+
+        bool HasComponent(ComponentType type) const;
+
         // Returns the transform component for the entity, will
         // never be nullptr.
         Transform* GetTransform() const;

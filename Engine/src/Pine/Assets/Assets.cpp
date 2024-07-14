@@ -60,14 +60,14 @@ namespace
     std::vector m_AssetFactories = {
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
         AssetFactory( { { "cmap" }, AssetType::Texture3D, [](){ return new Texture3D(); } } ),
-        AssetFactory( { { "obj", "fbx" }, AssetType::Model, [](){ return new Model(); } } ),
+        AssetFactory( { { "obj", "fbx", "glb" }, AssetType::Model, [](){ return new Model(); } } ),
         AssetFactory( { { "mat" }, AssetType::Material, [](){ return new Material(); } } ),
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
         AssetFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
         AssetFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
-        AssetFactory( { { "tileset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
-        AssetFactory( { { "tilemap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
+        AssetFactory( { { "tset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
+        AssetFactory( { { "tmap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
         AssetFactory( { { "wav", "wave", "flac", "ogg", "oga", "spx" }, AssetType::Audio, [](){ return new AudioFile(); } } ),
         AssetFactory( {{ "cs" }, AssetType::CSharpScript, [](){ return new CSharpScript(); } } )
     };
@@ -272,11 +272,11 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
     return asset;
 }
 
-int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativePath)
+int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAsRelativePath)
 {
-    if (!exists(path))
+    if (!exists(directoryPath))
     {
-        Log::Warning(fmt::format("Loaded no assets from '{}', directory does not exist.", path.string()));
+        Log::Warning(fmt::format("Loaded no assets from '{}', directory does not exist.", directoryPath.string()));
         return -1;
     }
 
@@ -285,14 +285,14 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
     // First gather a list of everything we need to load
     std::vector<IAsset*> loadPool;
 
-    for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(path))
+    for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(directoryPath))
     {
         if (dirEntry.is_directory())
             continue;
 
         IAsset* asset;
 
-        if (auto existingAsset = FindExistingAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", ""))
+        if (auto existingAsset = FindExistingAssetFromFile(dirEntry.path(), useAsRelativePath ? directoryPath.string() : "", ""))
         {
             if (existingAsset->GetType() == AssetType::Invalid)
             {
@@ -310,7 +310,7 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
         }
         else
         {
-            asset = PrepareAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", "");
+            asset = PrepareAssetFromFile(dirEntry.path(), useAsRelativePath ? directoryPath.string() : "", "");
         }
 
         if (asset == nullptr)
@@ -459,12 +459,12 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
         bool missingDependency = false;
         for (const auto& dependency : dependencies)
         {
-            if (Get(dependency) != nullptr)
+            if (Get(dependency, false, false) != nullptr)
             {
                 continue;
             }
 
-            if (!LoadFromFile(dependency, useAsRelativePath ? path.string() : "", ""))
+            if (!LoadFromFile(dependency, useAsRelativePath ? directoryPath.string() : "", ""))
             {
                 missingDependency = true;
                 break;
@@ -526,7 +526,7 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
     // we may attempt to resolve them to pointers now.
     for (auto& assetResolveReference : m_AssetResolveReferences)
     {
-        const auto refMapPath = GetAssetMapPath(assetResolveReference.m_Path, useAsRelativePath ? path.string() : "", "");
+        const auto refMapPath = GetAssetMapPath(assetResolveReference.m_Path, useAsRelativePath ? directoryPath.string() : "", "");
 
         auto asset = Get(refMapPath);
 
@@ -549,9 +549,9 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
         return -1;
 
     if (assetsLoadErrors > 0)
-        Log::Warning(fmt::format("Failed to load {} asset(s) from '{}'.", assetsLoadErrors, path.string()));
+        Log::Warning(fmt::format("Failed to load {} asset(s) from '{}'.", assetsLoadErrors, directoryPath.string()));
 
-    Log::Verbose("Loaded " + std::to_string(assetsLoaded) + " asset(s) from " + path.string());
+    Log::Verbose("Loaded " + std::to_string(assetsLoaded) + " asset(s) from " + directoryPath.string());
 
     return assetsLoadErrors;
 }
@@ -561,7 +561,7 @@ void Assets::AddAssetResolveReference(const AssetResolveReference& resolveRefere
     m_AssetResolveReferences.push_back(resolveReference);
 }
 
-IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
+IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath, bool logWarning)
 {
     const auto path = String::Replace(inputPath, "\\", "/");
 
@@ -574,7 +574,11 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
 
     if (m_Assets.count(path) == 0)
     {
-        Log::Warning(fmt::format("Assets::Get(): Failed to find asset by path, {}", inputPath));
+        if (logWarning)
+        {
+            Log::Warning(fmt::format("Assets::Get(): Failed to find asset by path, {}", inputPath));
+        }
+
         return nullptr;
     }
 
@@ -636,6 +640,8 @@ void Assets::SaveAll()
             continue;
         if (!asset->IsModified())
             continue;
+
+        Log::Verbose(fmt::format("Saving asset {}...", asset->GetPath()));
 
         asset->SaveToFile();
         asset->SaveMetadata();

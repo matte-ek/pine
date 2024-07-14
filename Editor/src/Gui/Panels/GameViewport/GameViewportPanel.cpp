@@ -45,11 +45,13 @@ void Panels::GameViewport::Render()
     m_Visible = true;
 
     const auto avSize = ImGui::GetContentRegionAvail();
+    const auto renderScale = RenderHandler::GetGameRenderingContext()->Size / static_cast<Pine::Vector2f>(RenderHandler::GetGameFrameBuffer()->GetSize());
+
     const std::uint64_t id = *static_cast<std::uint32_t*>(RenderHandler::GetGameFrameBuffer()->GetColorBuffer()->GetGraphicsIdentifier());
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
-    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
+    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, renderScale.y), ImVec2(renderScale.x, 0.f));
 
     ImGui::End();
 }

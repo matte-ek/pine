@@ -1,7 +1,6 @@
 #pragma once
 #include "Pine/Assets/IAsset/IAsset.hpp"
 #include "Pine/World/Entity/Entity.hpp"
-#include <type_traits>
 #include <vector>
 
 // You may select multiple items at once, however only one type at once.
@@ -22,16 +21,16 @@ namespace Selection
     template <typename T>
     void Add(T* item, bool limitOne = false)
     {
-        static_assert(std::is_same<T, Pine::Entity>::value || std::is_same<T, Pine::IAsset>::value);
+        static_assert(std::is_same_v<T, Pine::Entity> || std::is_same_v<T, Pine::IAsset>);
 
         if (limitOne)
             Clear();
 
-        if (std::is_same<T, Pine::Entity>::value)
+        if (std::is_same_v<T, Pine::Entity>)
         {
             AddEntity(reinterpret_cast<Pine::Entity*>(item));
         }
-        else if (std::is_same<T, Pine::IAsset>::value)
+        else if (std::is_same_v<T, Pine::IAsset>)
         {
             AddAsset(reinterpret_cast<Pine::IAsset*>(item));
         }
@@ -40,9 +39,9 @@ namespace Selection
     template <typename T>
     bool IsSelected(T* item)
     {
-        static_assert(std::is_same<T, Pine::Entity>::value || std::is_same<T, Pine::IAsset>::value);
+        static_assert(std::is_same_v<T, Pine::Entity> || std::is_same_v<T, Pine::IAsset>);
 
-        if (std::is_same<T, Pine::Entity>::value)
+        if (std::is_same_v<T, Pine::Entity>)
         {
             for (auto entity : GetSelectedEntities())
             {
@@ -54,7 +53,7 @@ namespace Selection
 
             return false;
         }
-        else if (std::is_same<T, Pine::IAsset>::value)
+        else if (std::is_same_v<T, Pine::IAsset>)
         {
             for (auto asset : GetSelectedAssets())
             {
@@ -66,5 +65,7 @@ namespace Selection
 
             return false;
         }
+
+        return false;
     }
 }

@@ -20,6 +20,8 @@
 #include <GLFW/glfw3.h>
 #include <stdexcept>
 
+#include "Pine/Physics/Physics2D/Physics2D.hpp"
+
 namespace
 {
     bool m_IsInitialized = false;
@@ -109,6 +111,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     RenderManager::Setup();
     Renderer3D::Setup();
     Physics3D::Setup();
+    Physics2D::Setup();
     Input::Setup();
     World::Setup();
     Utilities::HotReload::Setup();
@@ -173,6 +176,8 @@ void Pine::Engine::Shutdown()
     Script::Runtime::Dispose();
     Utilities::HotReload::Shutdown();
     Input::Shutdown();
+    Physics2D::Shutdown();
+    Physics3D::Shutdown();
     Renderer3D::Shutdown();
     Entities::Shutdown();
     Components::Shutdown();

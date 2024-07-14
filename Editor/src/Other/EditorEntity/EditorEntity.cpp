@@ -59,7 +59,7 @@ namespace
 
             if (m_CaptureMouse)
             {
-                const float sensitivity = 0.0025f;
+                const float sensitivity = 0.025f;
                 const float zoomFactor = m_Camera->GetOrthographicSize() * 0.5f + 0.5f;
 
                 // Allow moving with mouse

@@ -2,6 +2,7 @@
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
+#include "Pine/Rendering/Rendering.hpp"
 
 Pine::Camera::Camera() :
         IComponent(ComponentType::Camera)
@@ -28,8 +29,13 @@ void Pine::Camera::BuildProjectionMatrix()
         aspectRatio = renderingContext->Size.x / renderingContext->Size.y;
 
     if (m_CameraType == CameraType::Orthographic)
-        m_ProjectionMatrix = glm::ortho(-m_OrthographicSize, m_OrthographicSize, -m_OrthographicSize,
-                                        m_OrthographicSize, -1.f, 1.f);
+    {
+        const float sizeWidth = ((renderingContext->Size.x / Rendering::PixelsPerUnit) / 2.f) * m_OrthographicSize;
+        const float sizeHeight = ((renderingContext->Size.y / Rendering::PixelsPerUnit) / 2.f) * m_OrthographicSize;
+
+        m_ProjectionMatrix = glm::ortho(-sizeWidth, sizeWidth, -sizeHeight, sizeHeight, -1.f, 1.f);
+    }
+            
     if (m_CameraType == CameraType::Perspective)
         m_ProjectionMatrix = glm::perspective(glm::radians(m_FieldOfView), aspectRatio, m_NearPlane, m_FarPlane);
 }

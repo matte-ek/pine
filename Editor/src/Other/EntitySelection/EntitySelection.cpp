@@ -12,6 +12,7 @@
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
+#include "Rendering/RenderHandler.hpp"
 
 namespace
 {
@@ -22,6 +23,7 @@ namespace
     Pine::Shader* m_ObjectSolidShader2D = nullptr;
 
     bool m_PickEntity = false;
+    bool m_PickMultiple = false;
     Pine::Vector2i m_CursorPosition;
 
     Pine::Vector3f ComputeColorIndex(int id)
@@ -55,7 +57,7 @@ namespace
         return { colorValue[0], colorValue[1], colorValue[2] };
     }
 
-    void HandleRendering3D(Pine::RenderingContext *context)
+    void HandleRendering3D(const Pine::RenderingContext *context)
     {
         Pine::Renderer3D::FrameReset();
         Pine::Renderer3D::SetCamera(context->SceneCamera);
@@ -116,6 +118,7 @@ namespace
         if (stage == Pine::RenderStage::PreRender)
         {
             m_EntitySelectionRenderingContext.Active = true;
+            m_EntitySelectionRenderingContext.Size = RenderHandler::GetLevelRenderingContext()->Size;
 
             return;
         }
@@ -160,7 +163,7 @@ namespace
 
             if (pickedEntity)
             {
-                Selection::Add(pickedEntity, true);
+                Selection::Add(pickedEntity, !m_PickMultiple);
             }
             else
             {
@@ -203,8 +206,9 @@ void EntitySelection::Dispose()
     m_FrameBuffer = nullptr;
 }
 
-void EntitySelection::Pick(Pine::Vector2i cursorPosition)
+void EntitySelection::Pick(Pine::Vector2i cursorPosition, bool pickMultiple)
 {
     m_PickEntity = true;
     m_CursorPosition = cursorPosition;
+    m_PickMultiple = pickMultiple;
 }

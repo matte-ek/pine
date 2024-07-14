@@ -30,7 +30,7 @@ namespace Pine::Assets
     // Attempts to recursively load all asset files from a directory. Will by default
     // map all assets as relative path to the specified path, however you can overwrite this
     // behaviour with useAsRelativePath. Returns the amount of assets that it FAILED to load, or -1 if none were loaded.
-    int LoadDirectory(const std::filesystem::path& directoryPath, bool startIndex = true);
+    int LoadDirectory(const std::filesystem::path& directoryPath, bool useAsRelativePath = true);
 
     // Resolve references are a way to reference assets that may not already have been loaded during the load stage.
     // This allows the asset manager to load assets efficiently and take care of the loose ends at the end of everything.
@@ -38,7 +38,7 @@ namespace Pine::Assets
 
     // Attempts to find an already loaded asset with it's mapped path.
     // includeFilePath allows you to find the asset by its file path instead of fake engine path.
-    IAsset* Get(const std::string& path, bool includeFilePath = false);
+    IAsset* Get(const std::string& path, bool includeFilePath = false, bool logWarning = true);
 
     template<typename T>
     T* Get(const std::string& path)
@@ -52,7 +52,7 @@ namespace Pine::Assets
 
     // Moves an already existing asset to a new path, the newPath needs to be a file system path,
     // and the asset will use the same root path as the old path.
-    void MoveAsset(Pine::IAsset* asset, const std::filesystem::path& newPath);
+    void MoveAsset(Pine::IAsset* asset, const std::filesystem::path& newFilePath);
 
     // Returns the entire map used internally within the asset manager
     const std::unordered_map<std::string, IAsset*>& GetAll();

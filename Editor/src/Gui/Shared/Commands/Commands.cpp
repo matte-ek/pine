@@ -57,7 +57,7 @@ void Commands::Paste()
         Pine::Blueprint blueprint;
 
         blueprint.CreateFromEntity(entity);
-        blueprint.GetEntity()->SetName(blueprint.GetEntity()->GetName() + " (Copy)");
+        blueprint.GetEntity()->SetName(blueprint.GetEntity()->GetName() + "");
 
         auto spawnedEntity = blueprint.Spawn();
 

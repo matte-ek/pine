@@ -56,7 +56,7 @@ void Pine::Collider::UpdateBody()
     }
 }
 
-reactphysics3d::ConvexMesh* Pine::Collider::LoadTriangleMesh()
+reactphysics3d::ConvexMesh* Pine::Collider::LoadTriangleMesh() const
 {
     auto modelRenderer = m_Parent->GetComponent<Pine::ModelRenderer>();
 

@@ -18,6 +18,8 @@
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Script/ScriptManager.hpp"
 #include "Other/OsNative/OsNative.hpp"
+#include "Pine/Assets/Tilemap/Tilemap.hpp"
+#include "Pine/Assets/Tileset/Tileset.hpp"
 
 namespace
 {
@@ -436,6 +438,14 @@ namespace
                             asset = new Pine::Texture3D();
                             fileExtension = ".cmap";
                             break;
+                        case 4:
+                            asset = new Pine::Tileset();
+                            fileExtension = ".tset";
+                            break;
+                        case 5:
+                            asset = new Pine::Tilemap();
+                            fileExtension = ".tmap";
+                            break;
                         default:
                             break;
                     }
@@ -516,6 +526,16 @@ namespace
                 if (ImGui::MenuItem("Texture3D", nullptr))
                 {
                     itemCreationType = 3;
+                }
+
+                if (ImGui::MenuItem("Tile set", nullptr))
+                {
+                    itemCreationType = 4;
+                }
+
+                if (ImGui::MenuItem("Tile map", nullptr))
+                {
+                    itemCreationType = 5;
                 }
 
                 if (itemCreationType != -1)

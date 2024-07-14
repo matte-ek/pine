@@ -22,7 +22,7 @@ namespace Pine::Serialization
 
     /* Store */
 
-    nlohmann::json StoreVector2(const Vector3f& vector);
+    nlohmann::json StoreVector2(const Vector2f& vector);
     nlohmann::json StoreVector3(const Vector3f& vector);
     nlohmann::json StoreVector4(const Vector4f& vector);
 

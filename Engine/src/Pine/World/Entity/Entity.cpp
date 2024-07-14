@@ -147,10 +147,30 @@ void Pine::Entity::ClearComponents()
     m_Components.clear();
 }
 
+Pine::IComponent * Pine::Entity::GetComponent(ComponentType type) const
+{
+    for (auto component : m_Components)
+    {
+        if (component && component->GetType() == type)
+        {
+            return component;
+        }
+    }
+
+    return nullptr;
+}
+
+bool Pine::Entity::HasComponent(ComponentType type) const
+{
+    return GetComponent(type) != nullptr;
+}
+
 Pine::Transform* Pine::Entity::GetTransform() const
 {
     if (m_Components.empty())
+    {
         throw std::runtime_error("Entity does not contain Transform component");
+    }
 
     // The transform component should always be the first component
     // and should be available in all entities.

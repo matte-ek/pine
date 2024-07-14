@@ -11,6 +11,7 @@ Pine::Tilemap::Tilemap()
 void Pine::Tilemap::SetTileset(Tileset* tileset)
 {
     m_Tileset = tileset;
+    m_HasBeenModified = true;
 }
 
 Pine::Tileset* Pine::Tilemap::GetTileset() const
@@ -140,6 +141,8 @@ bool Pine::Tilemap::SaveToFile()
         m_HasDependencies = true;
         m_DependencyFiles.push_back(m_Tileset->GetFilePath().string());
     }
+
+    m_HasBeenModified = false;
 
     return true;
 }

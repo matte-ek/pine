@@ -6,6 +6,7 @@
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 #include "Pine/Script/ScriptManager.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Physics/Physics2D/Physics2D.hpp"
 
 namespace
 {
@@ -87,6 +88,7 @@ void Pine::World::Update()
     const auto deltaTime = CalculateFrameTime();
 
     Physics3D::Update(deltaTime);
+    Physics2D::Update(deltaTime);
 
     if (!m_Paused)
     {

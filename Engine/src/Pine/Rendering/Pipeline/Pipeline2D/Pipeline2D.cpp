@@ -114,7 +114,7 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
 
             for (auto& tile : tileMap->GetTiles())
             {
-                if (tile.m_Flags & NoRender)
+                if (tile.m_Flags & TileFlags_Hidden)
                     continue;
 
                 Renderer2D::AddTextureAtlasItem(positionOffset + Vector2f(tileSize * static_cast<float>(tile.m_Position.x), tileSize * static_cast<float>(tile.m_Position.y)),
@@ -131,10 +131,13 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
     auto oldCoordinateSystem = Renderer2D::GetCoordinateSystem();
 
     Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(false);
+
     Pine::Graphics::GetGraphicsAPI()->SetBlendingEnabled(true);
     Pine::Graphics::GetGraphicsAPI()->SetBlendingFunction(Pine::Graphics::BlendingFunction::SourceAlpha, Pine::Graphics::BlendingFunction::OneMinusSourceAlpha);
 
     Renderer2D::RenderFrame(&context);
+
+    Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 
     Renderer2D::SetCoordinateSystem(oldCoordinateSystem);
 }

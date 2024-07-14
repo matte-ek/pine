@@ -1,7 +1,6 @@
 #include "Gui/Gui.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Core/Math/Math.hpp"
-#include "Pine/World/Entity/Entity.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include <Pine/Pine.hpp>
 

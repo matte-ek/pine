@@ -1,5 +1,12 @@
 #include "MenuBar.hpp"
 #include "imgui.h"
+#include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
+#include "Gui/Panels/Console/ConsolePanel.hpp"
+#include "Gui/Panels/EntityList/EntityListPanel.hpp"
+#include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
+#include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
+#include "Gui/Panels/Profiler/ProfilerPanel.hpp"
+#include "Gui/Panels/Properties/PropertiesPanel.hpp"
 #include "Gui/Shared/Commands/Commands.hpp"
 
 void MenuBar::Setup()
@@ -89,6 +96,56 @@ void MenuBar::Render()
             if (ImGui::MenuItem("Refresh Engine Assets", "CTRL+F5"))
             {
                 Commands::Refresh(true);
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Windows"))
+        {
+            if (ImGui::MenuItem("Asset Browser", nullptr, Panels::AssetBrowser::GetActive()))
+            {
+                Panels::AssetBrowser::SetActive(!Panels::AssetBrowser::GetActive());
+            }
+
+            if (ImGui::MenuItem("Entity list", nullptr, Panels::EntityList::GetActive()))
+            {
+                Panels::EntityList::SetActive(!Panels::EntityList::GetActive());
+            }
+
+            if (ImGui::MenuItem("Properties", nullptr, Panels::Properties::GetActive()))
+            {
+                Panels::Properties::SetActive(!Panels::Properties::GetActive());
+            }
+
+            if (ImGui::MenuItem("Game View", nullptr, Panels::GameViewport::GetActive()))
+            {
+                Panels::GameViewport::SetActive(!Panels::GameViewport::GetActive());
+            }
+
+            if (ImGui::MenuItem("Level View", nullptr, Panels::LevelViewport::GetActive()))
+            {
+                Panels::LevelViewport::SetActive(!Panels::LevelViewport::GetActive());
+            }
+
+            if (ImGui::MenuItem("Console", nullptr, Panels::Console::GetActive()))
+            {
+                Panels::Console::SetActive(!Panels::Console::GetActive());
+            }
+
+            if (ImGui::MenuItem("Profiler", nullptr, Panels::Profiler::GetActive()))
+            {
+                Panels::Profiler::SetActive(!Panels::Profiler::GetActive());
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Help"))
+        {
+            if (ImGui::MenuItem("About"))
+            {
+                
             }
 
             ImGui::EndMenu();

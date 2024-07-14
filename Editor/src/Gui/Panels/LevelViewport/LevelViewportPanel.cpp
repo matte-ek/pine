@@ -110,6 +110,21 @@ namespace
             Pine::Vector4f perspective;
             Pine::Quaternion rotation;
 
+            if (Selection::GetSelectedEntities().size() > 1)
+            {
+                glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
+
+                for (int i = 1; i < Selection::GetSelectedEntities().size();i++)
+                {
+                    auto selectionTransform = Selection::GetSelectedEntities()[i]->GetTransform();
+
+                    if (m_GizmoMode == GizmoMode::Translate)
+                        selectionTransform->LocalPosition += position;
+                    if (m_GizmoMode == GizmoMode::Rotate)
+                        selectionTransform->LocalRotation *= rotation;
+                }
+            }
+
             if (selectedEntity->GetParent() != nullptr)
             {
                 glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
@@ -273,10 +288,11 @@ void Panels::LevelViewport::Render()
 
     const auto avSize = ImGui::GetContentRegionAvail();
     const auto position = ImGui::GetCursorScreenPos();
+    const auto renderScale = RenderHandler::GetLevelRenderingContext()->Size / static_cast<Pine::Vector2f>(RenderHandler::GetLevelFrameBuffer()->GetSize());
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
-    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
+    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, renderScale.y), ImVec2(renderScale.x, 0.f));
 
     const bool viewportClicked = ImGui::IsItemClicked();
     const bool viewportHovered = ImGui::IsItemHovered();
@@ -371,12 +387,12 @@ void Panels::LevelViewport::Render()
 
         // Since our underlying viewport is in 1920x1080, but we down scale that to fit the viewport, we
         // now have to up scale our cursor coordinates back to 1920x1080
-        mousePosition = Pine::Vector2f(mousePosition) *  Pine::Vector2f(1920, 1080) / Pine::Vector2f(m_Size);
+        mousePosition = Pine::Vector2f(mousePosition) * RenderHandler::GetLevelRenderingContext()->Size / Pine::Vector2f(m_Size);
 
         // Flip Y axis since the frame buffer is flipped
-        mousePosition.y = 1080 - mousePosition.y;
+        mousePosition.y = RenderHandler::GetLevelRenderingContext()->Size.y - mousePosition.y;
 
-        EntitySelection::Pick(mousePosition);
+        EntitySelection::Pick(mousePosition, ImGui::GetIO().KeyCtrl);
     }
 
     ImGui::End();
