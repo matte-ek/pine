@@ -144,7 +144,7 @@ void Pine::Input::Shutdown()
 
 void Pine::Input::Update()
 {
-    auto window = reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto window = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
 
     m_Window = window;
 
@@ -222,7 +222,7 @@ Pine::InputContext* Pine::Input::CreateContext(const std::string& name)
 
 void Pine::Input::SetCursorPosition(Pine::Vector2i position)
 {
-    auto windowHandle = reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto windowHandle = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
 
     glfwSetCursorPos(windowHandle, position.x, position.y);
 
@@ -231,7 +231,7 @@ void Pine::Input::SetCursorPosition(Pine::Vector2i position)
 
 Pine::Vector2i Pine::Input::GetCursorPosition()
 {
-    auto windowHandle = reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto windowHandle = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
 
     double cursorX, cursorY;
     glfwGetCursorPos(windowHandle, &cursorX, &cursorY);

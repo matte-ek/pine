@@ -34,7 +34,7 @@ namespace Pine::RenderManager
     // Pine supports multiple rendering contexts at the same time, and will redo the entire rendering on the other context.
     // This could be used for example with an editor and game camera, rendered at the same time.
     void AddRenderingContextPass(RenderingContext* context);
-    void RemoveRenderingContextPass(RenderingContext* context);
+    void RemoveRenderingContextPass(const RenderingContext* context);
 
     // The rendering context currently being used during rendering.
     RenderingContext* GetCurrentRenderingContext();

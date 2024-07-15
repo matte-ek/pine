@@ -75,8 +75,8 @@ void Entities::Setup()
         throw std::runtime_error("Failed to allocate entity data.");
     }
 
-    memset(static_cast<void*>(m_Entities), 0, sizeof(Entity) * m_MaxEntityCount);
-    memset(static_cast<void*>(m_EntityOccupationArray), 0, sizeof(bool) * m_MaxEntityCount);
+    memset(m_Entities, 0, sizeof(Entity) * m_MaxEntityCount);
+    memset(m_EntityOccupationArray, 0, sizeof(bool) * m_MaxEntityCount);
 
     m_EntityPointerList.reserve(m_MaxEntityCount);
 }
@@ -142,7 +142,7 @@ Entity* Entities::Find(std::uint32_t id)
     return nullptr;
 }
 
-bool Entities::Delete(Entity* entity)
+bool Entities::Delete(const Entity* entity)
 {
     bool foundEntity = false;
 
@@ -240,7 +240,7 @@ const std::vector<Entity*>& Entities::GetList()
     return m_EntityPointerList;
 }
 
-void Entities::MoveEntity(Entity* entity, std::size_t newIndex)
+void Entities::MoveEntity(const Entity* entity, std::size_t newIndex)
 {
     bool foundEntity = false;
     std::size_t oldIndex;

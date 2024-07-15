@@ -138,7 +138,7 @@ void Pine::Engine::Run()
     // This is because:
     // 1. Initialize the engine without making a visible frozen window.
     // 2. Allow the user to modify the window, without the window flickering during startup.
-    // So we'll have to restore it here.
+    // Therefore, we'll have to restore it here.
     WindowManager::SetWindowVisible(true);
 
     // At this point the user should have loaded their game assembly, so we can allow the

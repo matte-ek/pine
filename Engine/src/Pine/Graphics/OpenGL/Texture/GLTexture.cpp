@@ -373,7 +373,7 @@ void Pine::Graphics::GLTexture::ResetSwizzleMask()
     }
 }
 
-void Pine::Graphics::GLTexture::UpdateSwizzleMask()
+void Pine::Graphics::GLTexture::UpdateSwizzleMask() const
 {
     glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_R, TranslateSwizzleMaskChannel(m_SwizzleMask[0]));
     glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_G, TranslateSwizzleMaskChannel(m_SwizzleMask[1]));

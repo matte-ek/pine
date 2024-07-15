@@ -13,7 +13,7 @@ namespace Pine::Graphics
         std::uint32_t m_Id = 0;
 
         void UpdateTextureFiltering();
-        void UpdateSwizzleMask();
+        void UpdateSwizzleMask() const;
     public:
         GLTexture();
 

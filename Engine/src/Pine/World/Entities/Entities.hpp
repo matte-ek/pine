@@ -16,13 +16,13 @@ namespace Pine::Entities
 
     Entity* GetByInternalId(std::uint32_t internalId);
 
-    bool Delete(Entity* entity);
+    bool Delete(const Entity* entity);
     void DeleteAll(bool includeTemporary = false);
 
     const std::vector<Entity*>& GetList();
 
     // Allows you to move the specified entity.
     // newIndex specifying the element index in the vector itself.
-    void MoveEntity(Entity* entity, std::size_t newIndex);
+    void MoveEntity(const Entity* entity, std::size_t newIndex);
 
 }

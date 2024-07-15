@@ -44,6 +44,7 @@ void Pine::Level::CreateFromWorld()
         // Ignore children as we take care of those when processing their parents.
         if (entity->GetParent() != nullptr)
             continue;
+
         // See comment for m_Temporary
         if (entity->GetTemporary())
             continue;

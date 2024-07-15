@@ -36,7 +36,7 @@ namespace
     // valid assets, or loaded assets.
     std::unordered_map<std::string, IAsset*> m_Assets;
 
-    // These are more or less a read-only mirrors of `m_Assets`, but has the file path or id as a key instead.
+    // These are a read-only mirrors of `m_Assets`, but has the file path or id as a key instead.
     std::unordered_map<std::string, IAsset*> m_AssetsFilePath;
     std::unordered_map<std::uint32_t, IAsset*> m_AssetsId;
 

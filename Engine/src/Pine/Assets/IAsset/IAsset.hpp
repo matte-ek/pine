@@ -202,7 +202,7 @@ namespace Pine
             {
                 if (reinterpret_cast<IAsset *>(m_Asset)->m_IsDeleted)
                 {
-                    reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount--;
+                    --reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount;
 
                     m_Asset = nullptr;
                 }

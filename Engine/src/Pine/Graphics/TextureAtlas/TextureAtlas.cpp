@@ -92,7 +92,11 @@ float Pine::Graphics::TextureAtlas::GetTextureUvScale() const
 void Pine::Graphics::TextureAtlas::Dispose()
 {
     if (m_AtlasFrameBuffer)
+    {
         GetGraphicsAPI()->DestroyFrameBuffer(m_AtlasFrameBuffer);
+
+        m_AtlasFrameBuffer = nullptr;
+    }
 }
 
 void Pine::Graphics::TextureAtlas::RemoveTexture(std::uint32_t texture)

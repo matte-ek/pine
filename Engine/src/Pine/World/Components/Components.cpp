@@ -55,8 +55,8 @@ namespace
                 occupationArrayCopySize = sizeof(bool) * size;
             }
 
-            memcpy(arrayData, (void*)block->m_ComponentArray, arrayBlockCopySize);
-            memcpy(arrayOccupationData, (void*)block->m_ComponentOccupationArray, occupationArrayCopySize);
+            memcpy(arrayData, block->m_ComponentArray, arrayBlockCopySize);
+            memcpy(arrayOccupationData, block->m_ComponentOccupationArray, occupationArrayCopySize);
 
             oldArrayData = static_cast<void*>(block->m_ComponentArray);
             oldOccupationArray = static_cast<void*>(block->m_ComponentOccupationArray);
@@ -113,7 +113,7 @@ void Components::Setup()
 {
     CreateComponentDataBlock<Transform>();
     CreateComponentDataBlock<ModelRenderer>();
-    CreateComponentDataBlock<NativeScript>(1); // Temporary for Terrain Renderer
+    CreateComponentDataBlock<NativeScript>(1); // Stub for Terrain Renderer
     CreateComponentDataBlock<Camera>(32);
     CreateComponentDataBlock<Light>();
     CreateComponentDataBlock<Collider>();
@@ -139,7 +139,7 @@ void Components::Shutdown()
 {
     for (const auto block : m_ComponentDataBlocks)
     {
-        free(reinterpret_cast<IComponent*>(block->m_ComponentArray));
+        free(block->m_ComponentArray);
         delete[] block->m_ComponentOccupationArray;
     }
 
@@ -171,6 +171,9 @@ IComponent* Components::Create(ComponentType type, bool standalone)
 
         if (newTargetSlot >= componentDataBlock->m_ComponentArrayAllocatedCount)
         {
+            // I wouldn't resize the component array right now...
+            throw std::runtime_error("Maximum component count reached");
+
             // We've run out of space in the array, we need to resize it and make it bigger.
             // Not sure if just putting it + 128 is a good idea, but it's fine for now.
             ResizeComponentDataBlock(componentDataBlock, componentDataBlock->m_ComponentArrayAllocatedCount + 128);
@@ -193,7 +196,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
     }
 
     // Copy the data from the 'default' component object
-    memcpy((void*)component, (void*)componentDataBlock->m_Component, componentDataBlock->m_ComponentSize);
+    memcpy(component, componentDataBlock->m_Component, componentDataBlock->m_ComponentSize);
 
     component->SetStandalone(standalone);
     component->SetInternalId(componentLookupId);

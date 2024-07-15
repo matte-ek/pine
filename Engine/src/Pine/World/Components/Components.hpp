@@ -1,8 +1,6 @@
 #pragma once
 #include "Pine/World/Components/IComponent/IComponent.hpp"
 
-#include <unordered_map>
-
 namespace Pine
 {
     template<typename T>
@@ -24,13 +22,14 @@ namespace Pine
         bool* m_ComponentOccupationArray = nullptr;
         std::size_t m_ComponentOccupationArraySize = 0;
 
-        // The number of components the array currently can fit
+        // The number of components the array currently can fit (capacity)
         std::uint32_t m_ComponentArrayAllocatedCount = 0;
 
-        // Cached version of GetHighestComponentIndex(), should always be correct. Will however be -1 if empty.
+        // Cached version of GetHighestComponentIndex(), _should_ always be correct. Will be -1 if empty.
         int m_HighestComponentIndex = -1;
 
         // Sort of hacky, but it allows us to select what components we want to iterate through
+        // I don't really like the placing of this either, problem for future me.
         bool m_IterateDisabledObjects = false;
 
         ComponentDataBlockIterator<T> begin()
@@ -43,10 +42,8 @@ namespace Pine
             return ComponentDataBlockIterator<T>(m_HighestComponentIndex == -1 ? 0 : m_HighestComponentIndex, this, m_IterateDisabledObjects);
         }
 
-        __inline int GetHighestComponentIndex()
+        __inline int GetHighestComponentIndex() const
         {
-            // This kind of sucks as we're required to loop through the array m_ComponentOccupationArraySize times
-            // each time we want to iterate through all components.
             int highestIndex = -1;
 
             for (int i = 0; i < m_ComponentOccupationArraySize;i++)
@@ -58,7 +55,7 @@ namespace Pine
             return highestIndex;
         }
 
-        __inline std::uint32_t GetAvailableIndex()
+        __inline std::uint32_t GetAvailableIndex() const
         {
             for (std::uint32_t i = 0; i < m_ComponentOccupationArraySize;i++)
             {
@@ -73,10 +70,10 @@ namespace Pine
         {
             // Don't wanna directly access the array here since T could be either
             // an IComponent or the component itself.
-            return reinterpret_cast<T*>(std::uintptr_t(m_ComponentArray) + m_ComponentSize * index);
+            return reinterpret_cast<T*>(static_cast<std::uintptr_t>(m_ComponentArray) + m_ComponentSize * index);
         }
 
-        __inline bool ComponentIndexValid(std::uint32_t index)
+        __inline bool ComponentIndexValid(std::uint32_t index) const
         {
             return m_ComponentOccupationArray[index];
         }
@@ -224,5 +221,6 @@ namespace Pine::Components
     // Internal hints that may be set by the engine to optimize component iteration
     void SetIgnoreHighestEntityIndexFlag(bool ignore);
 
+    // Internal hints that may be set by the engine to optimize component iteration
     void RecomputeHighestComponentIndex();
 }

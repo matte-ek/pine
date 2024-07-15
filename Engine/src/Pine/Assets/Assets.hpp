@@ -29,15 +29,17 @@ namespace Pine::Assets
 
     // Attempts to recursively load all asset files from a directory. Will by default
     // map all assets as relative path to the specified path, however you can overwrite this
-    // behaviour with useAsRelativePath. Returns the amount of assets that it FAILED to load, or -1 if none were loaded.
+    // behaviour with useAsRelativePath. Returns the amount of assets that it __FAILED__ to load, or -1 if none were loaded.
     int LoadDirectory(const std::filesystem::path& directoryPath, bool useAsRelativePath = true);
 
-    // Resolve references are a way to reference assets that may not already have been loaded during the load stage.
-    // This allows the asset manager to load assets efficiently and take care of the loose ends at the end of everything.
+    // Resolve references are a way to "lazy load" assets, and will signal to the asset manager that we will need to load
+    // these assets added here later. For example while loading a Material, you don't exactly need to know the texture data
+    // to have a material, we just know that these X textures are bound to this material, so we'll allow the asset manager
+    // to load these textures later.
     void AddAssetResolveReference(const AssetResolveReference& resolveReference);
 
     // Attempts to find an already loaded asset with it's mapped path.
-    // includeFilePath allows you to find the asset by its file path instead of fake engine path.
+    // includeFilePath allows you to find the asset by its file path instead of "fake" engine path.
     IAsset* Get(const std::string& path, bool includeFilePath = false, bool logWarning = true);
 
     template<typename T>
