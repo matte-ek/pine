@@ -70,7 +70,7 @@ namespace Pine
         {
             // Don't wanna directly access the array here since T could be either
             // an IComponent or the component itself.
-            return reinterpret_cast<T*>(static_cast<std::uintptr_t>(m_ComponentArray) + m_ComponentSize * index);
+            return reinterpret_cast<T*>(reinterpret_cast<std::uintptr_t>(m_ComponentArray) + m_ComponentSize * index);
         }
 
         __inline bool ComponentIndexValid(std::uint32_t index) const
