@@ -122,7 +122,7 @@ void Components::Setup()
     CreateComponentDataBlock<RigidBody2D>();
     CreateComponentDataBlock<SpriteRenderer>();
     CreateComponentDataBlock<TilemapRenderer>();
-    CreateComponentDataBlock<NativeScript>(1); // Stub
+    CreateComponentDataBlock<NativeScript>(1); // "Stub" for NativeScript, we cannot create NativeScripts through here, but we need to align the array.
     CreateComponentDataBlock<ScriptComponent>();
 
     std::size_t totalSize = 0;
@@ -156,7 +156,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
     auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
 
     IComponent* component;
-    int componentLookupId = 0;
+    std::uint32_t componentLookupId = 0;
 
     // Get a pointer to some free memory for the new component, depending on if we want a standalone
     // or in the data block

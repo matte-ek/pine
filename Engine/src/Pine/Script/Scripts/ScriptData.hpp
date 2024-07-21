@@ -14,7 +14,7 @@ namespace Pine
         CSharpScript* Asset = nullptr;
         MonoClass* Class = nullptr;
 
-        // The avaliable methods that the user may "override"
+        // The available methods that the user may "override"
         MonoMethod* MethodOnStart = nullptr;
         MonoMethod* MethodOnDestroy = nullptr;
         MonoMethod* MethodOnUpdate = nullptr;

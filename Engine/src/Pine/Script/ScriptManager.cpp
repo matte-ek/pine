@@ -27,7 +27,8 @@ namespace
 
     std::vector<Pine::ScriptData*> m_ScriptData;
 
-    std::vector<Pine::CSharpScript*> GetScripts()
+    // Returns all script assets currently loaded in the asset manager
+    std::vector<Pine::CSharpScript*> GetAllScripts()
     {
         std::vector<Pine::CSharpScript*> scripts;
 
@@ -49,6 +50,7 @@ namespace
         return scripts;
     }
 
+    // Finds all and populates all public fields for a script class
     void ProcessScriptFields(Pine::ScriptData* scriptData)
     {
         MonoClassField* field;
@@ -57,7 +59,8 @@ namespace
         {
             const auto name = mono_field_get_name(field);
 
-            if (strcmp(name, "Parent") == 0)
+            // Ignore Pine fields
+            if (strcmp(name, "Parent") == 0 || strcmp(name, "Type") == 0)
                 continue;
 
             const auto accessFlag = mono_field_get_flags(field) & MONO_FIELD_ATTR_FIELD_ACCESS_MASK;
@@ -71,6 +74,7 @@ namespace
         }
     }
 
+    // Populates all fields of a script data instance
     void ResolveScriptData(Pine::ScriptData* scriptData)
     {
         const auto fileName = scriptData->Asset->GetFilePath().stem().string();
@@ -80,6 +84,8 @@ namespace
             return;
         }
 
+        // Currently, the class name has to be the same as the file name, maybe finding the first class that
+        // matches our requirements in a file is a better solution? Also for the future, a custom namespace might be nice.
         auto monoClass = mono_class_from_name(m_GameAssembly->Image, "Game", fileName.c_str());
         if (!monoClass)
         {
@@ -170,7 +176,7 @@ void Pine::Script::Manager::ReloadScripts()
 
     m_ScriptData.clear();
 
-    const auto& scripts = GetScripts();
+    const auto& scripts = GetAllScripts();
 
     for (const auto& script : scripts)
     {

@@ -24,7 +24,7 @@ void Pine::ScriptComponent::SetScript(Pine::CSharpScript *script)
         }
     }
 
-    m_Script = dynamic_cast<IAsset*>(script);
+    m_Script = script;
 
     if (createInstance)
     {

@@ -64,7 +64,7 @@ reactphysics3d::ConvexMesh* Pine::Collider::LoadTriangleMesh() const
         return nullptr;
 
     auto model = modelRenderer->GetModel();
-
+    
     // We'll currently have to reload the model again, in order to process the vertex and index data
     if (!model->LoadModel())
         return nullptr;
