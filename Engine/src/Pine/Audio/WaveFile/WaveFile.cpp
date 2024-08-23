@@ -39,6 +39,8 @@ namespace Pine::Audio
         if (!LoadAudioData())
             return false;
 
+        m_Duration = GetTotalDuration();
+
         return true;
     }
 
@@ -105,7 +107,7 @@ namespace Pine::Audio
         return true;
     }
 
-    bool WaveFile::LoadAudioData()
+    bool WaveFile::LoadAudioData() const
     {
         ALenum format = 0;
 
@@ -152,6 +154,21 @@ namespace Pine::Audio
         return true;
     }
 
+    float WaveFile::GetTotalDuration() const
+    {
+        uint32_t dataSize = m_DataHeader.size;
+        uint32_t byteRate = m_FMTHeader.sampleRate * m_FMTHeader.numChannels * (m_FMTHeader.bitsPerSample / 8);
+        float duration = static_cast<float>(dataSize) / byteRate;
+
+        return duration;
+    }
+
+    float WaveFile::GetDuration()
+    {
+        return m_Duration;
+    }
+
+
     bool WaveFile::Transcode()
     {
         return false;
@@ -174,6 +191,7 @@ namespace Pine::Audio
 
     void WaveFile::Dispose()
     {
+        m_File.close();
         delete[] m_DataHeader.data;
         m_DataHeader.data = nullptr;
         alDeleteBuffers(1, &m_ALBuffer);

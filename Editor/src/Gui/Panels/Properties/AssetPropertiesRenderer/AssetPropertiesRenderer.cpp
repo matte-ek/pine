@@ -17,6 +17,7 @@
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Level/Level.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Gui/Panels/Properties/EntityPropertiesRenderer/EntityPropertiesRenderer.hpp"
 #include "Pine/Rendering/Rendering.hpp"
@@ -390,6 +391,31 @@ namespace
             tilemap->SetTileset(dynamic_cast<Pine::Tileset *>(newTileset.asset));
         }
     }
+
+    void RenderAudiofile(Pine::AudioFile *audiofile)
+    {
+        if (audiofile->GetState() == Pine::AudioState::Stopped || audiofile->GetState() == Pine::AudioState::Paused)
+        {
+            if(ImGui::Button("Play"))
+            {
+                audiofile->Play();
+            }
+        }
+        else
+        {
+            if(ImGui::Button("Pause"))
+            {
+                audiofile->Pause();
+            }
+        }
+
+        if (audiofile->GetDuration() != 0)
+        {
+            // TODO: fix so you can actually interact with the bar and change time
+            float progress = audiofile->GetTime() / audiofile->GetDuration();
+            ImGui::ProgressBar(progress);
+        }
+    }
 }
 
 void AssetPropertiesPanel::Render(Pine::IAsset *asset)
@@ -443,6 +469,9 @@ void AssetPropertiesPanel::Render(Pine::IAsset *asset)
             break;
         case Pine::AssetType::Tilemap:
             RenderTilemap(dynamic_cast<Pine::Tilemap *>(asset));
+            break;
+        case Pine::AssetType::Audio:
+            RenderAudiofile(dynamic_cast<Pine::AudioFile *>(asset));
             break;
         default:
             ImGui::Text("No asset properties available.");

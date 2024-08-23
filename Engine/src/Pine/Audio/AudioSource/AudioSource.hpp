@@ -14,6 +14,6 @@ namespace Pine::Audio
         ~AudioSource();
 
         ALuint GetID() const;
+        float GetSeconds() const;
     };
 }
-

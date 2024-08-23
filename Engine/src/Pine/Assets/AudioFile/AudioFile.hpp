@@ -19,21 +19,34 @@ namespace Pine
         Unknown
     };
 
+    enum class AudioState
+    {
+        Playing,
+        Paused,
+        Stopped
+    };
+
     class AudioFile : public IAsset
     {
     private:
         std::string m_FileExtension;
         AudioFileFormat m_AudioFileFormat = AudioFileFormat::Unknown;
-        Pine::Audio::IAudioObject* m_AudioObject = nullptr;
-        Pine::Audio::AudioSource* m_AudioSource = nullptr;
+        Audio::IAudioObject* m_AudioObject = nullptr;
+        Audio::AudioSource* m_AudioSource = nullptr;
+        AudioState m_AudioState = AudioState::Stopped;
 
-        AudioFileFormat GetAudioFileFormat();
+        AudioFileFormat GetAudioFileFormat() const;
     public:
         AudioFile();
 
         bool Setup();
         void Play();
+        void Stop();
+        void Pause();
         bool Transcode();
+        AudioState GetState() const;
+        float GetTime() const;
+        float GetDuration() const;
         bool LoadFromFile(AssetLoadStage stage) override;
         void Dispose() override;
     };

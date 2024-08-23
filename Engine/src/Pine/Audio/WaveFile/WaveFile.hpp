@@ -57,13 +57,16 @@ namespace Pine::Audio
 
         ALuint m_ALBuffer = 0;
 
+        float m_Duration = 0.0f;
+
         bool m_FMTRead = false;
         bool m_DataRead = false;
 
         bool OpenFile();
         bool CheckWaveFormat();
         bool ReadChunk();
-        bool LoadAudioData();
+        bool LoadAudioData() const;
+        float GetTotalDuration() const;
     public:
         explicit WaveFile(std::string filePath);
 
@@ -71,6 +74,7 @@ namespace Pine::Audio
         void Play() override;
         void Stop() override;
         int GetID() override;
+        float GetDuration() override;
         bool Transcode() override;
         void Dispose() override;
     };

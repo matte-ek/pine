@@ -56,6 +56,8 @@ namespace
                 return Pine::Assets::Get<Pine::Texture2D>("editor/icons/material.png");
             case Pine::AssetType::CSharpScript:
                 return Pine::Assets::Get<Pine::Texture2D>("editor/icons/script.png");
+            case Pine::AssetType::Audio:
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/audio.png");
             default:
                 return nullptr;
         }

@@ -248,6 +248,27 @@ void Panels::EntityList::Render()
             RenderEntityMoveSeparator(i);
     }
 
+    if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_D))
+    {
+        auto selectedEntities = Selection::GetSelectedEntities();
+
+        Selection::Clear();
+
+        for (auto selectedEntity: selectedEntities)
+        {
+            Pine::Blueprint temporaryBlueprint;
+
+            temporaryBlueprint.CreateFromEntity(selectedEntity);
+
+            auto entity = temporaryBlueprint.Spawn();
+
+            entity->SetName(entity->GetName() + " [Copy]");
+
+            Selection::Add(entity);
+
+        }
+    }
+
     ImGui::PopStyleVar();
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !m_DidSelectEntity)
@@ -278,7 +299,7 @@ void Panels::EntityList::Render()
 
             if (ImGui::MenuItem("Model Renderer"))
             {
-                auto entity = Pine::Entity::Create();
+                auto entity = Pine::Entity::Create("Model");
 
                 entity->AddComponent<Pine::ModelRenderer>();
 
@@ -289,7 +310,7 @@ void Panels::EntityList::Render()
 
             if (ImGui::MenuItem("Sprite Renderer"))
             {
-                auto entity = Pine::Entity::Create();
+                auto entity = Pine::Entity::Create("Sprite");
 
                 entity->AddComponent<Pine::SpriteRenderer>();
 
@@ -300,7 +321,7 @@ void Panels::EntityList::Render()
 
             if (ImGui::MenuItem("Light"))
             {
-                auto entity = Pine::Entity::Create();
+                auto entity = Pine::Entity::Create("Light");
 
                 entity->AddComponent<Pine::Light>();
 
@@ -311,7 +332,7 @@ void Panels::EntityList::Render()
 
             if (ImGui::MenuItem("Camera"))
             {
-                auto entity = Pine::Entity::Create();
+                auto entity = Pine::Entity::Create("Camera");
 
                 entity->AddComponent<Pine::Camera>();
 
@@ -356,6 +377,8 @@ void Panels::EntityList::Render()
                 temporaryBlueprint.CreateFromEntity(selectedEntity);
 
                 auto entity = temporaryBlueprint.Spawn();
+
+                entity->SetName(entity->GetName() + " [Copy]");
 
                 Selection::Add(entity);
             }

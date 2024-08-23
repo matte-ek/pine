@@ -64,4 +64,4 @@ add_library(Engine ${SOURCES}
 )
 
 
-target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D mono-2.0 OpenAL::OpenAL FLAC::FLAC)
+target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D mono-2.0 OpenAL::OpenAL FLAC::FLAC box2d)
