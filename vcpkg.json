@@ -1,0 +1,18 @@
+{
+  "dependencies": [
+    "assimp",
+    "box2d",
+    "fmt",
+    "glew",
+    "glfw3",
+    "glm",
+    "joltphysics",
+    "libflac",
+    "nlohmann-json",
+    "openal-soft",
+	"stb",
+	"freetype",
+	"imgui[docking-experimental,freetype,glfw-binding,opengl3-binding]",
+	"imguizmo"
+  ]
+}
