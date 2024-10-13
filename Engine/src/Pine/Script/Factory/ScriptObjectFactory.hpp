@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <mono/metadata/object-forward.h>
 
 namespace Pine
 {

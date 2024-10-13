@@ -8,15 +8,18 @@ include_directories(src include /usr/include/mono-2.0)
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 find_package(fmt CONFIG REQUIRED)
-find_package(glfw CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
 find_package(GLEW CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
-find_package(OpenAL::OpenAL CONFIG REQUIRED)
-find_package(FLAC::FLAC CONFIG REQUIRED)
-find_package(box2d::box2d CONFIG REQUIRED)
+find_package(OpenAL CONFIG REQUIRED)
+find_package(FLAC CONFIG REQUIRED)
+find_package(box2d CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(Jolt CONFIG REQUIRED)
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_library(Engine ${SOURCES})
 
-target_link_libraries(Engine glfw::glfw GLEW::GLEW assimp::assimp fmt::fmt OpenAL::OpenAL FLAC::FLAC box2d::box2d mono-2.0)
+target_link_libraries(Engine glfw3 GLEW::GLEW assimp::assimp fmt::fmt OpenAL::OpenAL FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json Jolt::Jolt glm::glm mono-2.0)
