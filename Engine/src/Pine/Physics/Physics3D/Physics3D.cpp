@@ -4,38 +4,55 @@
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 
+#include "physx/PxPhysicsAPI.h"
+
 namespace
 {
-    reactphysics3d::PhysicsCommon *m_PhysicsCommon = nullptr;
-    reactphysics3d::PhysicsWorld *m_PhysicsWorld = nullptr;
-} // namespace
+    physx::PxDefaultAllocator m_Allocator;
+    physx::PxDefaultErrorCallback m_ErrorCallback;
+
+    physx::PxFoundation* m_Foundation;
+
+    physx::PxPhysics* m_Physics;
+
+    physx::PxDefaultCpuDispatcher* m_Dispatcher;
+
+    physx::PxScene* m_Scene;
+
+    physx::PxMaterial* m_DefaultMaterial;
+}
 
 void Pine::Physics3D::Setup()
 {
-    m_PhysicsCommon = new reactphysics3d::PhysicsCommon;
+    m_Foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_Allocator, m_ErrorCallback);
+    m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, physx::PxTolerancesScale(), true, nullptr);
 
-    reactphysics3d::PhysicsWorld::WorldSettings settings;
+    m_Dispatcher = physx::PxDefaultCpuDispatcherCreate(2);
 
-    settings.defaultVelocitySolverNbIterations = 20;
-    settings.isSleepingEnabled = false;
-    settings.gravity = reactphysics3d::Vector3(0, -9.81, 0);
-    settings.isSleepingEnabled = true;
+    m_DefaultMaterial = m_Physics->createMaterial(1, 1, 1);
 
-    m_PhysicsWorld = m_PhysicsCommon->createPhysicsWorld(settings);
-    m_PhysicsWorld->setIsDebugRenderingEnabled(true);
-    m_PhysicsWorld->enableSleeping(true);
+    physx::PxSceneDesc sceneDescriptor(m_Physics->getTolerancesScale());
+
+    sceneDescriptor.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+    sceneDescriptor.cpuDispatcher = m_Dispatcher;
+    sceneDescriptor.filterShader = physx::PxDefaultSimulationFilterShader;
+
+    m_Scene = m_Physics->createScene(sceneDescriptor);
 }
 
 void Pine::Physics3D::Shutdown()
 {
-    delete m_PhysicsCommon;
+    PX_RELEASE(m_Scene);
+    PX_RELEASE(m_Dispatcher);
+    PX_RELEASE(m_Physics);
+    PX_RELEASE(m_Foundation);
 }
 
 void Pine::Physics3D::Update(double deltaTime)
 {
     static double accumulator = 0.0;
 
-    if (Pine::World::IsPaused())
+    if (World::IsPaused())
     {
         accumulator = 0.0;
         return;
@@ -48,37 +65,34 @@ void Pine::Physics3D::Update(double deltaTime)
     if (accumulator <= timeStep)
         return;
 
-    const double physicsTimeDelta = accumulator;
+    const auto physicsTimeDelta = static_cast<float>(accumulator);
 
     accumulator = 0.0;
 
-    for (auto& collider : Pine::Components::Get<Pine::Collider>())
+    for (auto& collider : Pine::Components::Get<Collider>())
         collider.OnPrePhysicsUpdate();
-    for (auto& rigidBody : Pine::Components::Get<Pine::RigidBody>())
+    for (auto& rigidBody : Pine::Components::Get<RigidBody>())
         rigidBody.OnPrePhysicsUpdate();
 
-    m_PhysicsWorld->update(physicsTimeDelta);
+    m_Scene->simulate(physicsTimeDelta);
 
-    for (auto& collider : Pine::Components::Get<Pine::Collider>())
+    for (auto& collider : Pine::Components::Get<Collider>())
         collider.OnPostPhysicsUpdate();
-    for (auto& rigidBody : Pine::Components::Get<Pine::RigidBody>())
+    for (auto& rigidBody : Pine::Components::Get<RigidBody>())
         rigidBody.OnPostPhysicsUpdate();
 }
 
-reactphysics3d::PhysicsCommon *Pine::Physics3D::GetCommon()
+physx::PxPhysics* Pine::Physics3D::GetPhysics()
 {
-    return m_PhysicsCommon;
+    return m_Physics;
 }
 
-reactphysics3d::PhysicsWorld *Pine::Physics3D::GetWorld()
+physx::PxScene * Pine::Physics3D::GetScene()
 {
-    return m_PhysicsWorld;
+    return m_Scene;
 }
 
-void Pine::Physics3D::RenderDebugColliders()
+physx::PxMaterial * Pine::Physics3D::GetDefaultMaterial()
 {
-    reactphysics3d::DebugRenderer& debugRenderer = m_PhysicsWorld->getDebugRenderer();
-
-
-
+    return m_DefaultMaterial;
 }

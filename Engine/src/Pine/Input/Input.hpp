@@ -1,5 +1,3 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma once
 
 #include <string>
@@ -246,4 +244,3 @@ namespace Pine
     }
 
 }
-#pragma clang diagnostic pop

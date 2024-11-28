@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include <array>
 
-#include <reactphysics3d/reactphysics3d.h>
+#include "Pine/World/Components/IComponent/IComponent.hpp"
 
 namespace Pine
 {
@@ -24,24 +24,19 @@ namespace Pine
 
         bool m_GravityEnabled = true;
 
-        reactphysics3d::RigidBody *m_RigidBody = nullptr;
+        //physx::PxRigidDynamic *m_RigidBody = nullptr;
+        //physx::PxTransform m_RigidBodyTransform;
 
-        reactphysics3d::Transform m_RigidBodyTransform;
-        reactphysics3d::Transform m_ColliderTransform;
+        //std::array<bool, 3> m_RotationLock = {false, false, false};
 
-        std::array<bool, 3> m_RotationLock = {false, false, false};
-
-        reactphysics3d::Collider *m_Collider = nullptr;
-        Pine::Collider *m_EngineCollider = nullptr;
+        Collider *m_EngineCollider = nullptr;
 
         void UpdateColliders();
-
         void UpdateRigidBodyProperties();
-
     public:
         RigidBody();
 
-        reactphysics3d::RigidBody *GetRigidBody() const;
+        //physx::PxRigidDynamic *GetRigidBody() const;
 
         void SetRigidBodyType(RigidBodyType type);
         RigidBodyType GetRigidBodyType() const;
@@ -52,12 +47,9 @@ namespace Pine
         void SetGravityEnabled(bool value);
         bool GetGravityEnabled() const;
 
-        void SetRotationLock(std::array<bool, 3> rot);
-        const std::array<bool, 3>& GetRotationLock() const;
-
         void DetachCollider();
 
-        bool IsColliderAttached(Collider *collider) const;
+        bool IsColliderAttached(const Collider *collider) const;
 
         void OnPrePhysicsUpdate() override;
         void OnPostPhysicsUpdate() override;
