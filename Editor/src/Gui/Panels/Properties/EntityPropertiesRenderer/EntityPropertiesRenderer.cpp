@@ -194,7 +194,6 @@ namespace
 			auto type = static_cast<int>(rigidBody->GetRigidBodyType());
 			auto mass = rigidBody->GetMass();
 			auto gravityEnabled = rigidBody->GetGravityEnabled();
-			auto& rotationLock = rigidBody->GetRotationLock();
 
 			if (Widgets::Combobox("Rigid Body Type", &type, "Static\0Kinematic\0Dynamic\0"))
 			{

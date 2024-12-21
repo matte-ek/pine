@@ -37,7 +37,13 @@
     "version>=" : "1.23.1#2"
   }, {
     "name" : "imgui",
-    "version>=" : "1.91.0"
+    "version>=" : "1.91.0",
+    "features": [
+      "glfw-binding",
+      "docking-experimental",
+      "freetype",
+      "opengl3-binding"
+    ]
   }, {
     "name" : "imguizmo",
     "version>=" : "2024-05-29#1"

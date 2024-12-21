@@ -2,6 +2,9 @@
 #include "Pine/Graphics/Graphics.hpp"
 #include <fstream>
 
+#define STB_TRUETYPE_IMPLEMENTATION
+
+#include <stb_truetype.h>
 
 Pine::Font::Font()
 {
