@@ -96,8 +96,8 @@ void main(void)
 {
     #shader preFragment
 
-#ifdef discard
-    if (texture(textureSamplers.diffuse, vIn.uv * material.uvScale).w < 0.01f)
+#ifdef VERSION_DISCARD
+    if (texture(textureSamplers.diffuse, vIn.uv * material.uvScale).w < 0.001f)
     {
         discard;
     }

@@ -18,5 +18,9 @@ uniform vec3 m_Color;
 
 void main(void)
 {
+	#ifdef VERSION_DISCARD
+		discard;
+	#endif
+
     m_OutputColor = vec4(m_Color, 1.f);
 }

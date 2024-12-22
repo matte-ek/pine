@@ -20,24 +20,23 @@ namespace
     bool m_CaptureMouse = false;
     Pine::Vector2f m_ViewAngles = Pine::Vector2f(0.f);
 
-    bool m_Perspective2D = true;
+    bool m_Perspective2D = false;
 
-	class EditorComponent : public Pine::NativeScript
+	class EditorComponent final : public Pine::NativeScript
 	{
-	private:
-        Pine::Camera* m_Camera = nullptr;
+		Pine::Camera* m_Camera = nullptr;
 
-        void HandleMovement3D(float deltaTime)
+        void HandleMovement3D(float deltaTime) const
         {
             if (m_Perspective2D)
                 return;
             if (!m_CaptureMouse)
                 return;
 
-            const float speed = 2.f;
-            const float sensitivity = 20.0f;
+            constexpr float speed = 2.f;
+            constexpr float sensitivity = 20.0f;
 
-            auto transform = m_Parent->GetTransform();
+            const auto transform = m_Parent->GetTransform();
 
             transform->LocalPosition += transform->GetForward() * m_Forward->GetAxisValue() * deltaTime * speed;
             transform->LocalPosition += transform->GetRight() * m_Sideways->GetAxisValue() * deltaTime * speed;
@@ -48,18 +47,18 @@ namespace
             transform->SetEulerAngles(Pine::Vector3f(m_ViewAngles, 0.f));
         }
 
-        void HandleMovement2D(float deltaTime)
+        void HandleMovement2D(float deltaTime) const
         {
             auto transform = m_Parent->GetTransform();
 
             if (!m_Perspective2D)
                 return;
 
-            const float speed = 2.f;
-
             if (m_CaptureMouse)
             {
-                const float sensitivity = 0.025f;
+	            constexpr float speed = 2.f;
+	            constexpr float sensitivity = 0.025f;
+
                 const float zoomFactor = m_Camera->GetOrthographicSize() * 0.5f + 0.5f;
 
                 // Allow moving with mouse

@@ -34,7 +34,7 @@ namespace
             return false;
         }
 
-        std::string file = Pine::File::ReadFile(filePath).value_or("");
+        const std::string file = Pine::File::ReadFile(filePath).value_or("");
         std::string src;
 
         if (file.empty() && !hasParentShader)
@@ -154,9 +154,8 @@ void Pine::Shader::Dispose()
     }
 
     m_ShaderPrograms.clear();
+    m_ShaderProgramsReady.clear();
     m_ShaderFiles.clear();
-
-    m_Ready = false;
 
     m_State = AssetState::Unloaded;
 }
@@ -195,14 +194,24 @@ void Pine::Shader::MarkAsUpdated()
     }
 }
 
-void Pine::Shader::SetReady(bool ready)
+void Pine::Shader::SetReady(bool ready, ShaderVersion version)
 {
-    m_Ready = ready;
+    if (!HasShaderVersion(version))
+    {
+        return;
+    }
+
+    m_ShaderProgramsReady[m_ShaderVersionsMap[static_cast<std::uint32_t>(version)]] = ready;
 }
 
-bool Pine::Shader::IsReady() const
+bool Pine::Shader::IsReady(ShaderVersion version)
 {
-    return m_Ready;
+    if (!HasShaderVersion(version))
+    {
+        return m_ShaderProgramsReady[0];
+    }
+
+    return m_ShaderProgramsReady[m_ShaderVersionsMap[static_cast<std::uint32_t>(version)]];
 }
 
 bool Pine::Shader::IsBaseShader() const
@@ -262,7 +271,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
         if (!m_ParentShader)
         {
-            Pine::Log::Error(fmt::format("Failed to find parent shader in {}, parent shader: {}.", m_FileName, j["parent"].get<std::string>()));
+            Log::Error(fmt::format("Failed to find parent shader in {}, parent shader: {}.", m_FileName, j["parent"].get<std::string>()));
             return false;
         }
     }
@@ -337,7 +346,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
         for (const auto& [name, value] : textureSamplers)
         {
-            auto uniformVariable = shaderProgram->GetUniformVariable(name);
+            const auto uniformVariable = shaderProgram->GetUniformVariable(name);
 
             if (uniformVariable == nullptr)
             {
@@ -350,6 +359,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
     }
 
     m_ShaderPrograms.push_back(shaderProgram);
+    m_ShaderProgramsReady.push_back(false);
     m_ShaderVersionsMap[shaderVersion] = m_ShaderPrograms.size() - 1;
 
     return true;

@@ -52,7 +52,7 @@ namespace
 
         void Dispose()
         {
-            for (auto child : Children)
+            for (const auto child : Children)
             {
                 child->Dispose();
 
@@ -73,7 +73,7 @@ namespace
         // Add a "go back" directory for the user first, displayed as "..."
         if (entry->Parent != nullptr)
         {
-            auto backEntry = new PathEntry;
+            const auto backEntry = new PathEntry;
 
             backEntry->Type = EntryType::Directory;
             backEntry->Path = entry->Parent->Path;
@@ -748,7 +748,7 @@ void Panels::AssetBrowser::Render()
             Pine::Blueprint blueprint;
 
             blueprint.CreateFromEntity(entity);
-            blueprint.SetFilePath(m_CurrentDirectory->Path.string() + "/assets/" + entity->GetName() + ".bpt"); // surely the entity name is a valid file name :-)
+            blueprint.SetFilePath(m_CurrentDirectory->Path.string() + "/" + entity->GetName() + ".bpt"); // surely the entity name is a valid file name :-)
             blueprint.SaveToFile();
             blueprint.Dispose();
 

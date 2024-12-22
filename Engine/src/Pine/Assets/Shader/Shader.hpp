@@ -19,11 +19,11 @@ namespace Pine
     {
     private:
         std::vector<Graphics::IShaderProgram*> m_ShaderPrograms;
+        std::vector<bool> m_ShaderProgramsReady;
 
         std::unordered_map<std::uint32_t, std::uint32_t> m_ShaderVersionsMap;
 
         bool m_BaseShader = true;
-        bool m_Ready = false;
 
         Pine::Shader* m_ParentShader = nullptr;
 
@@ -40,8 +40,8 @@ namespace Pine
         void MarkAsUpdated() override;
         bool HasBeenUpdated() const override;
 
-        void SetReady(bool ready);
-        bool IsReady() const;
+        void SetReady(bool ready, ShaderVersion version = ShaderVersion::Default);
+        bool IsReady(ShaderVersion version = ShaderVersion::Default);
 
         bool IsBaseShader() const;
 

@@ -18,6 +18,9 @@ namespace Pine::Renderer3D
         // If the renderer should skip setting up materials during mesh preparation, OverrideShader
         // will still be accounted for though.
         bool SkipMaterialInitialization = false;
+
+        // If shader versions specified from the meshes should be ignored and just use default instead.
+        bool IgnoreShaderVersions = false;
     };
 
     void Setup();

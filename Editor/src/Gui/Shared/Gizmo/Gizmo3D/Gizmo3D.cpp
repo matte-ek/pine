@@ -48,6 +48,7 @@ namespace
         Pine::Graphics::GetGraphicsAPI()->SetStencilFunction(Pine::Graphics::TestFunction::NotEqual, 0xFF, 0xFF);
 
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader3D;
+        Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = true;
 
         m_ObjectSolidShader3D->GetProgram()->Use();
         m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(1.f, 0.5f, 0.f));
@@ -72,8 +73,16 @@ namespace
 
             auto transformationMatrix = entity->GetTransform()->GetTransformationMatrix();
 
-            for (auto mesh : modelRenderer->GetModel()->GetMeshes())
+            int meshIndex = -1;
+            for (const auto mesh : modelRenderer->GetModel()->GetMeshes())
             {
+                meshIndex++;
+
+                if (modelRenderer->GetModelMeshIndex() != -1 && modelRenderer->GetModelMeshIndex() != meshIndex)
+                {
+                    continue;
+                }
+
                 Pine::Renderer3D::PrepareMesh(mesh);
                 Pine::Renderer3D::RenderMesh(transformationMatrix);
             }
@@ -82,11 +91,12 @@ namespace
         }
 
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = nullptr;
+        Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = false;
 
         Pine::Graphics::GetGraphicsAPI()->SetStencilFunction(Pine::Graphics::TestFunction::Always, 0x00, 0x00);
     }
 
-    void OnRender(Pine::RenderingContext* context, Pine::RenderStage stage, float)
+    void OnRender(const Pine::RenderingContext* context, const Pine::RenderStage stage, float)
     {
         if (context != RenderHandler::GetLevelRenderingContext())
         {

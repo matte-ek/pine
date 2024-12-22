@@ -148,7 +148,6 @@ bool Model::LoadModel()
                           aiProcess_Triangulate | aiProcess_GenUVCoords |
                                  aiProcess_GenNormals | aiProcess_GenBoundingBoxes |
                                  aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
-                                 aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph |
                                  aiProcess_GlobalScale);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
@@ -205,7 +204,7 @@ void Model::UploadModel()
                 auto parentDirectory = m_FilePath.parent_path().string() + "/";
                 auto modelName = m_FilePath.stem().string();
 
-                auto material = new Pine::Material;
+                const auto material = new Material;
 
                 material->SetPath(std::filesystem::path(m_Path).parent_path().string() + "/" + modelName + std::to_string(i) + ".mat");
                 material->SetFilePath(parentDirectory + modelName + std::to_string(i) + ".mat");

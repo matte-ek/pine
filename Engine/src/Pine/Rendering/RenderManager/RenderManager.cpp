@@ -72,17 +72,17 @@ void Pine::RenderManager::Run()
     // the transformation matrices etc.
     if (!engineConfig.m_ProductionMode)
     {
-        for (auto& transform : Components::Get<Pine::Transform>(true))
+        for (auto& transform : Components::Get<Transform>(true))
         {
             transform.OnRender(fDeltaTime);
         }
     }
 
-    for (auto renderingContext : m_RenderingContexts)
+    for (const auto renderingContext : m_RenderingContexts)
     {
-        if (Pine::World::GetActiveLevel())
+        if (World::GetActiveLevel())
         {
-            renderingContext->Skybox = Pine::World::GetActiveLevel()->GetLevelSettings().Skybox.Get();
+            renderingContext->Skybox = World::GetActiveLevel()->GetLevelSettings().Skybox.Get();
         }
 
         if (!renderingContext->Active)
@@ -115,7 +115,7 @@ void Pine::RenderManager::Run()
         }
         else
         {
-            for (auto& camera : Components::Get<Pine::Camera>(true))
+            for (auto& camera : Components::Get<Camera>(true))
             {
                 camera.OnRender(fDeltaTime);
             }

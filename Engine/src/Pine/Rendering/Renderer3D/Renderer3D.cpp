@@ -16,6 +16,8 @@ namespace
     Pine::Graphics::ITexture* m_DefaultTexture = nullptr;
 
     Pine::Graphics::IShaderProgram* m_Shader = nullptr;
+    Pine::ShaderVersion m_ShaderVersion = Pine::ShaderVersion::Default;
+
     Pine::Graphics::IUniformVariable* m_HasTangentData = nullptr;
 
     Pine::Mesh* m_Mesh = nullptr;
@@ -95,15 +97,16 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         return;
     }
 
-    ShaderVersion version = ShaderVersion::Default;
+    auto version = ShaderVersion::Default;
 
     if (m_Material->GetRenderingMode() == MaterialRenderingMode::Discard)
     {
         version = ShaderVersion::Discard;
     }
 
-    auto shader = m_RenderingConfiguration.OverrideShader ? m_RenderingConfiguration.OverrideShader : m_Material->GetShader();
+    const auto shader = m_RenderingConfiguration.OverrideShader ? m_RenderingConfiguration.OverrideShader : m_Material->GetShader();
     if (shader->GetProgram() != m_Shader ||
+        m_ShaderVersion != version ||
         !shader->IsReady())
     {
         SetShader(shader, version);
@@ -204,48 +207,62 @@ void Pine::Renderer3D::RenderMeshInstanced()
     m_CurrentInstanceIndex = 0;
 }
 
-void Pine::Renderer3D::SetShader(Shader* shader, ShaderVersion preferredVersion)
+void Pine::Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
 {
-    if (!shader->IsReady())
+    // Figure out what version of the shader to use
+    ShaderVersion version = preferredVersion;
+
+    if (!m_RenderingConfiguration.IgnoreShaderVersions)
     {
-        if (!ShaderStorages::Matrix.AttachShader(shader))
+        if (!shader->HasShaderVersion(preferredVersion))
+        {
+            Log::Warning("Requested shader version not found, rendering may be affected.");
+            version = ShaderVersion::Default;
+        }
+    }
+    else
+    {
+        version = ShaderVersion::Default;
+    }
+
+    const auto shaderProgram = shader->GetProgram(version);
+
+    // Make sure the renderer's shader storages has been set up properly.
+    // TODO: Future vision, this "is ready" crap should probably be handled by the renderer or something instead.
+    if (!shader->IsReady(version))
+    {
+        if (!ShaderStorages::Matrix.AttachShaderProgram(shaderProgram))
         {
             Log::Error("Renderer3D: Shader is missing 'Matrix' shader storage, expect rendering issues.");
         }
 
-        if (!ShaderStorages::Transform.AttachShader(shader))
+        if (!ShaderStorages::Transform.AttachShaderProgram(shaderProgram))
         {
             Log::Error("Renderer3D: Shader is missing 'Transform' shader storage, expect rendering issues.");
         }
 
-        if (!ShaderStorages::Material.AttachShader(shader))
+        if (!ShaderStorages::Material.AttachShaderProgram(shaderProgram))
         {
             Log::Error("Renderer3D: Shader is missing 'Material' shader storage, expect rendering issues.");
         }
 
-        if (!ShaderStorages::Lights.AttachShader(shader))
+        if (!ShaderStorages::Lights.AttachShaderProgram(shaderProgram))
         {
             Log::Error("Renderer3D: Shader is missing 'Lights' shader storage, expect rendering issues.");
         }
 
-        shader->SetReady(true);
+        shader->SetReady(true, version);
     }
 
-    ShaderVersion version = preferredVersion;
-
-    if (!shader->HasShaderVersion(preferredVersion))
-    {
-        Log::Warning("Requested shader version not found, rendering may be affected.");
-        version = ShaderVersion::Default;
-    }
-
-    m_Shader = shader->GetProgram(version);
+    m_Shader = shaderProgram;
     m_Shader->Use();
+
+    m_ShaderVersion = version;
 
     m_HasTangentData = m_Shader->GetUniformVariable("hasTangentData");
 }
 
-void Pine::Renderer3D::SetCamera(Camera*camera)
+void Pine::Renderer3D::SetCamera(Camera* camera)
 {
     m_Camera = camera;
 

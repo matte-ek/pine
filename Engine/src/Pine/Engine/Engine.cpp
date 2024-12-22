@@ -115,7 +115,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     Input::Setup();
     World::Setup();
     Utilities::HotReload::Setup();
-    Audio::Setup();
+    //Audio::Setup();
 
     // Finish initialization
     m_IsInitialized = true;

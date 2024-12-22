@@ -47,7 +47,7 @@ void Pine::Renderer::Skybox::Shutdown()
     m_GraphicsAPI->DestroyVertexArray(m_VertexArray);
 }
 
-void Pine::Renderer::Skybox::Render(Pine::Texture3D* cubeMap)
+void Pine::Renderer::Skybox::Render(const Texture3D* cubeMap)
 {
     if (!cubeMap->IsValid())
     {
@@ -56,7 +56,7 @@ void Pine::Renderer::Skybox::Render(Pine::Texture3D* cubeMap)
 
     if (!m_Shader->IsReady())
     {
-        assert(Pine::Renderer3D::ShaderStorages::Matrix.AttachShader(m_Shader));
+        assert(Pine::Renderer3D::ShaderStorages::Matrix.AttachShaderProgram(m_Shader->GetProgram()));
 
         m_Shader->SetReady(true);
     }

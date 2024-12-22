@@ -153,7 +153,7 @@ const std::vector<ComponentDataBlock<IComponent>*>&Components::GetComponentTypes
 
 IComponent* Components::Create(ComponentType type, bool standalone)
 {
-    auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
+    const auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
 
     IComponent* component;
     std::uint32_t componentLookupId = 0;

@@ -6,5 +6,9 @@
 		"textureSamplers.diffuse": 0,
 		"textureSamplers.specular": 1,
 		"textureSamplers.normal": 2
+	},
+	"versions":
+	{
+		"VERSION_DISCARD": 1
 	}
 }

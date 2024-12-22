@@ -62,6 +62,7 @@ namespace
         Pine::Renderer3D::FrameReset();
         Pine::Renderer3D::SetCamera(context->SceneCamera);
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader3D;
+        Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = true;
 
         for (const auto &modelRenderer: Pine::Components::Get<Pine::ModelRenderer>())
         {
@@ -72,8 +73,16 @@ namespace
 
             auto entity = modelRenderer.GetParent();
 
+            int meshIndex = -1;
             for (const auto &mesh: modelRenderer.GetModel()->GetMeshes())
             {
+                meshIndex++;
+
+                if (modelRenderer.GetModelMeshIndex() != -1 && modelRenderer.GetModelMeshIndex() != meshIndex)
+                {
+                    continue;
+                }
+
                 Pine::Renderer3D::PrepareMesh(mesh);
 
                 m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(ComputeColorIndex(static_cast<int>(entity->GetId())));
@@ -83,6 +92,7 @@ namespace
         }
 
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = nullptr;
+        Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = false;
     }
 
     void HandleRendering2D(Pine::RenderingContext *context)

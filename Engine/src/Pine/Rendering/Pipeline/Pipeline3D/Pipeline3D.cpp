@@ -73,8 +73,12 @@ namespace
 	{
 		for (const auto& [model, renderers] : mapBatch)
 		{
-			for (auto mesh : model->GetMeshes())
+			int meshIndex = -1;
+
+			for (const auto mesh : model->GetMeshes())
 			{
+				meshIndex++;
+
 				if (mesh->GetMaterial() && mesh->GetMaterial()->GetRenderingMode() != materialRenderingMode)
 				{
 					// We'll handle these afterward.
@@ -93,6 +97,15 @@ namespace
 					{
 						hasStencilBufferOverride = true;
 						continue;
+					}
+
+					int modelMeshIndex = renderer->GetModelMeshIndex();
+					if (modelMeshIndex >= 0)
+					{
+						if (modelMeshIndex != meshIndex)
+						{
+							continue;
+						}
 					}
 
 					if (Renderer3D::AddInstance(renderer->GetParent()->GetTransform()->GetTransformationMatrix()))

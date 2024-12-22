@@ -58,6 +58,8 @@ void Pine::Physics3D::Update(double deltaTime)
         return;
     }
 
+    return;
+
     constexpr float timeStep = 1.0 / 120.0;
 
     accumulator += deltaTime;

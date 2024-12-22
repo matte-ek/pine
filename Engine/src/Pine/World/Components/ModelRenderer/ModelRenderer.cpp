@@ -45,3 +45,13 @@ int Pine::ModelRenderer::GetStencilBufferValue() const
 {
     return m_StencilBufferValue;
 }
+
+void Pine::ModelRenderer::SetModelMeshIndex(int index)
+{
+    m_ModelMeshIndex = index;
+}
+
+int Pine::ModelRenderer::GetModelMeshIndex() const
+{
+    return m_ModelMeshIndex;
+}

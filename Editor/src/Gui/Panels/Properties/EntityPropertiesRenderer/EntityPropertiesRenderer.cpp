@@ -16,6 +16,7 @@
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
+#include "Pine/Utilities/Entity/EntityUtilities.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
@@ -82,12 +83,20 @@ namespace
 
 		void RenderModelRenderer(Pine::ModelRenderer* modelRenderer)
 		{
-			auto [newModelSet, newModel] = Widgets::AssetPicker("Model", reinterpret_cast<Pine::IAsset*>(modelRenderer->GetModel()), Pine::AssetType::Model);
+			auto [newModelSet, newModel] = Widgets::AssetPicker("Model", modelRenderer->GetModel(), Pine::AssetType::Model);
 
 		    if (newModelSet)
 			{
 				modelRenderer->SetModel(dynamic_cast<Pine::Model*>(newModel));
 				m_UpdatedComponentData = true;
+			}
+
+			if (modelRenderer->GetParent() != nullptr)
+			{
+				if (ImGui::Button("Unpack Model"))
+				{
+					Pine::Utilities::Entity::UnpackModel(modelRenderer);
+				}
 			}
 		}
 
