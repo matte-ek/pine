@@ -24,6 +24,8 @@ add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_library(Engine ${SOURCES}
         src/Pine/Utilities/Entity/EntityUtilities.hpp
-        src/Pine/Utilities/Entity/EntityUtilities.cpp)
+        src/Pine/Utilities/Entity/EntityUtilities.cpp
+        src/Pine/Rendering/Features/PostProcessing/PostProcessing.hpp
+        src/Pine/Rendering/Features/PostProcessing/PostProcessing.cpp)
 
 target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt OpenAL::OpenAL FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json unofficial::omniverse-physx-sdk::sdk glm::glm mono)

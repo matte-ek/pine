@@ -143,7 +143,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const
     auto data = script->GetScriptData();
     if (!data || !data->IsReady)
     {
-        Log::Warning("Failed to create script object, script data is not ready.");
+        Log::Warning(fmt::format("Failed to create script object for {}, script data is not ready.", script->GetFileName()));
         return {};
     }
 

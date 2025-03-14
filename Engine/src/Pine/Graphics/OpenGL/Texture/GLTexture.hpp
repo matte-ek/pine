@@ -32,6 +32,8 @@ namespace Pine::Graphics
         void SetMipmapFilteringMode(TextureFilteringMode mode) override;
         TextureFilteringMode GetMipmapFilteringMode() override;
 
+        void SetMaxAnisotropy(float value) override;
+
         void SetMultiSampled(bool multiSampled) override;
         bool IsMultiSampled() override;
 

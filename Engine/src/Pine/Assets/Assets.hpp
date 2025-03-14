@@ -50,11 +50,11 @@ namespace Pine::Assets
 
     IAsset* GetById(std::uint32_t id);
 
-    IAsset* GetOrLoad(const std::string& path, bool includeFilePath = false);
+    IAsset* GetOrLoad(const std::string& inputPath, bool includeFilePath = false);
 
     // Moves an already existing asset to a new path, the newPath needs to be a file system path,
     // and the asset will use the same root path as the old path.
-    void MoveAsset(Pine::IAsset* asset, const std::filesystem::path& newFilePath);
+    void MoveAsset(IAsset* asset, const std::filesystem::path& newFilePath);
 
     // Returns the entire map used internally within the asset manager
     const std::unordered_map<std::string, IAsset*>& GetAll();
@@ -68,5 +68,7 @@ namespace Pine::Assets
     // Gets what state the asset manager is in, such as if we're in the process of loading a directory.
     // Useful for parts of the engine to determine if assets can be added as an AssetResolveReference.
     AssetManagerState GetState();
+
+    const std::string& GetDirectoryBase();
 
 }

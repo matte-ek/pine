@@ -263,6 +263,11 @@ Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetMipmapFilteri
     return m_MipmapFilteringMode;
 }
 
+void Pine::Graphics::GLTexture::SetMaxAnisotropy(const float value)
+{
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, value);
+}
+
 std::uint32_t Pine::Graphics::GLTexture::GetId() const
 {
     return m_Id;

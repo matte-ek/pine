@@ -19,11 +19,13 @@ Pine::Model *Pine::ModelRenderer::GetModel() const
 void Pine::ModelRenderer::LoadData(const nlohmann::json &j)
 {
     Serialization::LoadAsset<Pine::Model>(j, "model", m_Model);
+    Serialization::LoadValue(j, "modelMeshIndex", m_ModelMeshIndex);
 }
 
 void Pine::ModelRenderer::SaveData(nlohmann::json &j)
 {
     j["model"] = Serialization::StoreAsset(m_Model);
+    j["modelMeshIndex"] = m_ModelMeshIndex;
 }
 
 void Pine::ModelRenderer::SetOverrideStencilBuffer(bool value)

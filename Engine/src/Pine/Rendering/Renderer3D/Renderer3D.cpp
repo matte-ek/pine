@@ -18,7 +18,10 @@ namespace
     Pine::Graphics::IShaderProgram* m_Shader = nullptr;
     Pine::ShaderVersion m_ShaderVersion = Pine::ShaderVersion::Default;
 
+    Pine::Graphics::IUniformVariable* m_LightIndices = nullptr;
     Pine::Graphics::IUniformVariable* m_HasTangentData = nullptr;
+
+    Pine::Vector4i m_LightIndicesData;
 
     Pine::Mesh* m_Mesh = nullptr;
 
@@ -172,6 +175,11 @@ void Pine::Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, int writ
         m_GraphicsAPI->SetStencilFunction(Graphics::TestFunction::Always, writeStencilBuffer, 0x0);
     }
 
+    if (m_LightIndices != nullptr)
+    {
+        m_LightIndices->LoadVector4(m_LightIndicesData);
+    }
+
     if (m_Mesh->HasElementBuffer())
     {
         m_GraphicsAPI->DrawElements(Graphics::RenderMode::Triangles, m_Mesh->GetRenderCount());
@@ -194,6 +202,11 @@ void Pine::Renderer3D::RenderMeshInstanced()
         return;
 
     ShaderStorages::Transform.Upload(sizeof(Matrix4f) * m_CurrentInstanceIndex);
+
+    if (m_LightIndices != nullptr)
+    {
+        m_LightIndices->LoadVector4(m_LightIndicesData);
+    }
 
     if (m_Mesh->HasElementBuffer())
     {
@@ -260,6 +273,7 @@ void Pine::Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVe
     m_ShaderVersion = version;
 
     m_HasTangentData = m_Shader->GetUniformVariable("hasTangentData");
+    m_LightIndices = m_Shader->GetUniformVariable("lightIndices");
 }
 
 void Pine::Renderer3D::SetCamera(Camera* camera)
@@ -289,21 +303,48 @@ void Pine::Renderer3D::AddLight(const Light *light)
     const int lightSlot = light->GetLightType() == LightType::Directional ? 0 : m_CurrentLightIndex++;
     auto& lightData = ShaderStorages::Lights.Data().Lights[lightSlot];
 
+    const auto rotation = normalize(rotate(light->GetParent()->GetTransform()->GetRotation(), Vector3f(0.f, 0.f, -1.f)));
+
     lightData.Position = light->GetParent()->GetTransform()->GetPosition();
-    lightData.Rotation = light->GetParent()->GetTransform()->GetEulerAngles(); // TODO: This won't account for parent rotations
+    lightData.Rotation = rotation;
     lightData.Color = light->GetLightColor();
+    lightData.Attenuation = light->GetLightAttenuation();
+    lightData.Angle = light->GetSpotlightRadius();
+    lightData.AngleSmoothness = light->GetSpotlightCutoff();
+
+    if (light->GetLightType() == LightType::SpotLight)
+    {
+        if (m_LightIndicesData.x == 0)
+            m_LightIndicesData.x = lightSlot;
+        else
+            m_LightIndicesData.y = lightSlot;
+    }
+
+    if (light->GetLightType() == LightType::PointLight)
+    {
+        if (m_LightIndicesData.z == 0)
+            m_LightIndicesData.z = lightSlot;
+        else
+            m_LightIndicesData.w = lightSlot;
+    }
 }
 
 void Pine::Renderer3D::UploadLights()
 {
     ShaderStorages::Lights.Upload();
 
-    m_CurrentLightIndex = 0;
+    m_CurrentLightIndex = 1;
 }
 
 void Pine::Renderer3D::FrameReset()
 {
+    for (auto& Light : ShaderStorages::Lights.Data().Lights)
+    {
+        Light.Color = Vector3f(0.0f, 0.0f, 0.0f);
+    }
+
     m_Shader = nullptr;
     m_Mesh = nullptr;
     m_Material = nullptr;
+    m_LightIndicesData = Vector4i(0);
 }

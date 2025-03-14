@@ -18,7 +18,6 @@
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 
-
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -452,7 +451,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
     }
 
     // At this point we may now load the remaining assets that has dependencies.
-    for (auto asset : dependencyAssets)
+    for (const auto asset : dependencyAssets)
     {
         const auto& dependencies = asset->GetDependencies();
 
@@ -527,12 +526,18 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
     for (auto& assetResolveReference : m_AssetResolveReferences)
     {
         const auto refMapPath = GetAssetMapPath(assetResolveReference.m_Path, useAsRelativePath ? directoryPath.string() : "", "");
-
-        auto asset = Get(refMapPath);
+        const auto asset = Get(refMapPath);
 
         if (!asset)
         {
-            Log::Warning(fmt::format("Failed to resolve asset reference '{}'.", assetResolveReference.m_Path));
+            // Ignoring warning here since the "Get" function will already warn the user.
+            //Log::Warning(fmt::format("Failed to resolve asset reference '{}'.", assetResolveReference.m_Path));
+            continue;
+        }
+
+        if (assetResolveReference.m_Type != AssetType::Invalid && asset->GetType() != assetResolveReference.m_Type)
+        {
+            Log::Warning(fmt::format("Failed to resolve asset reference '{}', asset type is invalid.", assetResolveReference.m_Path));
             continue;
         }
 
@@ -593,8 +598,11 @@ IAsset* Assets::GetById(std::uint32_t id)
     return m_AssetsId[id];
 }
 
-IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)
+IAsset *Assets::GetOrLoad(const std::string &inputPath, const bool includeFilePath)
 {
+    // This should never be called during a LoadDirectory operation!!!
+    assert(m_State != AssetManagerState::LoadDirectory);
+
     const auto path = String::Replace(inputPath, "\\", "/");
 
     if (includeFilePath)
@@ -604,12 +612,14 @@ IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)
     }
 
     if (m_Assets.count(path) == 0)
+    {
         return LoadFromFile(path);
+    }
 
     return m_Assets[path];
 }
 
-void Assets::MoveAsset(Pine::IAsset *asset, const std::filesystem::path &newFilePath)
+void Assets::MoveAsset(IAsset *asset, const std::filesystem::path &newFilePath)
 {
     const auto newPath = GetAssetMapPath(newFilePath, asset->GetFileRootPath().string(), "");
     const auto oldPath = asset->GetPath();

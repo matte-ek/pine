@@ -248,27 +248,6 @@ void Panels::EntityList::Render()
             RenderEntityMoveSeparator(i);
     }
 
-    if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_D))
-    {
-        auto selectedEntities = Selection::GetSelectedEntities();
-
-        Selection::Clear();
-
-        for (auto selectedEntity: selectedEntities)
-        {
-            Pine::Blueprint temporaryBlueprint;
-
-            temporaryBlueprint.CreateFromEntity(selectedEntity);
-
-            auto entity = temporaryBlueprint.Spawn();
-
-            entity->SetName(entity->GetName() + " [Copy]");
-
-            Selection::Add(entity);
-
-        }
-    }
-
     ImGui::PopStyleVar();
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !m_DidSelectEntity)

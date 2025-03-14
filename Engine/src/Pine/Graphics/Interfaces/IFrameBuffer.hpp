@@ -41,7 +41,7 @@ namespace Pine::Graphics
         virtual void Bind() = 0;
         virtual void Dispose() = 0;
 
-        virtual void Blit(IFrameBuffer* source, Vector4i srcRect = Vector4i(-1), Vector4i dstRect = Vector4i(-1)) = 0;
+        virtual void Blit(IFrameBuffer* source, Buffers buffer = ColorBuffer, Vector4i srcRect = Vector4i(-1), Vector4i dstRect = Vector4i(-1)) = 0;
 
         virtual void ReadPixels(Vector2i position, Vector2i size, ReadFormat readFormat, TextureDataFormat dataFormat, size_t bufferSize, void* buffer) = 0;
 

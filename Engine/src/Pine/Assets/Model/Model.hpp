@@ -47,7 +47,7 @@ namespace Pine
         bool m_UsedAsCollider = false;
 
         void ProcessMesh(aiMesh *mesh, const aiScene *scene);
-        void ProcessNode(aiNode *node, const aiScene *scene);
+        void ProcessNode(const aiNode *node, const aiScene *scene);
 
         bool LoadModel();
         void UploadModel();

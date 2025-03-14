@@ -20,4 +20,4 @@ void main()
     vOut.uv = vertex;
 
     gl_Position = wPos.xyww;
-}  
+}

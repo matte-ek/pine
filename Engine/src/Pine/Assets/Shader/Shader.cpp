@@ -13,12 +13,12 @@
 
 namespace
 {
-    const std::array<const char*, 3> ShaderTypesString = { "Vertex", "Fragment", "Compute" };
+    constexpr std::array<const char*, 3> ShaderTypesString = { "Vertex", "Fragment", "Compute" };
 
     bool LoadAndCompileShader(const std::string& filePath,
                               const nlohmann::json& json,
                               Pine::Graphics::IShaderProgram* program,
-                              Pine::Shader* shader,
+                              const Pine::Shader* shader,
                               Pine::Graphics::ShaderType type,
                               const std::vector<std::string>& versionMacros)
     {
@@ -30,7 +30,7 @@ namespace
 
         if (!std::filesystem::exists(filePath) && !hasParentShader)
         {
-            Pine::Log::Error("Failed to find file " + filePath);
+            Pine::Log::Error("Failed to find shader file " + filePath);
             return false;
         }
 
@@ -98,9 +98,10 @@ namespace
     // Gets asset's parent directory and adds that to the path specified
     // in the JSON file. We do this because the file path specified in the JSON
     // is relative to the .shader file, and we need the path relative to the application
-    std::string GetAbsolutePath(const Pine::Shader* shader, const std::string& filePath)
+    std::string GetAbsolutePath(const Pine::Shader* shader, const std::string& filePath, bool useEnginePath = false)
     {
-        const auto assetParentDirectory = shader->GetFilePath().parent_path().string();
+        const auto path = useEnginePath ? std::filesystem::path(shader->GetPath()) : shader->GetFilePath();
+        const auto assetParentDirectory = path.parent_path().string();
 
         return assetParentDirectory + "/" + filePath;
     }
@@ -110,12 +111,16 @@ namespace
 Pine::Shader::Shader()
 {
     m_Type = AssetType::Shader;
+    m_LoadMode = AssetLoadMode::SingleThread;
+
+    // A shader will always have dependencies, as it will have source files
+    m_HasDependencies = true;
 }
 
 bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
 {
     // Attempt to parse JSON
-    auto jsonOpt = Serialization::LoadFromFile(m_FilePath);
+    const auto jsonOpt = Serialization::LoadFromFile(m_FilePath);
 
     if (!jsonOpt.has_value())
         return false;
@@ -148,7 +153,7 @@ bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
 
 void Pine::Shader::Dispose()
 {
-    for (auto shaderProgram : m_ShaderPrograms)
+    for (const auto shaderProgram : m_ShaderPrograms)
     {
         Graphics::GetGraphicsAPI()->DestroyShaderProgram(shaderProgram);
     }
@@ -233,7 +238,7 @@ std::optional<std::string> Pine::Shader::GetShaderSourceFile(Graphics::ShaderTyp
         return std::nullopt;
 
     const auto j = jsonOpt.value();
-    const auto shaderTypeString = Pine::String::ToLower(ShaderTypesString[static_cast<int>(type)]);
+    const auto shaderTypeString = String::ToLower(ShaderTypesString[static_cast<int>(type)]);
 
     if (!j.contains(shaderTypeString))
         return std::nullopt;
@@ -262,11 +267,11 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
     }
 
     // Prepare graphics shader program
-    auto shaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
+    const auto shaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
 
     if (j.contains("parent"))
     {
-        m_ParentShader = Pine::Assets::Get<Pine::Shader>(j["parent"]);
+        m_ParentShader = Pine::Assets::Get<Shader>(j["parent"]);
         m_BaseShader = false;
 
         if (!m_ParentShader)
@@ -286,7 +291,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
         if (versionMacros.empty())
         {
-            m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, vertexPath)));
+            m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, vertexPath, true)));
         }
     }
 
@@ -299,7 +304,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
         if (versionMacros.empty())
         {
-            m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, fragmentPath)));
+            m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, fragmentPath, true)));
         }
     }
 
@@ -312,7 +317,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
         if (versionMacros.empty())
         {
-            m_ShaderFiles.push_back(Assets::GetOrLoad(GetAbsolutePath(this, computePath)));
+            m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, computePath, true)));
         }
     }
 
@@ -365,7 +370,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
     return true;
 }
 
-bool Pine::Shader::HasShaderVersion(Pine::ShaderVersion version) const
+bool Pine::Shader::HasShaderVersion(ShaderVersion version) const
 {
     if (version == ShaderVersion::Default)
     {

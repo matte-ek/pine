@@ -17,7 +17,7 @@ namespace Pine::Engine
 
         // The maximum amount of threads the asset manager may use while
         // loading assets from a directory.
-        int m_AssetsLoadThreadCount = 4;
+        int m_AssetsLoadThreadCount = 8;
 
         // Refers to both entity and component count
         std::uint32_t m_MaxObjectCount = 8096;

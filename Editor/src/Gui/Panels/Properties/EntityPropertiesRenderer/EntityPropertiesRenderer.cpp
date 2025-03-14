@@ -91,9 +91,11 @@ namespace
 				m_UpdatedComponentData = true;
 			}
 
-			if (modelRenderer->GetParent() != nullptr)
+			if (modelRenderer->GetParent() != nullptr &&
+				modelRenderer->GetModel() != nullptr &&
+				modelRenderer->GetModelMeshIndex() == -1)
 			{
-				if (ImGui::Button("Unpack Model"))
+				if (ImGui::Button("Unpack Model", ImVec2(100.f, 30.f)))
 				{
 					Pine::Utilities::Entity::UnpackModel(modelRenderer);
 				}
@@ -142,8 +144,11 @@ namespace
 		{
 			int lightType = static_cast<int>(light->GetLightType());
 			Pine::Vector3f lightColor = light->GetLightColor();
+			Pine::Vector3f lightAttenuation = light->GetLightAttenuation();
+			float spotlightRadius = light->GetSpotlightRadius();
+			float spotlightCutOff = light->GetSpotlightCutoff();
 
-			if (Widgets::Combobox("Light Type", &lightType, "Directional\0Point Light\0Spot Light\0"))
+			if (Widgets::Combobox("Light Type", &lightType, "Directional\0Spot Light\0Point Light\0"))
 			{
 				light->SetLightType(static_cast<Pine::LightType>(lightType));
 				m_UpdatedComponentData = true;
@@ -153,6 +158,42 @@ namespace
 			{
 				light->SetLightColor(lightColor);
 				m_UpdatedComponentData = true;
+			}
+
+			if (light->GetLightType() != Pine::LightType::Directional)
+			{
+				if (Widgets::SliderFloat("Attenuation Constant Factor", &lightAttenuation.x, 0.f, 1.f))
+				{
+					light->SetLightAttenuation(lightAttenuation);
+					m_UpdatedComponentData = true;
+				}
+
+				if (Widgets::SliderFloat("Attenuation Linear Factor", &lightAttenuation.y, 0.f, 1.f))
+				{
+					light->SetLightAttenuation(lightAttenuation);
+					m_UpdatedComponentData = true;
+				}
+
+				if (Widgets::SliderFloat("Attenuation Quadratic Factor", &lightAttenuation.z, 0.f, 1.f))
+				{
+					light->SetLightAttenuation(lightAttenuation);
+					m_UpdatedComponentData = true;
+				}
+			}
+
+			if (light->GetLightType() == Pine::LightType::PointLight)
+			{
+				if (Widgets::SliderFloat("Spotlight Radius", &spotlightRadius, 0.f, 1.f))
+				{
+					light->SetSpotlightRadius(spotlightRadius);
+					m_UpdatedComponentData = true;
+				}
+
+				if (Widgets::SliderFloat("Spotlight Cutoff", &spotlightCutOff, 0.f, 1.f))
+				{
+					light->SetSpotlightCutoff(spotlightCutOff);
+					m_UpdatedComponentData = true;
+				}
 			}
 		}
 

@@ -7,16 +7,21 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 
+#include "Pine/Rendering/Features/PostProcessing/PostProcessing.hpp"
+
 namespace
 {
     // All rendering contexts being used
-    std::vector<Pine::RenderingContext *> m_RenderingContexts;
+    std::vector<Pine::RenderingContext*> m_RenderingContexts;
 
     // The rendering context that is used to render the scene
     Pine::RenderingContext *m_CurrentRenderingContext;
 
     // A fallback "default" rendering context to quickly get up and running.
     Pine::RenderingContext m_DefaultRenderingContext;
+
+    // The frame buffer used when rendering internally
+    Pine::Graphics::IFrameBuffer* m_InternalFrameBuffer;
 
     // Used to track delta time between frames
     double m_LastFrameTime = 0;
@@ -30,21 +35,27 @@ namespace
             func(context, stage, deltaTime);
         }
     }
-
 }
 
 void Pine::RenderManager::Setup()
 {
+    m_InternalFrameBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
+    m_InternalFrameBuffer->Create(1920, 1080, Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer | Graphics::Buffers::StencilBuffer);
+
     m_DefaultRenderingContext.Size = Vector2f(Engine::GetEngineConfiguration().m_WindowSize);
     
     SetPrimaryRenderingContext(&m_DefaultRenderingContext);
 
     Pipeline2D::Setup();
     Pipeline3D::Setup();
+    Rendering::PostProcessing::Setup();
 }
 
 void Pine::RenderManager::Shutdown()
 {
+    Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_InternalFrameBuffer);
+
+    Rendering::PostProcessing::Shutdown();
     Pipeline3D::Shutdown();
     Pipeline2D::Shutdown();
 }
@@ -95,15 +106,9 @@ void Pine::RenderManager::Run()
         // Reset statistics
         renderingContext->DrawCalls = 0;
 
-        if (renderingContext->FrameBuffer)
-        {
-            renderingContext->FrameBuffer->Bind();
-        }
-        else
-        {
-            Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr); // This will just render everything onto the screen.
-        }
+        m_InternalFrameBuffer->Bind();
 
+        // If we're not running in the editor, only update the scene camera.
         if (engineConfig.m_ProductionMode)
         {
             // Make sure we got the camera's projection and view matrix ready for the scene
@@ -154,7 +159,10 @@ void Pine::RenderManager::Run()
 
             // Post Processing
             CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
+
+            Rendering::PostProcessing::Render(renderingContext, m_InternalFrameBuffer);
         }
+
     }
 
     Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);

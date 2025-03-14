@@ -121,6 +121,8 @@ namespace Pine::Graphics
         virtual void SetMipmapFilteringMode(TextureFilteringMode mode) = 0;
         virtual TextureFilteringMode GetMipmapFilteringMode() = 0;
 
+        virtual void SetMaxAnisotropy(float value) = 0;
+
         virtual void SetMultiSampled(bool multiSampled) = 0;
         virtual bool IsMultiSampled() = 0;
 

@@ -25,7 +25,7 @@ namespace Pine
 
         bool m_BaseShader = true;
 
-        Pine::Shader* m_ParentShader = nullptr;
+        Shader* m_ParentShader = nullptr;
 
         std::vector<IAsset*> m_ShaderFiles;
 
@@ -45,7 +45,7 @@ namespace Pine
 
         bool IsBaseShader() const;
 
-        Pine::Shader* GetParentShader() const;
+        Shader* GetParentShader() const;
 
         std::optional<std::string> GetShaderSourceFile(Graphics::ShaderType type) const;
 

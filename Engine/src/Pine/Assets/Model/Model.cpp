@@ -116,7 +116,7 @@ void Model::ProcessMesh(aiMesh *mesh, const aiScene *scene)
     m_MeshLoadData.push_back(loadData);
 }
 
-void Model::ProcessNode(aiNode *node, const aiScene *scene)
+void Model::ProcessNode(const aiNode *node, const aiScene *scene)
 {
     // Loop through all the meshes within the model
     for (std::uint32_t i = 0; i < node->mNumMeshes; i++)
@@ -145,8 +145,8 @@ bool Model::LoadModel()
 
     const auto scene = importer.ReadFile(
             m_FilePath.string().c_str(),
-                          aiProcess_Triangulate | aiProcess_GenUVCoords |
-                                 aiProcess_GenNormals | aiProcess_GenBoundingBoxes |
+                          aiProcess_Triangulate | aiProcess_FlipUVs |
+                                 aiProcess_GenSmoothNormals | aiProcess_GenBoundingBoxes |
                                  aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
                                  aiProcess_GlobalScale);
 

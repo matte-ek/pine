@@ -97,6 +97,18 @@ Pine::Entity* Pine::Entity::GetParent() const
     return m_Parent;
 }
 
+/*
+void Pine::Entity::SetBlueprint(Blueprint *blueprint)
+{
+    m_AssetBlueprint = blueprint;
+}
+
+Pine::Blueprint * Pine::Entity::GetBlueprint() const
+{
+    return m_AssetBlueprint.Get();
+}
+*/
+
 Pine::IComponent* Pine::Entity::AddComponent(ComponentType type)
 {
     const auto component = Components::Create(type);

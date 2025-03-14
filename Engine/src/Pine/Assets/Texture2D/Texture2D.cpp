@@ -5,6 +5,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <Pine/Core/String/String.hpp>
 
 Pine::Texture2D::Texture2D()
 {
@@ -76,7 +77,7 @@ void Pine::Texture2D::UploadGpuData()
     }
 
     // TODO: Use some sort of load-preset option?
-    m_Texture->SetMipmapFilteringMode(Pine::Graphics::TextureFilteringMode::Linear);
+    m_Texture->SetMipmapFilteringMode(Graphics::TextureFilteringMode::Linear);
 
     stbi_image_free(m_PreparedTextureData);
 

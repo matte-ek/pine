@@ -106,8 +106,11 @@ namespace
         if (lightEntity == nullptr)
         {
             lightEntity = new Pine::Entity(0);
+
             lightEntity->AddComponent(new Pine::Transform());
             lightEntity->AddComponent(new Pine::Light());
+
+            lightEntity->GetTransform()->SetEulerAngles(Pine::Vector3f(0.f, -180.f, 0.f));
         }
 
         if (cameraEntity == nullptr)

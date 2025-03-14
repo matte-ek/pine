@@ -89,7 +89,7 @@ namespace
 
 				bool hasStencilBufferOverride = false;
 
-				for (auto renderer : renderers)
+				for (const auto renderer : renderers)
 				{
 					renderer->GetParent()->GetTransform()->OnRender(0.f);
 
@@ -164,12 +164,15 @@ void Pipeline3D::Run(const RenderingContext& context)
 	Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 	Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
 
+	Graphics::GetGraphicsAPI()->SetBlendingEnabled(true);
+	Graphics::GetGraphicsAPI()->SetBlendingFunction(Graphics::BlendingFunction::SourceAlpha, Graphics::BlendingFunction::OneMinusSourceAlpha);
+
 	// Prepare Data
 	const auto renderingBatch = GetRenderingBatch();
 	const auto lights = GetLights();
 
 	// Upload Data
-	for (auto light : lights)
+	for (const auto light : lights)
 	{
 		Renderer3D::AddLight(light);
 	}

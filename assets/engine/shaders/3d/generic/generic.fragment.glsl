@@ -19,6 +19,13 @@ struct Light
 	float cutOffSmoothness;
 };
 
+struct BaseResult
+{
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+};
+
 layout(std140) uniform Matrices
 {
 	mat4 projectionMatrix;
@@ -53,12 +60,14 @@ uniform TextureSamplers textureSamplers;
 uniform bool hasTangentData;
 
 // Light indices from Lights that should affect this object
-uniform ivec4 lightsIndices;
+uniform ivec4 lightIndices;
 
 #shader hooks
 
-vec3 calculateBaseLightning(vec3 lightDirection, int lightIndex)
+BaseResult calculateBaseLightning(vec3 lightDirection, int lightIndex)
 {
+    BaseResult result;
+
 #if defined(OVERRIDE_MAT_COLORS)
     vec3 diffuseColor = override.diffuseColor;
 #else
@@ -80,16 +89,98 @@ vec3 calculateBaseLightning(vec3 lightDirection, int lightIndex)
     vec3 halfwayDirection = normalize(lightDirection + vIn.cameraDir);
     float specularFactor = pow(max(dot(normal, halfwayDirection), 0.0), material.shininess);
 
-    vec3 ambient = (material.ambientColor + vec3(0.1f)) * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
+    vec3 ambient = (material.ambientColor + vec3(0)) * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
     vec3 diffuse = lights[lightIndex].color * diffuseColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz * diffuseFactor;
-    vec3 specular = lights[lightIndex].color * material.specularColor * texture(textureSamplers.specular, vIn.uv * material.uvScale).xyz * specularFactor;
+    vec3 specular = lights[lightIndex].color * material.specularColor * (1 - texture(textureSamplers.specular, vIn.uv * material.uvScale).xyz) * specularFactor;
 
-    return diffuse + specular + (1.f - diffuseFactor) * ambient;
+    result.diffuse = diffuse;
+    result.specular = specular;
+    result.ambient = (1.f - diffuseFactor) * ambient;
+
+    return result;
 }
 
 vec3 calculateDirectionalLight()
 {
-    return calculateBaseLightning(vIn.lightDir[0], 0);
+    BaseResult result = calculateBaseLightning(vIn.lightDir[0], 0);
+
+    return result.diffuse + result.specular + result.ambient;
+}
+
+vec3 calculateSpotLight(int index)
+{
+    BaseResult baseResult = calculateBaseLightning(vIn.lightDir[index], index);
+
+    float lightDistance = length(lights[index].position - vIn.worldPosition);
+    
+    // x component being the constant factor, y is the linear factor and z the quadratic factor
+    vec3 attenuationFactors = lights[index].attenuation;
+
+    float attenuation = 1.0 / (attenuationFactors.x +
+                               attenuationFactors.y * lightDistance + 
+                               attenuationFactors.z * (lightDistance * lightDistance));
+
+    baseResult.diffuse *= attenuation;
+    baseResult.specular *= attenuation;
+
+    return baseResult.diffuse + baseResult.specular + baseResult.ambient;
+}
+
+vec3 calculatePointLight(int index)
+{
+    BaseResult baseResult = calculateBaseLightning(vIn.lightDir[index], index);
+
+    float lightDistance = length(lights[index].position - vIn.worldPosition);
+    
+    // x component being the constant factor, y is the linear factor and z the quadratic factor
+    vec3 attenuationFactors = lights[index].attenuation;
+
+    float attenuation = 1.0 / (attenuationFactors.x +
+                               attenuationFactors.y * lightDistance + 
+                               attenuationFactors.z * (lightDistance * lightDistance));
+
+    baseResult.diffuse *= attenuation;
+    baseResult.specular *= attenuation;
+
+    float lightRotationDirection = dot(vIn.lightDir[index], -lights[index].rotation);
+    float lightRotationDirectionStep = smoothstep(lights[index].cutOffAngle, lights[index].cutOffSmoothness, lightRotationDirection);
+
+    baseResult.diffuse *= lightRotationDirectionStep;
+    baseResult.specular *= lightRotationDirectionStep;
+
+    return baseResult.diffuse + baseResult.specular + baseResult.ambient;
+}
+
+vec3 calculateSpotLights()
+{
+    vec3 a = vec3(0.f);
+    vec3 b = vec3(0.f);
+
+    if (lightIndices.x != 0) {
+        a = calculateSpotLight(lightIndices.x);
+    }
+
+    if (lightIndices.y != 0) {
+        b = calculateSpotLight(lightIndices.y);
+    }
+
+    return a + b;
+}
+
+vec3 calculatePointLights()
+{
+    vec3 a = vec3(0.f);
+    vec3 b = vec3(0.f);
+
+    if (lightIndices.z != 0) {
+        a = calculatePointLight(lightIndices.z);
+    }
+
+    if (lightIndices.w != 0) {
+        b = calculatePointLight(lightIndices.w);
+    }
+
+    return a + b;
 }
 
 void main(void)
@@ -104,8 +195,10 @@ void main(void)
 #endif
 
     vec4 directionalLight = vec4(calculateDirectionalLight(), 1.0);
+    vec4 spotLights = vec4(calculateSpotLights(), 1.0);
+    vec4 pointLights = vec4(calculatePointLights(), 1.0);
 
-    m_OutputColor = directionalLight;
+    m_OutputColor = directionalLight + spotLights + pointLights;
 
     #shader postFragment
 }

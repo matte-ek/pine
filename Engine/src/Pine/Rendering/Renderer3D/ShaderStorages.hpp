@@ -38,16 +38,20 @@ namespace Pine::Renderer3D::ShaderStorages
         {
             Vector3f Position = Vector3f(0.f);
             float Pad0 = 0;
+
             Vector3f Rotation = Vector3f(0.f);
             float Pad1 = 0;
+
             Vector3f Color = Vector3f(0.f);
             float Pad2 = 0;
+
             Vector3f Attenuation = Vector3f(0.f);
-            float Pad3 = 0;
             float Angle = 0.f;
+
             float AngleSmoothness = 0.f;
             float Pad4 = 0;
             float Pad5 = 0;
+            float Pad6 = 0;
         }Lights[Specifications::General::DYNAMIC_LIGHT_COUNT];
     };
 

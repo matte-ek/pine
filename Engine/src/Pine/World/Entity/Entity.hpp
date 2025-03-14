@@ -9,7 +9,6 @@
 
 namespace Pine
 {
-
     class Entity
     {
     private:
@@ -31,6 +30,8 @@ namespace Pine
         Script::ObjectHandle m_EntityScriptHandle = { nullptr, 0 };
 
         Entity* m_Parent = nullptr;
+
+        //AssetHandle<Blueprint> m_AssetBlueprint;
     public:
         explicit Entity(std::uint32_t id);
         Entity(std::uint32_t id, std::uint32_t internalId);
@@ -52,6 +53,9 @@ namespace Pine
 
         void SetParent(Entity* entity);
         Entity* GetParent() const;
+
+        //void SetBlueprint(Blueprint* blueprint);
+        //Blueprint* GetBlueprint() const;
 
         void CreateScriptHandle();
         void DestroyScriptHandle();
