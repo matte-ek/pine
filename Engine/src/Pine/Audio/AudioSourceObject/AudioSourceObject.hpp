@@ -4,14 +4,13 @@
 
 namespace Pine::Audio
 {
-    class AudioSource
+    class AudioSourceObject
     {
     private:
         ALuint m_id;
-
     public:
-        AudioSource(ALuint buffer);
-        ~AudioSource();
+        AudioSourceObject(ALuint buffer);
+        ~AudioSourceObject();
 
         ALuint GetID() const;
         float GetSeconds() const;

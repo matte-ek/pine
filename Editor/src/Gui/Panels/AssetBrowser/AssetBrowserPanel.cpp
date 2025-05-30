@@ -7,7 +7,6 @@
 #include "Pine/Core/String/String.hpp"
 #include "imgui.h"
 #include "IconsMaterialDesign.h"
-#include <cstring>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -40,6 +39,7 @@ namespace
     {
         std::filesystem::path Path;
         EntryType Type = EntryType::File;
+        bool IsBackwardsDirectory = false;
 
         std::string DisplayText;
 
@@ -50,7 +50,7 @@ namespace
         PathEntry* Parent = nullptr;
         std::vector<PathEntry*> Children;
 
-        void Dispose()
+        void Dispose() const
         {
             for (const auto child : Children)
             {
@@ -58,7 +58,7 @@ namespace
 
                 delete child;
             }
-        } 
+        }
     };
 
     bool m_Active = true;
@@ -73,12 +73,14 @@ namespace
         // Add a "go back" directory for the user first, displayed as "..."
         if (entry->Parent != nullptr)
         {
+            // ReSharper disable once CppDFAMemoryLeak
             const auto backEntry = new PathEntry;
 
             backEntry->Type = EntryType::Directory;
             backEntry->Path = entry->Parent->Path;
             backEntry->Parent = entry->Parent;
             backEntry->DisplayText = "...";
+            backEntry->IsBackwardsDirectory = true;
 
             entry->Children.push_back(backEntry);
         }
@@ -118,7 +120,7 @@ namespace
                     newEntry->Icon = IconStorage::GetIconTexture(newEntry->Asset->GetPath());
                 }
             }
-            else 
+            else
             {
                 ProcessDirectoryTree(directoryEntry, newEntry);
             }
@@ -131,7 +133,7 @@ namespace
     {
         if (root->Path == path)
             return root;
-        if (root->Type != EntryType::Directory || root->DisplayText == "...")
+        if (root->Type != EntryType::Directory || root->IsBackwardsDirectory)
             return nullptr;
 
         for (const auto& entry : root->Children)
@@ -145,7 +147,7 @@ namespace
 
     void MapDirectoryEntry(const std::filesystem::path& path, const std::string& displayName, PathEntry* entry)
     {
-        auto mappedEntry = new PathEntry;
+        const auto mappedEntry = new PathEntry;
 
         mappedEntry->Type = EntryType::Directory;
         mappedEntry->Path = path;
@@ -215,7 +217,7 @@ namespace
 
             if (Widgets::Icon(directory->DisplayText, folderIcon, m_SelectedItem == directory, m_IconSize))
             {
-                if (directory->DisplayText == "...")
+                if (directory->IsBackwardsDirectory)
                     clickedItem = directory->Parent;
                 else
                     clickedItem = directory;
@@ -300,12 +302,12 @@ namespace
             if (file->Type == EntryType::Directory)
                 continue;
 
-            if (auto clickedAsset = RenderAssetEntry(file))
+            if (const auto clickedAsset = RenderAssetEntry(file))
             {
                 clickedItem = clickedAsset;
             }
         }
-        
+
         return clickedItem;
     }
 
@@ -323,7 +325,7 @@ namespace
                 continue;
             }
 
-            if (auto clickedAsset = RenderAssetEntry(file))
+            if (const auto clickedAsset = RenderAssetEntry(file))
             {
                 clickedItem = clickedAsset;
             }
@@ -334,7 +336,7 @@ namespace
             if (directory->Type == EntryType::File)
                 continue;
 
-            if (auto clickedAsset = RenderEntrySearch(directory, searchQuery))
+            if (const auto clickedAsset = RenderEntrySearch(directory, searchQuery))
             {
                 clickedItem = clickedAsset;
             }
@@ -347,7 +349,7 @@ namespace
     {
         static int itemCreationType = -1;
 
-        static auto renderRenameDialog = [&](bool refresh)
+        static auto renderRenameDialog = [&](const bool refresh)
         {
             ImGui::SetNextWindowSize(ImVec2(300.f, 120.f));
 
@@ -391,7 +393,7 @@ namespace
             }
         };
 
-        static auto createItemDialog = [&](bool refresh)
+        static auto createItemDialog = [&](const bool refresh)
         {
             ImGui::SetNextWindowSize(ImVec2(320.f, 135.f));
 
@@ -473,7 +475,7 @@ namespace
 
                     if (!finalAssetPath.empty())
                     {
-                        auto newAsset = Pine::Assets::Get(finalAssetPath, true);
+                        const auto newAsset = Pine::Assets::Get(finalAssetPath, true);
                         if (newAsset)
                         {
                             Selection::AddAsset(newAsset);
@@ -579,9 +581,108 @@ namespace
         renderRenameDialog(openRenameItemDialog);
         createItemDialog(openCreateItemDialog);
     }
+
+    void RenderEntryTreeNode(PathEntry* entry)
+    {
+        static std::string renderText(128, ' ');
+
+        renderText.clear();
+
+        auto flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_FramePadding;
+        bool hasDirectoryChildren = false;
+
+        for (const auto child : entry->Children)
+        {
+            if (child->Type == EntryType::File)
+                continue;
+            if (child->IsBackwardsDirectory)
+                continue;
+
+            hasDirectoryChildren = true;
+
+            break;
+        }
+
+        if (entry == m_Root)
+        {
+            flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+            renderText = entry->DisplayText + "##" + entry->Path.string();
+        }
+        else
+        {
+            renderText = ICON_MD_FOLDER " " + entry->DisplayText + "##" + entry->Path.string();
+        }
+
+        if (!hasDirectoryChildren)
+        {
+            flags |= ImGuiTreeNodeFlags_Leaf;
+
+            // Oh yes, this is stupid as fuck.
+            // Just hacky workaround since I do not
+            // know how to deal with imgui properly.
+            renderText = "         " + renderText;
+        }
+
+        bool restoreFrameColor = false;
+
+        if (m_CurrentDirectory != entry)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.f, 0.f, 0.f, 0.f));
+
+            restoreFrameColor = true;
+        }
+
+        if (ImGui::TreeNodeEx(renderText.c_str(), flags))
+        {
+            if (restoreFrameColor)
+            {
+                ImGui::PopStyleColor();
+            }
+
+            if (ImGui::IsItemClicked())
+            {
+                m_CurrentDirectory = entry;
+            }
+
+            for (const auto child : entry->Children)
+            {
+                if (child->Type == EntryType::File)
+                    continue;
+                if (child->IsBackwardsDirectory)
+                    continue;
+
+                RenderEntryTreeNode(child);
+            }
+
+            ImGui::TreePop();
+        }
+        else
+        {
+            if (ImGui::IsItemClicked())
+            {
+                m_CurrentDirectory = entry;
+            }
+
+            if (restoreFrameColor)
+            {
+                ImGui::PopStyleColor();
+            }
+        }
+    }
+
+    void RenderAssetTreeView()
+    {
+        if (m_Root == nullptr)
+        {
+            return;
+        }
+
+        RenderEntryTreeNode(m_Root);
+    }
 }
 
-void Panels::AssetBrowser::SetActive(bool value)
+void Panels::AssetBrowser::SetActive(const bool value)
 {
     m_Active = value;
 }
@@ -623,6 +724,7 @@ void Panels::AssetBrowser::RebuildAssetTree()
 
     m_Root->Type = EntryType::Directory;
     m_Root->Path = "game/assets";
+    m_Root->DisplayText = "root";
 
     MapDirectoryEntry("engine", "engine", m_Root);
     ProcessDirectoryTree("game/assets", m_Root);
@@ -642,7 +744,17 @@ void Panels::AssetBrowser::Render()
         ImGui::End();
 
         return;
-    } 
+    }
+
+    ImGui::BeginChild("##AssetsTreeView", ImVec2(300.f, -1), ImGuiChildFlags_Border, 0);
+
+    RenderAssetTreeView();
+
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    ImGui::BeginChild("##Assets", ImVec2(-1, -1), 0);
 
     if (ImGui::Button(ICON_MD_FOLDER_OPEN " Import"))
     {
@@ -662,7 +774,7 @@ void Panels::AssetBrowser::Render()
 
     ImGui::InputTextWithHint("##AssetSearch", ICON_MD_SEARCH " Search...", m_SearchBuffer, IM_ARRAYSIZE(m_SearchBuffer));
 
-    ImGui::BeginChild("##Assets", ImVec2(-1.f, -1.f), true, 0);
+    ImGui::BeginChild("##AssetsBrowser", ImVec2(-1.f, -1.f), ImGuiChildFlags_Border, 0);
 
     const bool isSearching = strlen(m_SearchBuffer) > 0;
     const int iconSizePadding = m_IconSize + 16;
@@ -673,7 +785,7 @@ void Panels::AssetBrowser::Render()
     {
         ImGui::EndChild();
         ImGui::End();
-        
+
         return;
     }
 
@@ -692,7 +804,7 @@ void Panels::AssetBrowser::Render()
             }
         }
     }
-    else 
+    else
     {
         bool rebuildTree = false;
 
@@ -763,6 +875,8 @@ void Panels::AssetBrowser::Render()
         for (auto& asset : Selection::GetSelectedAssets())
             IconStorage::MarkIconDirty(asset->GetPath());
     }
+
+    ImGui::EndChild();
 
     ImGui::End();
 }

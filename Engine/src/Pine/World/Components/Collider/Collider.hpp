@@ -28,9 +28,6 @@ namespace Pine
 
         physx::PxTransform m_Transform = physx::PxTransform();
 
-        // When the entity doesn't have any RigidBody component, we still want to be able
-        // to use this Collider for collision purposes. To do so we need a RigidBody within
-        // React Physics, however it will not collide with other bodies.
         physx::PxRigidStatic* m_CollisionRigidBody = nullptr;
 
         void UpdateBody();

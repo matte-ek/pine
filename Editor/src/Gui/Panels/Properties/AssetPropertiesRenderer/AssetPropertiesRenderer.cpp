@@ -392,9 +392,9 @@ namespace
         }
     }
 
-    void RenderAudiofile(Pine::AudioFile *audiofile)
+    void RenderAudioFile(Pine::AudioFile *audiofile)
     {
-        if (audiofile->GetState() == Pine::AudioState::Stopped || audiofile->GetState() == Pine::AudioState::Paused)
+        if (audiofile->GetAudioState() == Pine::AudioState::Stopped || audiofile->GetAudioState() == Pine::AudioState::Paused)
         {
             if(ImGui::Button("Play"))
             {
@@ -471,7 +471,7 @@ void AssetPropertiesPanel::Render(Pine::IAsset *asset)
             RenderTilemap(dynamic_cast<Pine::Tilemap *>(asset));
             break;
         case Pine::AssetType::Audio:
-            RenderAudiofile(dynamic_cast<Pine::AudioFile *>(asset));
+            RenderAudioFile(dynamic_cast<Pine::AudioFile *>(asset));
             break;
         default:
             ImGui::Text("No asset properties available.");

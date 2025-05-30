@@ -5,6 +5,11 @@
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 
+namespace Pine
+{
+    struct RenderingContext;
+}
+
 namespace Pine::Renderer3D
 {
     struct RenderConfiguration
@@ -54,4 +59,6 @@ namespace Pine::Renderer3D
     Camera* GetCamera();
 
     void SetShader(Shader* shader, ShaderVersion preferredVersion = ShaderVersion::Default);
+
+    void UseRenderingContext(RenderingContext* renderingContext);
 }

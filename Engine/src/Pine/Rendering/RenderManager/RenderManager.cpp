@@ -7,6 +7,7 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 
+#include "Pine/Core/Timer/Timer.hpp"
 #include "Pine/Rendering/Features/PostProcessing/PostProcessing.hpp"
 
 namespace
@@ -105,6 +106,10 @@ void Pine::RenderManager::Run()
 
         // Reset statistics
         renderingContext->DrawCalls = 0;
+        renderingContext->VertexCount = 0;
+        renderingContext->RenderTime = 0;
+
+        Timer renderTime;
 
         m_InternalFrameBuffer->Bind();
 
@@ -163,6 +168,9 @@ void Pine::RenderManager::Run()
             Rendering::PostProcessing::Render(renderingContext, m_InternalFrameBuffer);
         }
 
+        renderTime.Stop();
+
+        renderingContext->RenderTime = renderTime.GetElapsedTime();
     }
 
     Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);

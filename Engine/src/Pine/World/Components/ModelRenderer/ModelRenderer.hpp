@@ -9,6 +9,7 @@ namespace Pine
     {
     private:
         AssetHandle<Model> m_Model;
+        AssetHandle<Material> m_OverrideMaterial;
 
         bool m_OverrideStencilBuffer = false;
         int m_StencilBufferValue = 0xFF;
@@ -19,6 +20,9 @@ namespace Pine
 
         void SetModel(Model* model);
         Model* GetModel() const;
+
+        void SetOverrideMaterial(Material* material);
+        Material* GetOverrideMaterial() const;
 
         void SetOverrideStencilBuffer(bool value);
         bool GetOverrideStencilBuffer() const;

@@ -21,7 +21,9 @@ namespace Pine
         SpriteRenderer,
         TilemapRenderer,
         NativeScript,
-        Script
+        Script,
+        AudioSource,
+        AudioListener,
     };
 
     inline const char *ComponentTypeToString(ComponentType type)
@@ -54,6 +56,10 @@ namespace Pine
                 return "NativeScript";
             case ComponentType::Script:
                 return "Script";
+            case ComponentType::AudioSource:
+                return "AudioSource";
+            case ComponentType::AudioListener:
+                return "AudioListener";
         }
 
         return "N/A";
@@ -89,6 +95,10 @@ namespace Pine
                 return "Native Script";
             case ComponentType::Script:
                 return "Script";
+            case ComponentType::AudioSource:
+                return "Audio Source";
+            case ComponentType::AudioListener:
+                return "Audio Listener";
         }
 
         return "N/A";

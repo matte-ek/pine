@@ -154,12 +154,14 @@ void Pipeline3D::Shutdown()
 	Renderer::Skybox::Shutdown();
 }
 
-void Pipeline3D::Run(const RenderingContext& context)
+void Pipeline3D::Run(RenderingContext& context)
 {
 	Renderer3D::FrameReset();
 
 	if (context.SceneCamera)
 		Renderer3D::SetCamera(context.SceneCamera);
+
+	Renderer3D::UseRenderingContext(&context);
 
 	Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 	Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
@@ -187,9 +189,10 @@ void Pipeline3D::Run(const RenderingContext& context)
 
 	// TODO: Render semi-transparent objects, we'll have to sort all objects by distance as well.
 
-	// Sky box
+	// Skybox
 	if (context.Skybox != nullptr)
 	{
 		Renderer::Skybox::Render(context.Skybox);
+		context.DrawCalls++;
 	}
 }

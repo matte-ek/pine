@@ -13,4 +13,4 @@ add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_executable(Editor ${SOURCES} ${IMGUI_SOURCES})
 
-target_link_libraries(Editor Engine mono)
+target_link_libraries(Editor Engine mono-2.0-sgen)

@@ -15,7 +15,6 @@ namespace
 
     void RenderIcon()
     {
-
     }
 
     // Writes the stencil buffer value of the selected objects to 0xFF, so we can outline them later.
@@ -67,7 +66,7 @@ namespace
             auto oldScale = entity->GetTransform()->LocalScale;
             const auto distance = glm::length(RenderHandler::GetLevelRenderingContext()->SceneCamera->GetParent()->GetTransform()->LocalPosition - entity->GetTransform()->LocalPosition);
 
-            entity->GetTransform()->LocalScale += Pine::Vector3f((0.06f * oldScale)  * distance);
+            entity->GetTransform()->LocalScale += Pine::Vector3f((distance / 9.41f) * 0.01f);
             entity->GetTransform()->OnRender(0.f);
             entity->GetTransform()->LocalScale = oldScale;
 

@@ -1,4 +1,7 @@
 #include "Components.hpp"
+
+#include "AudioListener/AudioListener.hpp"
+#include "AudioSource/AudioSource.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
@@ -102,7 +105,7 @@ namespace
     template <class T> std::vector<T>& GetComponentList(ComponentType type)
     {
         // Not going to bother with sanity checking the type, as it's an enum with an already known size.
-        // Hopefully all components specified in the enum is also created in this vector though.
+        // Hopefully, all components specified in the enum are also created in this vector though.
         return *m_ComponentDataBlocks[static_cast<int>(type)]->m_ComponentArray;
     }
 
@@ -124,6 +127,8 @@ void Components::Setup()
     CreateComponentDataBlock<TilemapRenderer>();
     CreateComponentDataBlock<NativeScript>(1); // "Stub" for NativeScript, we cannot create NativeScripts through here, but we need to align the array.
     CreateComponentDataBlock<ScriptComponent>();
+    CreateComponentDataBlock<AudioSource>();
+    CreateComponentDataBlock<AudioListener>();
 
     std::size_t totalSize = 0;
 

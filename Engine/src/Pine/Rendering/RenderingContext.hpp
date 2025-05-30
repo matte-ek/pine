@@ -24,8 +24,11 @@ namespace Pine
 
         bool EnableStencilBuffer = true;
 
-        int DrawCalls = 0;
         int PreAllocItems = 0;
+
+        int DrawCalls = 0;
+        std::uint64_t VertexCount = 0;
+        double RenderTime = 0.f;
     };
 
 }

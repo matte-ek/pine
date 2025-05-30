@@ -229,7 +229,7 @@ void Panels::EntityList::Render()
 
     for (int i = 0; i < Pine::Entities::GetList().size();i++)
     {
-        auto entity = Pine::Entities::GetList()[i];
+        const auto entity = Pine::Entities::GetList()[i];
 
         if (entity->GetParent() != nullptr)
             continue;

@@ -67,7 +67,7 @@ void Pine::Renderer::Skybox::Render(const Texture3D* cubeMap)
 
     m_GraphicsAPI->SetDepthFunction(Graphics::TestFunction::LessEqual);
 
-    m_GraphicsAPI->DrawArrays(Pine::Graphics::RenderMode::Triangles, 36);
+    m_GraphicsAPI->DrawArrays(Graphics::RenderMode::Triangles, 36);
 
     m_GraphicsAPI->SetDepthFunction(Graphics::TestFunction::Less);
 }

@@ -105,7 +105,7 @@ namespace
 
         ProcessScriptFields(scriptData);
 
-        // Realistically the only requirement is that the script is inheriting from the `Script` class.
+        // Realistically, the only requirement is that the script is inheriting from the `Script` class.
         scriptData->IsReady = scriptData->ComponentParentField && scriptData->ComponentTypeField;
     }
 }
@@ -154,7 +154,7 @@ void Pine::Script::Manager::ReloadGameAssembly()
     LoadGameAssembly(m_GameAssemblyPath);
     ReloadScripts();
 
-    for (auto& scriptComponent : Components::Get<Pine::ScriptComponent>(true))
+    for (auto& scriptComponent : Components::Get<ScriptComponent>(true))
     {
         scriptComponent.CreateInstance();
     }

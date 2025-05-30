@@ -91,7 +91,7 @@ namespace
 
     void SetFonts()
     {
-        ImGuiIO& io = ImGui::GetIO();
+        const ImGuiIO& io = ImGui::GetIO();
 
         // Add normal font
         io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Regular.ttf", 18.f);

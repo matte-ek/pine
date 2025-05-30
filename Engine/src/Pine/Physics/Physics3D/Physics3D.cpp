@@ -29,7 +29,7 @@ void Pine::Physics3D::Setup()
 
     m_Dispatcher = physx::PxDefaultCpuDispatcherCreate(2);
 
-    m_DefaultMaterial = m_Physics->createMaterial(1, 1, 1);
+    m_DefaultMaterial = m_Physics->createMaterial(0.5f, 0.5f, 0.1f);
 
     physx::PxSceneDesc sceneDescriptor(m_Physics->getTolerancesScale());
 
@@ -58,8 +58,6 @@ void Pine::Physics3D::Update(double deltaTime)
         return;
     }
 
-    return;
-
     constexpr float timeStep = 1.0 / 120.0;
 
     accumulator += deltaTime;
@@ -77,6 +75,7 @@ void Pine::Physics3D::Update(double deltaTime)
         rigidBody.OnPrePhysicsUpdate();
 
     m_Scene->simulate(physicsTimeDelta);
+    m_Scene->fetchResults(true);
 
     for (auto& collider : Pine::Components::Get<Collider>())
         collider.OnPostPhysicsUpdate();

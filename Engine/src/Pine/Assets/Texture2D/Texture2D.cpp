@@ -73,11 +73,12 @@ void Pine::Texture2D::UploadGpuData()
     if (m_GenerateMipmaps)
     {
         m_Texture->GenerateMipmaps();
-        m_Texture->SetMipmapFilteringMode(Pine::Graphics::TextureFilteringMode::Nearest);
+        m_Texture->SetMipmapFilteringMode(Graphics::TextureFilteringMode::Nearest);
+        m_Texture->SetMaxAnisotropy(8);
     }
 
     // TODO: Use some sort of load-preset option?
-    m_Texture->SetMipmapFilteringMode(Graphics::TextureFilteringMode::Linear);
+    m_Texture->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
 
     stbi_image_free(m_PreparedTextureData);
 
@@ -142,6 +143,10 @@ bool Pine::Texture2D::LoadFromFile(AssetLoadStage stage)
         UploadGpuData();
         return true;
     case AssetLoadStage::Default:
+        // If default was used, the user is wants to load the
+        // texture in a single-threaded way, so just call both of
+        // the load stages manually.
+
         if (PrepareGpuData())
         {
             UploadGpuData();

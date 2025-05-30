@@ -72,7 +72,7 @@ namespace Pine::Audio
 
     bool WaveFile::ReadChunk()
     {
-        if (!m_File.read((char *) (&m_TmpHeader), sizeof(m_TmpHeader)))
+        if (!m_File.read(reinterpret_cast<char *>(&m_TmpHeader), sizeof(m_TmpHeader)))
         {
             Pine::Log::Error("Couldn't read sound file header");
             return false;
@@ -82,7 +82,7 @@ namespace Pine::Audio
         {
             if (m_TmpHeader.chunkSize >= sizeof(m_FMTHeader) && !m_FMTRead)
             {
-                m_File.read((char *) (&m_FMTHeader), sizeof(m_FMTHeader));
+                m_File.read(reinterpret_cast<char *>(&m_FMTHeader), sizeof(m_FMTHeader));
                 m_FMTRead = true;
             }
         }
@@ -116,7 +116,7 @@ namespace Pine::Audio
         else if (m_FMTHeader.bitsPerSample == 16)
             format = (m_FMTHeader.numChannels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 
-        ALvoid* data = static_cast<ALvoid*>(m_DataHeader.data);
+        const auto* data = static_cast<ALvoid*>(m_DataHeader.data);
 
         alBufferData(m_ALBuffer, format, data, m_DataHeader.size, m_FMTHeader.sampleRate);
 
@@ -156,11 +156,10 @@ namespace Pine::Audio
 
     float WaveFile::GetTotalDuration() const
     {
-        uint32_t dataSize = m_DataHeader.size;
-        uint32_t byteRate = m_FMTHeader.sampleRate * m_FMTHeader.numChannels * (m_FMTHeader.bitsPerSample / 8);
-        float duration = static_cast<float>(dataSize) / byteRate;
+        const uint32_t dataSize = m_DataHeader.size;
+        const uint32_t byteRate = m_FMTHeader.sampleRate * m_FMTHeader.numChannels * (m_FMTHeader.bitsPerSample / 8);
 
-        return duration;
+        return static_cast<float>(dataSize) / byteRate;
     }
 
     float WaveFile::GetDuration()

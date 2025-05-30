@@ -16,15 +16,27 @@ Pine::Model *Pine::ModelRenderer::GetModel() const
     return m_Model.Get();
 }
 
+void Pine::ModelRenderer::SetOverrideMaterial(Material *material)
+{
+    m_OverrideMaterial = material;
+}
+
+Pine::Material * Pine::ModelRenderer::GetOverrideMaterial() const
+{
+    return m_OverrideMaterial.Get();
+}
+
 void Pine::ModelRenderer::LoadData(const nlohmann::json &j)
 {
     Serialization::LoadAsset<Pine::Model>(j, "model", m_Model);
+    Serialization::LoadAsset<Pine::Material>(j, "overrideMaterial", m_OverrideMaterial);
     Serialization::LoadValue(j, "modelMeshIndex", m_ModelMeshIndex);
 }
 
 void Pine::ModelRenderer::SaveData(nlohmann::json &j)
 {
     j["model"] = Serialization::StoreAsset(m_Model);
+    j["overrideMaterial"] = Serialization::StoreAsset(m_OverrideMaterial);
     j["modelMeshIndex"] = m_ModelMeshIndex;
 }
 

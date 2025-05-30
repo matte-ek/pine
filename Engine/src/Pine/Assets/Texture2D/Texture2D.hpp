@@ -6,13 +6,18 @@
 namespace Pine
 {
 
+    struct TextureLoadPreset
+    {
+        bool m_GenerateMipmaps = false;
+    };
+
     class Texture2D : public IAsset
     {
     private:
         int m_Width = 0;
         int m_Height = 0;
 
-        bool m_GenerateMipmaps = false;
+        bool m_GenerateMipmaps = true;
 
         Graphics::TextureFormat m_Format = Graphics::TextureFormat::SingleChannel;
 

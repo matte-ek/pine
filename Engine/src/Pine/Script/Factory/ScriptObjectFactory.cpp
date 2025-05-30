@@ -49,9 +49,9 @@ void Pine::Script::ObjectFactory::Setup()
     m_AssetObjectFactory.clear();
     m_ComponentObjectFactory.clear();
 
-    m_RootDomain = Pine::Script::Runtime::GetDomain();
-    m_PineAssembly = Pine::Script::Runtime::GetPineAssembly();
-    m_PineImage = Pine::Script::Runtime::GetPineImage();
+    m_RootDomain = Runtime::GetDomain();
+    m_PineAssembly = Runtime::GetPineAssembly();
+    m_PineImage = Runtime::GetPineImage();
 
     m_EntityClass = mono_class_from_name(m_PineImage, "Pine.World", "Entity");
     m_EntityInternalIdField = mono_class_get_field_from_name(m_EntityClass, "_internalId");

@@ -1,5 +1,6 @@
 #include "Renderer3D.hpp"
 
+#include "../RenderingContext.hpp"
 #include "Specifications.hpp"
 #include "ShaderStorages.hpp"
 #include "Pine/Core/Log/Log.hpp"
@@ -8,11 +9,12 @@
 namespace
 {
     Pine::Renderer3D::RenderConfiguration m_RenderingConfiguration;
+    Pine::RenderingContext* m_RenderingContext = nullptr;
 
     // Cached graphics API for the current context
     Pine::Graphics::IGraphicsAPI* m_GraphicsAPI = nullptr;
 
-    // This default texture is a solid white pixel, that we treat as a "no-texture" texture.
+    // This default texture is a solid white pixel that we treat as a "no-texture" texture.
     Pine::Graphics::ITexture* m_DefaultTexture = nullptr;
 
     Pine::Graphics::IShaderProgram* m_Shader = nullptr;
@@ -189,6 +191,9 @@ void Pine::Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, int writ
         m_GraphicsAPI->DrawArrays(Graphics::RenderMode::Triangles, m_Mesh->GetRenderCount());
     }
 
+    if (m_RenderingContext != nullptr)
+        m_RenderingContext->DrawCalls++;
+
     if (writeStencilBuffer != 0)
     {
         m_GraphicsAPI->SetStencilOperation(Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep, Graphics::StencilOperation::Keep);
@@ -216,6 +221,9 @@ void Pine::Renderer3D::RenderMeshInstanced()
     {
         m_GraphicsAPI->DrawArraysInstanced(Graphics::RenderMode::Triangles, m_Mesh->GetRenderCount(), m_CurrentInstanceIndex);
     }
+
+    if (m_RenderingContext != nullptr)
+        m_RenderingContext->DrawCalls++;
 
     m_CurrentInstanceIndex = 0;
 }
@@ -274,6 +282,11 @@ void Pine::Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVe
 
     m_HasTangentData = m_Shader->GetUniformVariable("hasTangentData");
     m_LightIndices = m_Shader->GetUniformVariable("lightIndices");
+}
+
+void Pine::Renderer3D::UseRenderingContext(RenderingContext *renderingContext)
+{
+    m_RenderingContext = renderingContext;
 }
 
 void Pine::Renderer3D::SetCamera(Camera* camera)
@@ -343,6 +356,7 @@ void Pine::Renderer3D::FrameReset()
         Light.Color = Vector3f(0.0f, 0.0f, 0.0f);
     }
 
+    m_RenderingContext = nullptr;
     m_Shader = nullptr;
     m_Mesh = nullptr;
     m_Material = nullptr;

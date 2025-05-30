@@ -4,6 +4,8 @@
 
 #include "Pine/World/Components/IComponent/IComponent.hpp"
 
+#include "physx/PxPhysicsAPI.h"
+
 namespace Pine
 {
     enum class RigidBodyType
@@ -24,19 +26,19 @@ namespace Pine
 
         bool m_GravityEnabled = true;
 
-        //physx::PxRigidDynamic *m_RigidBody = nullptr;
-        //physx::PxTransform m_RigidBodyTransform;
+        physx::PxRigidDynamic *m_RigidBody = nullptr;
+        physx::PxTransform m_RigidBodyTransform;
 
-        //std::array<bool, 3> m_RotationLock = {false, false, false};
+        std::array<bool, 3> m_RotationLock = {false, false, false};
 
         Collider *m_EngineCollider = nullptr;
 
         void UpdateColliders();
-        void UpdateRigidBodyProperties();
+        void UpdateBody();
     public:
         RigidBody();
 
-        //physx::PxRigidDynamic *GetRigidBody() const;
+        physx::PxRigidDynamic *GetRigidBody() const;
 
         void SetRigidBodyType(RigidBodyType type);
         RigidBodyType GetRigidBodyType() const;
@@ -47,14 +49,13 @@ namespace Pine
         void SetGravityEnabled(bool value);
         bool GetGravityEnabled() const;
 
-        void DetachCollider();
-
         bool IsColliderAttached(const Collider *collider) const;
 
         void OnPrePhysicsUpdate() override;
         void OnPostPhysicsUpdate() override;
 
         void OnCopied() override;
+        void OnDestroyed() override;
 
         void LoadData(const nlohmann::json &j) override;
         void SaveData(nlohmann::json &j) override;

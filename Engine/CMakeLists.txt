@@ -4,6 +4,7 @@ project(Engine)
 set(CMAKE_CXX_STANDARD 17)
 
 include_directories(src include /usr/include/mono-2.0)
+link_directories(lib)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
@@ -23,9 +24,9 @@ find_package(imguizmo CONFIG REQUIRED)
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_library(Engine ${SOURCES}
-        src/Pine/Utilities/Entity/EntityUtilities.hpp
-        src/Pine/Utilities/Entity/EntityUtilities.cpp
-        src/Pine/Rendering/Features/PostProcessing/PostProcessing.hpp
-        src/Pine/Rendering/Features/PostProcessing/PostProcessing.cpp)
+        src/Pine/World/Components/AudioSource/AudioSource.hpp
+        src/Pine/World/Components/AudioSource/AudioSource.cpp
+        src/Pine/World/Components/AudioListener/AudioListener.hpp
+        src/Pine/World/Components/AudioListener/AudioListener.cpp)
 
-target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt OpenAL::OpenAL FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json unofficial::omniverse-physx-sdk::sdk glm::glm mono)
+target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt OpenAL::OpenAL FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json unofficial::omniverse-physx-sdk::sdk glm::glm mono-2.0-sgen)

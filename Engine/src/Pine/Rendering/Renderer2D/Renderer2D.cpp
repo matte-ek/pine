@@ -188,9 +188,13 @@ namespace
                 m_VertexArray->Bind();
                 m_DefaultTexture->Bind();
 
+                const Vector2f scaling = m_CoordinateSystem == Rendering::CoordinateSystem::Screen ?
+                                    Vector2f(1.f) :
+                                    Vector2f((context->Size.x / Rendering::PixelsPerUnit) / 2.f, (context->Size.y / Rendering::PixelsPerUnit) / 2.f);
+
                 shader->GetProgram()->GetUniformVariable("m_ViewMatrix")->LoadMatrix4(m_ViewMatrix);
                 shader->GetProgram()->GetUniformVariable("m_ProjectionMatrix")->LoadMatrix4(m_ProjectionMatrix);
-                shader->GetProgram()->GetUniformVariable("m_Scaling")->LoadVector2(Pine::Vector2f((context->Size.x / Rendering::PixelsPerUnit) / 2.f, (context->Size.y / Rendering::PixelsPerUnit) / 2.f));
+                shader->GetProgram()->GetUniformVariable("m_Scaling")->LoadVector2(scaling);
 
                 // Prepare the new instance data for the next batch of rectangles
                 std::vector<Vector4f> rectPositionSizeData;
@@ -228,7 +232,7 @@ namespace
                             break;
                         }
 
-                        // Or if we've reached the maximum amount of textures
+                        // Or if we've reached the maximum number of textures
                         if (currentTextureSlot >= m_GraphicsAPI->GetSupportedTextureSlots())
                         {
                             minSize = i - startIndex;

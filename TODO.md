@@ -25,6 +25,5 @@
 [ ] Audio
     [ ] AudioManager
     [ ] AudioSource component
-        - ...
-    [ ] AudioListener component
         - audio asset
+    [ ] AudioListener component

@@ -2,19 +2,43 @@
 
 namespace Pine
 {
+    namespace
+    {
+        AudioFileFormat GetAudioFileFormat(const std::string& fileExtension)
+        {
+            static const std::map<std::string, AudioFileFormat> fileFormat =
+            {
+                {".wav", AudioFileFormat::Wave},
+                {".wave", AudioFileFormat::Wave},
+                {".flac", AudioFileFormat::Flac},
+                {".ogg", AudioFileFormat::Ogg},
+                {".oga", AudioFileFormat::Ogg},
+                {".spx", AudioFileFormat::Ogg},
+            };
+
+            const auto foundExtension = fileFormat.find(fileExtension);
+
+            return (foundExtension != fileFormat.end()) ? foundExtension->second : AudioFileFormat::Unknown;
+        }
+    }
+
     AudioFile::AudioFile()
     {
         m_Type = AssetType::Audio;
+
+        // Loading and parsing the actual audio files can probably be done multi-threaded,
+        // but let's do single threaded for now.
+        m_LoadMode = AssetLoadMode::SingleThread;
     }
 
-    bool AudioFile::Setup()
+    bool AudioFile::ProcessFile()
     {
-        if(m_FilePath.empty())
+        if (m_FilePath.empty())
             return false;
 
-        m_FileExtension = m_FilePath.extension().string();
+        const auto fileExtension = m_FilePath.extension().string();
 
-        m_AudioFileFormat = GetAudioFileFormat();
+        m_AudioFileFormat = GetAudioFileFormat(fileExtension);
 
         switch (m_AudioFileFormat)
         {
@@ -26,36 +50,20 @@ namespace Pine
             case AudioFileFormat::Ogg:
                 return false;
             case AudioFileFormat::Unknown:
-                Log::Error("[AudioFile] Failed to get audio format from extension");
+                Log::Error(fmt::format("AudioFile::Setup(): Failed to get audio format from extension, {}", fileExtension));
                 return false;
         }
 
-        if(!m_AudioObject->Setup())
+        if (!m_AudioObject->Setup())
         {
-            Log::Error("[AudioFile] Failed to setup audio object");
+            Log::Error("AudioFile::Setup(): Failed to setup audio object");
             m_AudioObject->Dispose();
             return false;
         }
 
-        m_AudioSource = new Audio::AudioSource(m_AudioObject->GetID());
+        m_AudioSource = new Audio::AudioSourceObject(m_AudioObject->GetID());
 
         return true;
-    }
-
-    AudioFileFormat AudioFile::GetAudioFileFormat() const {
-        static std::map<std::string, AudioFileFormat> fileFormat =
-        {
-                {".wav", AudioFileFormat::Wave},
-                {".wave", AudioFileFormat::Wave},
-                {".flac", AudioFileFormat::Flac},
-                {".ogg", AudioFileFormat::Ogg},
-                {".oga", AudioFileFormat::Ogg},
-                {".spx", AudioFileFormat::Ogg},
-        };
-
-        auto foundExtension = fileFormat.find(m_FileExtension);
-
-        return (foundExtension != fileFormat.end()) ? foundExtension->second : AudioFileFormat::Unknown;
     }
 
     bool AudioFile::Transcode()
@@ -92,8 +100,7 @@ namespace Pine
         }
     }
 
-
-    AudioState AudioFile::GetState() const
+    AudioState AudioFile::GetAudioState() const
     {
         return m_AudioState;
     }
@@ -108,12 +115,13 @@ namespace Pine
         return m_AudioObject->GetDuration();
     }
 
-    bool AudioFile::LoadFromFile(Pine::AssetLoadStage stage)
+    bool AudioFile::LoadFromFile(AssetLoadStage stage)
     {
-        Setup();
+        const bool ret = ProcessFile();
+
         m_State = AssetState::Loaded;
-        // TODO: Actually load the asset from here.
-        return true;
+
+        return ret;
     }
 
     void AudioFile::Dispose()

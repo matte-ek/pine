@@ -57,6 +57,8 @@ void Pine::Collider::UpdateBody()
         m_CollisionRigidBody->attachShape(*collisionShape);
 
         collisionShape->release();
+
+        Physics3D::GetScene()->addActor(*m_CollisionRigidBody);
     }
 }
 
@@ -135,14 +137,16 @@ void Pine::Collider::Reset()
 
 physx::PxShape * Pine::Collider::CreateCollisionShape() const
 {
+    auto size = m_Size * GetParent()->GetTransform()->GetScale();
+
     switch (m_ColliderType)
     {
     case ColliderType::Box:
-        return Physics3D::GetPhysics()->createShape(physx::PxBoxGeometry(m_Size.x, m_Size.y, m_Size.z), *Physics3D::GetDefaultMaterial());
+        return Physics3D::GetPhysics()->createShape(physx::PxBoxGeometry(size.x, size.y, size.z), *Physics3D::GetDefaultMaterial());
     case ColliderType::Sphere:
-        return Physics3D::GetPhysics()->createShape(physx::PxSphereGeometry(m_Size.x), *Physics3D::GetDefaultMaterial());
+        return Physics3D::GetPhysics()->createShape(physx::PxSphereGeometry(size.x), *Physics3D::GetDefaultMaterial());
     case ColliderType::Capsule:
-        return Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(m_Size.x, m_Size.y), *Physics3D::GetDefaultMaterial());
+        return Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(size.x, size.y), *Physics3D::GetDefaultMaterial());
     default:
         break;
     }

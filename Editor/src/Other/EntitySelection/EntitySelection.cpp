@@ -28,22 +28,21 @@ namespace
 
     Pine::Vector3f ComputeColorIndex(int id)
     {
-        // Compute the "color" we'll render with, i.e. entity index to base 256.
+        // Compute the "color" we'll render with, i.e., entity index to base 256.
         float colorValue[3] = {0.f};
         int value = id;
         int pass = 0;
 
         while (value >= 0)
         {
-            // Could use the modulo operator here but since I need both the values this is better.
-            auto tmp = std::div(value, 255);
+            auto [quot, rem] = std::div(value, 255);
 
-            colorValue[pass] = static_cast<float>(tmp.rem) / 255.f;
+            colorValue[pass] = static_cast<float>(rem) / 255.f;
 
-            if (tmp.quot == 0)
+            if (quot == 0)
                 break;
 
-            value -= tmp.quot;
+            value -= quot;
             pass++;
 
             if (pass >= 2)
@@ -169,9 +168,7 @@ namespace
 
         if (entityId != 0)
         {
-            auto pickedEntity = Pine::Entities::Find(entityId);
-
-            if (pickedEntity)
+            if (const auto pickedEntity = Pine::Entities::Find(entityId))
             {
                 Selection::Add(pickedEntity, !m_PickMultiple);
             }

@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <thread>
 #include <unordered_map>
+#include <mutex>
 
 using namespace Pine;
 
@@ -41,6 +42,7 @@ namespace
 
     // Which assets paths we need to resolve to asset pointers during the end of an ongoing load
     std::vector<AssetResolveReference> m_AssetResolveReferences;
+    std::mutex m_AssetResolveReferencesMutex;
 
     // Keeps track of the current incremental asset id
     std::uint32_t m_CurrentId = 0;
@@ -563,6 +565,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
 
 void Assets::AddAssetResolveReference(const AssetResolveReference& resolveReference)
 {
+    std::lock_guard guard(m_AssetResolveReferencesMutex);
     m_AssetResolveReferences.push_back(resolveReference);
 }
 
@@ -570,7 +573,7 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath, bool log
 {
     const auto path = String::Replace(inputPath, "\\", "/");
 
-    // If we want to find the asset by its file path instead of fake engine path
+    // If we want to find the asset by its file path instead of a fake engine path
     if (includeFilePath)
     {
         if (m_AssetsFilePath.count(path) != 0)

@@ -91,6 +91,14 @@ namespace
 				m_UpdatedComponentData = true;
 			}
 
+			auto [newOverrideMaterialSet, newOverrideMaterial] = Widgets::AssetPicker("Override Material", modelRenderer->GetOverrideMaterial(), Pine::AssetType::Material);
+
+			if (newOverrideMaterialSet)
+			{
+				modelRenderer->SetOverrideMaterial(dynamic_cast<Pine::Material*>(newOverrideMaterial));
+				m_UpdatedComponentData = true;
+			}
+
 			if (modelRenderer->GetParent() != nullptr &&
 				modelRenderer->GetModel() != nullptr &&
 				modelRenderer->GetModelMeshIndex() == -1)
