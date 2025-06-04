@@ -7,24 +7,98 @@ Pine::AudioSource::AudioSource()
 {
 }
 
-void Pine::AudioSource::Play()
+void Pine::AudioSource::Play() const
 {
-    alSourcePlay(m_Id);
+    alSourcePlay(m_SourceId);
 }
 
-void Pine::AudioSource::OnCreated()
+bool Pine::AudioSource::IsPlaying() const
 {
-    IComponent::OnCreated();
+    if (m_SourceId == 0)
+        return false;
+
+    ALint state;
+    alGetSourcei(m_SourceId, AL_SOURCE_STATE, &state);
+    return state == AL_PLAYING;
+}
+
+float Pine::AudioSource::GetPlaybackPosition() const
+{
+    if (m_SourceId == 0)
+        return 0.0f;
+
+    ALfloat seconds;
+    alGetSourcef(m_SourceId, AL_SEC_OFFSET, &seconds);
+    return seconds;
+}
+
+glm::vec3 Pine::AudioSource::GetWorldPosition() const
+{
+    if (m_SourceId == 0)
+        return glm::vec3(0.0f);
+
+    ALfloat pos[3];
+    alGetSourcefv(m_SourceId, AL_POSITION, pos);
+    return {pos[0], pos[1], pos[2]};
+}
+
+void Pine::AudioSource::SetWorldPosition(glm::vec3 position) const
+{
+    if (m_SourceId == 0)
+        return;
+
+    alSource3f(m_SourceId, AL_POSITION, position.x, position.y, position.z);
+}
+
+void Pine::AudioSource::SetPlayOnStart(bool playOnStart)
+{
+    m_PlayOnStart = playOnStart;
+}
+
+bool Pine::AudioSource::GetPlayOnStart() const
+{
+    return m_PlayOnStart;
+}
+
+void Pine::AudioSource::SetVolume(float volume) const
+{
+    if (m_SourceId == 0)
+        return;
+
+    alSourcef(m_SourceId, AL_GAIN, volume);
+}
+
+float Pine::AudioSource::GetVolume() const
+{
+    if (m_SourceId == 0)
+        return 0.0f;
+
+    ALfloat volume;
+    alGetSourcef(m_SourceId, AL_GAIN, &volume);
+    return volume;
+}
+
+void Pine::AudioSource::OnSetup()
+{
+    IComponent::OnSetup();
 
     if (m_Standalone)
         return;
 
-    // play source.
+    if (m_AudioFile == nullptr)
+        return;
+
+    if (m_PlayOnStart)
+        alSourcePlay(m_SourceId);
 }
 
 void Pine::AudioSource::SetAudioFile(AudioFile *file)
 {
+    if (file != nullptr)
+        return;
+
     m_AudioFile = file;
+    m_SourceId = m_AudioFile->GetNewSource();
 }
 
 Pine::AudioFile * Pine::AudioSource::GetAudioFile() const

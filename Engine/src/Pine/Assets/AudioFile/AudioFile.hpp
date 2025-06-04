@@ -26,6 +26,7 @@ namespace Pine
         AudioFile();
 
         float GetDuration() const;
+        ALuint GetNewSource() const;
 
         bool LoadFromFile(AssetLoadStage stage) override;
         void Dispose() override;

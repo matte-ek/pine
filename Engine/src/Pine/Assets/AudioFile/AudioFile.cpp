@@ -61,58 +61,32 @@ namespace Pine
             return false;
         }
 
-        m_AudioSource = new Audio::AudioSourceObject(m_AudioObject->GetID());
-
         return true;
-    }
-
-    bool AudioFile::Transcode()
-    {
-        return false;
-    }
-
-    void AudioFile::Play()
-    {
-        //m_AudioObject->Play();
-        if (m_AudioSource)
-        {
-            alSourcePlay(m_AudioSource->GetID());
-            m_AudioState = AudioState::Playing;
-        }
-    }
-
-    void AudioFile::Stop()
-    {
-        //m_AudioObject->Play();
-        if (m_AudioSource)
-        {
-            alSourceStop(m_AudioSource->GetID());
-            m_AudioState = AudioState::Stopped;
-        }
-    }
-
-    void AudioFile::Pause()
-    {
-        if (m_AudioSource)
-        {
-            alSourcePause(m_AudioSource->GetID());
-            m_AudioState = AudioState::Paused;
-        }
-    }
-
-    AudioState AudioFile::GetAudioState() const
-    {
-        return m_AudioState;
-    }
-
-    float AudioFile::GetTime() const
-    {
-        return m_AudioSource->GetSeconds();
     }
 
     float AudioFile::GetDuration() const
     {
         return m_AudioObject->GetDuration();
+    }
+
+    ALuint AudioFile::GetNewSource() const
+    {
+        if (m_AudioObject == nullptr)
+            return 0;
+
+        ALuint sourceId = 0;
+        alGenSources(1, &sourceId);
+        if (alGetError() != AL_NO_ERROR) {
+            return 0;
+        }
+
+        alSourcei(sourceId, AL_BUFFER, m_AudioObject->GetBufferID());
+        if (alGetError() != AL_NO_ERROR) {
+            alDeleteSources(1, &sourceId);
+            return 0;
+        }
+
+        return sourceId;
     }
 
     bool AudioFile::LoadFromFile(AssetLoadStage stage)
@@ -130,9 +104,7 @@ namespace Pine
             m_AudioObject->Dispose();
 
         delete m_AudioObject;
-        delete m_AudioSource;
 
         m_AudioObject = nullptr;
-        m_AudioSource = nullptr;
     }
 }
