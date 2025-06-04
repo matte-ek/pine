@@ -21,7 +21,8 @@ namespace Pine::Audio
         return m_id;
     }
 
-    float AudioSourceObject::GetSeconds() const {
+    float AudioSourceObject::GetSeconds() const
+    {
         ALfloat pos = 0.0f;
         alGetSourcef(m_id, AL_SEC_OFFSET, &pos);
         return pos;

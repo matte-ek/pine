@@ -39,6 +39,8 @@ namespace Pine
         Graphics::TextureFormat GetFormat() const;
         Graphics::ITexture* GetGraphicsTexture() const;
 
+        int GetAudioBufferId() const;
+
         bool LoadFromFile(AssetLoadStage stage) override;
 
         void Dispose() override;

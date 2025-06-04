@@ -167,7 +167,6 @@ namespace Pine::Audio
         return m_Duration;
     }
 
-
     bool WaveFile::Transcode()
     {
         return false;

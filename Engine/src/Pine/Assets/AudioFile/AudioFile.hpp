@@ -14,36 +14,17 @@ namespace Pine
         Unknown
     };
 
-    enum class AudioState
-    {
-        Playing,
-        Paused,
-        Stopped
-    };
-
     class AudioFile : public IAsset
     {
     private:
         AudioFileFormat m_AudioFileFormat = AudioFileFormat::Unknown;
 
         Audio::IAudioObject* m_AudioObject = nullptr;
-        Audio::AudioSourceObject* m_AudioSource = nullptr;
-
-        AudioState m_AudioState = AudioState::Stopped;
 
         bool ProcessFile();
     public:
         AudioFile();
 
-        void Play();
-        void Stop();
-        void Pause();
-
-        bool Transcode();
-
-        AudioState GetAudioState() const;
-
-        float GetTime() const;
         float GetDuration() const;
 
         bool LoadFromFile(AssetLoadStage stage) override;
