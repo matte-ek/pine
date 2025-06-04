@@ -127,7 +127,7 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     }
 
     // Apply shadow data
-    m_HasDirectionalShadowMapUniform->LoadInteger(m_HasDirectionalShadowMap);
+    //m_HasDirectionalShadowMapUniform->LoadInteger(m_HasDirectionalShadowMap);
     if (m_HasDirectionalShadowMap && m_DirectionalShadowMap)
     {
         m_DirectionalShadowMap->Bind(Specifications::Samplers::DIRECTIONAL_SHADOW_MAP);

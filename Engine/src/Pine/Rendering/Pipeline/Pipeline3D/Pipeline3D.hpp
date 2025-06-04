@@ -23,12 +23,12 @@ namespace Pine::Pipeline3D
 
     struct RenderObject
     {
-        Model* Model = nullptr;
+        Model* RenderModel = nullptr;
         Material* OverrideMaterial = nullptr;
 
         bool operator==(const RenderObject& other) const
         {
-            return Model == other.Model && OverrideMaterial == other.OverrideMaterial;
+            return RenderModel == other.RenderModel && OverrideMaterial == other.OverrideMaterial;
         }
     };
 
@@ -36,7 +36,7 @@ namespace Pine::Pipeline3D
     {
         size_t operator()(const RenderObject& key) const
         {
-            const std::size_t modelHash = std::hash<Model*>()(key.Model);
+            const std::size_t modelHash = std::hash<Model*>()(key.RenderModel);
             const std::size_t materialHash = std::hash<Material*>()(key.OverrideMaterial);
 
             return modelHash ^ (materialHash << 1);
