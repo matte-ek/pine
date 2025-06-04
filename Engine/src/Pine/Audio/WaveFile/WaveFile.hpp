@@ -71,11 +71,8 @@ namespace Pine::Audio
         explicit WaveFile(std::string filePath);
 
         bool Setup() override;
-        void Play() override;
-        void Stop() override;
-        int GetID() override;
+        int GetBufferID() override;
         float GetDuration() override;
-        bool Transcode() override;
         void Dispose() override;
     };
 }

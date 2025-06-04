@@ -45,6 +45,7 @@ namespace Pine
 
         float GetTime() const;
         float GetDuration() const;
+        ALuint GetNewSource() const;
 
         bool LoadFromFile(AssetLoadStage stage) override;
         void Dispose() override;

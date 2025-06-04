@@ -394,27 +394,7 @@ namespace
 
     void RenderAudioFile(Pine::AudioFile *audiofile)
     {
-        if (audiofile->GetAudioState() == Pine::AudioState::Stopped || audiofile->GetAudioState() == Pine::AudioState::Paused)
-        {
-            if(ImGui::Button("Play"))
-            {
-                audiofile->Play();
-            }
-        }
-        else
-        {
-            if(ImGui::Button("Pause"))
-            {
-                audiofile->Pause();
-            }
-        }
 
-        if (audiofile->GetDuration() != 0)
-        {
-            // TODO: fix so you can actually interact with the bar and change time
-            float progress = audiofile->GetTime() / audiofile->GetDuration();
-            ImGui::ProgressBar(progress);
-        }
     }
 }
 
