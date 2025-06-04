@@ -57,6 +57,9 @@ in VertexData
 }vIn;
 
 uniform TextureSamplers textureSamplers;
+
+uniform bool hasDirectionalShadowMap;
+
 uniform bool hasTangentData;
 
 // Light indices from Lights that should affect this object

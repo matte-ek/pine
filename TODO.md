@@ -7,7 +7,7 @@
         [ ] Vertex count per scene
 
 [ ] Rendering
-    [ ] Fully functional spot-lights & point-lights  
+    [X] Fully functional spot-lights & point-lights  
     [ ] Level of detail system
     [ ] Shadows
     [ ] Fog

@@ -13,6 +13,7 @@ namespace Pine::Renderer3D::Specifications
         constexpr int DIFFUSE = 0;
         constexpr int SPECULAR = 1;
         constexpr int NORMAL = 2;
+        constexpr int DIRECTIONAL_SHADOW_MAP = 3;
     }
 
     namespace Buffers

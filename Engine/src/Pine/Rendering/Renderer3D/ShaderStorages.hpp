@@ -53,6 +53,8 @@ namespace Pine::Renderer3D::ShaderStorages
             float Pad5 = 0;
             float Pad6 = 0;
         }Lights[Specifications::General::DYNAMIC_LIGHT_COUNT];
+
+        Matrix4f DirectionalLightSpaceMatrix = Matrix4f(1.f);
     };
 
     inline Graphics::ShaderStorage<MatrixData> Matrix(Specifications::ShaderStorages::MATRICES, "Matrices");

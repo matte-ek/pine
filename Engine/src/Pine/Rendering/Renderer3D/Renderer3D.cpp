@@ -22,6 +22,10 @@ namespace
 
     Pine::Graphics::IUniformVariable* m_LightIndices = nullptr;
     Pine::Graphics::IUniformVariable* m_HasTangentData = nullptr;
+    Pine::Graphics::IUniformVariable* m_HasDirectionalShadowMapUniform = nullptr;
+
+    bool m_HasDirectionalShadowMap = false;
+    Pine::Graphics::ITexture* m_DirectionalShadowMap = nullptr;
 
     Pine::Vector4i m_LightIndicesData;
 
@@ -120,6 +124,13 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     if (!m_Shader)
     {
         return;
+    }
+
+    // Apply shadow data
+    m_HasDirectionalShadowMapUniform->LoadInteger(m_HasDirectionalShadowMap);
+    if (m_HasDirectionalShadowMap && m_DirectionalShadowMap)
+    {
+        m_DirectionalShadowMap->Bind(Specifications::Samplers::DIRECTIONAL_SHADOW_MAP);
     }
 
     // Apply Textures
@@ -282,6 +293,7 @@ void Pine::Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVe
 
     m_HasTangentData = m_Shader->GetUniformVariable("hasTangentData");
     m_LightIndices = m_Shader->GetUniformVariable("lightIndices");
+    m_HasDirectionalShadowMapUniform = m_Shader->GetUniformVariable("hasDirectionalShadowMap");
 }
 
 void Pine::Renderer3D::UseRenderingContext(RenderingContext *renderingContext)
@@ -347,6 +359,13 @@ void Pine::Renderer3D::UploadLights()
     ShaderStorages::Lights.Upload();
 
     m_CurrentLightIndex = 1;
+}
+
+void Pine::Renderer3D::AddDirectionalShadowMap(const Matrix4f &lightSpaceMatrix, Graphics::ITexture *depthMap)
+{
+    auto& lightData = ShaderStorages::Lights.Data();
+
+    lightData.DirectionalLightSpaceMatrix = lightSpaceMatrix;
 }
 
 void Pine::Renderer3D::FrameReset()
