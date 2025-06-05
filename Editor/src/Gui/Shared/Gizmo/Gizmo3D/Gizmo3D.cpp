@@ -1,4 +1,8 @@
 #include "Gizmo3D.hpp"
+
+#include <imgui.h>
+
+#include "IconsMaterialDesign.h"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/Graphics/Graphics.hpp"
@@ -13,8 +17,46 @@ namespace
 
     Pine::Shader* m_ObjectSolidShader3D = nullptr;
 
-    void RenderIcon()
+    void RenderIcon(Pine::Vector2f basePosition, Pine::Vector3f worldPosition, const Pine::Texture2D* texture)
     {
+        if (!texture)
+        {
+            return;
+        }
+
+        constexpr float size = 40.f;
+
+        const auto camera = RenderHandler::GetLevelRenderingContext()->SceneCamera;
+
+        const Pine::Vector3f screenPosition = camera->WorldToScreenPoint(worldPosition);
+        const Pine::Vector2f minPosition = { basePosition.x + screenPosition.x - size / 2.f, basePosition.y + screenPosition.y - size / 2.f };
+        const Pine::Vector2f maxPosition = { basePosition.x + screenPosition.x + size - size / 2.f, basePosition.y + screenPosition.y + size - size / 2.f };
+
+        if (screenPosition.z > 1.f)
+        {
+            return;
+        }
+
+        const std::uint64_t textureId = *static_cast<std::uint32_t*>(texture->GetGraphicsTexture()->GetGraphicsIdentifier());
+
+        ImGui::GetWindowDrawList()->AddImage(reinterpret_cast<ImTextureID>(textureId),
+            {minPosition.x, minPosition.y},
+            {maxPosition.x, maxPosition.y},
+            ImVec2(0.f, 0.f),
+            ImVec2(1.f, 1.f),
+            ImColor(0, 0, 0, 100)
+            );
+
+        ImGui::GetWindowDrawList()->AddImage(reinterpret_cast<ImTextureID>(textureId),
+            {minPosition.x - 1, minPosition.y - 1},
+            {maxPosition.x - 1, maxPosition.y - 1},
+            ImVec2(0.f, 0.f),
+            ImVec2(1.f, 1.f),
+            ImColor(255, 255, 255)
+            );
+
+        //ImGui::GetWindowDrawList()->AddText({basePosition.x + screenPosition.x + 1, basePosition.y + screenPosition.y + 1}, ImColor(0, 0, 0, 100), icon);
+        //ImGui::GetWindowDrawList()->AddText({basePosition.x + screenPosition.x, basePosition.y + screenPosition.y}, ImColor(255, 255, 255), icon);
     }
 
     // Writes the stencil buffer value of the selected objects to 0xFF, so we can outline them later.
@@ -127,4 +169,30 @@ void Gizmo::Gizmo3D::Setup()
 
 void Gizmo::Gizmo3D::Render(Pine::Vector2f position)
 {
+    static auto lightGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-light.png");
+    static auto lightDirectionalGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-light-directional.png");
+    static auto cameraGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-camera.png");
+
+    if (Pine::RenderManager::GetCurrentRenderingContext() == nullptr)
+    {
+        return;
+    }
+
+    for (const auto& light : Pine::Components::Get<Pine::Light>())
+    {
+        if (Selection::IsSelected(light.GetParent()))
+            continue;
+
+        RenderIcon(position, light.GetParent()->GetTransform()->GetPosition(), light.GetLightType() == Pine::LightType::Directional ? lightDirectionalGizmoIcon : lightGizmoIcon);
+    }
+
+    for (const auto& camera : Pine::Components::Get<Pine::Camera>())
+    {
+        if (Selection::IsSelected(camera.GetParent()))
+            continue;
+        if (&camera == RenderHandler::GetLevelRenderingContext()->SceneCamera)
+            continue;
+
+        RenderIcon(position, camera.GetParent()->GetTransform()->GetPosition(), cameraGizmoIcon);
+    }
 }

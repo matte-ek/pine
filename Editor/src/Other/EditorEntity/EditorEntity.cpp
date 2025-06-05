@@ -22,6 +22,10 @@ namespace
 
     bool m_Perspective2D = false;
 
+	float m_SpeedMultiplier = 1.f;
+
+	Pine::Vector3f m_Velocity = Pine::Vector3f(0.f);
+
 	class EditorComponent final : public Pine::NativeScript
 	{
 		Pine::Camera* m_Camera = nullptr;
@@ -30,21 +34,39 @@ namespace
         {
             if (m_Perspective2D)
                 return;
-            if (!m_CaptureMouse)
-                return;
-
-            constexpr float speed = 2.f;
-            constexpr float sensitivity = 20.0f;
 
             const auto transform = m_Parent->GetTransform();
 
-            transform->LocalPosition += transform->GetForward() * m_Forward->GetAxisValue() * deltaTime * speed;
-            transform->LocalPosition += transform->GetRight() * m_Sideways->GetAxisValue() * deltaTime * speed;
+        	if (m_CaptureMouse)
+			{
+				constexpr float sensitivity = 20.0f;
 
-            m_ViewAngles.x += m_Pitch->GetAxisValue() * sensitivity * deltaTime;
-            m_ViewAngles.y += m_Yaw->GetAxisValue() * sensitivity * deltaTime;
+				m_Velocity += transform->GetForward() * m_Forward->GetAxisValue() * deltaTime * 0.55f * m_SpeedMultiplier * 0.5f;
+        		m_Velocity += transform->GetRight() * m_Sideways->GetAxisValue() * deltaTime * 0.55f * m_SpeedMultiplier * 0.5f;
 
-            transform->SetEulerAngles(Pine::Vector3f(m_ViewAngles, 0.f));
+        		if (fabsf(m_Forward->GetAxisValue()) + fabsf(m_Sideways->GetAxisValue()) < 0.1f)
+        		{
+        			m_Velocity *= 0.96f;
+        		}
+        		else
+        		{
+        			if (glm::length(m_Velocity) > .05f * m_SpeedMultiplier)
+        			{
+        				m_Velocity = glm::normalize(m_Velocity) * .05f * m_SpeedMultiplier * 0.5f;
+        			}
+        		}
+
+        		m_ViewAngles.x += m_Pitch->GetAxisValue() * sensitivity * deltaTime;
+        		m_ViewAngles.y += m_Yaw->GetAxisValue() * sensitivity * deltaTime;
+
+        		transform->SetEulerAngles(Pine::Vector3f(m_ViewAngles, 0.f));
+			}
+        	else
+        	{
+        		m_Velocity *= 0.96f;
+        	}
+
+        	transform->LocalPosition += m_Velocity;
         }
 
         void HandleMovement2D(float deltaTime) const
@@ -56,7 +78,6 @@ namespace
 
             if (m_CaptureMouse)
             {
-	            constexpr float speed = 2.f;
 	            constexpr float sensitivity = 0.025f;
 
                 const float zoomFactor = m_Camera->GetOrthographicSize() * 0.5f + 0.5f;
@@ -66,8 +87,8 @@ namespace
                 transform->LocalPosition += Pine::Vector3f(1.f, 0.f, 0.f) * m_Yaw->GetAxisValue() * sensitivity * zoomFactor;
 
                 // Allow moving with keyboard (put this outside of m_CaptureMouse?)
-                transform->LocalPosition += Pine::Vector3f(0.f, 1.f, 0.f) * m_Forward->GetAxisValue() * deltaTime * speed;
-                transform->LocalPosition += Pine::Vector3f(1.f, 0.f, 0.f) * m_Sideways->GetAxisValue() * deltaTime * speed;
+                transform->LocalPosition += Pine::Vector3f(0.f, 1.f, 0.f) * m_Forward->GetAxisValue() * deltaTime * m_SpeedMultiplier;
+                transform->LocalPosition += Pine::Vector3f(1.f, 0.f, 0.f) * m_Sideways->GetAxisValue() * deltaTime * m_SpeedMultiplier;
             }
 
             transform->LocalPosition.z = 0.1f;
@@ -89,14 +110,14 @@ namespace
 		void LoadData(const nlohmann::json& j) override {}
 		void SaveData(nlohmann::json& j) override {}
 	};
-	
+
 }
 
 void EditorEntity::Setup()
 {
 	/* Setup Inputs */
 	m_EditorInputContext = Pine::Input::CreateContext("Editor");
-	
+
 	m_Forward = m_EditorInputContext->CreateInputBinding("Forward");
 	m_Sideways = m_EditorInputContext->CreateInputBinding("Sideways");
 	m_Pitch = m_EditorInputContext->CreateInputBinding("Pitch");
@@ -153,4 +174,14 @@ void EditorEntity::SetPerspective2D(bool value)
     {
         m_Entity->GetComponent<Pine::Camera>()->SetCameraType(value ? Pine::CameraType::Orthographic : Pine::CameraType::Perspective);
     }
+}
+
+float EditorEntity::GetSpeedMultiplier()
+{
+	return m_SpeedMultiplier;
+}
+
+void EditorEntity::SetSpeedMultiplier(float value)
+{
+	m_SpeedMultiplier = value;
 }

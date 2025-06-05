@@ -142,9 +142,14 @@ void Pine::Camera::SetOverrideAspectRatio(float value)
     m_OverrideAspectRatio = value;
 }
 
-Pine::Vector3f Pine::Camera::WorldToScreenPoint(const Pine::Vector3f &position) const
+Pine::Vector3f Pine::Camera::WorldToScreenPoint(const Vector3f &position) const
 {
     const auto renderingContext = RenderManager::GetCurrentRenderingContext();
+
+    if (!renderingContext)
+    {
+        return {0.f, 0.f, 0.f};
+    }
 
     auto screenPos = glm::project(position, m_ViewMatrix, m_ProjectionMatrix, Vector4f(0.f, 0.f, renderingContext->Size.x, renderingContext->Size.y));
 

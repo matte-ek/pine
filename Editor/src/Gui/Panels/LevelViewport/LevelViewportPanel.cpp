@@ -28,6 +28,9 @@ namespace
     Pine::Vector2i m_MouseCapturePosition = Pine::Vector2i(0);
     Pine::Vector2i m_Size = Pine::Vector2i(0);
 
+    bool m_ShowEntitySpeed = false;
+    double m_ShowEntitySpeedTime = 0.f;
+
     enum class GizmoMode : int
     {
         Translate,
@@ -309,6 +312,16 @@ void Panels::LevelViewport::Render()
     }
     else
     {
+        const auto& io = ImGui::GetIO();
+
+        if (io.MouseWheel != 0.f)
+        {
+            EditorEntity::SetSpeedMultiplier(EditorEntity::GetSpeedMultiplier() + io.MouseWheel * 0.1f);
+
+            m_ShowEntitySpeed = true;
+            m_ShowEntitySpeedTime = ImGui::GetTime() + 5.f;
+        }
+
         if (!ImGui::IsMouseDown(ImGuiMouseButton_::ImGuiMouseButton_Right))
         {
             m_CaptureMouse = false;
@@ -353,7 +366,7 @@ void Panels::LevelViewport::Render()
         // Handle view port zooming
         if (viewportHovered)
         {
-            const auto camera= RenderHandler::GetLevelRenderingContext()->SceneCamera;
+            const auto camera = RenderHandler::GetLevelRenderingContext()->SceneCamera;
             const float zoomFactor = camera->GetOrthographicSize();
             const float wheelDelta = ImGui::GetIO().MouseWheel * 0.1f * zoomFactor;
 
@@ -372,7 +385,19 @@ void Panels::LevelViewport::Render()
     }
     else
     {
-        //Gizmo::Gizmo3D::Render();
+        Gizmo::Gizmo3D::Render({position.x, position.y});
+    }
+
+    if (m_ShowEntitySpeed && m_ShowEntitySpeedTime > ImGui::GetTime())
+    {
+        char buff[64];
+
+        snprintf(buff, sizeof(buff), "Speed: %.1f", EditorEntity::GetSpeedMultiplier());
+
+        const auto textSize = ImGui::CalcTextSize(buff);
+
+        ImGui::GetWindowDrawList()->AddRectFilled({position.x + 10.f, position.y + 10.f}, {position.x + 20.f + textSize.x, position.y + 20.f + textSize.y}, ImColor(20, 20, 20, 150));
+        ImGui::GetWindowDrawList()->AddText({position.x + 15.f, position.y + 15.f}, ImColor(255, 255, 255, 255), buff);
     }
 
     if (viewportClicked && !ImGuizmo::IsUsing())
