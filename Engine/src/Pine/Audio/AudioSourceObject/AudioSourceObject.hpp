@@ -8,6 +8,7 @@ namespace Pine::Audio
     {
     private:
         ALuint m_id;
+
     public:
         AudioSourceObject(ALuint buffer);
         ~AudioSourceObject();
