@@ -4,6 +4,7 @@
 
 #include "Pine/World/Components/IComponent/IComponent.hpp"
 #include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Core/Math/Math.hpp"
 
 namespace Pine
 {
@@ -13,7 +14,7 @@ namespace Pine
     {
     private:
         AssetHandle<AudioFile> m_AudioFile;
-        ALuint m_SourceId;
+        ALuint m_SourceId = 0;
 
         bool m_IsPlaying = false;
         bool m_PlayOnStart = false;
@@ -22,9 +23,9 @@ namespace Pine
         float m_PlaybackPosition = 0.f;
         float m_Volume = 1.f;
 
-        glm::vec3 m_WorldPosition = glm::vec3(0.f);
+        Vector3f m_WorldPosition = Vector3f(0.f);
 
-        int m_AudioSourceObjectId;
+        int m_AudioSourceObjectId = 0;
     public:
         AudioSource();
 
@@ -34,9 +35,6 @@ namespace Pine
 
         bool IsPlaying() const;
         float GetPlaybackPosition() const;
-
-        glm::vec3 GetWorldPosition() const;
-        void SetWorldPosition(glm::vec3 position) const;
 
         void SetPlayOnStart(bool playOnStart);
         bool GetPlayOnStart() const;

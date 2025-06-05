@@ -32,24 +32,6 @@ float Pine::AudioSource::GetPlaybackPosition() const
     return seconds;
 }
 
-glm::vec3 Pine::AudioSource::GetWorldPosition() const
-{
-    if (m_SourceId == 0)
-        return glm::vec3(0.0f);
-
-    ALfloat pos[3];
-    alGetSourcefv(m_SourceId, AL_POSITION, pos);
-    return {pos[0], pos[1], pos[2]};
-}
-
-void Pine::AudioSource::SetWorldPosition(glm::vec3 position) const
-{
-    if (m_SourceId == 0)
-        return;
-
-    alSource3f(m_SourceId, AL_POSITION, position.x, position.y, position.z);
-}
-
 void Pine::AudioSource::SetPlayOnStart(bool playOnStart)
 {
     m_PlayOnStart = playOnStart;

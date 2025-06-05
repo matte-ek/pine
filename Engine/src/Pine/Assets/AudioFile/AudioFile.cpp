@@ -76,9 +76,8 @@ namespace Pine
 
         ALuint sourceId = 0;
         alGenSources(1, &sourceId);
-        if (alGetError() != AL_NO_ERROR) {
+        if (alGetError() != AL_NO_ERROR)
             return 0;
-        }
 
         alSourcei(sourceId, AL_BUFFER, m_AudioObject->GetBufferID());
         if (alGetError() != AL_NO_ERROR) {
