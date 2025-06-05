@@ -14,6 +14,7 @@ namespace
 	Pine::InputBind* m_Sideways = nullptr;
 	Pine::InputBind* m_Pitch = nullptr;
 	Pine::InputBind* m_Yaw = nullptr;
+	Pine::InputBind* m_Boost = nullptr;
 
 	Pine::Entity* m_Entity = nullptr;
 
@@ -40,9 +41,10 @@ namespace
         	if (m_CaptureMouse)
 			{
 				constexpr float sensitivity = 20.0f;
+        		const float speedMultiplier = m_Boost->GetAxisValue() + m_SpeedMultiplier;
 
-				m_Velocity += transform->GetForward() * m_Forward->GetAxisValue() * deltaTime * 0.55f * m_SpeedMultiplier * 0.5f;
-        		m_Velocity += transform->GetRight() * m_Sideways->GetAxisValue() * deltaTime * 0.55f * m_SpeedMultiplier * 0.5f;
+				m_Velocity += transform->GetForward() * m_Forward->GetAxisValue() * deltaTime * 0.275f * speedMultiplier;
+        		m_Velocity += transform->GetRight() * m_Sideways->GetAxisValue() * deltaTime * 0.275f * speedMultiplier;
 
         		if (fabsf(m_Forward->GetAxisValue()) + fabsf(m_Sideways->GetAxisValue()) < 0.1f)
         		{
@@ -50,9 +52,9 @@ namespace
         		}
         		else
         		{
-        			if (glm::length(m_Velocity) > .05f * m_SpeedMultiplier)
+        			if (glm::length(m_Velocity) > .05f * speedMultiplier)
         			{
-        				m_Velocity = glm::normalize(m_Velocity) * .05f * m_SpeedMultiplier * 0.5f;
+        				m_Velocity = glm::normalize(m_Velocity) * .025f * speedMultiplier;
         			}
         		}
 
@@ -122,12 +124,15 @@ void EditorEntity::Setup()
 	m_Sideways = m_EditorInputContext->CreateInputBinding("Sideways");
 	m_Pitch = m_EditorInputContext->CreateInputBinding("Pitch");
 	m_Yaw = m_EditorInputContext->CreateInputBinding("Yaw");
+	m_Boost = m_EditorInputContext->CreateInputBinding("Boost Speed");
 
 	m_Forward->AddKeyboardBinding(GLFW_KEY_W, 1.f);
 	m_Forward->AddKeyboardBinding(GLFW_KEY_S, -1.f);
 
 	m_Sideways->AddKeyboardBinding(GLFW_KEY_D, 1.f);
 	m_Sideways->AddKeyboardBinding(GLFW_KEY_A, -1.f);
+
+	m_Boost->AddKeyboardBinding(GLFW_KEY_LEFT_SHIFT, 1.f);
 
 	m_Pitch->AddAxisBinding(Pine::Axis::MouseY);
 	m_Yaw->AddAxisBinding(Pine::Axis::MouseX);
