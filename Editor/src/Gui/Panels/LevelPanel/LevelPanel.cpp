@@ -37,6 +37,8 @@ void Panels::LevelPanel::Render()
         const auto newSkybox = Widgets::AssetPicker("Skybox", currentLevel->GetLevelSettings().Skybox.Get(), Pine::AssetType::Texture3D);
         const auto newCameraEntity = Widgets::EntityPicker("Camera", cameraParent);
 
+        Widgets::ColorPicker3("Ambient Color", currentLevel->GetLevelSettings().AmbientColor);
+
         if (newSkybox.hasResult)
         {
             currentLevel->GetLevelSettings().Skybox = dynamic_cast<Pine::Texture3D*>(newSkybox.asset);

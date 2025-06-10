@@ -25,6 +25,13 @@ namespace Pine::Graphics
         Stencil
     };
 
+    enum class BufferAttachment
+    {
+        Color,
+        Depth,
+        DepthStencil
+    };
+
     class IFrameBuffer
     {
     private:
@@ -42,10 +49,15 @@ namespace Pine::Graphics
         virtual void Dispose() = 0;
 
         virtual void Blit(IFrameBuffer* source, Buffers buffer = ColorBuffer, Vector4i srcRect = Vector4i(-1), Vector4i dstRect = Vector4i(-1)) = 0;
-
         virtual void ReadPixels(Vector2i position, Vector2i size, ReadFormat readFormat, TextureDataFormat dataFormat, size_t bufferSize, void* buffer) = 0;
 
-        virtual bool Create(int width, int height, std::uint32_t buffers, int multiSample = 0) = 0;
+        virtual void Prepare() = 0;
+
+        virtual void AttachTextures(int width, int height, int buffers, int multiSample = 0) = 0;
+
+        virtual void AttachTexture(ITexture* texture, BufferAttachment attachment, int attachmentOffset = 0) = 0;
+
+        virtual bool Finish() = 0;
     };
 
 }

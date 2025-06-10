@@ -21,6 +21,7 @@
 #include <stdexcept>
 
 #include "Pine/Physics/Physics2D/Physics2D.hpp"
+#include "Pine/Threading/Threading.hpp"
 
 namespace
 {
@@ -41,7 +42,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     if (!glfwInit())
     {
-        Log::Fatal("Failed to setup core library: GLFW");
+        Log::Fatal("[Engine] Failed to setup core library: GLFW");
 
         return false;
     }
@@ -49,7 +50,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     if (!WindowManager::Internal::CreateWindow(engineConfiguration.m_WindowPosition, engineConfiguration.m_WindowSize,
                                                engineConfiguration.m_WindowTitle, WindowManager::ScreenType::Default))
     {
-        Log::Fatal("Failed to setup window");
+        Log::Fatal("[Engine] Failed to setup window");
 
         glfwTerminate();
 
@@ -59,7 +60,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     // Set up our graphics API.
     if (!Graphics::Setup(engineConfiguration.m_GraphicsAPI))
     {
-        Log::Fatal("Failed to setup graphics API");
+        Log::Fatal("[Engine] Failed to setup graphics API");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -72,7 +73,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     if (!Audio::Setup())
     {
-        Log::Fatal("Failed to setup audio API");
+        Log::Fatal("[Engine] Failed to setup audio API");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -80,6 +81,8 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
         return false;
     }
+
+    Threading::Setup();
 
     // We have to set up our script runtime first, since all other parts of the engine needs to
     // be able to register objects to the runtime.
@@ -91,10 +94,11 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     Assets::Setup();
 
-    if (Assets::LoadDirectory("engine/shaders", false) != 0
+    if (Assets::LoadDirectory("engine/shaders", false) != 0 ||
+        Assets::LoadDirectory("engine/materials", false) != 0
      || Assets::LoadDirectory("engine", false) != 0)
     {
-        Log::Fatal("Failed to load engine assets.");
+        Log::Fatal("[Engine] Failed to load engine assets.");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -118,7 +122,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     m_IsInitialized = true;
     m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
-    Log::Info("Pine was successfully initialized.");
+    Log::Info("[Engine] Pine was successfully initialized.");
 
     return true;
 }
@@ -127,7 +131,7 @@ void Pine::Engine::Run()
 {
     if (!m_IsInitialized)
     {
-        throw std::runtime_error("Engine::Run(): Engine has not been initialized.");
+        throw std::runtime_error("[Engine] Engine has not been initialized.");
     }
 
     const auto windowPointer = static_cast<GLFWwindow*>(WindowManager::GetWindowPointer());
@@ -167,7 +171,7 @@ void Pine::Engine::Shutdown()
 {
     if (!m_IsInitialized)
     {
-        throw std::runtime_error("Engine::Shutdown(): Engine has not been initialized.");
+        throw std::runtime_error("[Engine] Engine has not been initialized.");
     }
 
     Script::Manager::Dispose();
@@ -183,6 +187,7 @@ void Pine::Engine::Shutdown()
     Assets::Shutdown();
     Graphics::Shutdown();
     Audio::Shutdown();
+    Threading::Shutdown();
 
     WindowManager::Internal::DestroyWindow();
 

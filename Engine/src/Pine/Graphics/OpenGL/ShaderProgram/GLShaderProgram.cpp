@@ -17,6 +17,8 @@ namespace
                 return GL_FRAGMENT_SHADER;
             case Pine::Graphics::ShaderType::Compute:
                 return GL_COMPUTE_SHADER;
+            case Pine::Graphics::ShaderType::Geometry:
+                return GL_GEOMETRY_SHADER;
             default:
                 throw std::runtime_error("Unsupported shader type.");
         }
@@ -168,7 +170,7 @@ Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVar
             // Insert an empty pointer to indicate that we have already tried to find the variable.
             m_UniformVariables[name] = nullptr;
 
-            Log::Warning("Failed to find uniform variable: " + name);
+            Log::Warning("[Renderer] Failed to find uniform variable: " + name);
 
             return nullptr;
         }

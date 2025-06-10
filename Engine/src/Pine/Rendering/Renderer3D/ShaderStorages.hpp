@@ -54,11 +54,18 @@ namespace Pine::Renderer3D::ShaderStorages
             float Pad6 = 0;
         }Lights[Specifications::General::DYNAMIC_LIGHT_COUNT];
 
-        Matrix4f DirectionalLightSpaceMatrix = Matrix4f(1.f);
+        Vector3f AmbientColor = Vector3f(0.f);
+        float Pad7 = 0;
+    };
+
+    struct ShadowData
+    {
+        Matrix4f LightSpaceMatrix[8];
     };
 
     inline Graphics::ShaderStorage<MatrixData> Matrix(Specifications::ShaderStorages::MATRICES, "Matrices");
     inline Graphics::ShaderStorage<TransformData> Transform(Specifications::ShaderStorages::TRANSFORM, "Transform");
     inline Graphics::ShaderStorage<MaterialData> Material(Specifications::ShaderStorages::MATERIAL, "Material");
     inline Graphics::ShaderStorage<LightsData> Lights(Specifications::ShaderStorages::LIGHTS, "Lights");
+    inline Graphics::ShaderStorage<ShadowData> Shadows(Specifications::ShaderStorages::SHADOWS, "Shadows");
 }

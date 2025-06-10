@@ -1,5 +1,5 @@
 #include <GLFW/glfw3.h>
-#include "Commands.hpp"
+#include "Actions.hpp"
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
@@ -26,7 +26,7 @@ namespace
     }
 }
 
-void Commands::Setup()
+void Actions::Setup()
 {
     Keybinds::Copy = KeybindSystem::RegisterKeybind("Copy", GLFW_KEY_C, true);
     Keybinds::Paste = KeybindSystem::RegisterKeybind("Paste", GLFW_KEY_V, true);
@@ -38,17 +38,17 @@ void Commands::Setup()
     Keybinds::Save = KeybindSystem::RegisterKeybind("Save", GLFW_KEY_S, true);
 }
 
-void Commands::Dispose()
+void Actions::Dispose()
 {
 }
 
-void Commands::Copy()
+void Actions::Copy()
 {
     ClipboardEntities = Selection::GetSelectedEntities();
     ClipboardAssets = Selection::GetSelectedAssets();
 }
 
-void Commands::Paste()
+void Actions::Paste()
 {
     Selection::Clear();
 
@@ -72,13 +72,13 @@ void Commands::Paste()
     }
 }
 
-void Commands::Duplicate()
+void Actions::Duplicate()
 {
     Copy();
     Paste();
 }
 
-void Commands::Delete()
+void Actions::Delete()
 {
     if (!Selection::GetSelectedEntities().empty())
     {
@@ -100,15 +100,15 @@ void Commands::Delete()
     Selection::Clear();
 }
 
-void Commands::Undo()
+void Actions::Undo()
 {
 }
 
-void Commands::Redo()
+void Actions::Redo()
 {
 }
 
-void Commands::Refresh(bool engineAssets)
+void Actions::Refresh(bool engineAssets)
 {
     if (engineAssets)
     {
@@ -119,7 +119,7 @@ void Commands::Refresh(bool engineAssets)
     Panels::AssetBrowser::RebuildAssetTree();
 }
 
-void Commands::Save()
+void Actions::Save()
 {
     if (Pine::World::GetActiveLevel())
         Pine::World::GetActiveLevel()->CreateFromWorld();
@@ -127,7 +127,7 @@ void Commands::Save()
     Pine::Assets::SaveAll();
 }
 
-void Commands::Update()
+void Actions::Update()
 {
     if (KeybindSystem::IsKeybindPressed(Keybinds::Copy))
         Copy();

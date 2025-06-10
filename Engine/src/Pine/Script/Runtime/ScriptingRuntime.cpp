@@ -37,7 +37,7 @@ bool Pine::Script::Runtime::Setup()
 
         if (!m_RootDomain)
         {
-            Log::Error("Failed to initialize Mono runtime.");
+            Log::Error("Script: Failed to initialize Mono runtime, scripting system inoperational.");
             return false;
         }
     }
@@ -56,7 +56,7 @@ bool Pine::Script::Runtime::Setup()
     m_PineAssembly = mono_domain_assembly_open(m_AppDomain, "engine/script/Pine.dll");
     if (!m_PineAssembly)
     {
-        Log::Error("Failed to open Pine assembly.");
+        Log::Error("Script: Failed to open Pine engine assembly, scripting system inoperational.");
         return false;
     }
 

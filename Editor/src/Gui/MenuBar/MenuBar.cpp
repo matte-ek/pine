@@ -2,12 +2,13 @@
 #include "imgui.h"
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Gui/Panels/Console/ConsolePanel.hpp"
+#include "Gui/Panels/DebugPanel/DebugPanel.hpp"
 #include "Gui/Panels/EntityList/EntityListPanel.hpp"
 #include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
 #include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
 #include "Gui/Panels/Profiler/ProfilerPanel.hpp"
 #include "Gui/Panels/Properties/PropertiesPanel.hpp"
-#include "Gui/Shared/Commands/Commands.hpp"
+#include "Gui/Shared/Actions/Actions.hpp"
 
 void MenuBar::Setup()
 {
@@ -28,7 +29,7 @@ void MenuBar::Render()
 
             if (ImGui::MenuItem("Save", "CTRL+S"))
             {
-                Commands::Save();
+                Actions::Save();
             }
 
             ImGui::Separator();
@@ -45,42 +46,42 @@ void MenuBar::Render()
         {
             if (ImGui::MenuItem("Copy", "CTRL+C"))
             {
-                Commands::Copy();
+                Actions::Copy();
             }
 
             if (ImGui::MenuItem("Paste", "CTRL+V"))
             {
-                Commands::Paste();
+                Actions::Paste();
             }
 
             if (ImGui::MenuItem("Cut", "CTRL+X"))
             {
-                Commands::Copy();
-                Commands::Delete();
+                Actions::Copy();
+                Actions::Delete();
             }
 
             ImGui::Separator();
 
             if (ImGui::MenuItem("Delete", "DEL"))
             {
-                Commands::Delete();
+                Actions::Delete();
             }
 
             if (ImGui::MenuItem("Duplicate", "CTRL+D"))
             {
-                Commands::Duplicate();
+                Actions::Duplicate();
             }
 
             ImGui::Separator();
 
             if (ImGui::MenuItem("Undo", "CTRL+Z"))
             {
-                Commands::Undo();
+                Actions::Undo();
             }
 
             if (ImGui::MenuItem("Redo", "CTRL+Y"))
             {
-                Commands::Redo();
+                Actions::Redo();
             }
 
             ImGui::EndMenu();
@@ -90,12 +91,12 @@ void MenuBar::Render()
         {
             if (ImGui::MenuItem("Refresh", "F5"))
             {
-                Commands::Refresh();
+                Actions::Refresh();
             }
 
             if (ImGui::MenuItem("Refresh Engine Assets", "CTRL+F5"))
             {
-                Commands::Refresh(true);
+                Actions::Refresh(true);
             }
 
             ImGui::EndMenu();
@@ -136,6 +137,11 @@ void MenuBar::Render()
             if (ImGui::MenuItem("Profiler", nullptr, Panels::Profiler::GetActive()))
             {
                 Panels::Profiler::SetActive(!Panels::Profiler::GetActive());
+            }
+
+            if (ImGui::MenuItem("Debug", nullptr, Panels::Debug::GetActive()))
+            {
+                Panels::Debug::SetActive(!Panels::Debug::GetActive());
             }
 
             ImGui::EndMenu();

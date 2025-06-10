@@ -169,7 +169,9 @@ namespace
 void IconStorage::Setup()
 {
     m_PreviewFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_PreviewFrameBuffer->Create(512, 512, Pine::Graphics::Buffers::ColorBuffer);
+    m_PreviewFrameBuffer->Prepare();
+    m_PreviewFrameBuffer->AttachTextures(512, 512, Pine::Graphics::Buffers::ColorBuffer);
+    m_PreviewFrameBuffer->Finish();
 
     Pine::RenderManager::AddRenderCallback(OnRender);
 }
@@ -226,7 +228,9 @@ void IconStorage::Update()
             if (icon->FrameBuffer == nullptr)
             {
                 icon->FrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-                icon->FrameBuffer->Create(128, 128, Pine::Graphics::Buffers::ColorBuffer);
+                icon->FrameBuffer->Prepare();
+                icon->FrameBuffer->AttachTextures(128, 128, Pine::Graphics::Buffers::ColorBuffer);
+                icon->FrameBuffer->Finish();
             }
 
             icon->m_Dirty = true;

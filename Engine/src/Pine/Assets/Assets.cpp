@@ -155,7 +155,7 @@ namespace
     }
 
     // More or less which thread we're currently on, SingleThread in this context means
-    // only the main thread, i.e. the thread that the OpenGL context is on.
+    // only the main thread, i.e., the thread that the OpenGL context is on.
     enum class LoadThreadingModeContext
     {
         SingleThread,
@@ -185,12 +185,12 @@ void Assets::Setup()
 
 void Assets::Shutdown()
 {
-    for (auto& asset : m_Assets)
+    for (auto& [path, asset] : m_Assets)
     {
-        Log::Verbose(fmt::format("Disposing asset {}...", asset.first));
+        Log::Verbose(fmt::format("[Assets] Disposing asset {}...", path));
 
-        if (!asset.second->IsDeleted())
-            asset.second->Dispose();
+        if (!asset->IsDeleted())
+            asset->Dispose();
     }
 }
 
@@ -277,7 +277,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
 {
     if (!exists(directoryPath))
     {
-        Log::Warning(fmt::format("Loaded no assets from '{}', directory does not exist.", directoryPath.string()));
+        Log::Warning(fmt::format("[Assets] Loaded no assets from '{}', directory does not exist.", directoryPath.string()));
         return -1;
     }
 
@@ -353,7 +353,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
 
     // Make sure we're not overdoing it, but if this is true
     // we're probably overdoing it anyway.
-    int threadAmount = Engine::GetEngineConfiguration().m_AssetsLoadThreadCount;
+    int threadAmount = 4;
     if (threadAmount > multiThreadAssetCount)
     {
         threadAmount = multiThreadAssetCount;
@@ -376,6 +376,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
         }
     };
 
+    // TODO: Move this crap to the threadpool worker system.
     if (!multiThreadLoadAssets.empty())
     {
         // Attempt to split up the workload between the available threads
@@ -474,7 +475,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
 
         if (missingDependency)
         {
-            Log::Error("Failed to import asset " + asset->GetPath() + ", missing dependency.");
+            Log::Error("[Assets] Failed to import asset " + asset->GetPath() + ", missing dependency.");
             assetsLoadErrors++;
             continue;
         }
@@ -539,7 +540,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
 
         if (assetResolveReference.m_Type != AssetType::Invalid && asset->GetType() != assetResolveReference.m_Type)
         {
-            Log::Warning(fmt::format("Failed to resolve asset reference '{}', asset type is invalid.", assetResolveReference.m_Path));
+            Log::Warning(fmt::format("[Assets] Failed to resolve asset reference '{}', asset type is invalid.", assetResolveReference.m_Path));
             continue;
         }
 
@@ -550,15 +551,15 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
 
     m_State = AssetManagerState::Idle;
 
-    // This is more to provide a warning, since assetsLoadErrors could still be 0, meaning nothing has really gone wrong
-    // however this is most likely not what the user wanted.
+    // This is more to provide a warning, since assetsLoadErrors could still be 0, meaning nothing has really gone wrong,
+    // however, this is most likely not what the user wanted.
     if (assetsLoaded == 0)
         return -1;
 
     if (assetsLoadErrors > 0)
-        Log::Warning(fmt::format("Failed to load {} asset(s) from '{}'.", assetsLoadErrors, directoryPath.string()));
+        Log::Warning(fmt::format("[Assets] Failed to load {} asset(s) from '{}'.", assetsLoadErrors, directoryPath.string()));
 
-    Log::Verbose("Loaded " + std::to_string(assetsLoaded) + " asset(s) from " + directoryPath.string());
+    Log::Verbose("[Assets] Loaded " + std::to_string(assetsLoaded) + " asset(s) from " + directoryPath.string());
 
     return assetsLoadErrors;
 }
@@ -584,7 +585,7 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath, bool log
     {
         if (logWarning)
         {
-            Log::Warning(fmt::format("Assets::Get(): Failed to find asset by path, {}", inputPath));
+            Log::Warning(fmt::format("[Assets] Failed to find asset by path, {}", inputPath));
         }
 
         return nullptr;
@@ -654,7 +655,7 @@ void Assets::SaveAll()
         if (!asset->IsModified())
             continue;
 
-        Log::Verbose(fmt::format("Saving asset {}...", asset->GetPath()));
+        Log::Verbose(fmt::format("[Assets] Saving asset {}...", asset->GetPath()));
 
         asset->SaveToFile();
         asset->SaveMetadata();
@@ -663,7 +664,7 @@ void Assets::SaveAll()
         savedAssets++;
     }
 
-    Log::Info(fmt::format("Saved {} modified assets.", savedAssets));
+    Log::Info(fmt::format("[Assets] Saved {} modified assets.", savedAssets));
 }
 
 void Assets::RefreshAll()
@@ -677,7 +678,7 @@ void Assets::RefreshAll()
 
         if (!std::filesystem::exists(asset->GetFilePath()))
         {
-            Log::Warning(fmt::format("Asset '{}' has been deleted from disk.", asset->GetPath()));
+            Log::Warning(fmt::format("Assets: Asset '{}' has been deleted from disk.", asset->GetPath()));
 
             asset->MarkAsDeleted();
             asset->Dispose();

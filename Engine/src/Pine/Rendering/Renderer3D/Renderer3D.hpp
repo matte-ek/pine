@@ -51,13 +51,17 @@ namespace Pine::Renderer3D
     void RenderMeshInstanced();
 
     void AddLight(const Light* light);
-    void AddDirectionalShadowMap(const Matrix4f& lightSpaceMatrix, Graphics::ITexture* depthMap);
+    void AddDirectionalShadowMap(Graphics::ITexture* depthMap);
     void UploadLights();
 
     void SetCamera(Camera* camera);
+    void SetCamera(const Matrix4f &viewMatrix, const Matrix4f &projMatrix);
+
     Camera* GetCamera();
 
     void SetShader(Shader* shader, ShaderVersion preferredVersion = ShaderVersion::Default);
+
+    void SetAmbientColor(Vector3f ambientColor);
 
     void UseRenderingContext(RenderingContext* renderingContext);
 }

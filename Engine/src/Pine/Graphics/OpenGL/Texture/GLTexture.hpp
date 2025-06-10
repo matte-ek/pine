@@ -14,6 +14,7 @@ namespace Pine::Graphics
 
         void UpdateTextureFiltering();
         void UpdateSwizzleMask() const;
+        void UpdateWrapMode();
     public:
         GLTexture();
 
@@ -32,6 +33,14 @@ namespace Pine::Graphics
         void SetMipmapFilteringMode(TextureFilteringMode mode) override;
         TextureFilteringMode GetMipmapFilteringMode() override;
 
+        void SetTextureWrapMode(TextureWrapMode mode) override;
+        TextureWrapMode GetTextureWrapMode() override;
+
+        void SetBorderColor(Vector4f color) override;
+        Vector4f GetBorderColor() override;
+
+        void SetCompareModeLowerEqual() override;
+
         void SetMaxAnisotropy(float value) override;
 
         void SetMultiSampled(bool multiSampled) override;
@@ -39,6 +48,9 @@ namespace Pine::Graphics
 
         void SetSamples(int samples) override;
         int GetSamples() override;
+
+        void SetArraySize(int arraySize) override;
+        int GetArraySize() override;
 
         int GetWidth() override;
         int GetHeight() override;

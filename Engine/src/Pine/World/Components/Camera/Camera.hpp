@@ -19,8 +19,8 @@ namespace Pine
 
         Vector4f m_ClearColor = Vector4f(0.f);
 
-        float m_NearPlane = 0.1f;
-        float m_FarPlane = 500.f;
+        float m_NearPlane = 0.01f;
+        float m_FarPlane = 150.f;
         float m_FieldOfView = 70.f;
 
         float m_OrthographicSize = 1.f;
@@ -56,6 +56,8 @@ namespace Pine
         const Vector4f& GetClearColor() const;
 
         Vector3f WorldToScreenPoint(const Vector3f& position) const;
+
+        std::array<Vector3f, 8> GetFrustumCorners() const;
 
         void OnRender(float) override;
 

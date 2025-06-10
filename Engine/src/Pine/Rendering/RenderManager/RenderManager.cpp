@@ -8,7 +8,10 @@
 #include <GLFW/glfw3.h>
 
 #include "Pine/Core/Timer/Timer.hpp"
+#include "Pine/Rendering/Common/Blur/Blur.hpp"
+#include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/PostProcessing/PostProcessing.hpp"
+#include "Pine/Rendering/Renderer3D/Specifications.hpp"
 
 namespace
 {
@@ -41,7 +44,14 @@ namespace
 void Pine::RenderManager::Setup()
 {
     m_InternalFrameBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_InternalFrameBuffer->Create(1920, 1080, Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer | Graphics::Buffers::StencilBuffer);
+    m_InternalFrameBuffer->Prepare();
+
+    m_InternalFrameBuffer->AttachTextures(
+        Renderer3D::Specifications::General::INTERNAL_WIDTH,
+        Renderer3D::Specifications::General::INTERNAL_HEIGHT,
+        Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer | Graphics::Buffers::StencilBuffer);
+
+    m_InternalFrameBuffer->Finish();
 
     m_DefaultRenderingContext.Size = Vector2f(Engine::GetEngineConfiguration().m_WindowSize);
     
@@ -49,6 +59,9 @@ void Pine::RenderManager::Setup()
 
     Pipeline2D::Setup();
     Pipeline3D::Setup();
+
+    Rendering::Common::QuadTarget::Setup();
+    Rendering::Common::Blur::Setup();
     Rendering::PostProcessing::Setup();
 }
 
@@ -56,6 +69,8 @@ void Pine::RenderManager::Shutdown()
 {
     Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_InternalFrameBuffer);
 
+    Rendering::Common::QuadTarget::Shutdown();
+    Rendering::Common::Blur::Shutdown();
     Rendering::PostProcessing::Shutdown();
     Pipeline3D::Shutdown();
     Pipeline2D::Shutdown();
@@ -90,6 +105,8 @@ void Pine::RenderManager::Run()
         }
     }
 
+    Pipeline3D::Prepare();
+
     for (const auto renderingContext : m_RenderingContexts)
     {
         if (World::GetActiveLevel())
@@ -103,6 +120,11 @@ void Pine::RenderManager::Run()
         }
 
         m_CurrentRenderingContext = renderingContext;
+
+        if (renderingContext->UseRenderPipeline)
+        {
+            Pipeline3D::Run(*renderingContext, PipelineStage::Prepass);
+        }
 
         // Reset statistics
         renderingContext->DrawCalls = 0;
@@ -154,7 +176,7 @@ void Pine::RenderManager::Run()
         {
             // 3D pass
             CallRenderCallback(renderingContext, RenderStage::PreRender3D, fDeltaTime);
-            Pipeline3D::Run(*renderingContext);
+            Pipeline3D::Run(*renderingContext, PipelineStage::Default);
             CallRenderCallback(renderingContext, RenderStage::PostRender3D, fDeltaTime);
 
             // 2D pass
@@ -204,6 +226,11 @@ Pine::RenderingContext *Pine::RenderManager::GetCurrentRenderingContext()
 Pine::RenderingContext *Pine::RenderManager::GetDefaultRenderingContext()
 {
     return &m_DefaultRenderingContext;
+}
+
+Pine::Graphics::IFrameBuffer * Pine::RenderManager::GetInternalFrameBuffer()
+{
+    return m_InternalFrameBuffer;
 }
 
 void Pine::RenderManager::AddRenderingContextPass(RenderingContext* context)

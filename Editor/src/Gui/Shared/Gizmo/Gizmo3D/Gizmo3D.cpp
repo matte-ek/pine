@@ -54,9 +54,6 @@ namespace
             ImVec2(1.f, 1.f),
             ImColor(255, 255, 255)
             );
-
-        //ImGui::GetWindowDrawList()->AddText({basePosition.x + screenPosition.x + 1, basePosition.y + screenPosition.y + 1}, ImColor(0, 0, 0, 100), icon);
-        //ImGui::GetWindowDrawList()->AddText({basePosition.x + screenPosition.x, basePosition.y + screenPosition.y}, ImColor(255, 255, 255), icon);
     }
 
     // Writes the stencil buffer value of the selected objects to 0xFF, so we can outline them later.
@@ -186,12 +183,23 @@ void Gizmo::Gizmo3D::Render(Pine::Vector2f position)
         RenderIcon(position, light.GetParent()->GetTransform()->GetPosition(), light.GetLightType() == Pine::LightType::Directional ? lightDirectionalGizmoIcon : lightGizmoIcon);
     }
 
-    for (const auto& camera : Pine::Components::Get<Pine::Camera>())
+    for (auto& camera : Pine::Components::Get<Pine::Camera>())
     {
         if (Selection::IsSelected(camera.GetParent()))
             continue;
         if (&camera == RenderHandler::GetLevelRenderingContext()->SceneCamera)
             continue;
+
+        // TODO: Actually render something nice if selected.
+        /*
+        const auto corners = camera.GetFrustumCorners();
+        for (const auto& corner : corners)
+        {
+            auto screenSpace = RenderHandler::GetLevelRenderingContext()->SceneCamera->WorldToScreenPoint(corner);
+
+            ImGui::GetWindowDrawList()->AddRectFilled({position.x + screenSpace.x, position.y + screenSpace.y}, {position.x + screenSpace.x + 2, position.y + screenSpace.y + 2}, ImColor(255, 255, 255));
+        }
+        */
 
         RenderIcon(position, camera.GetParent()->GetTransform()->GetPosition(), cameraGizmoIcon);
     }

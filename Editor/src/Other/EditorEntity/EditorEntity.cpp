@@ -73,7 +73,7 @@ namespace
 
         void HandleMovement2D(float deltaTime) const
         {
-            auto transform = m_Parent->GetTransform();
+            const auto transform = m_Parent->GetTransform();
 
             if (!m_Perspective2D)
                 return;
@@ -84,11 +84,11 @@ namespace
 
                 const float zoomFactor = m_Camera->GetOrthographicSize() * 0.5f + 0.5f;
 
-                // Allow moving with mouse
+                // Allow moving with the mouse
                 transform->LocalPosition += Pine::Vector3f(0.f, -1.f, 0.f) * m_Pitch->GetAxisValue() * sensitivity * zoomFactor;
                 transform->LocalPosition += Pine::Vector3f(1.f, 0.f, 0.f) * m_Yaw->GetAxisValue() * sensitivity * zoomFactor;
 
-                // Allow moving with keyboard (put this outside of m_CaptureMouse?)
+                // Allow moving with the keyboard (put this outside m_CaptureMouse?)
                 transform->LocalPosition += Pine::Vector3f(0.f, 1.f, 0.f) * m_Forward->GetAxisValue() * deltaTime * m_SpeedMultiplier;
                 transform->LocalPosition += Pine::Vector3f(1.f, 0.f, 0.f) * m_Sideways->GetAxisValue() * deltaTime * m_SpeedMultiplier;
             }

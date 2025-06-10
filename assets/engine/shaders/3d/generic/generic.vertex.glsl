@@ -29,6 +29,7 @@ layout(std140) uniform Transform
 layout(std140) uniform Lights 
 {
 	Light lights[32];
+    vec3 worldAmbientColor;
 };
 
 out VertexData

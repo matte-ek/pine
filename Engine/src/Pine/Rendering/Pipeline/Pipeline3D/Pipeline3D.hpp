@@ -5,6 +5,7 @@
 
 namespace Pine
 {
+    enum class PipelineStage;
     class Model;
     class ModelRenderer;
     class Light;
@@ -65,7 +66,10 @@ namespace Pine::Pipeline3D
     void Setup();
     void Shutdown();
 
-    void Run(RenderingContext& context);
+    void Prepare();
+    void Run(RenderingContext& context, PipelineStage stage);
 
     PipelineConfiguration& GetPipelineConfiguration();
+
+    Graphics::ITexture* GetPositionTexture();
 }

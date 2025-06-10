@@ -15,9 +15,9 @@ namespace Pine::Engine
         Vector2i m_WindowSize = Vector2i(1280, 720);
         std::string m_WindowTitle = "Pine Engine";
 
-        // The maximum amount of threads the asset manager may use while
-        // loading assets from a directory.
-        int m_AssetsLoadThreadCount = 8;
+        // The number of threads that the thread pool will create to handle
+        // engine tasks.
+        int m_ThreadPoolWorkers = 8;
 
         // Refers to both entity and component count
         std::uint32_t m_MaxObjectCount = 8096;
@@ -25,7 +25,7 @@ namespace Pine::Engine
         // Whether to enable engine debug tools, such as hot reload
         bool m_EnableDebugTools = true;
 
-        // Whether to enable the engine's "production mode", which will handle stuff more efficiently,
+        // Whether to enable the engine's "production mode", which will handle stuff more efficiently
         // but wouldn't play as nice for the editor.
         bool m_ProductionMode = true;
 
@@ -38,7 +38,7 @@ namespace Pine::Engine
         Graphics::GraphicsAPI m_GraphicsAPI = Graphics::GraphicsAPI::OpenGL;
     };
 
-    // Attempts to set up the engine with provided engine configuration,
+    // Attempts to set up the engine with the provided engine configuration
     // will also create a default window, and therefore graphics context.
     // Returns false on failure.
     bool Setup(const EngineConfiguration& engineConfiguration = EngineConfiguration());

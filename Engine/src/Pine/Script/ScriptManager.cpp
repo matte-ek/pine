@@ -112,10 +112,17 @@ namespace
 
 void Pine::Script::Manager::Setup()
 {
+    if (Runtime::GetPineAssembly() == nullptr)
+    {
+        // If we've failed to load the entire Pine runtime, there is no need to be looking for
+        // the game runtime, as things won't work anyway.
+        return;
+    }
+
     // Attempt to find the game runtime at the default location
     if (!std::filesystem::exists("game/runtime-bin/Game.dll"))
     {
-        Log::Error("Failed to find game runtime at default location.");
+        Log::Error("Script: Failed to find game runtime, project might be missing scripts?");
         return;
     }
 

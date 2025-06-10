@@ -8,6 +8,12 @@ namespace Pine
     namespace Math
     {
 
+        template<typename T>
+        T LinearInterpolation(T begin, T end, T x)
+        {
+            return begin + (end - begin) * x;
+        }
+
     }
 
     using Vector2i = glm::ivec2;

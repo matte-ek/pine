@@ -14,6 +14,9 @@ namespace Pine
     struct LevelSettings
     {
         AssetHandle<Texture3D> Skybox;
+
+        Vector3f AmbientColor = Vector3f(0.05f, 0.05f, 0.05f);
+
         bool HasCamera = false;
         std::uint32_t CameraEntity = 0;
     };

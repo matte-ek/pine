@@ -52,10 +52,14 @@ void RenderHandler::Setup()
 
     // Prepare frame buffers
     m_GameFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_GameFrameBuffer->Create(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_GameFrameBuffer->Prepare();
+    m_GameFrameBuffer->AttachTextures(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_GameFrameBuffer->Finish();
 
     m_LevelFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_LevelFrameBuffer->Create(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::StencilBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_LevelFrameBuffer->Prepare();
+    m_LevelFrameBuffer->AttachTextures(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::StencilBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_LevelFrameBuffer->Finish();
 
     // Prepare rendering contexts
     m_GameRenderingContext = new Pine::RenderingContext;

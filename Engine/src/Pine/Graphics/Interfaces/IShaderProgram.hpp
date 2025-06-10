@@ -11,6 +11,7 @@ namespace Pine::Graphics
         Vertex,
         Fragment,
         Compute,
+        Geometry,
         ShaderTypeCount
     };
 

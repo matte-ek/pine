@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Commands
+namespace Actions
 {
     void Setup();
     void Dispose();

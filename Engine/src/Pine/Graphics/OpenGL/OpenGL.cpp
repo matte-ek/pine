@@ -113,6 +113,21 @@ namespace
 		}
 	}
 
+	std::uint32_t TranslateFaceCullingMode(Pine::Graphics::FaceCullMode mode)
+	{
+		switch (mode)
+		{
+			case Pine::Graphics::FaceCullMode::Back:
+				return GL_BACK;
+			case Pine::Graphics::FaceCullMode::Front:
+				return GL_FRONT;
+			case Pine::Graphics::FaceCullMode::FrontAndBack:
+				return GL_FRONT_AND_BACK;
+			default:
+				throw std::runtime_error("Unsupported face culling mode.");
+		}
+	}
+
 	void GLAPIENTRY MessageCallback(GLenum source,
 		GLenum type,
 		GLuint id,
@@ -123,7 +138,7 @@ namespace
 	{
 
 		// Ignoring this for now.
-		if (severity == 0x826b)
+		if (severity == 0x826b || type == 0x824e)
 		{
 			return;
 		}
@@ -331,6 +346,11 @@ void Pine::Graphics::OpenGL::SetFaceCullingEnabled(bool value)
 void Pine::Graphics::OpenGL::SetMultiSampleEnabled(bool value)
 {
 	value ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
+}
+
+void Pine::Graphics::OpenGL::SetFaceCullingMode(FaceCullMode mode)
+{
+	glCullFace(TranslateFaceCullingMode(mode));
 }
 
 void Pine::Graphics::OpenGL::SetBlendingFunction(BlendingFunction source, BlendingFunction destination)

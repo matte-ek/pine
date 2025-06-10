@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Graphics/OpenGL/Texture/GLTexture.hpp"
 
@@ -11,6 +13,8 @@ namespace Pine::Graphics
    private:
        std::uint32_t m_Id = 0;
 
+       std::vector<std::uint32_t> m_AttachedDrawBuffers;
+
        GLTexture* m_ColorBuffer = nullptr;
        GLTexture* m_DepthBuffer = nullptr;
        GLTexture* m_DepthStencilBuffer = nullptr;
@@ -21,12 +25,16 @@ namespace Pine::Graphics
        void Bind() override;
        void Dispose() override;
 
-       bool Create(int width, int height, std::uint32_t buffers, int multiSample = 0) override;
+       void Prepare() override;
+
+       void AttachTextures(int width, int height, int buffers, int multiSample = 0) override;
+
+       void AttachTexture(ITexture* texture, BufferAttachment attachment, int attachmentOffset = 0) override;
+
+       bool Finish() override;
 
        void Blit(IFrameBuffer* source, Buffers buffer = ColorBuffer, Vector4i srcRect = Vector4i(-1), Vector4i dstRect = Vector4i(-1)) override;
-
        void ReadPixels(Vector2i position, Vector2i size, ReadFormat readFormat, TextureDataFormat dataFormat, size_t bufferSize, void* buffer) override;
-
        Vector2i GetSize() override;
 
        ITexture* GetColorBuffer() override;

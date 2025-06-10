@@ -137,7 +137,7 @@ void Components::Setup()
         totalSize += block->m_ComponentArraySize;
     }
 
-    Log::Verbose("Total size allocated for components: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
+    Log::Verbose("[Components] Total size allocated: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
 }
 
 void Components::Shutdown()

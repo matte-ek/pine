@@ -3,6 +3,7 @@
   	"fragment": "post-process/post-process.fragment.glsl",
 	"texture_samplers": 
 	{
-		"sceneBuffer": 0
+		"sceneBuffer": 0,
+		"ambientOcclusionBuffer": 1
 	}
 }

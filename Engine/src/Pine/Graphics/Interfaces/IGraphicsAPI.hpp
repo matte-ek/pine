@@ -58,6 +58,13 @@ namespace Pine::Graphics
         SourceAlphaSaturate
     };
 
+    enum class FaceCullMode
+    {
+        Back,
+        Front,
+        FrontAndBack
+    };
+
     class IGraphicsAPI
     {
     public:
@@ -95,6 +102,8 @@ namespace Pine::Graphics
         virtual void SetBlendingFunction(BlendingFunction source, BlendingFunction destination) = 0;
 
         virtual void SetDepthFunction(TestFunction value) = 0;
+
+        virtual void SetFaceCullingMode(FaceCullMode mode) = 0;
 
         virtual void SetStencilFunction(TestFunction function, int ref, int mask) = 0;
         virtual void SetStencilOperation(StencilOperation stencilFail, StencilOperation depthFail, StencilOperation depthPass) = 0;

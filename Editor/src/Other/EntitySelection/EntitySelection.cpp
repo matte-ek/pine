@@ -193,7 +193,9 @@ void EntitySelection::Setup()
     m_ObjectSolidShader2D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid-2d.shader");
 
     m_FrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_FrameBuffer->Create(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_FrameBuffer->Prepare();
+    m_FrameBuffer->AttachTextures(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_FrameBuffer->Finish();
 
     m_EntitySelectionRenderingContext.Active = false;
     m_EntitySelectionRenderingContext.Size = Pine::Vector2f(1920, 1080);

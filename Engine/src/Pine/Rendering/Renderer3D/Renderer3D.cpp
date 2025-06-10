@@ -61,6 +61,7 @@ void Pine::Renderer3D::Setup()
     ShaderStorages::Transform.Create();
     ShaderStorages::Material.Create();
     ShaderStorages::Lights.Create();
+    ShaderStorages::Shadows.Create();
 }
 
 void Pine::Renderer3D::Shutdown()
@@ -69,6 +70,7 @@ void Pine::Renderer3D::Shutdown()
     ShaderStorages::Transform.Dispose();
     ShaderStorages::Material.Dispose();
     ShaderStorages::Lights.Dispose();
+    ShaderStorages::Shadows.Dispose();
 }
 
 Pine::Renderer3D::RenderConfiguration& Pine::Renderer3D::GetRenderConfiguration()
@@ -82,11 +84,6 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
 
     m_CurrentInstanceIndex = 0;
     m_Mesh = mesh;
-
-    if (!m_Camera)
-    {
-        return;
-    }
 
     if (m_RenderingConfiguration.SkipMaterialInitialization)
     {
@@ -127,10 +124,14 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     }
 
     // Apply shadow data
-    m_HasDirectionalShadowMapUniform->LoadInteger(m_HasDirectionalShadowMap);
-    if (m_HasDirectionalShadowMap && m_DirectionalShadowMap)
+    if (m_HasDirectionalShadowMapUniform)
     {
-        m_DirectionalShadowMap->Bind(Specifications::Samplers::DIRECTIONAL_SHADOW_MAP);
+        m_HasDirectionalShadowMapUniform->LoadInteger(m_HasDirectionalShadowMap);
+
+        if (m_HasDirectionalShadowMap && m_DirectionalShadowMap)
+        {
+            m_DirectionalShadowMap->Bind(Specifications::Samplers::DIRECTIONAL_SHADOW_MAP);
+        }
     }
 
     // Apply Textures
@@ -170,11 +171,11 @@ void Pine::Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
 
 bool Pine::Renderer3D::AddInstance(const Matrix4f&transformationMatrix)
 {
-    bool isFull = m_CurrentInstanceIndex == Specifications::General::MAX_INSTANCE_COUNT - 1;
+    const bool isFull = m_CurrentInstanceIndex == Specifications::General::MAX_INSTANCE_COUNT - 1;
 
     ShaderStorages::Transform.Data().TransformationMatrix[m_CurrentInstanceIndex++] = transformationMatrix;
 
-    return !isFull;
+    return isFull;
 }
 
 void Pine::Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, int writeStencilBuffer)
@@ -283,6 +284,11 @@ void Pine::Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVe
             Log::Error("Renderer3D: Shader is missing 'Lights' shader storage, expect rendering issues.");
         }
 
+        if (!ShaderStorages::Shadows.AttachShaderProgram(shaderProgram))
+        {
+            Log::Error("Renderer3D: Shader is missing 'Shadows' shader storage, expect rendering issues.");
+        }
+
         shader->SetReady(true, version);
     }
 
@@ -296,6 +302,11 @@ void Pine::Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVe
     m_HasDirectionalShadowMapUniform = m_Shader->GetUniformVariable("hasDirectionalShadowMap");
 }
 
+void Pine::Renderer3D::SetAmbientColor(Vector3f ambientColor)
+{
+    ShaderStorages::Lights.Data().AmbientColor = ambientColor;
+}
+
 void Pine::Renderer3D::UseRenderingContext(RenderingContext *renderingContext)
 {
     m_RenderingContext = renderingContext;
@@ -307,6 +318,16 @@ void Pine::Renderer3D::SetCamera(Camera* camera)
 
     ShaderStorages::Matrix.Data().Projection = camera->GetProjectionMatrix();
     ShaderStorages::Matrix.Data().View = camera->GetViewMatrix();
+
+    ShaderStorages::Matrix.Upload();
+}
+
+void Pine::Renderer3D::SetCamera(const Matrix4f &viewMatrix, const Matrix4f &projMatrix)
+{
+    m_Camera = nullptr;
+
+    ShaderStorages::Matrix.Data().Projection = projMatrix;
+    ShaderStorages::Matrix.Data().View = viewMatrix;
 
     ShaderStorages::Matrix.Upload();
 }
@@ -325,10 +346,9 @@ void Pine::Renderer3D::AddLight(const Light *light)
         return;
     }
 
+    const auto rotation = -normalize(rotate(light->GetParent()->GetTransform()->GetRotation(), Vector3f(0.f, 0.f, -1.f)));
     const int lightSlot = light->GetLightType() == LightType::Directional ? 0 : m_CurrentLightIndex++;
     auto& lightData = ShaderStorages::Lights.Data().Lights[lightSlot];
-
-    const auto rotation = normalize(rotate(light->GetParent()->GetTransform()->GetRotation(), Vector3f(0.f, 0.f, -1.f)));
 
     lightData.Position = light->GetParent()->GetTransform()->GetPosition();
     lightData.Rotation = rotation;
@@ -361,11 +381,12 @@ void Pine::Renderer3D::UploadLights()
     m_CurrentLightIndex = 1;
 }
 
-void Pine::Renderer3D::AddDirectionalShadowMap(const Matrix4f &lightSpaceMatrix, Graphics::ITexture *depthMap)
+void Pine::Renderer3D::AddDirectionalShadowMap(Graphics::ITexture *depthMap)
 {
     auto& lightData = ShaderStorages::Lights.Data();
 
-    lightData.DirectionalLightSpaceMatrix = lightSpaceMatrix;
+    m_DirectionalShadowMap = depthMap;
+    m_HasDirectionalShadowMap = true;
 }
 
 void Pine::Renderer3D::FrameReset()
@@ -375,9 +396,17 @@ void Pine::Renderer3D::FrameReset()
         Light.Color = Vector3f(0.0f, 0.0f, 0.0f);
     }
 
+    ShaderStorages::Lights.Data().AmbientColor = Vector3f(0.f);
+
     m_RenderingContext = nullptr;
     m_Shader = nullptr;
     m_Mesh = nullptr;
     m_Material = nullptr;
     m_LightIndicesData = Vector4i(0);
+    m_HasDirectionalShadowMap = false;
+
+    m_RenderingConfiguration.OverrideShader = nullptr;
+    m_RenderingConfiguration.OverrideMaterial = nullptr;
+    m_RenderingConfiguration.IgnoreShaderVersions = false;
+    m_RenderingConfiguration.SkipMaterialInitialization = false;
 }

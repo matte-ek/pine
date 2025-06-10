@@ -13,7 +13,7 @@
 
 namespace
 {
-    constexpr std::array<const char*, 3> ShaderTypesString = { "Vertex", "Fragment", "Compute" };
+    constexpr std::array<const char*, 4> ShaderTypesString = { "Vertex", "Fragment", "Compute", "Geometry" };
 
     bool LoadAndCompileShader(const std::string& filePath,
                               const nlohmann::json& json,
@@ -249,7 +249,7 @@ std::optional<std::string> Pine::Shader::GetShaderSourceFile(Graphics::ShaderTyp
 bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shaderVersion, const std::vector<std::string>& versionMacros)
 {
     // Get all shader file paths
-    std::string vertexPath, fragmentPath, computePath;
+    std::string vertexPath, fragmentPath, computePath, geometryPath;
 
     if (j.contains("vertex"))
         vertexPath = j["vertex"];
@@ -257,16 +257,18 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
         fragmentPath = j["fragment"];
     if (j.contains("compute"))
         vertexPath = j["compute"];
+    if (j.contains("geometry"))
+        geometryPath = j["geometry"];
 
     // Invalid shader configuration
-    if (vertexPath.empty() && fragmentPath.empty() && computePath.empty())
+    if (vertexPath.empty() && fragmentPath.empty() && computePath.empty() && geometryPath.empty())
     {
         Log::Error("No shader files specified in " + m_FileName);
 
         return false;
     }
 
-    // Prepare graphics shader program
+    // Prepare a graphics shader program
     const auto shaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
 
     if (j.contains("parent"))
@@ -318,6 +320,19 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
         if (versionMacros.empty())
         {
             m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, computePath, true)));
+        }
+    }
+
+    if (!geometryPath.empty())
+    {
+        if (!LoadAndCompileShader(GetAbsolutePath(this, geometryPath), j, shaderProgram, this, Graphics::ShaderType::Geometry, versionMacros))
+        {
+            return false;
+        }
+
+        if (versionMacros.empty())
+        {
+            m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, geometryPath, true)));
         }
     }
 

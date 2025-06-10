@@ -13,7 +13,7 @@ namespace
     Pine::Shader* m_Shader = nullptr;
 }
 
-void Pine::Renderer::Skybox::Setup()
+void Pine::Rendering::Skybox::Setup()
 {
     const std::vector<float> skyboxVertices = { -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                                                 1.0f,  -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,
@@ -42,12 +42,12 @@ void Pine::Renderer::Skybox::Setup()
     m_Shader = Pine::Assets::Get<Pine::Shader>("engine/shaders/3d/skybox.shader");
 }
 
-void Pine::Renderer::Skybox::Shutdown()
+void Pine::Rendering::Skybox::Shutdown()
 {
     m_GraphicsAPI->DestroyVertexArray(m_VertexArray);
 }
 
-void Pine::Renderer::Skybox::Render(const Texture3D* cubeMap)
+void Pine::Rendering::Skybox::Render(const Texture3D* cubeMap)
 {
     if (!cubeMap->IsValid())
     {

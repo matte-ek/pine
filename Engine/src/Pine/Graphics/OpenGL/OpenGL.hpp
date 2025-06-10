@@ -37,6 +37,8 @@ namespace Pine::Graphics
         void SetFaceCullingEnabled(bool value) override;
         void SetMultiSampleEnabled(bool value) override;
 
+        void SetFaceCullingMode(FaceCullMode mode) override;
+
         void SetBlendingFunction(BlendingFunction source, BlendingFunction destination) override;
 
         void SetDepthFunction(TestFunction value) override;

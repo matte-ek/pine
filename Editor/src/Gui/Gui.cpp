@@ -17,11 +17,12 @@
 #include "Panels/Console/ConsolePanel.hpp"
 #include "Panels/Profiler/ProfilerPanel.hpp"
 #include "Gui/MenuBar/MenuBar.hpp"
-#include "Gui/Shared/Commands/Commands.hpp"
+#include "Gui/Shared/Actions/Actions.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
 #include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
+#include "Panels/DebugPanel/DebugPanel.hpp"
 
 namespace
 {
@@ -181,8 +182,9 @@ namespace
         Panels::Console::Render();
         Panels::Profiler::Render();
         Panels::EngineAssetsPanel::Render();
+        Panels::Debug::Render();
 
-        Commands::Update();
+        Actions::Update();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -197,7 +199,7 @@ void Gui::Setup()
 
     Pine::WindowManager::AddWindowFocusCallback(OnWindowFocus);
 
-    Commands::Setup();
+    Actions::Setup();
     Gizmo::Gizmo2D::Setup();
     Gizmo::Gizmo3D::Setup();
     EntitySelection::Setup();
@@ -208,7 +210,7 @@ void Gui::Setup()
 
 void Gui::Shutdown()
 {
-    Commands::Dispose();
+    Actions::Dispose();
     EntitySelection::Dispose();
     IconStorage::Dispose();
 

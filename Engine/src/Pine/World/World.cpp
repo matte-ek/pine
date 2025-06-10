@@ -99,7 +99,7 @@ void Pine::World::Update()
 void Pine::World::Setup()
 {
     // In the future we'll figure out which startup level to use.
-    Pine::Level* level = nullptr;
+    Level* level = nullptr;
 
     // Fallback to untitled level.
     if (level == nullptr)

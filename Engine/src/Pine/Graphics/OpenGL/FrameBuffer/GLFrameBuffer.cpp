@@ -57,6 +57,21 @@ namespace
             throw std::runtime_error("Unsupported buffer type.");
         }
     }
+
+    inline std::uint32_t TranslateAttachmentType(Pine::Graphics::BufferAttachment attachment)
+    {
+        switch (attachment)
+        {
+            case Pine::Graphics::BufferAttachment::Color:
+                return GL_COLOR_ATTACHMENT0;
+            case Pine::Graphics::BufferAttachment::Depth:
+                return GL_DEPTH_ATTACHMENT;
+            case Pine::Graphics::BufferAttachment::DepthStencil:
+                return GL_DEPTH_STENCIL_ATTACHMENT;
+            default:
+                throw std::runtime_error("Unsupported attachment type.");
+        }
+    }
 }
 
 Pine::Vector2i Pine::Graphics::GLFrameBuffer::GetSize()
@@ -113,9 +128,22 @@ void Pine::Graphics::GLFrameBuffer::Dispose()
 
         delete m_NormalBuffer;
     }
+
+    m_Id = 0;
 }
 
-bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t buffers, int multiSample)
+void Pine::Graphics::GLFrameBuffer::Prepare()
+{
+    // Please dispose of the previous frame buffer before creating a new one.
+    assert(m_Id == 0);
+
+    m_AttachedDrawBuffers.clear();
+
+    glGenFramebuffers(1, &m_Id);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_Id);
+}
+
+void Pine::Graphics::GLFrameBuffer::AttachTextures(int width, int height, int buffers, int multiSample)
 {
     if (buffers & StencilBuffer)
     {
@@ -125,13 +153,6 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
 
     const bool multiSampleEnabled = multiSample != 0;
     const auto textureType = multiSampleEnabled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-
-    // Create the frame buffer object itself
-    glGenFramebuffers(1, &m_Id);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_Id);
-
-    // Attach specified buffers to the frame buffer
-    std::vector<std::uint32_t> attachedDrawBuffers;
 
     if (buffers & ColorBuffer)
     {
@@ -145,19 +166,18 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textureType, m_ColorBuffer->GetId(), 0);
 
-        attachedDrawBuffers.push_back(GL_COLOR_ATTACHMENT0);
+        m_AttachedDrawBuffers.push_back(GL_COLOR_ATTACHMENT0);
     }
 
     if (buffers & NormalBuffer)
     {
         m_NormalBuffer = new GLTexture();
-
         m_NormalBuffer->Bind();
         m_NormalBuffer->UploadTextureData(width, height, TextureFormat::RGBA16F, TextureDataFormat::Float, nullptr);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, textureType, m_NormalBuffer->GetId(), 0);
 
-        attachedDrawBuffers.push_back(GL_COLOR_ATTACHMENT1);
+        m_AttachedDrawBuffers.push_back(GL_COLOR_ATTACHMENT1);
     }
 
     if (buffers & StencilBuffer)
@@ -188,10 +208,54 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
         }
     }
 
-    // Tell OpenGL about the newly created draw attachments
-    if (!attachedDrawBuffers.empty())
+    m_Size = Vector2i(width, height);
+}
+
+void Pine::Graphics::GLFrameBuffer::AttachTexture(ITexture *texture, BufferAttachment attachment, int attachmentOffset)
+{
+    const auto glTexture = dynamic_cast<GLTexture*>(texture);
+    const bool isArrayTexture = texture->GetArraySize() > 0;
+
+    assert(glTexture != nullptr);
+
+    if (isArrayTexture)
+        glFramebufferTexture(GL_FRAMEBUFFER, TranslateAttachmentType(attachment) + attachmentOffset, glTexture->GetId(), 0);
+    else
+        glFramebufferTexture2D(GL_FRAMEBUFFER, TranslateAttachmentType(attachment) + attachmentOffset, texture->IsMultiSampled() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, glTexture->GetId(), 0);
+
+    if (attachment == BufferAttachment::Color)
     {
-        glDrawBuffers(static_cast<std::int32_t>(attachedDrawBuffers.size()), attachedDrawBuffers.data());
+        m_AttachedDrawBuffers.push_back(TranslateAttachmentType(attachment) + attachmentOffset);
+    }
+
+    // TODO: This kind of sucks, since we can technically have multiple color buffers for example,
+    // and right now we just hardcode the second color buffer as "normal" buffer.
+
+    switch (attachment)
+    {
+        case BufferAttachment::Color:
+            if (attachmentOffset == 0)
+                m_ColorBuffer = glTexture;
+            else
+                m_NormalBuffer = glTexture;
+            break;
+        case BufferAttachment::Depth:
+            m_DepthBuffer = glTexture;
+            break;
+        case BufferAttachment::DepthStencil:
+            m_DepthStencilBuffer = glTexture;
+            break;
+        default:
+            break;
+    }
+}
+
+bool Pine::Graphics::GLFrameBuffer::Finish()
+{
+    // Tell OpenGL about the newly created draw attachments
+    if (!m_AttachedDrawBuffers.empty())
+    {
+        glDrawBuffers(static_cast<std::int32_t>(m_AttachedDrawBuffers.size()), m_AttachedDrawBuffers.data());
     }
     else
     {
@@ -210,8 +274,6 @@ bool Pine::Graphics::GLFrameBuffer::Create(int width, int height, std::uint32_t 
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    m_Size = Vector2i(width, height);
 
     return true;
 }

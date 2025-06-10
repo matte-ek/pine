@@ -2,11 +2,13 @@
 
 layout(location = 0) out vec4 m_OutputColor;
 
+// NOTE: These needs to be added onto the `.shader` file as well!
 struct TextureSamplers
 {
     sampler2D diffuse;  
     sampler2D specular;  
-    sampler2D normal;  
+    sampler2D normal;
+    sampler2DArrayShadow shadowMap;
 };
 
 struct Light 
@@ -35,6 +37,12 @@ layout(std140) uniform Matrices
 layout(std140) uniform Lights 
 {
 	Light lights[32];
+	vec3 worldAmbientColor;
+};
+
+layout(std140) uniform Shadows
+{
+	mat4 lightSpaceMatrix[8];
 };
 
 layout(std140) uniform Material
@@ -92,13 +100,13 @@ BaseResult calculateBaseLightning(vec3 lightDirection, int lightIndex)
     vec3 halfwayDirection = normalize(lightDirection + vIn.cameraDir);
     float specularFactor = pow(max(dot(normal, halfwayDirection), 0.0), material.shininess);
 
-    vec3 ambient = (material.ambientColor + vec3(0)) * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
+    vec3 ambient = (material.ambientColor + (worldAmbientColor * diffuseColor)) * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
     vec3 diffuse = lights[lightIndex].color * diffuseColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz * diffuseFactor;
     vec3 specular = lights[lightIndex].color * material.specularColor * (1 - texture(textureSamplers.specular, vIn.uv * material.uvScale).xyz) * specularFactor;
 
     result.diffuse = diffuse;
     result.specular = specular;
-    result.ambient = (1.f - diffuseFactor) * ambient;
+    result.ambient = max(0.5 - diffuseFactor, 0) * ambient;
 
     return result;
 }
@@ -106,6 +114,59 @@ BaseResult calculateBaseLightning(vec3 lightDirection, int lightIndex)
 vec3 calculateDirectionalLight()
 {
     BaseResult result = calculateBaseLightning(vIn.lightDir[0], 0);
+
+    if (hasDirectionalShadowMap)
+    {
+        float fragCameraDistance = length(vIn.worldPosition - vIn.cameraPos);
+        float th1 = 5.f;
+        float th2 = 10.f;
+        float th3 = 30.f;
+        int cascadeIndex = int(fragCameraDistance > th1) + int(fragCameraDistance > th2) + int(fragCameraDistance > th3);
+        mat4 lsMatrix = lightSpaceMatrix[cascadeIndex];
+
+        vec4 pointInDepthMap = lsMatrix * vec4(vIn.worldPosition, 1.0);
+        vec3 pointNormalized = pointInDepthMap.xyz / pointInDepthMap.w;
+
+       // bool visible = all(greaterThanEqual(pointNormalized, vec3(-1.0))) &&
+       //                all(lessThanEqual(pointNormalized, vec3(1.0)));
+
+        pointNormalized = pointNormalized * 0.5 + 0.5;
+
+//        float closestDepth = ;
+        vec2 samplePoint = pointNormalized.xy;
+        float currentDepth = pointNormalized.z;
+        float shadow = 0.0; //mix(0.45, 1.0, step(currentDepth - closestDepth, 0.002));
+        float texelSize = 1.0 / textureSize(textureSamplers.shadowMap, 0).x;
+
+        for (int x = -1; x <= 1;x++)
+        {
+            for (int y = -1;y <= 1;y++)
+            {
+                shadow += texture(textureSamplers.shadowMap, 
+                    vec4(samplePoint.x + x * texelSize, samplePoint.y + y * texelSize, cascadeIndex, currentDepth)).x;
+
+                // Manual PCF:
+                // shadow += mix(0.45, 1.0, step(currentDepth - depth, 0.002));
+            }
+        }
+
+        shadow /= 9.0;
+        shadow = min(shadow, 1);
+        shadow = max(shadow, 0.4);
+
+        result.diffuse *= shadow;
+
+        /*
+        if (cascadeIndex == 0)
+            result.diffuse *= vec3(0, 1, 0);
+        else if (cascadeIndex == 1)
+            result.diffuse *= vec3(1, 1, 0);
+        else if (cascadeIndex == 2)
+            result.diffuse *= vec3(1, 0, 0);
+        else if (cascadeIndex == 3)
+            result.diffuse *= vec3(0, 0, 1);
+        */
+    }
 
     return result.diffuse + result.specular + result.ambient;
 }
@@ -125,7 +186,7 @@ vec3 calculateSpotLight(int index)
 
     baseResult.diffuse *= attenuation;
     baseResult.specular *= attenuation;
-
+    
     return baseResult.diffuse + baseResult.specular + baseResult.ambient;
 }
 
@@ -191,7 +252,9 @@ void main(void)
     #shader preFragment
 
 #ifdef VERSION_DISCARD
-    if (texture(textureSamplers.diffuse, vIn.uv * material.uvScale).w < 0.001f)
+    vec4 frag = texture(textureSamplers.diffuse, vIn.uv * material.uvScale);
+
+    if (frag.w < 0.001f || frag.r + frag.g + frag.b <= 0.5f)
     {
         discard;
     }

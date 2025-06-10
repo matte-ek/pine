@@ -15,6 +15,12 @@ namespace Pine
         PostRender3D,
         PostProcessing
     };
+
+    enum class PipelineStage
+    {
+        Prepass,
+        Default
+    };
 }
 
 namespace Pine::RenderManager
@@ -42,5 +48,8 @@ namespace Pine::RenderManager
     // The default rendering context's properties may be overwritten, but is generally used
     // as a 'reset' for the rendering pipeline.
     RenderingContext* GetDefaultRenderingContext();
+
+    // TODO: I don't like having to expose this.
+    Graphics::IFrameBuffer* GetInternalFrameBuffer();
 
 }

@@ -143,6 +143,7 @@ bool Pine::Level::LoadFromFile(AssetLoadStage stage)
     {
         Serialization::LoadValue(j["settings"], "camera", m_LevelSettings.CameraEntity);
         Serialization::LoadAsset(j["settings"], "skybox", m_LevelSettings.Skybox);
+        Serialization::LoadVector3(j["settings"], "ambientColor", m_LevelSettings.AmbientColor);
 
         if (j["settings"].contains("camera"))
         {
@@ -168,6 +169,8 @@ bool Pine::Level::SaveToFile()
         j["settings"]["camera"] = m_LevelSettings.CameraEntity;
 
     j["settings"]["skybox"] = Serialization::StoreAsset(m_LevelSettings.Skybox);
+
+    j["settings"]["ambientColor"] = Serialization::StoreVector3(m_LevelSettings.AmbientColor);
 
     Serialization::SaveToFile(m_FilePath, j);
 
