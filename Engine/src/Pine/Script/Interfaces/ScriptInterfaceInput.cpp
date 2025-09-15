@@ -11,6 +11,27 @@
 
 namespace
 {
+    // Begin InputBind functions
+
+    void AddKeyboardBinding(int bindingIndex, int key, float value = 1.f)
+    {
+        Pine::Input::GetDefaultContext()->InputBindings[bindingIndex]->AddKeyboardBinding(key, value);
+    }
+
+    void AddAxisBinding(int bindingIndex, int axis, float sensitivity = 1.f)
+    {
+        Pine::Input::GetDefaultContext()->InputBindings[bindingIndex]->AddAxisBinding(static_cast<Pine::Axis>(axis), sensitivity);
+    }
+
+    // End InputBind functions
+
+    int CreateInputBinding(MonoString* name, Pine::InputType type = Pine::InputType::Axis)
+    {
+        std::string n = mono_string_to_utf8(name);
+        Pine::Input::GetDefaultContext()->CreateInputBinding(n, type);
+        return static_cast<int>(Pine::Input::GetDefaultContext()->InputBindings.size() - 1);
+    }
+
     bool IsKeyDown(int key)
     {
         return Pine::Input::IsKeyDown(static_cast<Pine::KeyCode>(key));
@@ -34,6 +55,11 @@ namespace
     void GetMousePosition(Pine::Vector2f* mousePosition)
     {
         *mousePosition = Pine::Input::GetCursorPosition();
+    }
+
+    void GetMouseDelta(Pine::Vector2f* mouseDelta)
+    {
+        *mouseDelta = Pine::Input::GetMouseDelta();
     }
 
     int LookupInputBind(MonoString* name)
@@ -76,14 +102,21 @@ namespace
 
 void Pine::Script::Interfaces::Input::Setup()
 {
+    // InputManager
     mono_add_internal_call("Pine.Input.InputManager::PineIsKeyDown", reinterpret_cast<void *>(IsKeyDown));
     mono_add_internal_call("Pine.Input.InputManager::PineIsMouseButtonDown", reinterpret_cast<void *>(IsMouseButtonDown));
     mono_add_internal_call("Pine.Input.InputManager::PineGetKeyState", reinterpret_cast<void *>(GetKeyState));
     mono_add_internal_call("Pine.Input.InputManager::PineGetMouseButtonKeyState", reinterpret_cast<void *>(GetMouseButtonKeyState));
     mono_add_internal_call("Pine.Input.InputManager::PineGetMousePosition", reinterpret_cast<void *>(LookupInputBind));
     mono_add_internal_call("Pine.Input.InputManager::PineFindInputBinding", reinterpret_cast<void *>(GetMousePosition));
-    mono_add_internal_call("Pine.Input.InputManager::PineGetInputBindType", reinterpret_cast<void *>(GetInputBindType));
-    mono_add_internal_call("Pine.Input.InputManager::PineGetInputBindName", reinterpret_cast<void *>(GetInputBindName));
-    mono_add_internal_call("Pine.Input.InputManager::PineGetInputBindAxisValue", reinterpret_cast<void *>(GetInputBindAxisValue));
-    mono_add_internal_call("Pine.Input.InputManager::PinePollInputBindActionState", reinterpret_cast<void *>(PollInputBindActionState));
+    mono_add_internal_call("Pine.Input.InputManager::PineGetMouseDelta", reinterpret_cast<void *>(GetMouseDelta));
+    mono_add_internal_call("Pine.Input.InputManager::PineCreateInputBinding", reinterpret_cast<void *>(CreateInputBinding));
+
+    // InputBind
+    mono_add_internal_call("Pine.Input.InputBind::PineGetInputBindType", reinterpret_cast<void *>(GetInputBindType));
+    mono_add_internal_call("Pine.Input.InputBind::PineGetInputBindName", reinterpret_cast<void *>(GetInputBindName));
+    mono_add_internal_call("Pine.Input.InputBind::PineGetInputBindAxisValue", reinterpret_cast<void *>(GetInputBindAxisValue));
+    mono_add_internal_call("Pine.Input.InputBind::PinePollInputBindActionState", reinterpret_cast<void *>(PollInputBindActionState));
+    mono_add_internal_call("Pine.Input.InputBind::PineAddKeyboardBinding", reinterpret_cast<void *>(AddKeyboardBinding));
+    mono_add_internal_call("Pine.Input.InputBind::PineAddAxisBinding", reinterpret_cast<void *>(AddAxisBinding));
 }

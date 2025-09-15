@@ -233,6 +233,8 @@ namespace Pine
         void SetCursorPosition(Pine::Vector2i position);
         Pine::Vector2i GetCursorPosition();
 
+        Pine::Vector2i GetMouseDelta();
+
         InputBind* CreateInputBind(const std::string& name, InputType type = InputType::Axis);
         InputBind* FindInputBind(const std::string& name);
 
