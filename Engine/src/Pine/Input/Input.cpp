@@ -145,28 +145,23 @@ void Pine::Input::Shutdown()
 void Pine::Input::Update()
 {
     auto window = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
-
     m_Window = window;
 
     // Update keys
     memcpy(m_PreviousKeyStates.data(), m_KeyStates.data(), sizeof(m_KeyStates));
-    
     for (int i = 0; i < GLFW_KEY_LAST; i++)
         m_KeyStates[i] = glfwGetKey(window, i);
 
     // Update mouse positions
     memcpy(m_PreviousMouseButtonStates.data(), m_MouseButtonStates.data(), sizeof(m_MouseButtonStates));
-
     for (int i = 0; i < GLFW_MOUSE_BUTTON_LAST; i++)
         m_MouseButtonStates[i] = glfwGetMouseButton(window, i);
 
     // Update mouse position
     Vector2d mousePosition;
-
     glfwGetCursorPos(window, &mousePosition.x, &mousePosition.y);
 
     const Vector2d mouseDelta = m_LastMousePosition - mousePosition;
-    
     m_LastMousePosition = mousePosition;
     m_MousePosition = mousePosition;
     m_MouseDelta = mouseDelta;
@@ -237,6 +232,11 @@ Pine::Vector2i Pine::Input::GetCursorPosition()
     glfwGetCursorPos(windowHandle, &cursorX, &cursorY);
 
     return { cursorX, cursorY };
+}
+
+Pine::Vector2i Pine::Input::GetMouseDelta()
+{
+    return m_MouseDelta;
 }
 
 Pine::KeyState Pine::Input::GetKeyState(Pine::KeyCode key)
