@@ -34,4 +34,4 @@ add_library(Engine ${SOURCES}
         src/Pine/Threading/ThreadPool/ThreadPool.hpp
         src/Pine/Threading/Threading.cpp)
 
-target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt OpenAL::OpenAL FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json unofficial::omniverse-physx-sdk::sdk glm::glm mono-2.0-sgen)
+target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL)
