@@ -1,5 +1,6 @@
 #include "GLUniformBuffer.hpp"
 #include <GL/glew.h>
+#include <limits>
 
 namespace
 {
@@ -42,4 +43,9 @@ void Pine::Graphics::GLUniformBuffer::UploadData(void* data, std::size_t size, s
 int Pine::Graphics::GLUniformBuffer::GetBindIndex() const
 {
     return m_BindingIndex;
+}
+
+void Pine::Graphics::GLUniformBuffer::ResetChangeTracking()
+{
+    m_BoundUniformBuffer = std::numeric_limits<std::uint32_t>::max();
 }

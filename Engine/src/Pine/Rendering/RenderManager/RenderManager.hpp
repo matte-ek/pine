@@ -15,6 +15,12 @@ namespace Pine
         PostRender3D,
         PostProcessing
     };
+
+    enum class PipelineStage
+    {
+        Prepass,
+        Default
+    };
 }
 
 namespace Pine::RenderManager
@@ -34,7 +40,7 @@ namespace Pine::RenderManager
     // Pine supports multiple rendering contexts at the same time, and will redo the entire rendering on the other context.
     // This could be used for example with an editor and game camera, rendered at the same time.
     void AddRenderingContextPass(RenderingContext* context);
-    void RemoveRenderingContextPass(RenderingContext* context);
+    void RemoveRenderingContextPass(const RenderingContext* context);
 
     // The rendering context currently being used during rendering.
     RenderingContext* GetCurrentRenderingContext();
@@ -42,5 +48,8 @@ namespace Pine::RenderManager
     // The default rendering context's properties may be overwritten, but is generally used
     // as a 'reset' for the rendering pipeline.
     RenderingContext* GetDefaultRenderingContext();
+
+    // TODO: I don't like having to expose this.
+    Graphics::IFrameBuffer* GetInternalFrameBuffer();
 
 }

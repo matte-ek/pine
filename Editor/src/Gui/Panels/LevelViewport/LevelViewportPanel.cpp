@@ -11,6 +11,8 @@
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
 #include "Other/PlayHandler/PlayHandler.hpp"
+#include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
+#include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -25,6 +27,9 @@ namespace
 
     Pine::Vector2i m_MouseCapturePosition = Pine::Vector2i(0);
     Pine::Vector2i m_Size = Pine::Vector2i(0);
+
+    bool m_ShowEntitySpeed = false;
+    double m_ShowEntitySpeedTime = 0.f;
 
     enum class GizmoMode : int
     {
@@ -52,7 +57,7 @@ namespace
 
     float m_SnapRange = 1.f;
 
-    void RenderGizmo(ImVec2 viewportPosition)
+    void RenderTranslationGizmo(ImVec2 viewportPosition)
     {
         static auto camera = EditorEntity::Get()->GetComponent<Pine::Camera>();
 
@@ -61,6 +66,8 @@ namespace
 
         auto selectedEntity = Selection::GetSelectedEntities()[0];
         auto transform = selectedEntity->GetTransform();
+
+        transform->SetDirty();
 
         Pine::Matrix4f matrix = transform->GetTransformationMatrix();
         Pine::Matrix4f deltaMatrix;
@@ -86,6 +93,8 @@ namespace
             case GizmoMode::Scale:
                 operation = ImGuizmo::OPERATION::SCALE;
                 break;
+            default:
+                return;
         }
 
         const auto shouldSnap = m_SnapMode == SnapMode::Always || (m_SnapMode == SnapMode::OnKey && ImGui::GetIO().KeyCtrl);
@@ -104,14 +113,41 @@ namespace
             Pine::Vector4f perspective;
             Pine::Quaternion rotation;
 
-            glm::decompose(matrix, scale, rotation, position, skew, perspective);
+            if (Selection::GetSelectedEntities().size() > 1)
+            {
+                glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
 
-            if (m_GizmoMode == GizmoMode::Translate)
-                transform->LocalPosition = position;
-            if (m_GizmoMode == GizmoMode::Rotate)
-                transform->LocalRotation = rotation;
-            if (m_GizmoMode == GizmoMode::Scale)
-                transform->LocalScale = scale;
+                for (int i = 1; i < Selection::GetSelectedEntities().size();i++)
+                {
+                    auto selectionTransform = Selection::GetSelectedEntities()[i]->GetTransform();
+
+                    if (m_GizmoMode == GizmoMode::Translate)
+                        selectionTransform->LocalPosition += position;
+                    if (m_GizmoMode == GizmoMode::Rotate)
+                        selectionTransform->LocalRotation *= rotation;
+                }
+            }
+
+            if (selectedEntity->GetParent() != nullptr)
+            {
+                glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
+
+                if (m_GizmoMode == GizmoMode::Translate)
+                    transform->LocalPosition += position;
+                if (m_GizmoMode == GizmoMode::Rotate)
+                    transform->LocalRotation *= rotation;
+            }
+            else
+            {
+                glm::decompose(matrix, scale, rotation, position, skew, perspective);
+
+                if (m_GizmoMode == GizmoMode::Translate)
+                    transform->LocalPosition = position;
+                if (m_GizmoMode == GizmoMode::Rotate)
+                    transform->LocalRotation = rotation;
+                if (m_GizmoMode == GizmoMode::Scale)
+                    transform->LocalScale = scale;
+            }
 
             if (Selection::GetSelectedEntities().size() > 1)
             {
@@ -253,6 +289,23 @@ void Panels::LevelViewport::Render()
             ImGui::EndMenu();
         }
 
+        ImGui::Separator();
+
+        if (ImGui::BeginMenu("Perspective"))
+        {
+            if (ImGui::MenuItem("2D", nullptr, EditorEntity::GetPerspective2D()))
+            {
+                EditorEntity::SetPerspective2D(true);
+            }
+
+            if (ImGui::MenuItem("3D", nullptr, !EditorEntity::GetPerspective2D()))
+            {
+                EditorEntity::SetPerspective2D(false);
+            }
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndPopup();
     }
 
@@ -260,12 +313,14 @@ void Panels::LevelViewport::Render()
 
     const auto avSize = ImGui::GetContentRegionAvail();
     const auto position = ImGui::GetCursorScreenPos();
+    const auto renderScale = RenderHandler::GetLevelRenderingContext()->Size / static_cast<Pine::Vector2f>(RenderHandler::GetLevelFrameBuffer()->GetSize());
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
-    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
+    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, renderScale.y), ImVec2(renderScale.x, 0.f));
 
-    bool viewportClicked = ImGui::IsItemClicked();
+    const bool viewportClicked = ImGui::IsItemClicked();
+    const bool viewportHovered = ImGui::IsItemHovered();
 
     if (!m_CaptureMouse)
     {
@@ -274,18 +329,26 @@ void Panels::LevelViewport::Render()
             m_CaptureMouse = true;
             m_MouseCapturePosition = Pine::Input::GetCursorPosition();
 
-            Pine::Input::SetCursorVisible(false);
+            Pine::Input::SetCursorMode(Pine::CursorMode::Disabled);
         }
     }
     else
     {
+        const auto& io = ImGui::GetIO();
+
+        if (io.MouseWheel != 0.f)
+        {
+            EditorEntity::SetSpeedMultiplier(EditorEntity::GetSpeedMultiplier() + io.MouseWheel * 0.1f);
+
+            m_ShowEntitySpeed = true;
+            m_ShowEntitySpeedTime = ImGui::GetTime() + 5.f;
+        }
+
         if (!ImGui::IsMouseDown(ImGuiMouseButton_::ImGuiMouseButton_Right))
         {
             m_CaptureMouse = false;
-            Pine::Input::SetCursorVisible(true);
+            Pine::Input::SetCursorMode(Pine::CursorMode::Normal);
         }
-
-        Pine::Input::SetCursorPosition(m_MouseCapturePosition);
     }
 
     // Allow drag dropping some assets to the viewport such as blueprints, levels and sky boxes.
@@ -318,7 +381,46 @@ void Panels::LevelViewport::Render()
 
     EditorEntity::SetCaptureMouse(m_CaptureMouse);
 
-    RenderGizmo(position);
+    RenderTranslationGizmo(position);
+
+    if (EditorEntity::GetPerspective2D())
+    {
+        // Handle view port zooming
+        if (viewportHovered)
+        {
+            const auto camera = RenderHandler::GetLevelRenderingContext()->SceneCamera;
+            const float zoomFactor = camera->GetOrthographicSize();
+            const float wheelDelta = ImGui::GetIO().MouseWheel * 0.1f * zoomFactor;
+
+            if (wheelDelta != 0.f)
+            {
+                float newSize = camera->GetOrthographicSize() - wheelDelta;
+
+                if (0.f > newSize)
+                    newSize = 0.f;
+
+                camera->SetOrthographicSize(newSize);
+            }
+        }
+
+        Gizmo::Gizmo2D::Render(Pine::Vector2f(position.x, position.y), m_Size);
+    }
+    else
+    {
+        Gizmo::Gizmo3D::Render({position.x, position.y});
+    }
+
+    if (m_ShowEntitySpeed && m_ShowEntitySpeedTime > ImGui::GetTime())
+    {
+        char buff[64];
+
+        snprintf(buff, sizeof(buff), "Speed: %.1f", EditorEntity::GetSpeedMultiplier());
+
+        const auto textSize = ImGui::CalcTextSize(buff);
+
+        ImGui::GetWindowDrawList()->AddRectFilled({position.x + 10.f, position.y + 10.f}, {position.x + 20.f + textSize.x, position.y + 20.f + textSize.y}, ImColor(20, 20, 20, 150));
+        ImGui::GetWindowDrawList()->AddText({position.x + 15.f, position.y + 15.f}, ImColor(255, 255, 255, 255), buff);
+    }
 
     if (viewportClicked && !ImGuizmo::IsUsing())
     {
@@ -332,12 +434,12 @@ void Panels::LevelViewport::Render()
 
         // Since our underlying viewport is in 1920x1080, but we down scale that to fit the viewport, we
         // now have to up scale our cursor coordinates back to 1920x1080
-        mousePosition = Pine::Vector2f(mousePosition) *  Pine::Vector2f(1920, 1080) / Pine::Vector2f(m_Size);
+        mousePosition = Pine::Vector2f(mousePosition) * RenderHandler::GetLevelRenderingContext()->Size / Pine::Vector2f(m_Size);
 
         // Flip Y axis since the frame buffer is flipped
-        mousePosition.y = 1080 - mousePosition.y;
+        mousePosition.y = RenderHandler::GetLevelRenderingContext()->Size.y - mousePosition.y;
 
-        EntitySelection::Pick(mousePosition);
+        EntitySelection::Pick(mousePosition, ImGui::GetIO().KeyCtrl);
     }
 
     ImGui::End();

@@ -7,8 +7,8 @@
 namespace
 {
 
-    std::uint32_t m_ActiveTexture = 10000;
-    std::uint32_t m_BoundTextures[64] = {10000};
+    std::uint32_t m_ActiveTexture = std::numeric_limits<std::uint32_t>::max();
+    std::uint32_t m_BoundTextures[64] = {std::numeric_limits<std::uint32_t>::max() };
 
     struct GLTextureFormat
     {
@@ -22,10 +22,27 @@ namespace
         {
             case Pine::Graphics::TextureType::Texture2D:
                 return multiSample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+            case Pine::Graphics::TextureType::Texture2DArray:
+                return GL_TEXTURE_2D_ARRAY;
             case Pine::Graphics::TextureType::CubeMap:
                 return GL_TEXTURE_CUBE_MAP;
             default:
                 throw std::runtime_error("Unsupported texture type.");
+        }
+    }
+
+    std::uint32_t TranslateWrapMode(Pine::Graphics::TextureWrapMode mode)
+    {
+        switch (mode)
+        {
+            case Pine::Graphics::TextureWrapMode::Repeat:
+                return GL_REPEAT;
+            case Pine::Graphics::TextureWrapMode::ClampToBorder:
+                return GL_CLAMP_TO_BORDER;
+            case Pine::Graphics::TextureWrapMode::ClampToEdge:
+                return GL_CLAMP_TO_EDGE;
+            default:
+                throw std::runtime_error("Unsupported wrap type.");
         }
     }
 
@@ -83,12 +100,12 @@ namespace
                 openglFormat = GL_RGBA;
                 break;
             case Pine::Graphics::TextureFormat::RGB16F:
-                openglFormat = GL_RGB16F;
-                openglInternalFormat = GL_RGB;
+                openglFormat = GL_RGB;
+                openglInternalFormat = GL_RGBA16F;
                 break;
             case Pine::Graphics::TextureFormat::RGBA16F:
-                openglFormat = GL_RGBA16F;
-                openglInternalFormat = GL_RGBA;
+                openglFormat = GL_RGBA;
+                openglInternalFormat = GL_RGBA16F;
                 break;
             case Pine::Graphics::TextureFormat::Depth:
                 openglFormat = GL_DEPTH_COMPONENT;
@@ -131,7 +148,7 @@ void Pine::Graphics::GLTexture::Bind(int textureIndex)
         m_ActiveTexture = textureIndex;
     }
 
-    glBindTexture(TranslateTextureType(m_Type, m_MultiSampled), m_Id);
+    glBindTexture(TranslateTextureType(m_Type, m_IsMultiSampled), m_Id);
 
     m_BoundTextures[textureIndex] = m_Id;
 }
@@ -144,7 +161,7 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
     if (srcRect.x < 0)
         srcRect = Vector4i(0, 0, texture->GetWidth(), texture->GetHeight());
 
-    auto textureType = TranslateTextureType(m_Type, m_MultiSampled);
+    auto textureType = TranslateTextureType(m_Type, m_IsMultiSampled);
     auto cubeMapTextureType = m_Type == TextureType::CubeMap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<int>(textureUploadTarget) - 1 : GL_TEXTURE_2D;
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(texture->GetTextureFormat());
 
@@ -202,20 +219,32 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
 {
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(format);
 
-    const auto openglType = TranslateTextureType(m_Type, m_MultiSampled);
+    const auto openglType = TranslateTextureType(m_Type, m_IsMultiSampled);
 
-    if (m_MultiSampled)
-        glTexImage2DMultisample(openglType, m_Samples, openglInternalFormat, width, height, GL_TRUE);
+    if (m_Type != TextureType::Texture2DArray)
+    {
+        if (m_IsMultiSampled)
+            glTexImage2DMultisample(openglType, m_Samples, openglInternalFormat, width, height, GL_TRUE);
+        else
+            glTexImage2D(openglType, 0, openglInternalFormat, width, height, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
+    }
     else
-        glTexImage2D(openglType, 0, openglInternalFormat, width, height, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
+    {
+        // You need to set the array size beforehand using SetArraySize().
+        assert(m_ArraySize != -1);
 
-    if (!m_MultiSampled)
+        glTexImage3D(openglType, 0, openglInternalFormat, width, height, m_ArraySize, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
+    }
+
+    if (!m_IsMultiSampled)
     {
         glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
         glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
 
-        glTexParameteri(openglType, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(openglType, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(openglType, GL_TEXTURE_WRAP_S, TranslateWrapMode(m_WrapMode));
+        glTexParameteri(openglType, GL_TEXTURE_WRAP_T, TranslateWrapMode(m_WrapMode));
+
+        glTexParameterfv(openglType, GL_TEXTURE_BORDER_COLOR, &m_BorderColor[0]);
     }
 
     if (m_HasCustomSwizzleMask)
@@ -251,7 +280,7 @@ Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetFilteringMode
     return m_FilteringMode;
 }
 
-void Pine::Graphics::GLTexture::SetMipmapFilteringMode(Pine::Graphics::TextureFilteringMode mode)
+void Pine::Graphics::GLTexture::SetMipmapFilteringMode(TextureFilteringMode mode)
 {
     m_MipmapFilteringMode = mode;
 
@@ -261,6 +290,40 @@ void Pine::Graphics::GLTexture::SetMipmapFilteringMode(Pine::Graphics::TextureFi
 Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetMipmapFilteringMode()
 {
     return m_MipmapFilteringMode;
+}
+
+void Pine::Graphics::GLTexture::SetTextureWrapMode(TextureWrapMode mode)
+{
+    m_WrapMode = mode;
+}
+
+Pine::Graphics::TextureWrapMode Pine::Graphics::GLTexture::GetTextureWrapMode()
+{
+    return m_WrapMode;
+}
+
+void Pine::Graphics::GLTexture::SetBorderColor(Vector4f color)
+{
+    m_BorderColor = color;
+
+    glTexParameterfv(TranslateTextureType(m_Type, m_IsMultiSampled), GL_TEXTURE_BORDER_COLOR, &m_BorderColor[0]);
+}
+
+Pine::Vector4f Pine::Graphics::GLTexture::GetBorderColor()
+{
+    return m_BorderColor;
+}
+
+void Pine::Graphics::GLTexture::SetCompareModeLowerEqual()
+{
+    // TODO: Allow these to be configured?
+    glTexParameteri(TranslateTextureType(m_Type, m_IsMultiSampled), GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(TranslateTextureType(m_Type, m_IsMultiSampled), GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+}
+
+void Pine::Graphics::GLTexture::SetMaxAnisotropy(const float value)
+{
+    glTexParameterf(TranslateTextureType(m_Type, m_IsMultiSampled), GL_TEXTURE_MAX_ANISOTROPY_EXT, value);
 }
 
 std::uint32_t Pine::Graphics::GLTexture::GetId() const
@@ -297,7 +360,7 @@ void Pine::Graphics::GLTexture::GenerateMipmaps()
 {
     m_HasMipmaps = true;
 
-    glGenerateMipmap(TranslateTextureType(m_Type, m_MultiSampled));
+    glGenerateMipmap(TranslateTextureType(m_Type, m_IsMultiSampled));
 }
 
 void Pine::Graphics::GLTexture::UpdateTextureFiltering()
@@ -307,7 +370,7 @@ void Pine::Graphics::GLTexture::UpdateTextureFiltering()
         return;
     }
 
-    const auto openglType = TranslateTextureType(m_Type, m_MultiSampled);
+    const auto openglType = TranslateTextureType(m_Type, m_IsMultiSampled);
 
     Bind();
 
@@ -328,12 +391,12 @@ void Pine::Graphics::GLTexture::UpdateTextureFiltering()
 
 void Pine::Graphics::GLTexture::SetMultiSampled(bool multiSampled)
 {
-    m_MultiSampled = multiSampled;
+    m_IsMultiSampled = multiSampled;
 }
 
 bool Pine::Graphics::GLTexture::IsMultiSampled()
 {
-    return m_MultiSampled;
+    return m_IsMultiSampled;
 }
 
 void Pine::Graphics::GLTexture::SetSamples(int samples)
@@ -344,6 +407,16 @@ void Pine::Graphics::GLTexture::SetSamples(int samples)
 int Pine::Graphics::GLTexture::GetSamples()
 {
     return m_Samples;
+}
+
+void Pine::Graphics::GLTexture::SetArraySize(int arraySize)
+{
+    m_ArraySize = arraySize;
+}
+
+int Pine::Graphics::GLTexture::GetArraySize()
+{
+    return m_ArraySize;
 }
 
 bool Pine::Graphics::GLTexture::HasCustomSwizzleMask()
@@ -373,10 +446,35 @@ void Pine::Graphics::GLTexture::ResetSwizzleMask()
     }
 }
 
-void Pine::Graphics::GLTexture::UpdateSwizzleMask()
+void Pine::Graphics::GLTexture::UpdateSwizzleMask() const
 {
-    glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_R, TranslateSwizzleMaskChannel(m_SwizzleMask[0]));
-    glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_G, TranslateSwizzleMaskChannel(m_SwizzleMask[1]));
-    glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_B, TranslateSwizzleMaskChannel(m_SwizzleMask[2]));
-    glTexParameteri(TranslateTextureType(m_Type, m_MultiSampled), GL_TEXTURE_SWIZZLE_A, TranslateSwizzleMaskChannel(m_SwizzleMask[3]));
+    glTexParameteri(TranslateTextureType(m_Type, m_IsMultiSampled), GL_TEXTURE_SWIZZLE_R, TranslateSwizzleMaskChannel(m_SwizzleMask[0]));
+    glTexParameteri(TranslateTextureType(m_Type, m_IsMultiSampled), GL_TEXTURE_SWIZZLE_G, TranslateSwizzleMaskChannel(m_SwizzleMask[1]));
+    glTexParameteri(TranslateTextureType(m_Type, m_IsMultiSampled), GL_TEXTURE_SWIZZLE_B, TranslateSwizzleMaskChannel(m_SwizzleMask[2]));
+    glTexParameteri(TranslateTextureType(m_Type, m_IsMultiSampled), GL_TEXTURE_SWIZZLE_A, TranslateSwizzleMaskChannel(m_SwizzleMask[3]));
+}
+
+void Pine::Graphics::GLTexture::UpdateWrapMode()
+{
+    if (m_Id == 0)
+    {
+        return;
+    }
+
+    const auto openglType = TranslateTextureType(m_Type, m_IsMultiSampled);
+
+    Bind();
+
+    glTexParameteri(openglType, GL_TEXTURE_WRAP_S, TranslateWrapMode(m_WrapMode));
+    glTexParameteri(openglType, GL_TEXTURE_WRAP_T, TranslateWrapMode(m_WrapMode));
+}
+
+void Pine::Graphics::GLTexture::ResetChangeTracking()
+{
+    for (unsigned int & boundTexture : m_BoundTextures)
+    {
+        boundTexture = std::numeric_limits<std::uint32_t>::max();
+    }
+
+    m_ActiveTexture = std::numeric_limits<std::uint32_t>::max();
 }

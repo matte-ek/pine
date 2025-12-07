@@ -3,6 +3,10 @@
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
 #include "Pine/World/Components/NativeScript/NativeScript.hpp"
+#include "Pine/World/Components/Script/ScriptComponent.hpp"
+#include "Pine/Script/ScriptManager.hpp"
+#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Physics/Physics2D/Physics2D.hpp"
 
 namespace
 {
@@ -84,12 +88,18 @@ void Pine::World::Update()
     const auto deltaTime = CalculateFrameTime();
 
     Physics3D::Update(deltaTime);
+    Physics2D::Update(deltaTime);
+
+    if (!m_Paused)
+    {
+        Script::Manager::OnUpdate(deltaTime);
+    }
 }
 
 void Pine::World::Setup()
 {
     // In the future we'll figure out which startup level to use.
-    Pine::Level* level = nullptr;
+    Level* level = nullptr;
 
     // Fallback to untitled level.
     if (level == nullptr)
@@ -101,4 +111,14 @@ void Pine::World::Setup()
     }
 
     World::SetActiveLevel(level);
+}
+
+void Pine::World::OnStart()
+{
+    if (m_Paused)
+    {
+        return;
+    }
+
+    Script::Manager::OnStart();
 }

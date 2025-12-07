@@ -7,6 +7,10 @@
 
 #include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
 #include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
+#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Engine/Engine.hpp"
 
 namespace
 {
@@ -23,13 +27,19 @@ namespace
 
         if (stage == Pine::RenderStage::PreRender)
         {
+            Pine::Graphics::GetGraphicsAPI()->ResetInternalChangeTracking();
+
             m_GameRenderingContext->Active = Panels::GameViewport::GetActive() && Panels::GameViewport::GetVisible();
             m_GameRenderingContext->Size = Pine::Vector2f(1920, 1080);
 
             m_LevelRenderingContext->Active = Panels::LevelViewport::GetActive() && Panels::LevelViewport::GetVisible();
-            m_LevelRenderingContext->Size = Pine::Vector2f(1920, 1080);
+            m_LevelRenderingContext->Size = Panels::LevelViewport::GetSize();
 
             m_LevelRenderingContext->Skybox = m_GameRenderingContext->Skybox;
+
+            // This needs a lot more code to do, we need a good way of knowing when the editor is actually "idle",
+            // a quick idea is to just wait a second after any user input then wait for further events.
+            //Pine::Engine::GetEngineConfiguration().m_WaitEvents = !Panels::GameViewport::GetVisible();
 
             EditorEntity::Get()->GetComponents()[1]->OnRender(deltaTime);
         }
@@ -42,10 +52,14 @@ void RenderHandler::Setup()
 
     // Prepare frame buffers
     m_GameFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_GameFrameBuffer->Create(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_GameFrameBuffer->Prepare();
+    m_GameFrameBuffer->AttachTextures(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_GameFrameBuffer->Finish();
 
     m_LevelFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_LevelFrameBuffer->Create(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::StencilBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_LevelFrameBuffer->Prepare();
+    m_LevelFrameBuffer->AttachTextures(1920, 1080, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::StencilBuffer | Pine::Graphics::Buffers::DepthBuffer);
+    m_LevelFrameBuffer->Finish();
 
     // Prepare rendering contexts
     m_GameRenderingContext = new Pine::RenderingContext;

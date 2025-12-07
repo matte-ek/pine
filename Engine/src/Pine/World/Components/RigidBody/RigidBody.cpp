@@ -10,94 +10,82 @@ Pine::RigidBody::RigidBody()
 {
 }
 
-void Pine::RigidBody::UpdateColliders()
-{
-    const auto collider = m_Parent->GetComponent<Pine::Collider>();
-
-    if (!collider)
-    {
-        if (m_Collider)
-            m_RigidBody->removeCollider(m_Collider);
-
-        m_EngineCollider = nullptr;
-        m_Collider = nullptr;
-
-        return;
-    }
-
-    collider->OnPrePhysicsUpdate();
-
-    m_EngineCollider = collider;
-
-    if (collider->PollShapeUpdated())
-    {
-        if (m_Collider)
-            m_RigidBody->removeCollider(m_Collider);
-
-        m_Collider = nullptr;
-    }
-
-    if (!m_Collider)
-        m_Collider = m_RigidBody->addCollider(collider->GetCollisionShape(), m_ColliderTransform);
-
-    if (m_Collider)
-    {
-        const auto transform = m_Parent->GetTransform();
-
-        reactphysics3d::Transform tr;
-
-        tr.identity();
-
-        const auto rot = transform->GetRotation();
-
-        tr.setPosition(reactphysics3d::Vector3(collider->GetPosition().x, collider->GetPosition().y, collider->GetPosition().z));
-        m_Collider->setLocalToBodyTransform(tr);
-        m_Collider->getMaterial().setBounciness(0);
-    }
-}
-
-void Pine::RigidBody::UpdateRigidBodyProperties()
-{
-    const auto transform = GetParent()->GetTransform();
-
-    reactphysics3d::Transform tr;
-
-    const auto position = transform->GetPosition();
-    const auto rotation = transform->GetRotation();
-
-    tr.setPosition(reactphysics3d::Vector3(position.x, position.y, position.z));
-    tr.setOrientation(reactphysics3d::Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-
-    m_RigidBody->setMass(m_Mass);
-    m_RigidBody->enableGravity(m_GravityEnabled);
-    m_RigidBody->setTransform(tr);
-
-    m_RigidBody->setAngularLockAxisFactor(reactphysics3d::Vector3(m_RotationLock[0] ? 0.f : 1.f, m_RotationLock[1] ? 0.f : 1.f, m_RotationLock[2] ? 0.f : 1.f));
-
-    m_RigidBody->setLinearDamping(.2f);
-
-    switch (m_RigidBodyType)
-    {
-        case RigidBodyType::Static:
-            m_RigidBody->setType(reactphysics3d::BodyType::STATIC);
-            break;
-        case RigidBodyType::Kinematic:
-            m_RigidBody->setType(reactphysics3d::BodyType::KINEMATIC);
-            break;
-        case RigidBodyType::Dynamic:
-            m_RigidBody->setType(reactphysics3d::BodyType::DYNAMIC);
-            break;
-    }
-
-    UpdateColliders();
-}
-
-reactphysics3d::RigidBody *Pine::RigidBody::GetRigidBody() const
+physx::PxRigidDynamic * Pine::RigidBody::GetRigidBody() const
 {
     return m_RigidBody;
 }
 
-void Pine::RigidBody::SetRigidBodyType(Pine::RigidBodyType type)
+void Pine::RigidBody::UpdateColliders()
+{
+    const auto collider = m_Parent->GetComponent<Collider>();
+
+    if (!collider)
+    {
+        // If our collider got removed, we'll also have to remove our rigid body as well.
+        if (m_RigidBody != nullptr)
+        {
+            Physics3D::GetScene()->removeActor(*m_RigidBody);
+
+            m_RigidBody->release();
+            m_RigidBody = nullptr;
+        }
+
+        return;
+    }
+
+    m_EngineCollider = collider;
+}
+
+void Pine::RigidBody::UpdateBody()
+{
+    UpdateColliders();
+
+    if (m_EngineCollider == nullptr)
+    {
+        return;
+    }
+
+    const auto transform = GetParent()->GetTransform();
+    const auto position = transform->LocalPosition;
+    const auto rotation = transform->LocalRotation;
+
+    m_RigidBodyTransform.p.x = position.x;
+    m_RigidBodyTransform.p.y = position.y;
+    m_RigidBodyTransform.p.z = position.z;
+
+    m_RigidBodyTransform.q.x = rotation.x;
+    m_RigidBodyTransform.q.y = rotation.y;
+    m_RigidBodyTransform.q.z = rotation.z;
+    m_RigidBodyTransform.q.w = rotation.w;
+
+    if (m_RigidBody == nullptr)
+    {
+        m_RigidBody = Physics3D::GetPhysics()->createRigidDynamic(m_RigidBodyTransform);
+        m_RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, m_RigidBodyType == RigidBodyType::Kinematic);
+
+        const auto shape = m_EngineCollider->CreateCollisionShape();
+
+        m_RigidBody->attachShape(*shape);
+
+        shape->release();
+
+        Physics3D::GetScene()->addActor(*m_RigidBody);
+    }
+
+    m_RigidBody->setMass(m_Mass);
+
+    if (m_RigidBodyType == RigidBodyType::Kinematic)
+    {
+        m_RigidBody->setKinematicTarget(m_RigidBodyTransform);
+    }
+    else
+    {
+        // scary.
+        m_RigidBody->setGlobalPose(m_RigidBodyTransform);
+    }
+}
+
+void Pine::RigidBody::SetRigidBodyType(RigidBodyType type)
 {
     m_RigidBodyType = type;
 }
@@ -127,65 +115,52 @@ bool Pine::RigidBody::GetGravityEnabled() const
     return m_GravityEnabled;
 }
 
-void Pine::RigidBody::SetRotationLock(std::array<bool, 3> rot)
-{
-    m_RotationLock = rot;
-}
-
-const std::array<bool, 3> &Pine::RigidBody::GetRotationLock() const
-{
-    return m_RotationLock;
-}
-
-void Pine::RigidBody::DetachCollider()
-{
-    if (m_Collider && m_RigidBody)
-        m_RigidBody->removeCollider(m_Collider);
-
-    m_EngineCollider = nullptr;
-    m_Collider = nullptr;
-}
-
-bool Pine::RigidBody::IsColliderAttached(Pine::Collider *collider) const
+bool Pine::RigidBody::IsColliderAttached(const Collider *collider) const
 {
     return m_EngineCollider == collider;
 }
 
 void Pine::RigidBody::OnPrePhysicsUpdate()
 {
-    if (!m_RigidBody)
-    {
-        m_RigidBody = Physics3D::GetWorld()->createRigidBody(m_RigidBodyTransform);
-        m_RigidBody->setType(reactphysics3d::BodyType::DYNAMIC);
-
-        UpdateRigidBodyProperties();
-    }
-
     if (m_Parent->GetStatic())
     {
         return;
     }
 
-    UpdateRigidBodyProperties();
+    UpdateBody();
 }
 
 void Pine::RigidBody::OnPostPhysicsUpdate()
 {
     if (m_Parent->GetStatic())
         return;
-    if (!m_RigidBody)
+    if (m_RigidBody == nullptr)
         return;
 
     const auto transform = GetParent()->GetTransform();
-    const auto &physTransform = m_RigidBody->getTransform();
+    const auto position = m_RigidBody->getGlobalPose().p;
+    const auto rotation = m_RigidBody->getGlobalPose().q;
 
-    transform->LocalRotation = glm::quat(physTransform.getOrientation().w, physTransform.getOrientation().x, physTransform.getOrientation().y, physTransform.getOrientation().z);
-    transform->LocalPosition = glm::vec3(physTransform.getPosition().x, physTransform.getPosition().y, physTransform.getPosition().z);
+    transform->LocalPosition = {position.x, position.y, position.z};
+    transform->LocalRotation = {rotation.w, rotation.x, rotation.y, rotation.z};
 }
 
 void Pine::RigidBody::OnCopied()
 {
-    m_RigidBody = nullptr;
+    IComponent::OnCopied();
+}
+
+void Pine::RigidBody::OnDestroyed()
+{
+    IComponent::OnDestroyed();
+
+    if (m_RigidBody)
+    {
+        Physics3D::GetScene()->removeActor(*m_RigidBody);
+
+        m_RigidBody->release();
+        m_RigidBody = nullptr;
+    }
 }
 
 void Pine::RigidBody::LoadData(const nlohmann::json &j)
@@ -193,10 +168,6 @@ void Pine::RigidBody::LoadData(const nlohmann::json &j)
     Serialization::LoadValue(j, "mass", m_Mass);
     Serialization::LoadValue(j, "grav", m_GravityEnabled);
     Serialization::LoadValue(j, "rtype", m_RigidBodyType);
-
-    Serialization::LoadValue(j, "lrx", m_RotationLock[0]);
-    Serialization::LoadValue(j, "lry", m_RotationLock[1]);
-    Serialization::LoadValue(j, "lrz", m_RotationLock[2]);
 }
 
 void Pine::RigidBody::SaveData(nlohmann::json &j)
@@ -204,8 +175,4 @@ void Pine::RigidBody::SaveData(nlohmann::json &j)
     j["mass"] = m_Mass;
     j["grav"] = m_GravityEnabled;
     j["rtype"] = m_RigidBodyType;
-
-    j["lrx"] = m_RotationLock[0];
-    j["lry"] = m_RotationLock[1];
-    j["lrz"] = m_RotationLock[2];
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace Pine
 {
@@ -20,10 +21,51 @@ namespace Pine
         SpriteRenderer,
         TilemapRenderer,
         NativeScript,
-        Script
+        Script,
+        AudioSource,
+        AudioListener,
     };
 
     inline const char *ComponentTypeToString(ComponentType type)
+    {
+        switch (type)
+        {
+            case ComponentType::Transform:
+                return "Transform";
+            case ComponentType::ModelRenderer:
+                return "ModelRenderer";
+            case ComponentType::TerrainRenderer:
+                return "TerrainRenderer";
+            case ComponentType::Camera:
+                return "Camera";
+            case ComponentType::Light:
+                return "Light";
+            case ComponentType::Collider:
+                return "Collider";
+            case ComponentType::RigidBody:
+                return "RigidBody";
+            case ComponentType::Collider2D:
+                return "Collider2D";
+            case ComponentType::RigidBody2D:
+                return "RigidBody2D";
+            case ComponentType::SpriteRenderer:
+                return "SpriteRenderer";
+            case ComponentType::TilemapRenderer:
+                return "TilemapRenderer";
+            case ComponentType::NativeScript:
+                return "NativeScript";
+            case ComponentType::Script:
+                return "Script";
+            case ComponentType::AudioSource:
+                return "AudioSource";
+            case ComponentType::AudioListener:
+                return "AudioListener";
+        }
+
+        return "N/A";
+    }
+
+    inline const char *ComponentTypeToHumanString(ComponentType type)
     {
         switch (type)
         {
@@ -53,6 +95,10 @@ namespace Pine
                 return "Native Script";
             case ComponentType::Script:
                 return "Script";
+            case ComponentType::AudioSource:
+                return "Audio Source";
+            case ComponentType::AudioListener:
+                return "Audio Listener";
         }
 
         return "N/A";
@@ -65,16 +111,23 @@ namespace Pine
     protected:
         bool m_Active = true;
 
-        // If this component is part of the ECS or is just an object in memory.
-        bool m_Standalone = false;
+        // If this component is part of the ECF or is just an object in memory.
+        bool m_Standalone = true;
+
+        Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
 
         ComponentType m_Type = ComponentType::Transform;
+
+        std::uint32_t m_InternalId = 0;
 
         Entity *m_Parent = nullptr;
     public:
         explicit IComponent(ComponentType type);
 
         virtual ~IComponent() = default;
+
+        void SetInternalId(std::uint32_t id);
+        std::uint32_t GetInternalId() const;
 
         void SetActive(bool value);
         bool GetActive() const;
@@ -89,8 +142,11 @@ namespace Pine
 
         ComponentType GetType() const;
 
-        virtual void OnCreated();
+        void CreateScriptInstance();
+        void DestroyScriptInstance();
+        Script::ObjectHandle* GetComponentScriptHandle();
 
+        virtual void OnCreated();
         virtual void OnDestroyed();
 
         // Whenever this component's memory is copied to a new component.

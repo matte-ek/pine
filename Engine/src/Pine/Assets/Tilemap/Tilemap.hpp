@@ -6,12 +6,6 @@
 namespace Pine
 {
 
-    enum PineTileFlags : std::uint32_t
-    {
-        NoCollison = (1 << 0), 
-        NoRender = (1 << 1)
-    };
-
     struct TileInstance // (Not to be confused with TileData)
     {
         // The index that the tile is being identified as within a tilemap

@@ -1,5 +1,8 @@
 #include "Pipeline2D.hpp"
 
+#include <GL/glew.h>
+
+#include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
@@ -80,11 +83,12 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
             }
 
             Vector2f size = Vector2f(spriteRenderer->GetTexture()->GetWidth(), spriteRenderer->GetTexture()->GetHeight()) * Vector2f(transform->GetScale());
+            Color color = Color(spriteRenderer->GetColor().x * 255.f, spriteRenderer->GetColor().y * 255.f, spriteRenderer->GetColor().z * 255.f, spriteRenderer->GetColor().w * 255.f);
 
             Renderer2D::AddFilledTexturedRectangle(transform->GetPosition(),
                                                    size,
                                                    0.f,
-                                                   Color(255, 255, 255, 255),
+                                                   color,
                                                    spriteRenderer->GetTexture(),
                                                    Vector2f(0.f),
                                                    uvScaling);
@@ -110,7 +114,7 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
 
             for (auto& tile : tileMap->GetTiles())
             {
-                if (tile.m_Flags & NoRender)
+                if (tile.m_Flags & TileFlags_Hidden)
                     continue;
 
                 Renderer2D::AddTextureAtlasItem(positionOffset + Vector2f(tileSize * static_cast<float>(tile.m_Position.x), tileSize * static_cast<float>(tile.m_Position.y)),
@@ -126,7 +130,14 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
 
     auto oldCoordinateSystem = Renderer2D::GetCoordinateSystem();
 
+    Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(false);
+
+    Pine::Graphics::GetGraphicsAPI()->SetBlendingEnabled(true);
+    Pine::Graphics::GetGraphicsAPI()->SetBlendingFunction(Pine::Graphics::BlendingFunction::SourceAlpha, Pine::Graphics::BlendingFunction::OneMinusSourceAlpha);
+
     Renderer2D::RenderFrame(&context);
+
+    Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 
     Renderer2D::SetCoordinateSystem(oldCoordinateSystem);
 }

@@ -3,32 +3,35 @@ project(Engine)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(src include)
+include_directories(src include /usr/include/mono-2.0)
+link_directories(lib)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-find_package(ReactPhysics3D REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(GLEW CONFIG REQUIRED)
+find_package(assimp CONFIG REQUIRED)
+find_package(OpenAL CONFIG REQUIRED)
+find_package(FLAC CONFIG REQUIRED)
+find_package(box2d CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
+find_package(imguizmo CONFIG REQUIRED)
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_library(Engine ${SOURCES}
-        src/Pine/Utilities/HotReload/HotReload.hpp
-        src/Pine/Assets/Mesh/Mesh.hpp
-        src/Pine/Assets/Mesh/Mesh.cpp
-        src/Pine/Assets/Model/Model.hpp
-        src/Pine/Assets/Model/Model.cpp
-        src/Pine/World/Components/ModelRenderer/ModelRenderer.cpp
-        src/Pine/World/Components/Collider/Collider.hpp
-        src/Pine/World/Components/RigidBody/RigidBody.hpp
-        src/Pine/World/Components/RigidBody2D/RigidBody2D.cpp
-        src/Pine/Rendering/Renderer3D/Renderer3D.hpp
-        src/Pine/Graphics/ShaderStorage/ShaderStorage.hpp
-        src/Pine/Rendering/Renderer3D/ShaderStorages.hpp
-        src/Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.cpp
-        src/Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp
-        src/Pine/Rendering/Features/Skybox/Skybox.cpp
-        src/Pine/Input/Input.hpp
-        src/Pine/Input/Input.cpp
-)
+        src/Pine/World/Components/AudioSource/AudioSource.hpp
+        src/Pine/World/Components/AudioSource/AudioSource.cpp
+        src/Pine/World/Components/AudioListener/AudioListener.hpp
+        src/Pine/World/Components/AudioListener/AudioListener.cpp
+        src/Pine/Rendering/Features/Shadows/Shadows.hpp
+        src/Pine/Rendering/Features/Shadows/Shadows.cpp
+        src/Pine/Threading/Threading.hpp
+        src/Pine/Threading/ThreadPool/ThreadPool.hpp
+        src/Pine/Threading/Threading.cpp)
 
-target_link_libraries(Engine glfw GLEW GL assimp fmt ReactPhysics3D::ReactPhysics3D)
+target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL)

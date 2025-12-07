@@ -39,6 +39,32 @@ namespace Pine::Graphics
         Invert
     };
 
+    enum class BlendingFunction
+    {
+        Zero,
+        One,
+        SourceColor,
+        OneMinusSourceColor,
+        DestinationColor,
+        OneMinusDestinationColor,
+        SourceAlpha,
+        OneMinusSourceAlpha,
+        DestinationAlpha,
+        OneMinusDestinationAlpha,
+        ConstantColor,
+        OneMinusConstantColor,
+        ConstantAlpha,
+        OneMinusConstantAlpha,
+        SourceAlphaSaturate
+    };
+
+    enum class FaceCullMode
+    {
+        Back,
+        Front,
+        FrontAndBack
+    };
+
     class IGraphicsAPI
     {
     public:
@@ -47,6 +73,8 @@ namespace Pine::Graphics
 
         virtual bool Setup() = 0;
         virtual void Shutdown() = 0;
+
+        virtual void ResetInternalChangeTracking() = 0;
 
         virtual void EnableErrorLogging() = 0;
         virtual void DisableErrorLogging() = 0;
@@ -65,13 +93,17 @@ namespace Pine::Graphics
 
         virtual void SetViewport(Vector2i position, Vector2i size) = 0;
 
-        //virtual void SetBlendingEnabled(bool value) = 0;
+        virtual void SetBlendingEnabled(bool value) = 0;
         virtual void SetDepthTestEnabled(bool value) = 0;
         virtual void SetStencilTestEnabled(bool value) = 0;
         virtual void SetFaceCullingEnabled(bool value) = 0;
-        virtual void SetMultisampleEnabled(bool value) = 0;
+        virtual void SetMultiSampleEnabled(bool value) = 0;
+
+        virtual void SetBlendingFunction(BlendingFunction source, BlendingFunction destination) = 0;
 
         virtual void SetDepthFunction(TestFunction value) = 0;
+
+        virtual void SetFaceCullingMode(FaceCullMode mode) = 0;
 
         virtual void SetStencilFunction(TestFunction function, int ref, int mask) = 0;
         virtual void SetStencilOperation(StencilOperation stencilFail, StencilOperation depthFail, StencilOperation depthPass) = 0;

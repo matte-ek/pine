@@ -1,7 +1,10 @@
 #pragma once
+#include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Core/Math/Math.hpp"
 
 namespace Gizmo::Gizmo2D
 {
-	void Render(Pine::Vector2f position, Pine::Vector2f size);
+    void Setup();
+
+	void Render(const Pine::Vector2f& position, const Pine::Vector2f& size);
 }

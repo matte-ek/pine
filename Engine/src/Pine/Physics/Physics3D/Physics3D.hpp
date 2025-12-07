@@ -1,6 +1,11 @@
 #pragma once
-#include <cstdint>
-#include <reactphysics3d/reactphysics3d.h>
+
+namespace physx
+{
+    class PxPhysics;
+    class PxScene;
+    class PxMaterial;
+}
 
 namespace Pine::Physics3D
 {
@@ -10,9 +15,8 @@ namespace Pine::Physics3D
 
     void Update(double deltaTime);
 
-    void RenderDebugColliders();
-
-    reactphysics3d::PhysicsCommon* GetCommon();
-    reactphysics3d::PhysicsWorld* GetWorld();
+    physx::PxPhysics* GetPhysics();
+    physx::PxScene* GetScene();
+    physx::PxMaterial* GetDefaultMaterial();
 
 }

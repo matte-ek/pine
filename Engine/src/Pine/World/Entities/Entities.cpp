@@ -9,14 +9,14 @@ namespace
     // each entity will have a unique id.
     std::uint32_t m_EntityId = 1;
 
-    // The current set engine configuration for the maximum amount of entities in the scene.
+    // The current set engine configuration for the maximum number of entities in the scene.
     // Currently, stays constant during the lifespan of the application.
     std::uint32_t m_MaxEntityCount = 0;
 
     // The array where all the entity data is actually stored, size is m_MaxEntityCount
     Entity* m_Entities;
 
-    // Array which holds if an element index in m_Entities is occupied, also size of m_MaxEntityCount
+    // Array which holds if an element index in m_Entities is occupied, also the size of m_MaxEntityCount
     bool* m_EntityOccupationArray;
 
     // Get the current highest element index of an entity
@@ -32,6 +32,9 @@ namespace
 
         return highestIndex;
     }
+
+    // Cached version of GetHighestEntityIndex()
+    std::uint32_t m_HighestEntityIndex = 0;
 
     // Gets the first available element index in m_Entities
     std::uint32_t GetAvailableEntityIndex()
@@ -72,8 +75,8 @@ void Entities::Setup()
         throw std::runtime_error("Failed to allocate entity data.");
     }
 
-    memset(static_cast<void*>(m_Entities), 0, sizeof(Entity) * m_MaxEntityCount);
-    memset(static_cast<void*>(m_EntityOccupationArray), 0, sizeof(bool) * m_MaxEntityCount);
+    memset(m_Entities, 0, sizeof(Entity) * m_MaxEntityCount);
+    memset(m_EntityOccupationArray, 0, sizeof(bool) * m_MaxEntityCount);
 
     m_EntityPointerList.reserve(m_MaxEntityCount);
 }
@@ -98,7 +101,7 @@ Entity* Entities::Create()
     const auto entityPtr = &m_Entities[availableEntityIndex];
 
     // Call constructor on the entity
-    new(entityPtr) Entity(m_EntityId++);
+    new(entityPtr) Entity(m_EntityId++, availableEntityIndex);
 
     // Mark the slot as occupied
     m_EntityOccupationArray[availableEntityIndex] = true;
@@ -119,7 +122,7 @@ Entity* Entities::Create(const std::string& name)
 
 Entity* Entities::Find(const std::string& name)
 {
-    for (auto entity : m_EntityPointerList)
+    for (const auto entity : m_EntityPointerList)
     {
         if (entity->GetName() == name)
             return entity;
@@ -130,7 +133,7 @@ Entity* Entities::Find(const std::string& name)
 
 Entity* Entities::Find(std::uint32_t id)
 {
-    for (auto entity : m_EntityPointerList)
+    for (const auto entity : m_EntityPointerList)
     {
         if (entity->GetId() == id)
             return entity;
@@ -139,7 +142,7 @@ Entity* Entities::Find(std::uint32_t id)
     return nullptr;
 }
 
-bool Entities::Delete(Entity* entity)
+bool Entities::Delete(const Entity* entity)
 {
     bool foundEntity = false;
 
@@ -161,7 +164,9 @@ bool Entities::Delete(Entity* entity)
         return false;
     }
 
-    for (std::uint32_t i = 0; i < GetHighestEntityIndex();i++)
+    const auto highestEntityIndex = GetHighestEntityIndex();
+
+    for (std::uint32_t i = 0; i < highestEntityIndex;i++)
     {
         if (!m_EntityOccupationArray[i])
             continue;
@@ -175,7 +180,7 @@ bool Entities::Delete(Entity* entity)
         }
     }
 
-    // If we've reached to this point, something has gone terribly wrong.
+    // If we've reached this point, something has gone terribly wrong.
 
     throw std::runtime_error("Failed to find entity pointer while removing entity.");
 }
@@ -198,14 +203,36 @@ void Entities::DeleteAll(bool includeTemporary)
         return;
     }
 
-    auto entityList = m_EntityPointerList;
+    std::vector<Entity*> entitiesToRestore;
 
-    for (auto entity : entityList)
+    const auto highestEntityIndex = GetHighestEntityIndex();
+
+    Components::SetIgnoreHighestEntityIndexFlag(true);
+
+    for (std::uint32_t i = 0; i < highestEntityIndex;i++)
     {
-        if (entity->GetTemporary())
+        if (!m_EntityOccupationArray[i])
             continue;
 
-        Delete(entity);
+        if (m_Entities[i].GetTemporary())
+        {
+            entitiesToRestore.push_back(&m_Entities[i]);
+        }
+        else
+        {
+            m_Entities[i].~Entity();
+            m_EntityOccupationArray[i] = false;
+        }
+    }
+
+    Components::SetIgnoreHighestEntityIndexFlag(false);
+    Components::RecomputeHighestComponentIndex();
+
+    m_EntityPointerList.clear();
+
+    for (auto entity : entitiesToRestore)
+    {
+        m_EntityPointerList.push_back(entity);
     }
 }
 
@@ -214,10 +241,10 @@ const std::vector<Entity*>& Entities::GetList()
     return m_EntityPointerList;
 }
 
-void Entities::MoveEntity(Entity* entity, std::size_t newIndex)
+void Entities::MoveEntity(const Entity* entity, std::size_t newIndex)
 {
     bool foundEntity = false;
-    std::size_t oldIndex;
+    std::size_t oldIndex = 0;
 
     for (std::size_t i = 0; i < m_EntityPointerList.size();i++)
     {
@@ -235,4 +262,9 @@ void Entities::MoveEntity(Entity* entity, std::size_t newIndex)
     }
 
     MoveElementInVector(m_EntityPointerList, oldIndex, newIndex);
+}
+
+Entity *Entities::GetByInternalId(std::uint32_t internalId)
+{
+    return &m_Entities[internalId];
 }

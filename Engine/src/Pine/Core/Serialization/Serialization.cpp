@@ -36,7 +36,7 @@ void Pine::Serialization::SaveToFile(const std::filesystem::path& path, const nl
     stream.close();
 }
 
-nlohmann::json Pine::Serialization::StoreVector2(const Vector3f& vector)
+nlohmann::json Pine::Serialization::StoreVector2(const Vector2f& vector)
 {
     nlohmann::json j;
 

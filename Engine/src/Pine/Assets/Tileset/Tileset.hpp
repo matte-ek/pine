@@ -7,6 +7,15 @@
 namespace Pine
 {
 
+    enum TileFlags
+    {
+        TileFlags_NoCollision = (1 << 0),
+        TileFlags_Hidden = (1 << 1),
+        TileFlags_Custom1 = (1 << 2),
+        TileFlags_Custom2 = (1 << 3),
+        TileFlags_Custom3 = (1 << 4),
+    };
+
     struct TileData
     {
         // The index that the tile is being identified as within a tilemap
@@ -17,6 +26,11 @@ namespace Pine
 
         // Preset flags for this tile
         std::uint32_t m_DefaultFlags = 0;
+
+        // Collider
+        Pine::Vector2f m_ColliderOffset = Pine::Vector2f(0.f);
+        Pine::Vector2f m_ColliderSize = Pine::Vector2f(1.f);
+        float m_ColliderRotation = 0.f;
 
         Texture2D* m_Texture;
     };
@@ -36,11 +50,11 @@ namespace Pine
         void SetTileSize(int size);
         int GetTileSize() const;
 
-        void AddTile(Texture2D* texture, std::uint32_t defaultFlags = 0);
+        TileData* AddTile(Texture2D* texture, std::uint32_t defaultFlags = 0);
         void RemoveTile(const TileData& tile);
 
-        TileData const* GetTileByIndex(std::uint32_t index) const;
-        TileData const* GetTileByTexture(const Texture2D* texture) const;
+        TileData* GetTileByIndex(std::uint32_t index);
+        TileData* GetTileByTexture(const Texture2D* texture);
 
         const std::vector<TileData>& GetTileList();
 

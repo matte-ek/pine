@@ -12,10 +12,12 @@ namespace Pine
         Repeat
     };
 
-    class SpriteRenderer : public IComponent
+    class SpriteRenderer final : public IComponent
     {
     private:
         AssetHandle<Texture2D> m_StaticTexture;
+
+        Pine::Vector4f m_Color = Pine::Vector4f(1.f);
 
         SpriteScalingMode m_ScalingMode = SpriteScalingMode::Stretch;
 
@@ -31,6 +33,9 @@ namespace Pine
 
         void SetOrder(int order);
         int GetOrder() const;
+
+        void SetColor(const Pine::Vector4f& color);
+        const Pine::Vector4f& GetColor() const;
 
         void LoadData(const nlohmann::json& j) override;
         void SaveData(nlohmann::json& j) override;

@@ -26,7 +26,7 @@ namespace Pine::Graphics
         void Create();
         void Dispose();
 
-        bool AttachShader(Shader* shader);
+        bool AttachShaderProgram(IShaderProgram* shader) const;
 
         void Upload(size_t size = 0);
 
@@ -42,9 +42,9 @@ namespace Pine::Graphics
     }
 
     template<typename T>
-    bool ShaderStorage<T>::AttachShader(Shader*shader)
+    bool ShaderStorage<T>::AttachShaderProgram(IShaderProgram* shader) const
     {
-        return shader->GetProgram()->AttachUniformBuffer(m_UniformBuffer, m_Name);
+        return shader->AttachUniformBuffer(m_UniformBuffer, m_Name);
     }
 
     template<typename T>

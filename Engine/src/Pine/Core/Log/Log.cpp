@@ -1,6 +1,7 @@
 #include "Log.hpp"
 
 #include <iostream>
+#include <mutex>
 #include <fmt/format.h>
 
 #ifdef _WIN32
@@ -9,6 +10,8 @@
 
 namespace
 {
+    std::mutex m_LogMutex;
+
 #ifdef _WIN32
     enum class ConsoleColor
     {
@@ -58,29 +61,61 @@ namespace
 
         std::cout << str << std::endl;
     }
+
+    std::vector<Pine::LogMessage> m_LogMessages;
+
+    void AddLogMessage(const Pine::LogMessage& message)
+    {
+        m_LogMessages.push_back(message);
+
+        if (m_LogMessages.size() > 256)
+        {
+            m_LogMessages.erase(m_LogMessages.begin());
+        }
+    }
 }
 
 void Pine::Log::Verbose(const std::string &str)
 {
+    std::unique_lock lck(m_LogMutex);
+
     PrintMessage("verbose", ConsoleColor::DarkGray, str.c_str(), ConsoleColor::DarkGray);
+    AddLogMessage({str, Pine::LogSeverity::Verbose});
 }
 
-void Pine::Log::Message(const std::string &str)
+void Pine::Log::Info(const std::string &str)
 {
+    std::unique_lock lck(m_LogMutex);
+
     PrintMessage("info", ConsoleColor::White, str.c_str());
+    AddLogMessage({str, Pine::LogSeverity::Info});
 }
 
 void Pine::Log::Warning(const std::string &str)
 {
+    std::unique_lock lck(m_LogMutex);
+
     PrintMessage("warning", ConsoleColor::Yellow, str.c_str());
+    AddLogMessage({str, Pine::LogSeverity::Warning});
 }
 
 void Pine::Log::Error(const std::string &str)
 {
+    std::unique_lock lck(m_LogMutex);
+
     PrintMessage("error", ConsoleColor::Red, str.c_str());
+    AddLogMessage({str, Pine::LogSeverity::Error});
 }
 
 void Pine::Log::Fatal(const std::string &str)
 {
+    std::unique_lock lck(m_LogMutex);
+
     PrintMessage("fatal", ConsoleColor::Red, str.c_str(), ConsoleColor::Red);
+    AddLogMessage({str, Pine::LogSeverity::Fatal});
+}
+
+const std::vector<Pine::LogMessage> &Pine::Log::GetLogMessages()
+{
+    return m_LogMessages;
 }

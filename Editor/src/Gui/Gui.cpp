@@ -12,16 +12,28 @@
 #include "Panels/EntityList/EntityListPanel.hpp"
 #include "Panels/GameViewport/GameViewportPanel.hpp"
 #include "Panels/LevelViewport/LevelViewportPanel.hpp"
-#include "Gui/Panels/Engine/EngineAssetsPanel.hpp"
+#include "Panels/LevelPanel/LevelPanel.hpp"
+#include "Panels/Engine/EngineAssetsPanel.hpp"
+#include "Panels/Console/ConsolePanel.hpp"
+#include "Panels/Profiler/ProfilerPanel.hpp"
 #include "Gui/MenuBar/MenuBar.hpp"
-#include "Gui/Shared/Commands/Commands.hpp"
-#include "Gui/Panels/LevelPanel/LevelPanel.hpp"
+#include "Gui/Shared/Actions/Actions.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
-#include "Other/EntitySelection/EntitySelection.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
+#include "Other/EntitySelection/EntitySelection.hpp"
+#include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
+#include "Panels/DebugPanel/DebugPanel.hpp"
 
 namespace
 {
+    void OnWindowFocus()
+    {
+        if (!Pine::WindowManager::GetWindowPointer())
+            return;
+
+        ImGui_ImplGlfw_WindowFocusCallback(reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
+    }
+
     void SetTheme()
     {
         // TODO: Do a nice green dark theme
@@ -80,7 +92,7 @@ namespace
 
     void SetFonts()
     {
-        ImGuiIO& io = ImGui::GetIO();
+        const ImGuiIO& io = ImGui::GetIO();
 
         // Add normal font
         io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Regular.ttf", 18.f);
@@ -104,6 +116,7 @@ namespace
 
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
         SetFonts();
         SetTheme();
@@ -166,9 +179,12 @@ namespace
         Panels::AssetBrowser::Render();
         Panels::Properties::Render();
         Panels::LevelPanel::Render();
+        Panels::Console::Render();
+        Panels::Profiler::Render();
         Panels::EngineAssetsPanel::Render();
+        Panels::Debug::Render();
 
-        Commands::Update();
+        Actions::Update();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -179,7 +195,12 @@ void Gui::Setup()
 {
     InitializeImGui();
 
-    Commands::Setup();
+    Pine::WindowManager::InstallWindowCallbacks();
+
+    Pine::WindowManager::AddWindowFocusCallback(OnWindowFocus);
+
+    Actions::Setup();
+    Gizmo::Gizmo2D::Setup();
     Gizmo::Gizmo3D::Setup();
     EntitySelection::Setup();
     IconStorage::Setup();
@@ -189,7 +210,9 @@ void Gui::Setup()
 
 void Gui::Shutdown()
 {
-    Commands::Dispose();
+    Actions::Dispose();
+    EntitySelection::Dispose();
+    IconStorage::Dispose();
 
     ShutdownImGui();
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <Pine/Core/Math/Math.hpp>
 #include <Pine/Graphics/Graphics.hpp>
+#include <Pine/Audio/Audio.hpp>
 
 #include <string>
 
@@ -14,15 +15,19 @@ namespace Pine::Engine
         Vector2i m_WindowSize = Vector2i(1280, 720);
         std::string m_WindowTitle = "Pine Engine";
 
-        // The maximum amount of threads the asset manager may use while
-        // loading assets from a directory.
-        int m_AssetsLoadThreadCount = 4;
+        // The number of threads that the thread pool will create to handle
+        // engine tasks.
+        int m_ThreadPoolWorkers = 8;
 
         // Refers to both entity and component count
-        std::uint32_t m_MaxObjectCount = 2048;
+        std::uint32_t m_MaxObjectCount = 8096;
 
         // Whether to enable engine debug tools, such as hot reload
         bool m_EnableDebugTools = true;
+
+        // Whether to enable the engine's "production mode", which will handle stuff more efficiently
+        // but wouldn't play as nice for the editor.
+        bool m_ProductionMode = true;
 
         // Whether to pause and wait for new events instead of rendering a new frame instantly.
         bool m_WaitEvents = false;
@@ -33,7 +38,7 @@ namespace Pine::Engine
         Graphics::GraphicsAPI m_GraphicsAPI = Graphics::GraphicsAPI::OpenGL;
     };
 
-    // Attempts to set up the engine with provided engine configuration,
+    // Attempts to set up the engine with the provided engine configuration
     // will also create a default window, and therefore graphics context.
     // Returns false on failure.
     bool Setup(const EngineConfiguration& engineConfiguration = EngineConfiguration());
@@ -52,6 +57,6 @@ namespace Pine::Engine
 
     // Returns the engine configuration used during Setup(), values such as
     // window parameters are not updated.
-    const EngineConfiguration& GetEngineConfiguration();
+    EngineConfiguration& GetEngineConfiguration();
 
 }

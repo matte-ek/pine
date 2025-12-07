@@ -2,6 +2,7 @@
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
+#include "Pine/Rendering/Rendering.hpp"
 
 Pine::Camera::Camera() :
         IComponent(ComponentType::Camera)
@@ -28,10 +29,17 @@ void Pine::Camera::BuildProjectionMatrix()
         aspectRatio = renderingContext->Size.x / renderingContext->Size.y;
 
     if (m_CameraType == CameraType::Orthographic)
-        m_ProjectionMatrix = glm::ortho(-m_OrthographicSize, m_OrthographicSize, -m_OrthographicSize,
-                                        m_OrthographicSize, -1.f, 1.f);
+    {
+        const float sizeWidth = ((renderingContext->Size.x / Rendering::PixelsPerUnit) / 2.f) * m_OrthographicSize;
+        const float sizeHeight = ((renderingContext->Size.y / Rendering::PixelsPerUnit) / 2.f) * m_OrthographicSize;
+
+        m_ProjectionMatrix = glm::ortho(-sizeWidth, sizeWidth, -sizeHeight, sizeHeight, m_NearPlane, m_FarPlane);
+    }
+            
     if (m_CameraType == CameraType::Perspective)
+    {
         m_ProjectionMatrix = glm::perspective(glm::radians(m_FieldOfView), aspectRatio, m_NearPlane, m_FarPlane);
+    }
 }
 
 void Pine::Camera::BuildViewMatrix()
@@ -134,4 +142,53 @@ const Pine::Vector4f &Pine::Camera::GetClearColor() const
 void Pine::Camera::SetOverrideAspectRatio(float value)
 {
     m_OverrideAspectRatio = value;
+}
+
+Pine::Vector3f Pine::Camera::WorldToScreenPoint(const Vector3f &position) const
+{
+    const auto renderingContext = RenderManager::GetCurrentRenderingContext();
+
+    if (!renderingContext)
+    {
+        return {0.f, 0.f, 0.f};
+    }
+
+    auto screenPos = glm::project(position, m_ViewMatrix, m_ProjectionMatrix, Vector4f(0.f, 0.f, renderingContext->Size.x, renderingContext->Size.y));
+
+    // Since the output will always be rendered upside down, we'll also have to flip the
+    // Y coordinate, so it's correct on the final output.
+    screenPos.y = renderingContext->Size.y - screenPos.y;
+
+    return screenPos;
+}
+
+std::array<Pine::Vector3f, 8> Pine::Camera::GetFrustumCorners() const
+{
+    const Matrix4f invCamSpace = glm::inverse(m_ProjectionMatrix * m_ViewMatrix);
+
+    std::array<Vector3f, 8> ret;
+
+    for (int x = 0; x < 2; x++)
+    {
+        for (int y = 0; y < 2; y++)
+        {
+            for (int z = 0; z < 2; z++)
+            {
+                const auto corner = Vector4f(
+                    x == 0 ? -1.0f : 1.0f,
+                    y == 0 ? -1.0f : 1.0f,
+                    z == 0 ? -1.0f : 1.0f,
+                    1.0f
+                );
+
+                Vector4f worldSpace = invCamSpace * corner;
+
+                worldSpace /= worldSpace.w;
+
+                ret[x * 4 + y * 2 + z] = worldSpace;
+            }
+        }
+    }
+
+    return ret;
 }

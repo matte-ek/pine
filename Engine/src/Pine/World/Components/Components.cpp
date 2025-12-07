@@ -1,8 +1,13 @@
 #include "Components.hpp"
+
+#include "AudioListener/AudioListener.hpp"
+#include "AudioSource/AudioSource.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Engine/Engine.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
+#include "Pine/World/Components/IComponent/IComponent.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
@@ -12,6 +17,7 @@
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
+#include "Pine/World/Components/Script/ScriptComponent.hpp"
 
 using namespace Pine;
 
@@ -52,8 +58,8 @@ namespace
                 occupationArrayCopySize = sizeof(bool) * size;
             }
 
-            memcpy(arrayData, (void*)block->m_ComponentArray, arrayBlockCopySize);
-            memcpy(arrayOccupationData, (void*)block->m_ComponentOccupationArray, occupationArrayCopySize);
+            memcpy(arrayData, block->m_ComponentArray, arrayBlockCopySize);
+            memcpy(arrayOccupationData, block->m_ComponentOccupationArray, occupationArrayCopySize);
 
             oldArrayData = static_cast<void*>(block->m_ComponentArray);
             oldOccupationArray = static_cast<void*>(block->m_ComponentOccupationArray);
@@ -99,16 +105,18 @@ namespace
     template <class T> std::vector<T>& GetComponentList(ComponentType type)
     {
         // Not going to bother with sanity checking the type, as it's an enum with an already known size.
-        // Hopefully all components specified in the enum is also created in this vector though.
+        // Hopefully, all components specified in the enum are also created in this vector though.
         return *m_ComponentDataBlocks[static_cast<int>(type)]->m_ComponentArray;
     }
+
+    bool m_IgnoreSetHighestEntityIndexFlag = false;
 }
 
 void Components::Setup()
 {
     CreateComponentDataBlock<Transform>();
     CreateComponentDataBlock<ModelRenderer>();
-    CreateComponentDataBlock<NativeScript>(1); // Temporary for Terrain Renderer
+    CreateComponentDataBlock<NativeScript>(1); // Stub for Terrain Renderer
     CreateComponentDataBlock<Camera>(32);
     CreateComponentDataBlock<Light>();
     CreateComponentDataBlock<Collider>();
@@ -117,6 +125,10 @@ void Components::Setup()
     CreateComponentDataBlock<RigidBody2D>();
     CreateComponentDataBlock<SpriteRenderer>();
     CreateComponentDataBlock<TilemapRenderer>();
+    CreateComponentDataBlock<NativeScript>(1); // "Stub" for NativeScript, we cannot create NativeScripts through here, but we need to align the array.
+    CreateComponentDataBlock<ScriptComponent>();
+    CreateComponentDataBlock<AudioSource>();
+    CreateComponentDataBlock<AudioListener>();
 
     std::size_t totalSize = 0;
 
@@ -125,14 +137,14 @@ void Components::Setup()
         totalSize += block->m_ComponentArraySize;
     }
 
-    Log::Verbose("Total size allocated for components: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
+    Log::Verbose("[Components] Total size allocated: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
 }
 
 void Components::Shutdown()
 {
     for (const auto block : m_ComponentDataBlocks)
     {
-        free(reinterpret_cast<IComponent*>(block->m_ComponentArray));
+        free(block->m_ComponentArray);
         delete[] block->m_ComponentOccupationArray;
     }
 
@@ -146,9 +158,10 @@ const std::vector<ComponentDataBlock<IComponent>*>&Components::GetComponentTypes
 
 IComponent* Components::Create(ComponentType type, bool standalone)
 {
-    auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
+    const auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
 
     IComponent* component;
+    std::uint32_t componentLookupId = 0;
 
     // Get a pointer to some free memory for the new component, depending on if we want a standalone
     // or in the data block
@@ -163,12 +176,17 @@ IComponent* Components::Create(ComponentType type, bool standalone)
 
         if (newTargetSlot >= componentDataBlock->m_ComponentArrayAllocatedCount)
         {
+            // I wouldn't resize the component array right now...
+            throw std::runtime_error("Maximum component count reached");
+
             // We've run out of space in the array, we need to resize it and make it bigger.
             // Not sure if just putting it + 128 is a good idea, but it's fine for now.
             ResizeComponentDataBlock(componentDataBlock, componentDataBlock->m_ComponentArrayAllocatedCount + 128);
         }
 
         component = componentDataBlock->GetComponent(newTargetSlot);
+
+        componentLookupId = newTargetSlot;
 
         // Mark the index as occupied
         componentDataBlock->m_ComponentOccupationArray[newTargetSlot] = true;
@@ -183,10 +201,10 @@ IComponent* Components::Create(ComponentType type, bool standalone)
     }
 
     // Copy the data from the 'default' component object
-    memcpy((void*)component, (void*)componentDataBlock->m_Component, componentDataBlock->m_ComponentSize);
+    memcpy(component, componentDataBlock->m_Component, componentDataBlock->m_ComponentSize);
 
     component->SetStandalone(standalone);
-    component->OnCreated();
+    component->SetInternalId(componentLookupId);
 
     return component;
 }
@@ -216,6 +234,10 @@ bool Components::Destroy(IComponent* targetComponent)
 
     targetComponent->OnDestroyed();
 
+    // Extra fail-safe to make sure the script object handle is removed, to avoid memory leaks
+    // within the scripting engine.
+    assert(targetComponent->GetComponentScriptHandle()->Object == nullptr);
+
     // If the component is standalone (i.e. it isn't in the "ECS"), we can just free
     // the memory and move on.
     if (targetComponent->GetStandalone())
@@ -226,28 +248,40 @@ bool Components::Destroy(IComponent* targetComponent)
     }
 
     auto& data = GetData(targetComponent->GetType());
+    const auto internalId = targetComponent->GetInternalId();
 
-    for (int i = 0; i < data.GetHighestComponentIndex();i++)
-    {
-        const auto componentPointer = data.GetComponent(i);
+    // We don't have to free any memory or anything, so marking the slot as "available"
+    // should be sufficient.
+    data.m_ComponentOccupationArray[internalId] = false;
 
-        if (componentPointer == targetComponent)
-        {
-            // We don't have to free any memory or anything, so marking the slot as "available"
-            // should be sufficient.
-            data.m_ComponentOccupationArray[i] = false;
+    // Store the new highest index
+    if (!m_IgnoreSetHighestEntityIndexFlag)
+        data.m_HighestComponentIndex = data.GetHighestComponentIndex();
 
-            // Store the new highest index
-            data.m_HighestComponentIndex = data.GetHighestComponentIndex();
-
-            return true;
-        }
-    }
-
-    return false;
+    return true;
 }
 
 ComponentDataBlock<IComponent>& Components::GetData(ComponentType type)
 {
     return *m_ComponentDataBlocks[static_cast<int>(type)];
+}
+
+Pine::IComponent* Pine::Components::GetByInternalId(ComponentType type, std::uint32_t internalId)
+{
+    auto& block = GetData(type);
+
+    return block.GetComponent(internalId);
+}
+
+void Components::SetIgnoreHighestEntityIndexFlag(bool ignore)
+{
+    m_IgnoreSetHighestEntityIndexFlag = ignore;
+}
+
+void Components::RecomputeHighestComponentIndex()
+{
+    for (const auto block : m_ComponentDataBlocks)
+    {
+        block->m_HighestComponentIndex = block->GetHighestComponentIndex();
+    }
 }

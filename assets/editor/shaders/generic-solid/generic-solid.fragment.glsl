@@ -12,15 +12,15 @@ in VertexData
 {
 	vec2 uv;
 	vec3 worldPosition;
-    vec3 cameraPos;
-	vec3 cameraDir;
-	vec3 normalDir;
-	vec3 lightDir[4];
 }vIn;
 
 uniform vec3 m_Color;
 
 void main(void)
 {
+	#ifdef VERSION_DISCARD
+		discard;
+	#endif
+
     m_OutputColor = vec4(m_Color, 1.f);
 }

@@ -1,6 +1,37 @@
 #include "IAsset.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/Core/String/String.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
+
+std::uint32_t Pine::IAsset::GetId() const
+{
+    return m_Id;
+}
+
+void Pine::IAsset::SetId(std::uint32_t id)
+{
+    m_Id = id;
+}
+
+void Pine::IAsset::CreateScriptHandle()
+{
+    m_ScriptObjectHandle = Script::ObjectFactory::CreateAsset(this);
+}
+
+void Pine::IAsset::DestroyScriptHandle()
+{
+    if (m_ScriptObjectHandle.Object == nullptr)
+    {
+        return;
+    }
+
+    Script::ObjectFactory::DisposeObject(&m_ScriptObjectHandle);
+}
+
+Pine::Script::ObjectHandle* Pine::IAsset::GetScriptHandle()
+{
+    return &m_ScriptObjectHandle;
+}
 
 const std::string& Pine::IAsset::GetFileName() const
 {

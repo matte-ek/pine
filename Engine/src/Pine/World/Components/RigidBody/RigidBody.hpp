@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
+
 #include "Pine/World/Components/IComponent/IComponent.hpp"
 
-#include <reactphysics3d/reactphysics3d.h>
+#include "physx/PxPhysicsAPI.h"
 
 namespace Pine
 {
@@ -15,7 +17,7 @@ namespace Pine
 
     class Collider;
 
-    class RigidBody : public IComponent
+    class RigidBody final : public IComponent
     {
     private:
         RigidBodyType m_RigidBodyType = RigidBodyType::Dynamic;
@@ -24,24 +26,19 @@ namespace Pine
 
         bool m_GravityEnabled = true;
 
-        reactphysics3d::RigidBody *m_RigidBody = nullptr;
-
-        reactphysics3d::Transform m_RigidBodyTransform;
-        reactphysics3d::Transform m_ColliderTransform;
+        physx::PxRigidDynamic *m_RigidBody = nullptr;
+        physx::PxTransform m_RigidBodyTransform;
 
         std::array<bool, 3> m_RotationLock = {false, false, false};
 
-        reactphysics3d::Collider *m_Collider = nullptr;
-        Pine::Collider *m_EngineCollider = nullptr;
+        Collider *m_EngineCollider = nullptr;
 
         void UpdateColliders();
-
-        void UpdateRigidBodyProperties();
-
+        void UpdateBody();
     public:
         RigidBody();
 
-        reactphysics3d::RigidBody *GetRigidBody() const;
+        physx::PxRigidDynamic *GetRigidBody() const;
 
         void SetRigidBodyType(RigidBodyType type);
         RigidBodyType GetRigidBodyType() const;
@@ -52,17 +49,13 @@ namespace Pine
         void SetGravityEnabled(bool value);
         bool GetGravityEnabled() const;
 
-        void SetRotationLock(std::array<bool, 3> rot);
-        const std::array<bool, 3>& GetRotationLock() const;
-
-        void DetachCollider();
-
-        bool IsColliderAttached(Collider *collider) const;
+        bool IsColliderAttached(const Collider *collider) const;
 
         void OnPrePhysicsUpdate() override;
         void OnPostPhysicsUpdate() override;
 
         void OnCopied() override;
+        void OnDestroyed() override;
 
         void LoadData(const nlohmann::json &j) override;
         void SaveData(nlohmann::json &j) override;

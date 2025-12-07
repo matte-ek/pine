@@ -25,6 +25,8 @@ namespace
 
     Rendering::CoordinateSystem m_CoordinateSystem = Rendering::CoordinateSystem::Screen;
 
+    Pine::Shader* m_OverrideShader = nullptr;
+
     // Matrices store globally for each PrepareFrame() call
     Matrix4f m_ProjectionMatrix;
 	Matrix4f m_ViewMatrix;
@@ -48,7 +50,9 @@ namespace
     };
 
     std::vector<Rectangle> m_FilledRectangles;
+    std::vector<Rectangle> m_Rectangles;
 
+    // TODO: Shouldn't we do this in the shader instead?
     Vector4f ComputePositionSize(const RenderingContext* context, Vector2f position, Vector2f size, Rendering::CoordinateSystem coordinateSystem)
     {
         // Compute width and height
@@ -97,31 +101,68 @@ namespace
             Shader* m_Shader = nullptr;
 
             bool m_Ready = false;
+            bool m_RenderLines = false;
 
-            void Create()
+            int m_RenderCount = 0;
+
+            void Create(bool renderLines)
             {
                 m_VertexArray = m_GraphicsAPI->CreateVertexArray();
                 m_VertexArray->Bind();
 
-                const std::vector<float> vertices =
+                m_RenderLines = renderLines;
+
+                std::vector<float> vertices;
+                std::vector<float> uvs;
+                std::vector<std::uint32_t> indices;
+
+                if (!renderLines)
                 {
-                    -1.f, 1.f, 0.f,
-                    -1.f, -1.f, 0.f,
-                    1.f, -1.f, 0.f,
-                    1.f, 1.f, 0.f,
-                };
+                    vertices =
+                    {
+                        -1.f, 1.f, 0.f,
+                        -1.f, -1.f, 0.f,
+                        1.f, -1.f, 0.f,
+                        1.f, 1.f, 0.f,
+                    };
 
-                const std::vector<std::uint32_t> indices =
+                    indices =
+                    {
+                        0,1,3,
+                        3,1,2
+                    };
+
+                    uvs = { 0, 0, 0, 1, 1, 1, 1, 0 };
+
+                    m_RenderCount = 12;
+                }
+                else
                 {
-                    0,1,3,
-                    3,1,2
-                };
+                    vertices =
+                    {
+                        1.f, 1.f, 0.f,
+                        1.f, -1.f, 0.f,
+                        -1.f, -1.f, 0.f,
+                        -1.f, 1.f, 0.f,
+                    };
 
-                const std::vector<float> uvs = { 0, 0, 0, 1, 1, 1, 1, 0 };
 
-                m_VertexArray->StoreFloatArrayBuffer(const_cast<float *>(vertices.data()), vertices.size() * sizeof(float), 0, 3, Graphics::BufferUsageHint::StaticDraw);
-                m_VertexArray->StoreFloatArrayBuffer(const_cast<float *>(uvs.data()), uvs.size() * sizeof(float), 1, 2, Graphics::BufferUsageHint::StaticDraw);
-                m_VertexArray->StoreElementArrayBuffer(const_cast<std::uint32_t*>(indices.data()), indices.size() * sizeof(int));
+                    indices =
+                    {
+                        0, 1,
+                        1, 2,
+                        2, 3,
+                        3, 0
+                    };
+
+                    uvs = { 1.f, 1.f, 1.f, -1.f, -1.f, -1.f, -1.f, 1.f };
+
+                    m_RenderCount = 8;
+                }
+
+                m_VertexArray->StoreFloatArrayBuffer(vertices.data(), vertices.size() * sizeof(float), 0, 3, Graphics::BufferUsageHint::StaticDraw);
+                m_VertexArray->StoreFloatArrayBuffer(uvs.data(), uvs.size() * sizeof(float), 1, 2, Graphics::BufferUsageHint::StaticDraw);
+                m_VertexArray->StoreElementArrayBuffer(indices.data(), indices.size() * sizeof(int));
 
                 m_PositionSizeBuffer = m_VertexArray->CreateFloatArrayBuffer(sizeof(Vector4f) * MaxInstanceCount, 2, 4, Graphics::BufferUsageHint::DynamicDraw);
                 m_PositionSizeBuffer->SetDivisor(Graphics::VertexBufferDivisor::PerInstance, 1);
@@ -140,13 +181,20 @@ namespace
 
             void Render(RenderingContext* context, const std::vector<Rectangle>& rects) const
             {
-                m_Shader->GetProgram()->Use();
-                m_VertexArray->Bind();
+                const Pine::Shader* shader = m_OverrideShader == nullptr ? m_Shader : m_OverrideShader;
 
+                shader->GetProgram()->Use();
+
+                m_VertexArray->Bind();
                 m_DefaultTexture->Bind();
 
-                m_Shader->GetProgram()->GetUniformVariable("m_ViewMatrix")->LoadMatrix4(m_ViewMatrix);
-                m_Shader->GetProgram()->GetUniformVariable("m_ProjectionMatrix")->LoadMatrix4(m_ProjectionMatrix);
+                const Vector2f scaling = m_CoordinateSystem == Rendering::CoordinateSystem::Screen ?
+                                    Vector2f(1.f) :
+                                    Vector2f((context->Size.x / Rendering::PixelsPerUnit) / 2.f, (context->Size.y / Rendering::PixelsPerUnit) / 2.f);
+
+                shader->GetProgram()->GetUniformVariable("m_ViewMatrix")->LoadMatrix4(m_ViewMatrix);
+                shader->GetProgram()->GetUniformVariable("m_ProjectionMatrix")->LoadMatrix4(m_ProjectionMatrix);
+                shader->GetProgram()->GetUniformVariable("m_Scaling")->LoadVector2(scaling);
 
                 // Prepare the new instance data for the next batch of rectangles
                 std::vector<Vector4f> rectPositionSizeData;
@@ -184,7 +232,7 @@ namespace
                             break;
                         }
 
-                        // Or if we've reached the maximum amount of textures
+                        // Or if we've reached the maximum number of textures
                         if (currentTextureSlot >= m_GraphicsAPI->GetSupportedTextureSlots())
                         {
                             minSize = i - startIndex;
@@ -241,7 +289,7 @@ namespace
                     m_TextureRotationBuffer->UploadData(rectTextureIndexRadiusData.data(), sizeof(Vector3f) * minSize, 0);
 
                     // Render the quads
-                    m_GraphicsAPI->DrawElementsInstanced(Graphics::RenderMode::Triangles, 12, minSize);
+                    m_GraphicsAPI->DrawElementsInstanced(m_RenderLines ? Graphics::RenderMode::LineLoop : Graphics::RenderMode::Triangles, m_RenderCount, minSize);
 
                     context->DrawCalls++;
 
@@ -251,34 +299,45 @@ namespace
         };
 
         RectangleInstanceRenderContext m_FilledRectangleRender;
+        RectangleInstanceRenderContext m_RectangleRender;
 
         void PrepareFrame()
         {
             if (m_FilledRectangleRender.m_Shader == nullptr)
                 m_FilledRectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect-filled.shader");
+            if (m_RectangleRender.m_Shader == nullptr)
+                m_RectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect-filled.shader");
 
             if (!m_FilledRectangleRender.m_Ready)
-                m_FilledRectangleRender.Create();
+                m_FilledRectangleRender.Create(false);
+            if (!m_RectangleRender.m_Ready)
+                m_RectangleRender.Create(true);
         }
 
         void RenderFrame(RenderingContext* context)
         {
             // Make sure we have all the required shaders, should be set in PrepareFrame()
-            if (m_FilledRectangleRender.m_Shader == nullptr)
+            if (m_FilledRectangleRender.m_Shader == nullptr ||
+                m_RectangleRender.m_Shader == nullptr)
             {
                 throw std::runtime_error("Renderer2D::RenderFrame(): Missing essential shaders.");
             }
 
-            // If we don't have any rectangles to process we can just exit
-            if (m_FilledRectangles.empty())
+            if (!m_FilledRectangles.empty())
             {
-                return;
+                m_FilledRectangles.reserve(context->PreAllocItems);
+
+                if (!m_FilledRectangles.empty())
+                    m_FilledRectangleRender.Render(context, m_FilledRectangles);
             }
 
-            m_FilledRectangles.reserve(context->PreAllocItems);
+            if (!m_Rectangles.empty())
+            {
+                m_Rectangles.reserve(context->PreAllocItems);
 
-            if (!m_FilledRectangles.empty())
-                m_FilledRectangleRender.Render(context, m_FilledRectangles);;
+                if (!m_Rectangles.empty())
+                    m_RectangleRender.Render(context, m_Rectangles);
+            }
         }
     }
 }
@@ -309,6 +368,7 @@ void Renderer2D::PrepareFrame()
 
     // Clear up stuff from the last frame
     m_FilledRectangles.clear();
+    m_Rectangles.clear();
 }
 
 void Renderer2D::RenderFrame(RenderingContext* context)
@@ -400,7 +460,7 @@ void Renderer2D::AddFilledRoundedRectangle(Vector2f position, Vector2f size, flo
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddText(Vector2f position, Color color, const std::string& str, Pine::Font* font)
+void Renderer2D::AddText(Vector2f position, Color color, const std::string& str, const Pine::Font* font)
 {
     if (font->GetFontData(0).m_TextureFontAtlas == nullptr)
     {
@@ -460,4 +520,28 @@ void Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem coordinateSyste
 Rendering::CoordinateSystem Renderer2D::GetCoordinateSystem()
 {
     return m_CoordinateSystem;
+}
+
+void Pine::Renderer2D::SetOverrideShader(Pine::Shader* shader)
+{
+    m_OverrideShader = shader;
+}
+
+Pine::Shader* Pine::Renderer2D::GetOverrideShader()
+{
+    return m_OverrideShader;
+}
+
+void Renderer2D::AddRectangle(Vector2f position, Vector2f size, float rotation, Color color)
+{
+    Rectangle rectangleItem =
+    {
+        position,
+        size,
+        rotation,
+        color,
+        m_CoordinateSystem
+    };
+
+    m_Rectangles.push_back(rectangleItem);
 }

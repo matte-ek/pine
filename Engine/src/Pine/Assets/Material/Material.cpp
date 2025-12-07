@@ -64,7 +64,7 @@ void Pine::Material::SetDiffuse(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Diffuse)});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Diffuse), AssetType::Texture2D});
 }
 
 void Pine::Material::SetSpecular(const std::string &fileReference)
@@ -72,7 +72,7 @@ void Pine::Material::SetSpecular(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Specular)});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Specular), AssetType::Texture2D});
 }
 
 void Pine::Material::SetNormal(const std::string &fileReference)
@@ -80,7 +80,7 @@ void Pine::Material::SetNormal(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Normal)});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Normal), AssetType::Texture2D});
 }
 
 Pine::Texture2D* Pine::Material::GetDiffuse() const
@@ -168,6 +168,7 @@ bool Pine::Material::LoadFromFile(AssetLoadStage stage)
 	Serialization::LoadValue(j, "shininess", m_Shininess);
 	Serialization::LoadValue(j, "textureScale", m_TextureScale);
 
+    m_IsMeshGeneratedMaterial = false;
 	m_State = AssetState::Loaded;
 
 	return true;
@@ -199,4 +200,9 @@ bool Pine::Material::SaveToFile()
 
 void Pine::Material::Dispose()
 {
+}
+
+bool Pine::Material::IsMeshGenerated() const
+{
+    return m_IsMeshGeneratedMaterial;
 }

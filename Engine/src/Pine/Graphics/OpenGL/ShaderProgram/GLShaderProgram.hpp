@@ -29,6 +29,7 @@ namespace Pine::Graphics
 
         bool AttachUniformBuffer(IUniformBuffer* buffer, const std::string& bufferName) override;
 
+        static void ResetChangeTracking();
     };
 
 }

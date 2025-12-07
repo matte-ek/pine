@@ -1,0 +1,148 @@
+#include <GLFW/glfw3.h>
+#include "Actions.hpp"
+#include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Gui/Shared/Selection/Selection.hpp"
+#include "Pine/Assets/Blueprint/Blueprint.hpp"
+#include "Gui/Shared/KeybindSystem/KeybindSystem.hpp"
+#include "Pine/World/World.hpp"
+#include "Pine/Assets/Level/Level.hpp"
+
+namespace
+{
+    std::vector<Pine::Entity*> ClipboardEntities;
+    std::vector<Pine::IAsset*> ClipboardAssets;
+
+    namespace Keybinds
+    {
+        std::uint32_t Copy;
+        std::uint32_t Paste;
+        std::uint32_t Duplicate;
+        std::uint32_t Delete;
+        std::uint32_t Undo;
+        std::uint32_t Redo;
+        std::uint32_t Refresh;
+        std::uint32_t Save;
+    }
+}
+
+void Actions::Setup()
+{
+    Keybinds::Copy = KeybindSystem::RegisterKeybind("Copy", GLFW_KEY_C, true);
+    Keybinds::Paste = KeybindSystem::RegisterKeybind("Paste", GLFW_KEY_V, true);
+    Keybinds::Duplicate = KeybindSystem::RegisterKeybind("Duplicate", GLFW_KEY_D, true);
+    Keybinds::Delete = KeybindSystem::RegisterKeybind("Delete", GLFW_KEY_DELETE);
+    Keybinds::Undo = KeybindSystem::RegisterKeybind("Undo", GLFW_KEY_Z, true);
+    Keybinds::Redo = KeybindSystem::RegisterKeybind("Redo", GLFW_KEY_Y, true);
+    Keybinds::Refresh = KeybindSystem::RegisterKeybind("Refresh", GLFW_KEY_F5);
+    Keybinds::Save = KeybindSystem::RegisterKeybind("Save", GLFW_KEY_S, true);
+}
+
+void Actions::Dispose()
+{
+}
+
+void Actions::Copy()
+{
+    ClipboardEntities = Selection::GetSelectedEntities();
+    ClipboardAssets = Selection::GetSelectedAssets();
+}
+
+void Actions::Paste()
+{
+    Selection::Clear();
+
+    for (auto& entity : ClipboardEntities)
+    {
+        Pine::Blueprint blueprint;
+
+        blueprint.CreateFromEntity(entity);
+        blueprint.GetEntity()->SetName(blueprint.GetEntity()->GetName());
+
+        auto spawnedEntity = blueprint.Spawn();
+
+        if (entity->GetParent() != nullptr)
+        {
+            entity->GetParent()->AddChild(spawnedEntity);
+        }
+
+        blueprint.Dispose();
+
+        Selection::Add(spawnedEntity);
+    }
+}
+
+void Actions::Duplicate()
+{
+    Copy();
+    Paste();
+}
+
+void Actions::Delete()
+{
+    if (!Selection::GetSelectedEntities().empty())
+    {
+        for (auto entity : Selection::GetSelectedEntities())
+        {
+            entity->Delete();
+        }
+    }
+    else if (!Selection::GetSelectedAssets().empty())
+    {
+        for (auto asset : Selection::GetSelectedAssets())
+        {
+            std::filesystem::remove(asset->GetFilePath());
+        }
+
+        Refresh(true);
+    }
+
+    Selection::Clear();
+}
+
+void Actions::Undo()
+{
+}
+
+void Actions::Redo()
+{
+}
+
+void Actions::Refresh(bool engineAssets)
+{
+    if (engineAssets)
+    {
+        Pine::Assets::LoadDirectory("engine/shaders", false);
+        Pine::Assets::LoadDirectory("engine", false);
+    }
+
+    Panels::AssetBrowser::RebuildAssetTree();
+}
+
+void Actions::Save()
+{
+    if (Pine::World::GetActiveLevel())
+        Pine::World::GetActiveLevel()->CreateFromWorld();
+
+    Pine::Assets::SaveAll();
+}
+
+void Actions::Update()
+{
+    if (KeybindSystem::IsKeybindPressed(Keybinds::Copy))
+        Copy();
+    if (KeybindSystem::IsKeybindPressed(Keybinds::Paste))
+        Paste();
+    if (KeybindSystem::IsKeybindPressed(Keybinds::Duplicate))
+        Duplicate();
+    if (KeybindSystem::IsKeybindPressed(Keybinds::Delete))
+        Delete();
+    if (KeybindSystem::IsKeybindPressed(Keybinds::Undo))
+        Undo();
+    if (KeybindSystem::IsKeybindPressed(Keybinds::Redo))
+        Redo();
+    if (KeybindSystem::IsKeybindPressed(Keybinds::Refresh))
+        Refresh();
+    if (KeybindSystem::IsKeybindPressed(Keybinds::Save))
+        Save();
+}

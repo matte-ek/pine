@@ -2,21 +2,29 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
-Pine::Entity::Entity(std::uint32_t id, bool createTransform)
+Pine::Entity::Entity(std::uint32_t id)
     : m_Id(id)
 {
-    if (createTransform)
-        AddComponent<Transform>();
+}
+
+Pine::Entity::Entity(std::uint32_t id, std::uint32_t internalId)
+        : m_Id(id), m_InternalId(internalId)
+{
+    CreateScriptHandle();
+
+    AddComponent<Transform>();
 }
 
 Pine::Entity::~Entity()
 {
-    for (const auto component : m_Components)
+    for (auto& component : m_Components)
     {
         if (!Components::Destroy(component))
         {
             Log::Error("~Entity(): Error destroying component.");
         }
+
+        component = nullptr;
     }
 
     m_Components.clear();
@@ -30,6 +38,8 @@ Pine::Entity::~Entity()
     {
         m_Parent->RemoveChild(this);
     }
+
+    DestroyScriptHandle();
 }
 
 std::uint32_t Pine::Entity::GetId() const
@@ -87,11 +97,24 @@ Pine::Entity* Pine::Entity::GetParent() const
     return m_Parent;
 }
 
+/*
+void Pine::Entity::SetBlueprint(Blueprint *blueprint)
+{
+    m_AssetBlueprint = blueprint;
+}
+
+Pine::Blueprint * Pine::Entity::GetBlueprint() const
+{
+    return m_AssetBlueprint.Get();
+}
+*/
+
 Pine::IComponent* Pine::Entity::AddComponent(ComponentType type)
 {
     const auto component = Components::Create(type);
 
     component->SetParent(this);
+    component->OnCreated();
 
     m_Components.push_back(component);
 
@@ -101,6 +124,7 @@ Pine::IComponent* Pine::Entity::AddComponent(ComponentType type)
 Pine::IComponent* Pine::Entity::AddComponent(IComponent* component)
 {
     component->SetParent(this);
+    component->OnCreated();
 
     m_Components.push_back(component);
 
@@ -135,10 +159,30 @@ void Pine::Entity::ClearComponents()
     m_Components.clear();
 }
 
+Pine::IComponent * Pine::Entity::GetComponent(ComponentType type) const
+{
+    for (auto component : m_Components)
+    {
+        if (component && component->GetType() == type)
+        {
+            return component;
+        }
+    }
+
+    return nullptr;
+}
+
+bool Pine::Entity::HasComponent(ComponentType type) const
+{
+    return GetComponent(type) != nullptr;
+}
+
 Pine::Transform* Pine::Entity::GetTransform() const
 {
     if (m_Components.empty())
+    {
         throw std::runtime_error("Entity does not contain Transform component");
+    }
 
     // The transform component should always be the first component
     // and should be available in all entities.
@@ -198,4 +242,24 @@ Pine::Entity* Pine::Entity::Create()
 Pine::Entity* Pine::Entity::Create(const std::string& name)
 {
     return Entities::Create(name);
+}
+
+Pine::Script::ObjectHandle *Pine::Entity::GetScriptHandle()
+{
+    return &m_EntityScriptHandle;
+}
+
+void Pine::Entity::CreateScriptHandle()
+{
+    m_EntityScriptHandle = Script::ObjectFactory::CreateEntity(m_Id, m_InternalId);
+}
+
+void Pine::Entity::DestroyScriptHandle()
+{
+    if (m_EntityScriptHandle.Object == nullptr)
+    {
+        return;
+    }
+
+    Script::ObjectFactory::DisposeEntity(&m_EntityScriptHandle);
 }

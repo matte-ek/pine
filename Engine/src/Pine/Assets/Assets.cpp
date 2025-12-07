@@ -1,5 +1,6 @@
 #include "Assets.hpp"
 
+#include "Pine/Assets/IAsset/IAsset.hpp"
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Font/Font.hpp"
@@ -14,12 +15,16 @@
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
+#include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include <thread>
 #include <unordered_map>
+#include <mutex>
 
 using namespace Pine;
 
@@ -31,11 +36,16 @@ namespace
     // valid assets, or loaded assets.
     std::unordered_map<std::string, IAsset*> m_Assets;
 
-    // This is more or less a read-only mirror of `m_Assets`, but has the file path as a key instead.
+    // These are a read-only mirrors of `m_Assets`, but has the file path or id as a key instead.
     std::unordered_map<std::string, IAsset*> m_AssetsFilePath;
+    std::unordered_map<std::uint32_t, IAsset*> m_AssetsId;
 
     // Which assets paths we need to resolve to asset pointers during the end of an ongoing load
     std::vector<AssetResolveReference> m_AssetResolveReferences;
+    std::mutex m_AssetResolveReferencesMutex;
+
+    // Keeps track of the current incremental asset id
+    std::uint32_t m_CurrentId = 0;
 
     struct AssetFactory
     {
@@ -51,14 +61,16 @@ namespace
     std::vector m_AssetFactories = {
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
         AssetFactory( { { "cmap" }, AssetType::Texture3D, [](){ return new Texture3D(); } } ),
-        AssetFactory( { { "obj", "fbx" }, AssetType::Model, [](){ return new Model(); } } ),
+        AssetFactory( { { "obj", "fbx", "glb" }, AssetType::Model, [](){ return new Model(); } } ),
         AssetFactory( { { "mat" }, AssetType::Material, [](){ return new Material(); } } ),
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
         AssetFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
         AssetFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
-        AssetFactory( { { "tileset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
-        AssetFactory( { { "tilemap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } )
+        AssetFactory( { { "tset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
+        AssetFactory( { { "tmap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
+        AssetFactory( { { "wav", "wave", "flac", "ogg", "oga", "spx" }, AssetType::Audio, [](){ return new AudioFile(); } } ),
+        AssetFactory( {{ "cs" }, AssetType::CSharpScript, [](){ return new CSharpScript(); } } )
     };
 
     // Attempts to find an asset factory with the file name extension (can be full path as well)
@@ -135,6 +147,7 @@ namespace
 
         asset->SetFilePath(filePath, rootPath);
         asset->SetPath(path);
+        asset->SetId(m_CurrentId++);
 
         asset->LoadMetadata();
 
@@ -142,7 +155,7 @@ namespace
     }
 
     // More or less which thread we're currently on, SingleThread in this context means
-    // only the main thread, i.e. the thread that the OpenGL context is on.
+    // only the main thread, i.e., the thread that the OpenGL context is on.
     enum class LoadThreadingModeContext
     {
         SingleThread,
@@ -172,18 +185,19 @@ void Assets::Setup()
 
 void Assets::Shutdown()
 {
-    for (auto& asset : m_Assets)
+    for (auto& [path, asset] : m_Assets)
     {
-        Log::Verbose(fmt::format("Disposing asset {}...", asset.first));
+        Log::Verbose(fmt::format("[Assets] Disposing asset {}...", path));
 
-        if (!asset.second->IsDeleted())
-            asset.second->Dispose();
+        if (!asset->IsDeleted())
+            asset->Dispose();
     }
 }
 
 IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::string& rootPath,
                              const std::string& mapPath)
 {
+    bool hasExistingAsset = false;
     IAsset* asset;
 
     if (auto existingAsset = FindExistingAssetFromFile(path, rootPath, mapPath))
@@ -196,6 +210,8 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
         asset = existingAsset;
 
         asset->Dispose();
+
+        hasExistingAsset = true;
     }
     else
     {
@@ -213,16 +229,16 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
     {
         // Unlike LoadDirectory, we're only going to be doing single threaded asset load here.
 
-        if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Prepare))
+        if (!(LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Prepare) && 
+              LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Finish)))
         {
             m_State = AssetManagerState::Idle;
 
-            return nullptr;
-        }
-
-        if (!LoadAssetDataFromFile(asset, LoadThreadingModeContext::SingleThread, AssetLoadStage::Finish))
-        {
-            m_State = AssetManagerState::Idle;
+            if (!hasExistingAsset)
+            {
+                asset->DestroyScriptHandle();
+                delete asset;
+            }
 
             return nullptr;
         }
@@ -233,23 +249,35 @@ IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::strin
         {
             m_State = AssetManagerState::Idle;
 
+            if (!hasExistingAsset)
+            {
+                asset->DestroyScriptHandle();
+                delete asset;
+            }
+
             return nullptr;
         }
     }
 
     asset->MarkAsUpdated();
 
+    if (asset->GetScriptHandle()->Object == nullptr)
+    {
+        asset->CreateScriptHandle();
+    }
+
     m_Assets[asset->GetPath()] = asset;
     m_AssetsFilePath[asset->GetFilePath().string()] = asset;
+    m_AssetsId[asset->GetId()] = asset;
 
     return asset;
 }
 
-int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativePath)
+int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAsRelativePath)
 {
-    if (!exists(path))
+    if (!exists(directoryPath))
     {
-        Log::Warning(fmt::format("Loaded no assets from '{}', directory does not exist.", path.string()));
+        Log::Warning(fmt::format("[Assets] Loaded no assets from '{}', directory does not exist.", directoryPath.string()));
         return -1;
     }
 
@@ -258,14 +286,14 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
     // First gather a list of everything we need to load
     std::vector<IAsset*> loadPool;
 
-    for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(path))
+    for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(directoryPath))
     {
         if (dirEntry.is_directory())
             continue;
 
         IAsset* asset;
 
-        if (auto existingAsset = FindExistingAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", ""))
+        if (auto existingAsset = FindExistingAssetFromFile(dirEntry.path(), useAsRelativePath ? directoryPath.string() : "", ""))
         {
             if (existingAsset->GetType() == AssetType::Invalid)
             {
@@ -283,7 +311,7 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
         }
         else
         {
-            asset = PrepareAssetFromFile(dirEntry.path(), useAsRelativePath ? path.string() : "", "");
+            asset = PrepareAssetFromFile(dirEntry.path(), useAsRelativePath ? directoryPath.string() : "", "");
         }
 
         if (asset == nullptr)
@@ -325,7 +353,7 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
 
     // Make sure we're not overdoing it, but if this is true
     // we're probably overdoing it anyway.
-    int threadAmount = Engine::GetEngineConfiguration().m_AssetsLoadThreadCount;
+    int threadAmount = 4;
     if (threadAmount > multiThreadAssetCount)
     {
         threadAmount = multiThreadAssetCount;
@@ -348,6 +376,7 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
         }
     };
 
+    // TODO: Move this crap to the threadpool worker system.
     if (!multiThreadLoadAssets.empty())
     {
         // Attempt to split up the workload between the available threads
@@ -414,24 +443,30 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
 
         asset->MarkAsUpdated();
 
+        if (asset->GetScriptHandle()->Object == nullptr)
+        {
+            asset->CreateScriptHandle();
+        }
+
         m_Assets[asset->GetPath()] = asset;
         m_AssetsFilePath[asset->GetFilePath().string()] = asset;
+        m_AssetsId[asset->GetId()] = asset;
     }
 
     // At this point we may now load the remaining assets that has dependencies.
-    for (auto asset : dependencyAssets)
+    for (const auto asset : dependencyAssets)
     {
         const auto& dependencies = asset->GetDependencies();
 
         bool missingDependency = false;
         for (const auto& dependency : dependencies)
         {
-            if (Get(dependency) != nullptr)
+            if (Get(dependency, false, false) != nullptr)
             {
                 continue;
             }
 
-            if (!LoadFromFile(dependency, useAsRelativePath ? path.string() : "", ""))
+            if (!LoadFromFile(dependency, useAsRelativePath ? directoryPath.string() : "", ""))
             {
                 missingDependency = true;
                 break;
@@ -440,7 +475,7 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
 
         if (missingDependency)
         {
-            Log::Error("Failed to import asset " + asset->GetPath() + ", missing dependency.");
+            Log::Error("[Assets] Failed to import asset " + asset->GetPath() + ", missing dependency.");
             assetsLoadErrors++;
             continue;
         }
@@ -478,8 +513,14 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
 
         asset->MarkAsUpdated();
 
+        if (asset->GetScriptHandle()->Object == nullptr)
+        {
+            asset->CreateScriptHandle();
+        }
+
         m_Assets[asset->GetPath()] = asset;
         m_AssetsFilePath[asset->GetFilePath().string()] = asset;
+        m_AssetsId[asset->GetId()] = asset;
     }
 
     // During the load of all assets, some assets may have created resolve references, for assets that may not have
@@ -487,13 +528,19 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
     // we may attempt to resolve them to pointers now.
     for (auto& assetResolveReference : m_AssetResolveReferences)
     {
-        const auto refMapPath = GetAssetMapPath(assetResolveReference.m_Path, useAsRelativePath ? path.string() : "", "");
-
-        auto asset = Get(refMapPath);
+        const auto refMapPath = GetAssetMapPath(assetResolveReference.m_Path, useAsRelativePath ? directoryPath.string() : "", "");
+        const auto asset = Get(refMapPath);
 
         if (!asset)
         {
-            Log::Warning(fmt::format("Failed to resolve asset reference '{}'.", assetResolveReference.m_Path));
+            // Ignoring warning here since the "Get" function will already warn the user.
+            //Log::Warning(fmt::format("Failed to resolve asset reference '{}'.", assetResolveReference.m_Path));
+            continue;
+        }
+
+        if (assetResolveReference.m_Type != AssetType::Invalid && asset->GetType() != assetResolveReference.m_Type)
+        {
+            Log::Warning(fmt::format("[Assets] Failed to resolve asset reference '{}', asset type is invalid.", assetResolveReference.m_Path));
             continue;
         }
 
@@ -504,29 +551,30 @@ int Assets::LoadDirectory(const std::filesystem::path& path, bool useAsRelativeP
 
     m_State = AssetManagerState::Idle;
 
-    // This is more to provide a warning, since assetsLoadErrors could still be 0, meaning nothing has really gone wrong
-    // however this is most likely not what the user wanted.
+    // This is more to provide a warning, since assetsLoadErrors could still be 0, meaning nothing has really gone wrong,
+    // however, this is most likely not what the user wanted.
     if (assetsLoaded == 0)
         return -1;
 
     if (assetsLoadErrors > 0)
-        Log::Warning(fmt::format("Failed to load {} asset(s) from '{}'.", assetsLoadErrors, path.string()));
+        Log::Warning(fmt::format("[Assets] Failed to load {} asset(s) from '{}'.", assetsLoadErrors, directoryPath.string()));
 
-    Log::Verbose("Loaded " + std::to_string(assetsLoaded) + " asset(s) from " + path.string());
+    Log::Verbose("[Assets] Loaded " + std::to_string(assetsLoaded) + " asset(s) from " + directoryPath.string());
 
     return assetsLoadErrors;
 }
 
 void Assets::AddAssetResolveReference(const AssetResolveReference& resolveReference)
 {
+    std::lock_guard guard(m_AssetResolveReferencesMutex);
     m_AssetResolveReferences.push_back(resolveReference);
 }
 
-IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
+IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath, bool logWarning)
 {
     const auto path = String::Replace(inputPath, "\\", "/");
 
-    // If we want to find the asset by its file path instead of fake engine path
+    // If we want to find the asset by its file path instead of a fake engine path
     if (includeFilePath)
     {
         if (m_AssetsFilePath.count(path) != 0)
@@ -534,13 +582,31 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath)
     }
 
     if (m_Assets.count(path) == 0)
+    {
+        if (logWarning)
+        {
+            Log::Warning(fmt::format("[Assets] Failed to find asset by path, {}", inputPath));
+        }
+
+        return nullptr;
+    }
+
+    return m_Assets[path];
+}
+
+IAsset* Assets::GetById(std::uint32_t id)
+{
+    if (m_AssetsId.count(id) == 0)
         return nullptr;
 
-    return m_Assets[path];
+    return m_AssetsId[id];
 }
 
-IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)
+IAsset *Assets::GetOrLoad(const std::string &inputPath, const bool includeFilePath)
 {
+    // This should never be called during a LoadDirectory operation!!!
+    assert(m_State != AssetManagerState::LoadDirectory);
+
     const auto path = String::Replace(inputPath, "\\", "/");
 
     if (includeFilePath)
@@ -550,25 +616,27 @@ IAsset *Assets::GetOrLoad(const std::string &inputPath, bool includeFilePath)
     }
 
     if (m_Assets.count(path) == 0)
+    {
         return LoadFromFile(path);
+    }
 
     return m_Assets[path];
 }
 
-void Assets::MoveAsset(Pine::IAsset *asset, const std::filesystem::path &newFilePath)
+void Assets::MoveAsset(IAsset *asset, const std::filesystem::path &newFilePath)
 {
     const auto newPath = GetAssetMapPath(newFilePath, asset->GetFileRootPath().string(), "");
     const auto oldPath = asset->GetPath();
     const auto oldFilePath = asset->GetFilePath();
 
     asset->SetPath(newPath);
-    asset->SetFilePath(newFilePath, String::StartsWith(newFilePath, asset->GetFileRootPath().string()) ? asset->GetFileRootPath() : "");
+    asset->SetFilePath(newFilePath, String::StartsWith(newFilePath.string(), asset->GetFileRootPath().string()) ? asset->GetFileRootPath() : "");
 
     m_Assets.erase(oldPath);
     m_AssetsFilePath.erase(oldFilePath.string());
 
     m_Assets[newPath] = asset;
-    m_AssetsFilePath[newFilePath] = asset;
+    m_AssetsFilePath[newFilePath.string()] = asset;
 }
 
 const std::unordered_map<std::string, IAsset*>& Assets::GetAll()
@@ -587,6 +655,8 @@ void Assets::SaveAll()
         if (!asset->IsModified())
             continue;
 
+        Log::Verbose(fmt::format("[Assets] Saving asset {}...", asset->GetPath()));
+
         asset->SaveToFile();
         asset->SaveMetadata();
         asset->MarkAsUpdated();
@@ -594,7 +664,7 @@ void Assets::SaveAll()
         savedAssets++;
     }
 
-    Log::Message(fmt::format("Saved {} modified assets.", savedAssets));
+    Log::Info(fmt::format("[Assets] Saved {} modified assets.", savedAssets));
 }
 
 void Assets::RefreshAll()
@@ -608,7 +678,7 @@ void Assets::RefreshAll()
 
         if (!std::filesystem::exists(asset->GetFilePath()))
         {
-            Log::Warning(fmt::format("Asset '{}' has been deleted from disk.", asset->GetPath()));
+            Log::Warning(fmt::format("Assets: Asset '{}' has been deleted from disk.", asset->GetPath()));
 
             asset->MarkAsDeleted();
             asset->Dispose();

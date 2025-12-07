@@ -13,7 +13,7 @@ namespace
     Pine::Shader* m_Shader = nullptr;
 }
 
-void Pine::Renderer::Skybox::Setup()
+void Pine::Rendering::Skybox::Setup()
 {
     const std::vector<float> skyboxVertices = { -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                                                 1.0f,  -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,
@@ -42,12 +42,12 @@ void Pine::Renderer::Skybox::Setup()
     m_Shader = Pine::Assets::Get<Pine::Shader>("engine/shaders/3d/skybox.shader");
 }
 
-void Pine::Renderer::Skybox::Shutdown()
+void Pine::Rendering::Skybox::Shutdown()
 {
     m_GraphicsAPI->DestroyVertexArray(m_VertexArray);
 }
 
-void Pine::Renderer::Skybox::Render(Pine::Texture3D* cubeMap)
+void Pine::Rendering::Skybox::Render(const Texture3D* cubeMap)
 {
     if (!cubeMap->IsValid())
     {
@@ -56,7 +56,7 @@ void Pine::Renderer::Skybox::Render(Pine::Texture3D* cubeMap)
 
     if (!m_Shader->IsReady())
     {
-        assert(Pine::Renderer3D::ShaderStorages::Matrix.AttachShader(m_Shader));
+        assert(Pine::Renderer3D::ShaderStorages::Matrix.AttachShaderProgram(m_Shader->GetProgram()));
 
         m_Shader->SetReady(true);
     }
@@ -67,7 +67,7 @@ void Pine::Renderer::Skybox::Render(Pine::Texture3D* cubeMap)
 
     m_GraphicsAPI->SetDepthFunction(Graphics::TestFunction::LessEqual);
 
-    m_GraphicsAPI->DrawArrays(Pine::Graphics::RenderMode::Triangles, 36);
+    m_GraphicsAPI->DrawArrays(Graphics::RenderMode::Triangles, 36);
 
     m_GraphicsAPI->SetDepthFunction(Graphics::TestFunction::Less);
 }

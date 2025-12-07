@@ -33,6 +33,8 @@ namespace Pine
 
 		float m_Shininess = 16.f;
 		float m_TextureScale = 1.f;
+
+        bool m_IsMeshGeneratedMaterial = true;
 	public:
 		explicit Material();
 
@@ -67,6 +69,9 @@ namespace Pine
 
 		void SetTextureScale(float value);
 		float GetTextureScale() const;
+
+        // If this material is from a model file, instead of an engine material.
+        bool IsMeshGenerated() const;
 
 		bool LoadFromFile(AssetLoadStage stage) override;
 		bool SaveToFile() override;

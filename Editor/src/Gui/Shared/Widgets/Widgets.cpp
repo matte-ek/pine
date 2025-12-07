@@ -57,9 +57,25 @@ bool Widgets::Checkbox(const std::string& str, bool* value)
     return ret;
 }
 
-bool Widgets::Vector2(const std::string& str, Pine::Vector2f& vector)
+bool Widgets::Vector2(const std::string& str, Pine::Vector2f& vector, float speed)
 {
-    return false;
+    constexpr float size = 60.f;
+
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(size);
+    bool xChanged = ImGui::DragFloat(std::string("X##" + str).c_str(), &vector.x, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(10.f, 1.f));
+    ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(size);
+    bool yChanged = ImGui::DragFloat(std::string("Y##" + str).c_str(), &vector.y, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+    FinishWidget();
+
+    return xChanged || yChanged;
 }
 
 bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector, float speed)
@@ -292,13 +308,14 @@ bool Widgets::Icon(const std::string& text, Pine::Graphics::ITexture *texture, b
 
 void Widgets::TilesetAtlas(Pine::Tileset* tileset, int& selectedItem)
 {
-    constexpr auto tileSize = 32.f;
+    constexpr auto tileSize = 48.f;
 
-    const auto atlasPreviewSize = ImVec2(ImGui::GetContentRegionAvail().x - 128.f, 150.f);
-    const int nmColumns = static_cast<int>(std::floor(atlasPreviewSize.x / tileSize));
+    const auto atlasPreviewSize = ImVec2(ImGui::GetContentRegionAvail().x, 150.f);
 
-    ImGui::BeginChild("TilesetAtlas", ImVec2(-1.f, atlasPreviewSize.y), true);
+    ImGui::BeginChild("TilesetAtlas", ImVec2(-1, atlasPreviewSize.y), true);
     {
+        const int nmColumns = static_cast<int>(std::floor((ImGui::GetContentRegionAvail().x - 128.f) / tileSize));
+
         ImGui::Columns(nmColumns, nullptr, false);
 
         int index = 0;

@@ -7,16 +7,25 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 
+#include "Pine/Core/Timer/Timer.hpp"
+#include "Pine/Rendering/Common/Blur/Blur.hpp"
+#include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
+#include "Pine/Rendering/Features/PostProcessing/PostProcessing.hpp"
+#include "Pine/Rendering/Renderer3D/Specifications.hpp"
+
 namespace
 {
     // All rendering contexts being used
-    std::vector<Pine::RenderingContext *> m_RenderingContexts;
+    std::vector<Pine::RenderingContext*> m_RenderingContexts;
 
     // The rendering context that is used to render the scene
     Pine::RenderingContext *m_CurrentRenderingContext;
 
     // A fallback "default" rendering context to quickly get up and running.
     Pine::RenderingContext m_DefaultRenderingContext;
+
+    // The frame buffer used when rendering internally
+    Pine::Graphics::IFrameBuffer* m_InternalFrameBuffer;
 
     // Used to track delta time between frames
     double m_LastFrameTime = 0;
@@ -30,21 +39,39 @@ namespace
             func(context, stage, deltaTime);
         }
     }
-
 }
 
 void Pine::RenderManager::Setup()
 {
+    m_InternalFrameBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
+    m_InternalFrameBuffer->Prepare();
+
+    m_InternalFrameBuffer->AttachTextures(
+        Renderer3D::Specifications::General::INTERNAL_WIDTH,
+        Renderer3D::Specifications::General::INTERNAL_HEIGHT,
+        Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer | Graphics::Buffers::StencilBuffer);
+
+    m_InternalFrameBuffer->Finish();
+
     m_DefaultRenderingContext.Size = Vector2f(Engine::GetEngineConfiguration().m_WindowSize);
     
     SetPrimaryRenderingContext(&m_DefaultRenderingContext);
 
     Pipeline2D::Setup();
     Pipeline3D::Setup();
+
+    Rendering::Common::QuadTarget::Setup();
+    Rendering::Common::Blur::Setup();
+    Rendering::PostProcessing::Setup();
 }
 
 void Pine::RenderManager::Shutdown()
 {
+    Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_InternalFrameBuffer);
+
+    Rendering::Common::QuadTarget::Shutdown();
+    Rendering::Common::Blur::Shutdown();
+    Rendering::PostProcessing::Shutdown();
     Pipeline3D::Shutdown();
     Pipeline2D::Shutdown();
 }
@@ -57,6 +84,8 @@ void Pine::RenderManager::Run()
         return;
     }
 
+    static auto engineConfig = Engine::GetEngineConfiguration();
+
     double currentFrameTime = glfwGetTime();
 
     double deltaTime = currentFrameTime - m_LastFrameTime;
@@ -66,27 +95,63 @@ void Pine::RenderManager::Run()
 
     CallRenderCallback(nullptr, RenderStage::PreRender, fDeltaTime);
 
-    for (auto renderingContext : m_RenderingContexts)
+    // If we're in for example the editor, we'll always want to update
+    // the transformation matrices etc.
+    if (!engineConfig.m_ProductionMode)
     {
-        if (Pine::World::GetActiveLevel())
-            renderingContext->Skybox = Pine::World::GetActiveLevel()->GetLevelSettings().Skybox.Get();
+        for (auto& transform : Components::Get<Transform>(true))
+        {
+            transform.OnRender(fDeltaTime);
+        }
+    }
+
+    Pipeline3D::Prepare();
+
+    for (const auto renderingContext : m_RenderingContexts)
+    {
+        if (World::GetActiveLevel())
+        {
+            renderingContext->Skybox = World::GetActiveLevel()->GetLevelSettings().Skybox.Get();
+        }
 
         if (!renderingContext->Active)
+        {
             continue;
+        }
 
         m_CurrentRenderingContext = renderingContext;
 
+        if (renderingContext->UseRenderPipeline)
+        {
+            Pipeline3D::Run(*renderingContext, PipelineStage::Prepass);
+        }
+
         // Reset statistics
         renderingContext->DrawCalls = 0;
+        renderingContext->VertexCount = 0;
+        renderingContext->RenderTime = 0;
 
-        if (renderingContext->FrameBuffer)
-            renderingContext->FrameBuffer->Bind();
+        Timer renderTime;
+
+        m_InternalFrameBuffer->Bind();
+
+        // If we're not running in the editor, only update the scene camera.
+        if (engineConfig.m_ProductionMode)
+        {
+            // Make sure we got the camera's projection and view matrix ready for the scene
+            if (renderingContext->SceneCamera)
+            {
+                renderingContext->SceneCamera->GetParent()->GetTransform()->OnRender(0.f);
+                renderingContext->SceneCamera->OnRender(0.f);
+            }
+        }
         else
-            Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr); // This will just render everything onto the screen.
-
-        // Make sure we got the camera's projection and view matrix ready for the scene
-        if (renderingContext->SceneCamera)
-            renderingContext->SceneCamera->OnRender(0.f);
+        {
+            for (auto& camera : Components::Get<Camera>(true))
+            {
+                camera.OnRender(fDeltaTime);
+            }
+        }
 
         Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), renderingContext->Size);
 
@@ -111,7 +176,7 @@ void Pine::RenderManager::Run()
         {
             // 3D pass
             CallRenderCallback(renderingContext, RenderStage::PreRender3D, fDeltaTime);
-            Pipeline3D::Run(*renderingContext);
+            Pipeline3D::Run(*renderingContext, PipelineStage::Default);
             CallRenderCallback(renderingContext, RenderStage::PostRender3D, fDeltaTime);
 
             // 2D pass
@@ -121,7 +186,13 @@ void Pine::RenderManager::Run()
 
             // Post Processing
             CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
+
+            Rendering::PostProcessing::Render(renderingContext, m_InternalFrameBuffer);
         }
+
+        renderTime.Stop();
+
+        renderingContext->RenderTime = renderTime.GetElapsedTime();
     }
 
     Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
@@ -134,7 +205,7 @@ void Pine::RenderManager::AddRenderCallback(const std::function<void(RenderingCo
     m_RenderCallbackFunctions.push_back(func);
 }
 
-void Pine::RenderManager::SetPrimaryRenderingContext(RenderingContext*context)
+void Pine::RenderManager::SetPrimaryRenderingContext(RenderingContext* context)
 {
     if (m_RenderingContexts.empty())
         m_RenderingContexts.push_back(&m_DefaultRenderingContext);
@@ -157,12 +228,17 @@ Pine::RenderingContext *Pine::RenderManager::GetDefaultRenderingContext()
     return &m_DefaultRenderingContext;
 }
 
-void Pine::RenderManager::AddRenderingContextPass(RenderingContext*context)
+Pine::Graphics::IFrameBuffer * Pine::RenderManager::GetInternalFrameBuffer()
+{
+    return m_InternalFrameBuffer;
+}
+
+void Pine::RenderManager::AddRenderingContextPass(RenderingContext* context)
 {
     m_RenderingContexts.push_back(context);
 }
 
-void Pine::RenderManager::RemoveRenderingContextPass(RenderingContext*context)
+void Pine::RenderManager::RemoveRenderingContextPass(const RenderingContext* context)
 {
     for (int i = 0; i < m_RenderingContexts.size(); i++)
     {

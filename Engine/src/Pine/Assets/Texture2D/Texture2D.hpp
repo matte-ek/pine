@@ -6,6 +6,11 @@
 namespace Pine
 {
 
+    struct TextureLoadPreset
+    {
+        bool m_GenerateMipmaps = false;
+    };
+
     class Texture2D : public IAsset
     {
     private:

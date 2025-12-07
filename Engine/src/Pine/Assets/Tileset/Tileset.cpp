@@ -58,7 +58,7 @@ Pine::Graphics::TextureAtlas* Pine::Tileset::GetTextureAtlas() const
     return m_TextureAtlas;
 }
 
-void Pine::Tileset::AddTile(Texture2D* texture, std::uint32_t defaultFlags)
+Pine::TileData* Pine::Tileset::AddTile(Texture2D* texture, std::uint32_t defaultFlags)
 {
     TileData tile{};
 
@@ -66,7 +66,11 @@ void Pine::Tileset::AddTile(Texture2D* texture, std::uint32_t defaultFlags)
     tile.m_Index = m_CurrentTileIndex++;
     tile.m_DefaultFlags = defaultFlags;
 
+    m_HasBeenModified = true;
+
     m_Tiles.push_back(tile);
+
+    return &m_Tiles[m_Tiles.size() - 1];
 }
 
 void Pine::Tileset::RemoveTile(const TileData& tile)
@@ -76,12 +80,13 @@ void Pine::Tileset::RemoveTile(const TileData& tile)
         if (m_Tiles[i].m_Index == tile.m_Index)
         {
             m_Tiles.erase(m_Tiles.begin() + i);
+            m_HasBeenModified = true;
             break;
         }
     }
 }
 
-Pine::TileData const* Pine::Tileset::GetTileByIndex(std::uint32_t index) const
+Pine::TileData* Pine::Tileset::GetTileByIndex(std::uint32_t index)
 {
     for (auto& tile : m_Tiles)
     {
@@ -94,7 +99,7 @@ Pine::TileData const* Pine::Tileset::GetTileByIndex(std::uint32_t index) const
     return nullptr;
 }
 
-Pine::TileData const* Pine::Tileset::GetTileByTexture(const Texture2D* texture) const
+Pine::TileData* Pine::Tileset::GetTileByTexture(const Texture2D* texture)
 {
     for (auto& tile : m_Tiles)
     {
@@ -135,26 +140,35 @@ bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
 
     Serialization::LoadValue(j, "tileSize", m_TileSize);
 
-    for (const auto& tileData : j["tiles"])
+    if (j.contains("tiles"))
     {
-        std::uint32_t flags = 0;
-
-        if (tileData.contains("flags"))
-            flags = tileData["flags"].get<std::uint32_t>();
-
-        auto tileTexture = Pine::Assets::Get<Texture2D>(tileData["texture"]);
-
-        if (!tileTexture)
+        for (const auto& tileData : j["tiles"])
         {
-            Log::Warning("Could not find tile texture " + tileData["texture"].get<std::string>());
-            
-            // We do this to avoid fucking up the indices for other future tiles that may be present.
-            m_CurrentTileIndex++;
+            std::uint32_t flags = 0;
 
-            continue;
+            if (tileData.contains("flags"))
+                flags = tileData["flags"].get<std::uint32_t>();
+
+            auto tileTexture = Pine::Assets::Get<Texture2D>(tileData["texture"]);
+
+            if (!tileTexture)
+            {
+                Log::Warning("Could not find tile texture " + tileData["texture"].get<std::string>());
+
+                // We do this to avoid fucking up the indices for other future tiles that may be present.
+                m_CurrentTileIndex++;
+
+                continue;
+            }
+
+            auto tile = AddTile(tileTexture, flags);
+
+            Serialization::LoadVector2(tileData, "offset", tile->m_ColliderOffset);
+            Serialization::LoadVector2(tileData, "size", tile->m_ColliderSize);
+
+            if (tileData.contains("rotation"))
+                tile->m_ColliderRotation = tileData["rotation"];
         }
-
-        AddTile(tileTexture, flags);
     }
 
     Build();
@@ -179,6 +193,15 @@ bool Pine::Tileset::SaveToFile()
         if (tile.m_DefaultFlags != 0)
             tileJson["flags"] = tile.m_DefaultFlags;
 
+        if (tile.m_ColliderOffset != Pine::Vector2f(0.f))
+            tileJson["offset"] = Serialization::StoreVector2(tile.m_ColliderOffset);
+
+        if (tile.m_ColliderSize != Pine::Vector2f(1.f))
+            tileJson["size"] = Serialization::StoreVector2(tile.m_ColliderSize);
+
+        if (tile.m_ColliderRotation != 0.f)
+            tileJson["rotation"] = tile.m_ColliderRotation;
+
         j["tiles"].push_back(tileJson);
     }
 
@@ -196,6 +219,8 @@ bool Pine::Tileset::SaveToFile()
             m_DependencyFiles.push_back(tile.m_Texture->GetFilePath().string());
         }
     }
+
+    m_HasBeenModified = false;
 
     return true;
 }

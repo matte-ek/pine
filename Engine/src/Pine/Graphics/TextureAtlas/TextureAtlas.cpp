@@ -8,7 +8,10 @@ Pine::Graphics::TextureAtlas::TextureAtlas(Vector2i size, int tileSize) :
     m_TileSize(tileSize)
 {
     m_AtlasFrameBuffer = GetGraphicsAPI()->CreateFrameBuffer();
-    m_AtlasFrameBuffer->Create(size.x, size.y, ColorBuffer);
+
+    m_AtlasFrameBuffer->Prepare();
+    m_AtlasFrameBuffer->AttachTextures(size.x, size.y, ColorBuffer);
+    m_AtlasFrameBuffer->Finish();
 }
 
 Pine::Graphics::ITexture* Pine::Graphics::TextureAtlas::GetColorBuffer() const
@@ -92,7 +95,11 @@ float Pine::Graphics::TextureAtlas::GetTextureUvScale() const
 void Pine::Graphics::TextureAtlas::Dispose()
 {
     if (m_AtlasFrameBuffer)
+    {
         GetGraphicsAPI()->DestroyFrameBuffer(m_AtlasFrameBuffer);
+
+        m_AtlasFrameBuffer = nullptr;
+    }
 }
 
 void Pine::Graphics::TextureAtlas::RemoveTexture(std::uint32_t texture)

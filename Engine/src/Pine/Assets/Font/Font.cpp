@@ -4,7 +4,7 @@
 
 #define STB_TRUETYPE_IMPLEMENTATION
 
-#include <stb/stb_truetype.h>
+#include <stb_truetype.h>
 
 Pine::Font::Font()
 {

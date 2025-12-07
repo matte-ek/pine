@@ -9,6 +9,7 @@
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
+#include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 
 namespace
 {
@@ -228,7 +229,7 @@ void Panels::EntityList::Render()
 
     for (int i = 0; i < Pine::Entities::GetList().size();i++)
     {
-        auto entity = Pine::Entities::GetList()[i];
+        const auto entity = Pine::Entities::GetList()[i];
 
         if (entity->GetParent() != nullptr)
             continue;
@@ -277,7 +278,7 @@ void Panels::EntityList::Render()
 
             if (ImGui::MenuItem("Model Renderer"))
             {
-                auto entity = Pine::Entity::Create();
+                auto entity = Pine::Entity::Create("Model");
 
                 entity->AddComponent<Pine::ModelRenderer>();
 
@@ -286,9 +287,20 @@ void Panels::EntityList::Render()
                 ImGui::CloseCurrentPopup();
             }
 
+            if (ImGui::MenuItem("Sprite Renderer"))
+            {
+                auto entity = Pine::Entity::Create("Sprite");
+
+                entity->AddComponent<Pine::SpriteRenderer>();
+
+                Selection::Add(entity, true);
+
+                ImGui::CloseCurrentPopup();
+            }
+
             if (ImGui::MenuItem("Light"))
             {
-                auto entity = Pine::Entity::Create();
+                auto entity = Pine::Entity::Create("Light");
 
                 entity->AddComponent<Pine::Light>();
 
@@ -299,7 +311,7 @@ void Panels::EntityList::Render()
 
             if (ImGui::MenuItem("Camera"))
             {
-                auto entity = Pine::Entity::Create();
+                auto entity = Pine::Entity::Create("Camera");
 
                 entity->AddComponent<Pine::Camera>();
 
@@ -345,6 +357,8 @@ void Panels::EntityList::Render()
 
                 auto entity = temporaryBlueprint.Spawn();
 
+                entity->SetName(entity->GetName() + " [Copy]");
+
                 Selection::Add(entity);
             }
 
@@ -355,7 +369,7 @@ void Panels::EntityList::Render()
         {
             auto newChild = primaryEntity->CreateChild();
 
-            Selection::Add(newChild);
+            Selection::Add(newChild, true);
 
             ImGui::CloseCurrentPopup();
         }

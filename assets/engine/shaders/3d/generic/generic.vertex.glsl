@@ -29,6 +29,7 @@ layout(std140) uniform Transform
 layout(std140) uniform Lights 
 {
 	Light lights[32];
+    vec3 worldAmbientColor;
 };
 
 out VertexData
@@ -78,7 +79,7 @@ void main()
 			worldTangent.z, worldBiTangent.z, worldNormalDir.z
 		);
 
-		vOut.lightDir[0] = tangentMatrix * normalize(lights[0].position - vOut.worldPosition.xyz);
+		vOut.lightDir[0] = tangentMatrix * normalize(lights[0].rotation);
 
 		for (int i = 1; i < 4;i++)
 		{
@@ -91,7 +92,7 @@ void main()
 	else
 	{
 		// Pass everything directly in world space
-		vOut.lightDir[0] = normalize(lights[0].position - vOut.worldPosition.xyz);
+		vOut.lightDir[0] = normalize(lights[0].rotation);
 
 		for (int i = 1; i < 4;i++)
 		{

@@ -54,6 +54,10 @@ namespace
                 return Pine::Assets::Get<Pine::Texture2D>("editor/icons/blueprint.png");
             case Pine::AssetType::Material:
                 return Pine::Assets::Get<Pine::Texture2D>("editor/icons/material.png");
+            case Pine::AssetType::CSharpScript:
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/script.png");
+            case Pine::AssetType::Audio:
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/audio.png");
             default:
                 return nullptr;
         }
@@ -102,12 +106,17 @@ namespace
         if (lightEntity == nullptr)
         {
             lightEntity = new Pine::Entity(0);
+
+            lightEntity->AddComponent(new Pine::Transform());
             lightEntity->AddComponent(new Pine::Light());
+
+            lightEntity->GetTransform()->SetEulerAngles(Pine::Vector3f(0.f, -180.f, 0.f));
         }
 
         if (cameraEntity == nullptr)
         {
             cameraEntity = new Pine::Entity(0);
+            cameraEntity->AddComponent(new Pine::Transform());
             cameraEntity->AddComponent(new Pine::Camera());
             cameraEntity->GetComponent<Pine::Camera>()->SetOverrideAspectRatio(1.f);
             cameraEntity->GetComponent<Pine::Camera>()->OnRender(0.f);
@@ -160,7 +169,9 @@ namespace
 void IconStorage::Setup()
 {
     m_PreviewFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_PreviewFrameBuffer->Create(512, 512, Pine::Graphics::Buffers::ColorBuffer);
+    m_PreviewFrameBuffer->Prepare();
+    m_PreviewFrameBuffer->AttachTextures(512, 512, Pine::Graphics::Buffers::ColorBuffer);
+    m_PreviewFrameBuffer->Finish();
 
     Pine::RenderManager::AddRenderCallback(OnRender);
 }
@@ -170,7 +181,7 @@ void IconStorage::Update()
     std::vector<std::string> removeList;
 
     // Find and remove unloaded assets from the icon cache
-    for (const auto &[iconAssetPath, icon]: m_IconCache)
+    for (auto &[iconAssetPath, icon]: m_IconCache)
     {
         auto asset = Pine::Assets::Get(iconAssetPath);
 
@@ -181,7 +192,8 @@ void IconStorage::Update()
 
         if (icon.Type == IconType::Dynamic)
         {
-            icon.FrameBuffer->Dispose();
+            Pine::Graphics::GetGraphicsAPI()->DestroyFrameBuffer(icon.FrameBuffer);
+            icon.FrameBuffer = nullptr;
         }
 
         removeList.push_back(iconAssetPath);
@@ -216,7 +228,9 @@ void IconStorage::Update()
             if (icon->FrameBuffer == nullptr)
             {
                 icon->FrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-                icon->FrameBuffer->Create(128, 128, Pine::Graphics::Buffers::ColorBuffer);
+                icon->FrameBuffer->Prepare();
+                icon->FrameBuffer->AttachTextures(128, 128, Pine::Graphics::Buffers::ColorBuffer);
+                icon->FrameBuffer->Finish();
             }
 
             icon->m_Dirty = true;
@@ -253,4 +267,20 @@ void IconStorage::MarkIconDirty(const std::string &path)
     }
 
     m_IconCache[path].m_Dirty = true;
+}
+
+void IconStorage::Dispose()
+{
+    for (auto &[iconAssetPath, icon]: m_IconCache)
+    {
+        if (icon.Type == IconType::Dynamic && icon.FrameBuffer != nullptr)
+        {
+            Pine::Graphics::GetGraphicsAPI()->DestroyFrameBuffer(icon.FrameBuffer);
+            icon.FrameBuffer = nullptr;
+        }
+    }
+
+    Pine::Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_PreviewFrameBuffer);
+
+    m_PreviewFrameBuffer = nullptr;
 }

@@ -20,6 +20,7 @@ namespace Pine::Graphics
     enum class TextureType
     {
         Texture2D,
+        Texture2DArray,
         CubeMap
     };
 
@@ -45,6 +46,13 @@ namespace Pine::Graphics
     {
 	    Nearest,
         Linear
+    };
+
+    enum class TextureWrapMode
+    {
+        Repeat,
+        ClampToEdge, // Coordinates will be clamped to [0, 1]
+        ClampToBorder // Sampling will use a custom border color
     };
 
     enum class SwizzleMaskChannel
@@ -90,6 +98,10 @@ namespace Pine::Graphics
         TextureFilteringMode m_FilteringMode = TextureFilteringMode::Linear;
         TextureFilteringMode m_MipmapFilteringMode = TextureFilteringMode::Linear;
 
+        TextureWrapMode m_WrapMode = TextureWrapMode::Repeat;
+
+        Vector4f m_BorderColor = Vector4f(0, 0, 0, 0);
+
         int m_Width = 0;
         int m_Height = 0;
 
@@ -101,8 +113,10 @@ namespace Pine::Graphics
 
         bool m_HasMipmaps = false;
 
-        bool m_MultiSampled = false;
+        bool m_IsMultiSampled = false;
         int m_Samples = 8;
+
+        int m_ArraySize = -1;
     public:
         virtual ~ITexture() = default;
 
@@ -121,11 +135,24 @@ namespace Pine::Graphics
         virtual void SetMipmapFilteringMode(TextureFilteringMode mode) = 0;
         virtual TextureFilteringMode GetMipmapFilteringMode() = 0;
 
+        virtual void SetTextureWrapMode(TextureWrapMode mode) = 0;
+        virtual TextureWrapMode GetTextureWrapMode() = 0;
+
+        virtual void SetBorderColor(Vector4f color) = 0;
+        virtual Vector4f GetBorderColor() = 0;
+
+        virtual void SetCompareModeLowerEqual() = 0;
+
+        virtual void SetMaxAnisotropy(float value) = 0;
+
         virtual void SetMultiSampled(bool multiSampled) = 0;
         virtual bool IsMultiSampled() = 0;
 
         virtual void SetSamples(int samples) = 0;
         virtual int GetSamples() = 0;
+
+        virtual void SetArraySize(int arraySize) = 0;
+        virtual int GetArraySize() = 0;
 
         virtual int GetWidth() = 0;
         virtual int GetHeight() = 0;
@@ -142,5 +169,4 @@ namespace Pine::Graphics
 
         virtual void GenerateMipmaps() = 0;
     };
-
 }

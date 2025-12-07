@@ -7,5 +7,5 @@ namespace EntitySelection
     void Setup();
     void Dispose();
 
-    void Pick(Pine::Vector2i cursorPosition);
+    void Pick(Pine::Vector2i cursorPosition, bool pickMultiple);
 }

@@ -3,6 +3,7 @@
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 
 #include <string.h>
+#include <array>
 #include <utility>
 #include <vector>
 #include <GLFW/glfw3.h>
@@ -10,15 +11,16 @@
 namespace 
 {
 
-    bool m_AutoCenterCursor = false;
-    bool m_CursorVisible = true;
+    Pine::CursorMode m_CursorMode = Pine::CursorMode::Normal;
 
-    int m_KeyStates[GLFW_KEY_LAST] = { };
-    int m_KeyStatesOld[GLFW_KEY_LAST] = { };
+    std::array<int, GLFW_KEY_LAST> m_KeyStates = {};
+    std::array<int, GLFW_KEY_LAST> m_PreviousKeyStates = {};
 
-    Pine::Vector2d m_LastMousePosition;
+    std::array<int, GLFW_MOUSE_BUTTON_LAST> m_MouseButtonStates = {};
+    std::array<int, GLFW_MOUSE_BUTTON_LAST> m_PreviousMouseButtonStates = {};
 
     Pine::Vector2i m_MousePosition;
+    Pine::Vector2d m_LastMousePosition;
     Pine::Vector2i m_MouseDelta;
 
     Pine::InputContext* m_Context = nullptr;
@@ -117,7 +119,7 @@ void Pine::InputBind::Update()
         for (auto& key : m_KeyboardBindings)
         {
             if (m_KeyStates[key.Key] == GLFW_PRESS &&
-                m_KeyStatesOld[key.Key] == GLFW_RELEASE)
+                m_PreviousKeyStates[key.Key] == GLFW_RELEASE)
             {
                 m_ActionState = true;
                 
@@ -142,15 +144,21 @@ void Pine::Input::Shutdown()
 
 void Pine::Input::Update()
 {
-    auto window = reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto window = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
 
     m_Window = window;
 
     // Update keys
-    memcpy(m_KeyStatesOld, m_KeyStates, sizeof(m_KeyStates));
+    memcpy(m_PreviousKeyStates.data(), m_KeyStates.data(), sizeof(m_KeyStates));
     
     for (int i = 0; i < GLFW_KEY_LAST; i++)
         m_KeyStates[i] = glfwGetKey(window, i);
+
+    // Update mouse positions
+    memcpy(m_PreviousMouseButtonStates.data(), m_MouseButtonStates.data(), sizeof(m_MouseButtonStates));
+
+    for (int i = 0; i < GLFW_MOUSE_BUTTON_LAST; i++)
+        m_MouseButtonStates[i] = glfwGetMouseButton(window, i);
 
     // Update mouse position
     Vector2d mousePosition;
@@ -174,22 +182,17 @@ void Pine::Input::Update()
         }
     }
 
-    if (m_AutoCenterCursor)
+    switch (m_CursorMode)
     {
-        const auto windowSize = Pine::WindowManager::GetWindowSize();
-
-        glfwSetCursorPos(window, windowSize.x / 2.0, windowSize.y / 2.0);
-    
-        m_LastMousePosition = Pine::Vector2i(windowSize.x / 2.0, windowSize.y / 2.0);
-    }
-
-    if (m_CursorVisible)
-    {
+    case CursorMode::Normal:
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-    else
-    {
+        break;
+    case CursorMode::Hidden:
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        break;
+    case CursorMode::Disabled:
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        break;
     }
 }
 
@@ -201,16 +204,6 @@ Pine::InputContext* Pine::Input::GetDefaultContext()
 void Pine::Input::OverrideContext(Pine::InputContext* context)
 {
     m_Context = context;
-}
-
-void Pine::Input::SetCursorAutoCenter(bool value)
-{
-    m_AutoCenterCursor = value;
-}
-
-void Pine::Input::SetCursorVisible(bool value)
-{
-    m_CursorVisible = value;
 }
 
 Pine::InputBind* Pine::Input::CreateInputBind(const std::string& name, Pine::InputType type)
@@ -229,7 +222,7 @@ Pine::InputContext* Pine::Input::CreateContext(const std::string& name)
 
 void Pine::Input::SetCursorPosition(Pine::Vector2i position)
 {
-    auto windowHandle = reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto windowHandle = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
 
     glfwSetCursorPos(windowHandle, position.x, position.y);
 
@@ -238,12 +231,57 @@ void Pine::Input::SetCursorPosition(Pine::Vector2i position)
 
 Pine::Vector2i Pine::Input::GetCursorPosition()
 {
-    auto windowHandle = reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto windowHandle = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
 
     double cursorX, cursorY;
     glfwGetCursorPos(windowHandle, &cursorX, &cursorY);
 
     return { cursorX, cursorY };
+}
+
+Pine::KeyState Pine::Input::GetKeyState(Pine::KeyCode key)
+{
+    const auto currentKeyState = m_KeyStates[static_cast<int>(key)];
+    const auto previousKeyState = m_PreviousKeyStates[static_cast<int>(key)];
+
+    if (currentKeyState == GLFW_PRESS)
+    {
+        return previousKeyState == GLFW_RELEASE ? Pine::KeyState::Pressed : Pine::KeyState::Held;
+    }
+    else
+    {
+        return previousKeyState == GLFW_PRESS ? Pine::KeyState::Released : Pine::KeyState::None;
+    }
+}
+
+Pine::KeyState Pine::Input::GetMouseButtonState(Pine::MouseButton button)
+{
+    const auto currentKeyState = m_MouseButtonStates[static_cast<int>(button)];
+    const auto previousKeyState = m_PreviousMouseButtonStates[static_cast<int>(button)];
+
+    if (currentKeyState == GLFW_PRESS)
+    {
+        return previousKeyState == GLFW_RELEASE ? Pine::KeyState::Pressed : Pine::KeyState::Held;
+    }
+    else
+    {
+        return previousKeyState == GLFW_PRESS ? Pine::KeyState::Released : Pine::KeyState::None;
+    }
+}
+
+bool Pine::Input::IsKeyDown(Pine::KeyCode key)
+{
+    return m_KeyStates[static_cast<int>(key)] == GLFW_PRESS;
+}
+
+bool Pine::Input::IsMouseButtonDown(Pine::KeyCode code)
+{
+    return m_MouseButtonStates[static_cast<int>(code)] == GLFW_PRESS;
+}
+
+void Pine::Input::SetCursorMode(Pine::CursorMode mode)
+{
+    m_CursorMode = mode;
 }
 
 Pine::InputContext::InputContext(const std::string& name)

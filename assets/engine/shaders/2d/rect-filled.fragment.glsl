@@ -23,7 +23,7 @@ void main()
     float centerCornerDistanceRatio = (radius / length(centerCornerDistance)) - 1;
     float centerCornerAlphaTransition = clamp(centerCornerDistanceRatio / (0.06f - (radius * 0.1f)), 0, 1);
 
-    color.a *= (centerCornerAlphaTransition + 1 * floor(1 - radius));
+    //color.a *= (centerCornerAlphaTransition + 1 * floor(1 - radius));
 
     m_OutputColor = color;
 }

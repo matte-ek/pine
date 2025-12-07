@@ -16,4 +16,6 @@ namespace Pine::Rendering
         EnvironmentMap = 2
     };
 
+    inline constexpr std::uint32_t PixelsPerUnit = 64;
+
 }

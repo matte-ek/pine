@@ -17,6 +17,8 @@ namespace
                 return GL_FRAGMENT_SHADER;
             case Pine::Graphics::ShaderType::Compute:
                 return GL_COMPUTE_SHADER;
+            case Pine::Graphics::ShaderType::Geometry:
+                return GL_GEOMETRY_SHADER;
             default:
                 throw std::runtime_error("Unsupported shader type.");
         }
@@ -151,6 +153,9 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
 
 Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVariable(const std::string &name)
 {
+    // Make sure you bind the shader before attempting to grab a uniform variable!
+    assert(m_ActiveShader == m_Id);
+
     if (m_UniformVariables.count(name) == 0)
     {
         // Attempt to find the variable, and create an GLUniformVariable object if we do
@@ -162,7 +167,10 @@ Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVar
         }
         else
         {
-            Log::Warning("Failed to find uniform variable: " + name);
+            // Insert an empty pointer to indicate that we have already tried to find the variable.
+            m_UniformVariables[name] = nullptr;
+
+            Log::Warning("[Renderer] Failed to find uniform variable: " + name);
 
             return nullptr;
         }
@@ -186,4 +194,9 @@ bool Pine::Graphics::GLShaderProgram::AttachUniformBuffer(IUniformBuffer*buffer,
     glUniformBlockBinding(m_Id, bufferIndex, buffer->GetBindIndex());
 
     return true;
+}
+
+void Pine::Graphics::GLShaderProgram::ResetChangeTracking()
+{
+    m_ActiveShader = std::numeric_limits<std::uint32_t>::max();
 }

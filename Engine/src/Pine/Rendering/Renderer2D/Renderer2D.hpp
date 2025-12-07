@@ -4,6 +4,7 @@
 
 #include "Pine/Assets/Font/Font.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Core/Color/Color.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Rendering/RenderingContext.hpp"
@@ -27,16 +28,18 @@ namespace Pine::Renderer2D
     void SetCoordinateSystem(Rendering::CoordinateSystem coordinateSystem);
     Rendering::CoordinateSystem GetCoordinateSystem();
 
-    void AddFilledRectangle(Vector2f position, Vector2f size, float rotation, Color color);
+    void SetOverrideShader(Pine::Shader* shader);
+    Pine::Shader* GetOverrideShader();
 
+    void AddRectangle(Vector2f position, Vector2f size, float rotation, Color color);
+
+    void AddFilledRectangle(Vector2f position, Vector2f size, float rotation, Color color);
     void AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, const Texture2D* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
     void AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, Graphics::ITexture* texture, Vector2f uvOffset = Vector2f(0.f), Vector2f uvScale = Vector2f(1.f));
-
     void AddFilledRoundedRectangle(Vector2f position, Vector2f size, float radius, Color color);
 
     void AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId, Color color);
 
-    void AddText(Vector2f position, Color color, const std::string& str, Pine::Font* font);
-
+    void AddText(Vector2f position, Color color, const std::string& str, const Pine::Font* font);
 
 }

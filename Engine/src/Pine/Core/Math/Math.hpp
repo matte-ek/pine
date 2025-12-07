@@ -5,6 +5,17 @@
 
 namespace Pine
 {
+    namespace Math
+    {
+
+        template<typename T>
+        T LinearInterpolation(T begin, T end, T x)
+        {
+            return begin + (end - begin) * x;
+        }
+
+    }
+
     using Vector2i = glm::ivec2;
     using Vector3i = glm::ivec3;
     using Vector4i = glm::ivec4;

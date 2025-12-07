@@ -2,7 +2,8 @@
 
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/World/Components/IComponent/IComponent.hpp"
-#include <reactphysics3d/reactphysics3d.h>
+
+#include "physx/PxPhysicsAPI.h"
 
 namespace Pine
 {
@@ -17,31 +18,19 @@ namespace Pine
         HeightField
     };
 
-    class Collider : public IComponent
+    class Collider final : public IComponent
     {
     private:
         ColliderType m_ColliderType = ColliderType::Box;
 
-        reactphysics3d::CollisionShape* m_CollisionShape = nullptr;
-
         Vector3f m_Position = Vector3f(0.f);
         Vector3f m_Size = Vector3f(1.f);
 
-        reactphysics3d::Transform m_CollisionBodyTransform;
-        reactphysics3d::Transform m_CollisionTransform;
+        physx::PxTransform m_Transform = physx::PxTransform();
 
-        reactphysics3d::Collider* m_Collider = nullptr;
-        reactphysics3d::CollisionBody* m_CollisionBody = nullptr;
-
-        bool m_ShapeUpdated = false;
+        physx::PxRigidStatic* m_CollisionRigidBody = nullptr;
 
         void UpdateBody();
-
-        void CreateShape();
-        void DisposeShape();
-        void UpdateShape();
-
-        reactphysics3d::TriangleMesh* LoadTriangleMesh();
     public:
         Collider();
 
@@ -62,10 +51,10 @@ namespace Pine
         void SetHeight(float height);
         float GetHeight() const;
 
-        bool PollShapeUpdated();
+        void Reset();
 
-        reactphysics3d::CollisionShape* GetCollisionShape() const;
-        reactphysics3d::Collider* GetCollider() const;
+        physx::PxShape* CreateCollisionShape() const;
+        physx::PxRigidStatic* GetCollider() const;
 
         void OnPrePhysicsUpdate() override;
         void OnDestroyed() override;

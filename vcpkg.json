@@ -1,0 +1,58 @@
+{
+  "name" : "pine",
+  "version-string" : "1.0.0",
+  "builtin-baseline" : "9558037875497b9db8cf38fcd7db68ec661bffe7",
+  "dependencies" : [ {
+    "name" : "glfw3",
+    "version>=" : "3.4#1"
+  }, {
+    "name" : "vcpkg-cmake-config",
+    "version>=" : "2024-05-23"
+  }, {
+    "name" : "vcpkg-cmake",
+    "version>=" : "2024-04-23"
+  }, {
+    "name" : "assimp",
+    "version>=" : "6.0.2"
+  }, {
+    "name" : "box2d",
+    "version>=" : "2.4.1#3"
+  }, {
+    "name" : "fmt",
+    "version>=" : "11.0.2#1"
+  }, {
+    "name" : "glew",
+    "version>=" : "2.2.0#3"
+  }, {
+    "name" : "glm",
+    "version>=" : "1.0.1#3"
+  }, {
+    "name" : "libflac",
+    "version>=" : "1.4.3#2"
+  }, {
+    "name" : "nlohmann-json",
+    "version>=" : "3.11.3#1"
+  }, {
+    "name" : "openal-soft",
+    "version>=" : "1.23.1#2"
+  }, {
+    "name" : "imgui",
+    "version>=" : "1.91.0",
+    "features" : [ "glfw-binding", "docking-experimental", "freetype", "opengl3-binding" ]
+  }, {
+    "name" : "imguizmo",
+    "version>=" : "2024-05-29#1"
+  }, {
+    "name" : "stb",
+    "version>=" : "2024-07-29#1"
+  }, {
+    "name" : "freetype",
+    "version>=" : "2.13.3"
+  }, {
+    "name" : "openal-soft",
+    "version>=" : "1.24.3#1"
+  }, {
+    "name" : "physx",
+    "version>=" : "5.5.0#1"
+  } ]
+}
