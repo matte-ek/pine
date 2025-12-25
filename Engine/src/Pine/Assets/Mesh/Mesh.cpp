@@ -65,6 +65,16 @@ Pine::Model *Pine::Mesh::GetModel() const
     return m_Model;
 }
 
+const Pine::Vector3f& Pine::Mesh::GetBoundingBoxMin() const
+{
+    return m_BoundingBoxMin;
+}
+
+const Pine::Vector3f& Pine::Mesh::GetBoundingBoxMax() const
+{
+    return m_BoundingBoxMax;
+}
+
 void Pine::Mesh::SetVertices(float* vertices, std::size_t size)
 {
     m_VertexArray->Bind();
@@ -97,4 +107,10 @@ void Pine::Mesh::SetUvs(float* uvs, std::size_t size)
 {
     m_VertexArray->Bind();
     m_VertexArray->StoreFloatArrayBuffer(uvs, size, Buffers::UV_ARRAY_BUFFER, 2, Graphics::BufferUsageHint::StaticDraw);
+}
+
+void Pine::Mesh::SetAABB(Vector3f min, Vector3f max)
+{
+    m_BoundingBoxMin = min;
+    m_BoundingBoxMax = max;
 }

@@ -17,7 +17,7 @@
 #include "Panels/Console/ConsolePanel.hpp"
 #include "Panels/Profiler/ProfilerPanel.hpp"
 #include "Gui/MenuBar/MenuBar.hpp"
-#include "Gui/Shared/Actions/Actions.hpp"
+#include "Gui/Shared/Commands/Commands.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
@@ -41,7 +41,7 @@ namespace
         auto& style = ImGui::GetStyle();
 
         style.WindowPadding = ImVec2(8, 8);
-        style.FramePadding = ImVec2(4, 3);
+        style.FramePadding = ImVec2(8, 4);
         style.CellPadding = ImVec2(4, 2);
         style.ItemSpacing = ImVec2(4, 4);
         style.GrabMinSize = 8.f;
@@ -49,6 +49,7 @@ namespace
         style.GrabRounding = 4.f;
         style.ScrollbarSize = 10.f;
         style.PopupRounding = 4.f;
+        style.TabRounding = 4.f;
 
         ImGui::StyleColorsDark();
 
@@ -88,6 +89,8 @@ namespace
         colors[ImGuiCol_TabUnfocused] = ImVec4(0.07f, 0.11f, 0.10f, 1.00f);
         colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.09f, 0.21f, 0.19f, 1.00f);
         colors[ImGuiCol_DockingPreview] = ImVec4(0.09f, 0.21f, 0.19f, 1.00f);
+        colors[ImGuiCol_TabSelectedOverline]    = ImVec4(0.26f, 0.59f, 0.98f, 0.00f);
+        colors[ImGuiCol_TabDimmedSelectedOverline]  = ImVec4(0.50f, 0.50f, 0.50f, 0.00f);
     }
 
     void SetFonts()
@@ -106,7 +109,7 @@ namespace
         icons_config.PixelSnapH = true;
         icons_config.GlyphOffset = ImVec2(0, 3.f);
 
-        io.Fonts->AddFontFromFileTTF("editor/fonts/MaterialIcons-Regular.ttf", 16.0f, &icons_config, icons_ranges);
+        io.Fonts->AddFontFromFileTTF("editor/fonts/MaterialIcons-Regular.ttf", 17.0f, &icons_config, icons_ranges);
     }
 
     void InitializeImGui()
@@ -184,7 +187,7 @@ namespace
         Panels::EngineAssetsPanel::Render();
         Panels::Debug::Render();
 
-        Actions::Update();
+        Commands::Update();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -199,7 +202,7 @@ void Gui::Setup()
 
     Pine::WindowManager::AddWindowFocusCallback(OnWindowFocus);
 
-    Actions::Setup();
+    Commands::Setup();
     Gizmo::Gizmo2D::Setup();
     Gizmo::Gizmo3D::Setup();
     EntitySelection::Setup();
@@ -210,7 +213,7 @@ void Gui::Setup()
 
 void Gui::Shutdown()
 {
-    Actions::Dispose();
+    Commands::Dispose();
     EntitySelection::Dispose();
     IconStorage::Dispose();
 

@@ -12,6 +12,7 @@
 #include "Pine/Rendering/Features/Skybox/Skybox.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
 #include "Pine/World/World.hpp"
 
 namespace
@@ -22,64 +23,11 @@ namespace
 	Shader* m_DepthShader = nullptr;
 	Graphics::IFrameBuffer* m_DepthBuffer = nullptr;
 
+    Rendering::SceneProcessor::SceneProcessorContext m_SceneContext;
+
 	PipelineConfiguration m_Configuration;
 
-	std::unordered_map<RenderObject, std::uint32_t, RenderObjectHash> m_ModelInstanceCountHint;
-
-	ObjectBatchData m_RenderingBatch;
-
-	// Find and sort all active ModelRenderers in the scene. Will make sure to group together models using the
-	// same mesh and material to allow for effective batch rendering. We also make sure to figure out which
-	// materials will require discarding and blending.
-	void PrepareRenderingBatch()
-	{
-		m_RenderingBatch = ObjectBatchData();
-
-		for (auto& modelRenderer : Components::Get<ModelRenderer>())
-		{
-			if (!modelRenderer.GetModel())
-			{
-				continue;
-			}
-
-			// Find out if a mesh within this model has a transparent material
-			bool hasTransparentMaterial = false;
-			for (const auto& mesh : modelRenderer.GetModel()->GetMeshes())
-			{
-				if (mesh->GetMaterial() && mesh->GetMaterial()->GetRenderingMode() == MaterialRenderingMode::Transparent)
-				{
-					hasTransparentMaterial = true;
-				}
-			}
-
-			const RenderObject uniqueObject = { modelRenderer.GetModel(), modelRenderer.GetOverrideMaterial() };
-
-			// Find out if we have a hint on how many instances this model has, we do this to avoid
-			// having to re-allocate the vector too much.
-			if (m_RenderingBatch.OpaqueObjects.count(uniqueObject) == 0)
-			{
-				if (m_ModelInstanceCountHint.count(uniqueObject) != 0)
-				{
-					m_RenderingBatch.OpaqueObjects[uniqueObject].reserve(m_ModelInstanceCountHint[uniqueObject]);
-				}
-			}
-
-			m_RenderingBatch.OpaqueObjects[uniqueObject].push_back({&modelRenderer, 0.f});
-
-			if (hasTransparentMaterial)
-			{
-				m_RenderingBatch.BlendObjects[uniqueObject].push_back({&modelRenderer, 0.f});
-			}
-		}
-
-		// Store instance count hint for the next frame
-		for (const auto&[objectGroup, modelRenderers] : m_RenderingBatch.OpaqueObjects)
-		{
-			m_ModelInstanceCountHint[objectGroup] = modelRenderers.size();
-		}
-	}
-
-	void RenderBatch(const ObjectBatchMap& mapBatch, MaterialRenderingMode materialRenderingMode)
+	void RenderBatch(const Rendering::ObjectBatchMap& mapBatch, MaterialRenderingMode materialRenderingMode)
 	{
 		for (const auto& [modelGroup, objectRenderInstances] : mapBatch)
 		{
@@ -107,12 +55,6 @@ namespace
 
 					modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
 
-					if (modelRenderer->GetOverrideStencilBuffer())
-					{
-						hasStencilBufferOverride = true;
-						continue;
-					}
-
 					int modelMeshIndex = modelRenderer->GetModelMeshIndex();
 					if (modelMeshIndex >= 0)
 					{
@@ -122,7 +64,15 @@ namespace
 						}
 					}
 
-					if (Renderer3D::AddInstance(modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix()))
+				    if (modelRenderer->GetOverrideStencilBuffer())
+				    {
+				        hasStencilBufferOverride = true;
+				        continue;
+				    }
+
+					if (Renderer3D::AddInstance(
+					    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),
+					    &modelRenderer->GetRenderingHintData()))
 					{
 						Renderer3D::RenderMeshInstanced();
 					}
@@ -134,28 +84,28 @@ namespace
 				{
 					for (const auto [renderer, distance] : objectRenderInstances)
 					{
+					    int modelMeshIndex = renderer->GetModelMeshIndex();
+					    if (modelMeshIndex >= 0)
+					    {
+					        if (modelMeshIndex != meshIndex)
+					        {
+					            continue;
+					        }
+					    }
+
 						if (renderer->GetOverrideStencilBuffer())
 						{
 							renderer->GetParent()->GetTransform()->OnRender(0.f);
 
-							Renderer3D::RenderMesh(renderer->GetParent()->GetTransform()->GetTransformationMatrix(), renderer->GetStencilBufferValue());
+							Renderer3D::RenderMesh(
+							    renderer->GetParent()->GetTransform()->GetTransformationMatrix(),
+							    &renderer->GetRenderingHintData(),
+							    renderer->GetStencilBufferValue());
 						}
 					}
 				}
 			}
 		}
-	}
-
-	std::vector<Light*> GetLights()
-	{
-		std::vector<Light*> lights;
-
-		for (auto& light : Components::Get<Light>())
-		{
-			lights.push_back(&light);
-		}
-
-		return lights;
 	}
 
 	void RenderDepthPrepass(RenderingContext& renderingContext)
@@ -181,7 +131,7 @@ namespace
 		renderSettings.IgnoreShaderVersions = true;
 		renderSettings.SkipMaterialInitialization = true;
 
-		RenderBatch(m_RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque);
+		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque);
 
 		renderSettings.OverrideShader = nullptr;
 		renderSettings.IgnoreShaderVersions = false;
@@ -193,9 +143,11 @@ namespace
 		Renderer3D::FrameReset();
 
 		if (context.SceneCamera)
-			Renderer3D::SetCamera(context.SceneCamera);
+        {
+            Renderer3D::SetCamera(context.SceneCamera);
+        }
 
-		Renderer3D::UseRenderingContext(&context);
+        Renderer3D::UseRenderingContext(&context);
 		Renderer3D::SetAmbientColor(World::GetActiveLevel()->GetLevelSettings().AmbientColor);
 
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
@@ -217,10 +169,10 @@ namespace
 		Renderer3D::UploadLights();
 
 		// Render fully opaque objects.
-		RenderBatch(m_RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque);
+		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque);
 
 		// Render objects which require discarding
-		RenderBatch(m_RenderingBatch.OpaqueObjects, MaterialRenderingMode::Discard);
+		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Discard);
 
 		// TODO: Render semi-transparent objects, we'll have to sort all objects by distance as well.
 
@@ -231,6 +183,37 @@ namespace
 			context.DrawCalls++;
 		}
 	}
+
+    void CreateDepthBuffer()
+	{
+	    m_DepthBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
+	    m_DepthBuffer->Bind();
+	    m_DepthBuffer->Prepare();
+
+	    const auto normalBuffer = Graphics::GetGraphicsAPI()->CreateTexture();
+
+	    normalBuffer->Bind();
+	    normalBuffer->UploadTextureData(
+            Renderer3D::Specifications::General::INTERNAL_WIDTH,
+            Renderer3D::Specifications::General::INTERNAL_HEIGHT,
+            Graphics::TextureFormat::RGBA16F,
+            Graphics::TextureDataFormat::Float,
+            nullptr);
+
+	    m_DepthBuffer->AttachTexture(normalBuffer, Graphics::BufferAttachment::Color);
+
+	    const auto depthBuffer = Graphics::GetGraphicsAPI()->CreateTexture();
+
+	    depthBuffer->Bind();
+	    depthBuffer->UploadTextureData(
+            Renderer3D::Specifications::General::INTERNAL_WIDTH,
+            Renderer3D::Specifications::General::INTERNAL_HEIGHT,
+            Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float,
+            nullptr);
+
+	    m_DepthBuffer->AttachTexture(depthBuffer, Graphics::BufferAttachment::Depth);
+	    m_DepthBuffer->Finish();
+	}
 }
 
 void Pipeline3D::Setup()
@@ -239,36 +222,7 @@ void Pipeline3D::Setup()
 	Rendering::Shadows::Setup();
 	Rendering::AmbientOcclusion::Setup();
 
-	m_DepthBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-	m_DepthBuffer->Bind();
-	m_DepthBuffer->Prepare();
-
-	//m_DepthBuffer->AttachTextures(1920, 1080, Graphics::ColorBuffer | Graphics::DepthBuffer);
-
-	const auto normalBuffer = Graphics::GetGraphicsAPI()->CreateTexture();
-
-	normalBuffer->Bind();
-	normalBuffer->UploadTextureData(
-		Renderer3D::Specifications::General::INTERNAL_WIDTH,
-		Renderer3D::Specifications::General::INTERNAL_HEIGHT,
-		Graphics::TextureFormat::RGBA16F,
-		Graphics::TextureDataFormat::Float,
-		nullptr);
-
-	m_DepthBuffer->AttachTexture(normalBuffer, Graphics::BufferAttachment::Color);
-
-	const auto depthBuffer = Graphics::GetGraphicsAPI()->CreateTexture();
-
-	depthBuffer->Bind();
-	depthBuffer->UploadTextureData(
-		Renderer3D::Specifications::General::INTERNAL_WIDTH,
-		Renderer3D::Specifications::General::INTERNAL_HEIGHT,
-		Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float,
-		nullptr);
-
-	m_DepthBuffer->AttachTexture(depthBuffer, Graphics::BufferAttachment::Depth);
-
-	m_DepthBuffer->Finish();
+	CreateDepthBuffer();
 
 	Rendering::AmbientOcclusion::UseDepthBuffer(m_DepthBuffer);
 
@@ -286,14 +240,11 @@ void Pipeline3D::Shutdown()
 
 void Pipeline3D::Prepare()
 {
-	PrepareRenderingBatch();
+    Rendering::SceneProcessor::Prepare(m_SceneContext);
 }
 
 void Pipeline3D::Run(RenderingContext& context, PipelineStage stage)
 {
-	// Prepare Data
-	const auto lights = GetLights();
-
 	if (stage == PipelineStage::Prepass)
 	{
 		// Render shadow pass
@@ -301,9 +252,9 @@ void Pipeline3D::Run(RenderingContext& context, PipelineStage stage)
 		{
 			Rendering::Shadows::NewFrame(context.SceneCamera);
 
-			for (const auto light : lights)
+			for (const auto light : m_SceneContext.Lights)
 			{
-				Rendering::Shadows::RenderPassLight(light, m_RenderingBatch);
+				Rendering::Shadows::RenderPassLight(light, m_SceneContext.RenderingBatch);
 			}
 		}
 
@@ -316,7 +267,7 @@ void Pipeline3D::Run(RenderingContext& context, PipelineStage stage)
 	}
 
 	// Render the final pass
-	RenderScene(lights, context);
+	RenderScene(m_SceneContext.Lights, context);
 }
 
 PipelineConfiguration & Pipeline3D::GetPipelineConfiguration()

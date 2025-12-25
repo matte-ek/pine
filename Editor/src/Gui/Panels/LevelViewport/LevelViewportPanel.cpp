@@ -113,20 +113,7 @@ namespace
             Pine::Vector4f perspective;
             Pine::Quaternion rotation;
 
-            if (Selection::GetSelectedEntities().size() > 1)
-            {
-                glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
-
-                for (int i = 1; i < Selection::GetSelectedEntities().size();i++)
-                {
-                    auto selectionTransform = Selection::GetSelectedEntities()[i]->GetTransform();
-
-                    if (m_GizmoMode == GizmoMode::Translate)
-                        selectionTransform->LocalPosition += position;
-                    if (m_GizmoMode == GizmoMode::Rotate)
-                        selectionTransform->LocalRotation *= rotation;
-                }
-            }
+            selectedEntity->SetDirty(true);
 
             if (selectedEntity->GetParent() != nullptr)
             {
@@ -168,6 +155,7 @@ namespace
                         entityTransform->LocalScale += scale;
 
                     entityTransform->OnRender(0.f);
+                    entity->SetDirty(true);
                 }
             }
 

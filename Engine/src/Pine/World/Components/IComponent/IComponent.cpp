@@ -7,6 +7,16 @@ Pine::IComponent::IComponent(ComponentType type)
 {
 }
 
+void Pine::IComponent::SetUniqueId(std::uint64_t id)
+{
+    m_UniqueId = id;
+}
+
+std::uint64_t Pine::IComponent::GetUniqueId() const
+{
+    return m_UniqueId;
+}
+
 void Pine::IComponent::SetActive(bool value)
 {
     m_Active = value;

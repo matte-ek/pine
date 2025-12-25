@@ -28,7 +28,7 @@ namespace Pine
 
         // Loading and parsing the actual audio files can probably be done multi-threaded,
         // but let's do single threaded for now.
-        m_LoadMode = AssetLoadMode::SingleThread;
+        m_LoadMode = AssetLoadMode::MultiThread;
     }
 
     bool AudioFile::ProcessFile()

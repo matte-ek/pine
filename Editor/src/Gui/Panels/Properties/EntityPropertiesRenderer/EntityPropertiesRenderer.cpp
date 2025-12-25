@@ -8,6 +8,7 @@
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "mono/metadata/object.h"
+#include "Other/Actions/Actions.hpp"
 #include "Pine/Assets/IAsset/IAsset.hpp"
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
@@ -103,7 +104,7 @@ namespace
 				modelRenderer->GetModel() != nullptr &&
 				modelRenderer->GetModelMeshIndex() == -1)
 			{
-				if (ImGui::Button("Unpack Model", ImVec2(100.f, 30.f)))
+				if (ImGui::Button("Unpack Model", ImVec2(110.f, 30.f)))
 				{
 					Pine::Utilities::Entity::UnpackModel(modelRenderer);
 				}
@@ -156,7 +157,7 @@ namespace
 			float spotlightRadius = light->GetSpotlightRadius();
 			float spotlightCutOff = light->GetSpotlightCutoff();
 
-			if (Widgets::Combobox("Light Type", &lightType, "Directional\0Spot Light\0Point Light\0"))
+			if (Widgets::Combobox("Light Type", &lightType, "Directional\0Point Light\0Spot Light\0"))
 			{
 				light->SetLightType(static_cast<Pine::LightType>(lightType));
 				m_UpdatedComponentData = true;
@@ -189,7 +190,7 @@ namespace
 				}
 			}
 
-			if (light->GetLightType() == Pine::LightType::PointLight)
+			if (light->GetLightType() == Pine::LightType::SpotLight)
 			{
 				if (Widgets::SliderFloat("Spotlight Radius", &spotlightRadius, 0.f, 1.f))
 				{
@@ -486,7 +487,7 @@ namespace
 					component->SetActive(isActive);
 				}
 
-				ImGui::SameLine(ImGui::GetContentRegionAvail().x - 16.f);
+				ImGui::SameLine(ImGui::GetContentRegionAvail().x - 24.f);
 
 				if (ImGui::Button(std::string(ICON_MD_DELETE "##" + std::to_string(index)).c_str()))
 				{
@@ -605,6 +606,30 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 				selectedEntityComponent->LoadData(j);
 			}
 		}
+
+	    // Store actions for undo/redo
+	    static bool saveComponentAction = false;
+
+	    if (Components::m_UpdatedComponentData)
+	    {
+	        if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+	        {
+	            saveComponentAction = true;
+	        }
+	        else
+	        {
+	            //Actions::RegisterComponentAction(Actions::Modify, component);
+	        }
+	    }
+
+	    if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && saveComponentAction)
+	    {
+	        saveComponentAction = false;
+
+	        entity->SetDirty(true);
+
+	        //Actions::RegisterComponentAction(Actions::Modify, component);
+	    }
 
 		index++;
 	}

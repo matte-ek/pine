@@ -4,11 +4,6 @@
 
 using namespace Pine;
 
-Transform::Transform() :
-        IComponent(ComponentType::Transform)
-{
-}
-
 void Transform::CalculateTransformationMatrix()
 {
     m_TransformationMatrix = Matrix4f(1.f);
@@ -18,6 +13,16 @@ void Transform::CalculateTransformationMatrix()
     m_TransformationMatrix = scale(m_TransformationMatrix, GetScale());
 
     m_IsDirty = false;
+}
+
+Transform::Transform() :
+    IComponent(ComponentType::Transform)
+{
+}
+
+void Transform::SetDirty()
+{
+    m_IsDirty = true;
 }
 
 void Transform::OnRender(float deltaTime)
@@ -98,6 +103,11 @@ Vector3f Transform::GetUp() const
     return LocalRotation * Vector3f(0.f, 1.f, 0.f);
 }
 
+const Matrix4f &Transform::GetTransformationMatrix() const
+{
+    return m_TransformationMatrix;
+}
+
 Vector3f Transform::GetEulerAngles() const
 {
     return degrees(eulerAngles(LocalRotation));
@@ -106,14 +116,4 @@ Vector3f Transform::GetEulerAngles() const
 void Transform::SetEulerAngles(Vector3f angle)
 {
     LocalRotation = glm::quat(radians(angle));
-}
-
-const Matrix4f &Transform::GetTransformationMatrix() const
-{
-    return m_TransformationMatrix;
-}
-
-void Transform::SetDirty()
-{
-    m_IsDirty = true;
 }

@@ -1,15 +1,16 @@
 #pragma once
+#include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
 
 namespace Pine
 {
-    namespace Pipeline3D
-    {
-        struct ObjectBatchData;
-    }
-
     namespace Graphics
     {
         class ITexture;
+    }
+
+    namespace Rendering
+    {
+        struct ObjectBatchData;
     }
 
     class Light;
@@ -28,7 +29,7 @@ namespace Pine::Rendering::Shadows
 
     void NewFrame(Camera* sceneCamera);
 
-    void RenderPassLight(const Light *light, const Pipeline3D::ObjectBatchData &batchData);
+    void RenderPassLight(const Light *light, const ObjectBatchData &batchData);
 
     void UploadShadowData(const Light* light);
 

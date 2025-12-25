@@ -13,9 +13,13 @@ namespace Pine::Renderer3D::ShaderStorages
         Matrix4f View;
     };
 
-    struct TransformData
+    struct InstanceData
     {
-        Matrix4f TransformationMatrix[Specifications::General::MAX_INSTANCE_COUNT];
+        struct Instance
+        {
+            Matrix4f TransformationMatrix;
+            Vector4i LightIndices;
+        }Instances[Specifications::General::MAX_INSTANCE_COUNT];
     };
 
     struct MaterialData
@@ -64,7 +68,7 @@ namespace Pine::Renderer3D::ShaderStorages
     };
 
     inline Graphics::ShaderStorage<MatrixData> Matrix(Specifications::ShaderStorages::MATRICES, "Matrices");
-    inline Graphics::ShaderStorage<TransformData> Transform(Specifications::ShaderStorages::TRANSFORM, "Transform");
+    inline Graphics::ShaderStorage<InstanceData> Instance(Specifications::ShaderStorages::INSTANCE, "Instances");
     inline Graphics::ShaderStorage<MaterialData> Material(Specifications::ShaderStorages::MATERIAL, "Material");
     inline Graphics::ShaderStorage<LightsData> Lights(Specifications::ShaderStorages::LIGHTS, "Lights");
     inline Graphics::ShaderStorage<ShadowData> Shadows(Specifications::ShaderStorages::SHADOWS, "Shadows");

@@ -61,17 +61,14 @@ in VertexData
     vec3 cameraPos;
 	vec3 cameraDir;
 	vec3 normalDir;
-	vec3 lightDir[4];
+	vec3 lightDir[5];
+    flat ivec4 lightIndices;
 }vIn;
 
 uniform TextureSamplers textureSamplers;
 
 uniform bool hasDirectionalShadowMap;
-
 uniform bool hasTangentData;
-
-// Light indices from Lights that should affect this object
-uniform ivec4 lightIndices;
 
 #shader hooks
 
@@ -106,7 +103,8 @@ BaseResult calculateBaseLightning(vec3 lightDirection, int lightIndex)
 
     result.diffuse = diffuse;
     result.specular = specular;
-    result.ambient = max(0.5 - diffuseFactor, 0) * ambient;
+    //result.ambient = max(0.5 - diffuseFactor, 0) * ambient;
+    result.ambient = ambient;
 
     return result;
 }
@@ -156,8 +154,8 @@ vec3 calculateDirectionalLight()
 
         result.diffuse *= shadow;
 
-        /*
-        if (cascadeIndex == 0)
+/*
+        if (cascadeIndex == 0) 
             result.diffuse *= vec3(0, 1, 0);
         else if (cascadeIndex == 1)
             result.diffuse *= vec3(1, 1, 0);
@@ -165,15 +163,16 @@ vec3 calculateDirectionalLight()
             result.diffuse *= vec3(1, 0, 0);
         else if (cascadeIndex == 3)
             result.diffuse *= vec3(0, 0, 1);
-        */
+*/
+
     }
 
     return result.diffuse + result.specular + result.ambient;
 }
 
-vec3 calculateSpotLight(int index)
+vec3 calculateSpotLight(int index, int directionIndex)
 {
-    BaseResult baseResult = calculateBaseLightning(vIn.lightDir[index], index);
+    BaseResult baseResult = calculateBaseLightning(vIn.lightDir[directionIndex], index);
 
     float lightDistance = length(lights[index].position - vIn.worldPosition);
     
@@ -190,9 +189,9 @@ vec3 calculateSpotLight(int index)
     return baseResult.diffuse + baseResult.specular + baseResult.ambient;
 }
 
-vec3 calculatePointLight(int index)
+vec3 calculatePointLight(int index, int directionIndex)
 {
-    BaseResult baseResult = calculateBaseLightning(vIn.lightDir[index], index);
+    BaseResult baseResult = calculateBaseLightning(vIn.lightDir[directionIndex], index);
 
     float lightDistance = length(lights[index].position - vIn.worldPosition);
     
@@ -219,32 +218,32 @@ vec3 calculateSpotLights()
 {
     vec3 a = vec3(0.f);
     vec3 b = vec3(0.f);
+    vec3 c = vec3(0.f);
 
-    if (lightIndices.x != 0) {
-        a = calculateSpotLight(lightIndices.x);
+    if (vIn.lightIndices.x != 0) {
+        a = calculateSpotLight(vIn.lightIndices.x, 1);
     }
 
-    if (lightIndices.y != 0) {
-        b = calculateSpotLight(lightIndices.y);
+    if (vIn.lightIndices.y != 0) {
+        b = calculateSpotLight(vIn.lightIndices.y, 2);
     }
 
-    return a + b;
+    if (vIn.lightIndices.z != 0) {
+        c = calculateSpotLight(vIn.lightIndices.z, 3);
+    }
+
+    return a + b + c;
 }
 
 vec3 calculatePointLights()
 {
     vec3 a = vec3(0.f);
-    vec3 b = vec3(0.f);
 
-    if (lightIndices.z != 0) {
-        a = calculatePointLight(lightIndices.z);
+    if (vIn.lightIndices.w != 0) {
+        a = calculatePointLight(vIn.lightIndices.w, 4);
     }
 
-    if (lightIndices.w != 0) {
-        b = calculatePointLight(lightIndices.w);
-    }
-
-    return a + b;
+    return a;
 }
 
 void main(void)

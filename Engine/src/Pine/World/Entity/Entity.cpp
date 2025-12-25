@@ -29,9 +29,25 @@ Pine::Entity::~Entity()
 
     m_Components.clear();
 
-    for (const auto child : m_Children)
+    // If the id is zero, this entity is not part of the world, therefore we'll have to do things
+    // a bit more manually.
+    if (m_Id == 0)
     {
-        Entities::Delete(child);
+        auto children = m_Children;
+
+        for (auto child : children)
+        {
+            delete child;
+        }
+
+        m_Children.clear();
+    }
+    else
+    {
+        while (!m_Children.empty())
+        {
+            Entities::Delete(m_Children.front());
+        }
     }
 
     if (m_Parent != nullptr)
@@ -65,6 +81,16 @@ void Pine::Entity::SetStatic(bool value)
 bool Pine::Entity::GetStatic() const
 {
     return m_Static;
+}
+
+void Pine::Entity::SetDirty(bool value)
+{
+    m_Dirty = value;
+}
+
+bool Pine::Entity::IsDirty() const
+{
+    return m_Dirty;
 }
 
 void Pine::Entity::SetTemporary(bool value)

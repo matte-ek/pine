@@ -162,6 +162,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
 
     IComponent* component;
     std::uint32_t componentLookupId = 0;
+    std::uint64_t uniqueId = 0;
 
     // Get a pointer to some free memory for the new component, depending on if we want a standalone
     // or in the data block
@@ -187,6 +188,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
         component = componentDataBlock->GetComponent(newTargetSlot);
 
         componentLookupId = newTargetSlot;
+        uniqueId = componentDataBlock->m_UniqueIdCount++;
 
         // Mark the index as occupied
         componentDataBlock->m_ComponentOccupationArray[newTargetSlot] = true;
@@ -205,6 +207,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
 
     component->SetStandalone(standalone);
     component->SetInternalId(componentLookupId);
+    component->SetUniqueId(uniqueId);
 
     return component;
 }
@@ -266,7 +269,7 @@ ComponentDataBlock<IComponent>& Components::GetData(ComponentType type)
     return *m_ComponentDataBlocks[static_cast<int>(type)];
 }
 
-Pine::IComponent* Pine::Components::GetByInternalId(ComponentType type, std::uint32_t internalId)
+IComponent* Components::GetByInternalId(ComponentType type, std::uint32_t internalId)
 {
     auto& block = GetData(type);
 

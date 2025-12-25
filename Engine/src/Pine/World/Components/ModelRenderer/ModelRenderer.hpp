@@ -1,13 +1,24 @@
 #pragma once
-#include "Pine/World/Components/IComponent/IComponent.hpp"
 #include "Pine/Assets/Model/Model.hpp"
+#include "Pine/World/Components/Components.hpp"
+#include "Pine/World/Components/IComponent/IComponent.hpp"
 
 namespace Pine
 {
+    class Light;
+
+    namespace Renderer3D
+    {
+        struct ModelRendererHintData
+        {
+            bool HasComputedData = false;
+
+            std::array<ComponentHandle<Light>, 4> LightSlotIndex = {};
+        };
+    }
 
     class ModelRenderer final : public IComponent
     {
-    private:
         AssetHandle<Model> m_Model;
         AssetHandle<Material> m_OverrideMaterial;
 
@@ -15,6 +26,8 @@ namespace Pine
         int m_StencilBufferValue = 0xFF;
 
         int m_ModelMeshIndex = -1;
+
+        Renderer3D::ModelRendererHintData m_RenderingHintData;
     public:
         ModelRenderer();
 
@@ -32,6 +45,8 @@ namespace Pine
 
         void SetModelMeshIndex(int index);
         int GetModelMeshIndex() const;
+
+        Renderer3D::ModelRendererHintData& GetRenderingHintData();
 
         void LoadData(const nlohmann::json& j) override;
         void SaveData(nlohmann::json& j) override;

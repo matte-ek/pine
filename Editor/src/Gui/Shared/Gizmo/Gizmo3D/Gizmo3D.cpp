@@ -89,7 +89,7 @@ namespace
         Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = true;
 
         m_ObjectSolidShader3D->GetProgram()->Use();
-        m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(1.f, 0.5f, 0.f));
+        m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(0.8f, 0.3f, 0.f));
 
         for (auto& entity : selectedEntities)
         {
@@ -105,9 +105,13 @@ namespace
             auto oldScale = entity->GetTransform()->LocalScale;
             const auto distance = glm::length(RenderHandler::GetLevelRenderingContext()->SceneCamera->GetParent()->GetTransform()->LocalPosition - entity->GetTransform()->LocalPosition);
 
-            entity->GetTransform()->LocalScale += Pine::Vector3f((distance / 9.41f) * 0.01f);
+            entity->GetTransform()->LocalScale += Pine::Vector3f((distance / 9.41f) * 0.05f);
+
+            entity->GetTransform()->SetDirty();
             entity->GetTransform()->OnRender(0.f);
+
             entity->GetTransform()->LocalScale = oldScale;
+            entity->GetTransform()->SetDirty();
 
             auto transformationMatrix = entity->GetTransform()->GetTransformationMatrix();
 

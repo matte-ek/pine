@@ -3,15 +3,21 @@
 layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec3 normal;
 
+struct Instance
+{
+	mat4 transformationMatrix;
+	ivec4 lightIndices;
+};
+
 layout(std140) uniform Matrices
 {
 	mat4 projectionMatrix;
 	mat4 viewMatrix;
 };
 
-layout(std140) uniform Transform 
+layout(std140) uniform Instances 
 {
-	mat4 transformationMatrices[128];
+	Instance instances[128];
 };
 
 out VertexData
@@ -24,7 +30,7 @@ out VertexData
 void main()
 {
 	vec4 vertexPosition = vec4(vertex, 1.0);
-	mat4 transformationMatrix = transformationMatrices[gl_InstanceID];
+	mat4 transformationMatrix = instances[gl_InstanceID].transformationMatrix;
 
 	mat3 normalMatrix = transpose(inverse(mat3(viewMatrix * transformationMatrix)));
 

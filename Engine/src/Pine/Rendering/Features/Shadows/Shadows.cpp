@@ -7,6 +7,7 @@
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/Rendering/Renderer3D/ShaderStorages.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
@@ -62,7 +63,7 @@ namespace
         return glm::ortho(min.x, max.x, min.y, max.y, min.z - farPlaneMargin, max.z + farPlaneMargin);
     }
 
-    void RenderScene(const Pipeline3D::ObjectBatchMap& mapBatch)
+    void RenderScene(const Rendering::ObjectBatchMap& mapBatch)
     {
         for (const auto& [modelGroup, objectRenderInstances] : mapBatch)
         {
@@ -132,7 +133,7 @@ namespace
         m_SceneCamera->OnRender(0.f);
     }
 
-    void HandleDirectionalShadowMap(const Light* light, const Pipeline3D::ObjectBatchData &batchData)
+    void HandleDirectionalShadowMap(const Light* light, const Rendering::ObjectBatchData &batchData)
     {
         const auto context = RenderManager::GetCurrentRenderingContext();
         auto& renderSettings = Renderer3D::GetRenderConfiguration();
@@ -207,7 +208,7 @@ void Rendering::Shadows::NewFrame(Camera* sceneCamera)
     m_SceneCamera = sceneCamera;
 }
 
-void Rendering::Shadows::RenderPassLight(const Light* light, const Pipeline3D::ObjectBatchData &batchData)
+void Rendering::Shadows::RenderPassLight(const Light* light, const ObjectBatchData &batchData)
 {
     Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
 

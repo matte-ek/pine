@@ -61,7 +61,7 @@ namespace
     std::vector m_AssetFactories = {
         AssetFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
         AssetFactory( { { "cmap" }, AssetType::Texture3D, [](){ return new Texture3D(); } } ),
-        AssetFactory( { { "obj", "fbx", "glb" }, AssetType::Model, [](){ return new Model(); } } ),
+        AssetFactory( { { "obj", "fbx", "glb", "dae" }, AssetType::Model, [](){ return new Model(); } } ),
         AssetFactory( { { "mat" }, AssetType::Material, [](){ return new Material(); } } ),
         AssetFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
@@ -353,7 +353,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
 
     // Make sure we're not overdoing it, but if this is true
     // we're probably overdoing it anyway.
-    int threadAmount = 4;
+    int threadAmount = 10;
     if (threadAmount > multiThreadAssetCount)
     {
         threadAmount = multiThreadAssetCount;

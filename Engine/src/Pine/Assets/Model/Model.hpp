@@ -28,6 +28,9 @@ namespace Pine
         Vector3f* Tangents = nullptr;
         Vector2f* UVs = nullptr;
 
+        Vector3f BoundingBoxMin = {};
+        Vector3f BoundingBoxMax = {};
+
         std::uint32_t* Indices = nullptr;
 
         std::uint32_t VertexCount = 0;

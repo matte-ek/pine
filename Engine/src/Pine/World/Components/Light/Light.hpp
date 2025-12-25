@@ -8,9 +8,17 @@ namespace Pine
     enum class LightType
     {
         Directional,
-        SpotLight,
-        PointLight
+        PointLight,
+        SpotLight
     };
+
+    namespace Renderer3D
+    {
+        struct LightHintData
+        {
+            std::uint16_t LightIndex {};
+        };
+    }
 
     class Light final  : public IComponent
     {
@@ -23,6 +31,8 @@ namespace Pine
 
         float m_SpotlightRadius = 1.0f;
         float m_SpotlightCutoff = 1.0f;
+
+        Renderer3D::LightHintData m_LightHintData;
     public:
         Light();
 
@@ -40,6 +50,8 @@ namespace Pine
 
         void SetSpotlightCutoff(float cutoff);
         float GetSpotlightCutoff() const;
+
+        Renderer3D::LightHintData& GetLightHintData();
 
         void LoadData(const nlohmann::json& j) override;
         void SaveData(nlohmann::json& j) override;

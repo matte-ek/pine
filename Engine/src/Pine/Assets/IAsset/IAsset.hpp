@@ -196,7 +196,6 @@ namespace Pine
     private:
         mutable T *m_Asset = nullptr;
     public:
-
         T *Get() const
         {
             // Make sure to remove any pending deletion assets

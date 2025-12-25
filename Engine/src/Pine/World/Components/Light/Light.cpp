@@ -56,6 +56,11 @@ float Pine::Light::GetSpotlightCutoff() const
     return m_SpotlightCutoff;
 }
 
+Pine::Renderer3D::LightHintData& Pine::Light::GetLightHintData()
+{
+    return m_LightHintData;
+}
+
 void Pine::Light::LoadData(const nlohmann::json &j)
 {
     Serialization::LoadValue(j, "lightType", m_LightType);

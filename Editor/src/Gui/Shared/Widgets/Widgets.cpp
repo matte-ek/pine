@@ -22,7 +22,7 @@ namespace
 
         ImGui::NextColumn();
 
-        ImGui::BeginChild(std::string(str + "ControlChild").c_str(), ImVec2(-1.f, 25.f), false);
+        ImGui::BeginChild(std::string(str + "ControlChild").c_str(), ImVec2(-1.f, 28.f), false);
     }
 
     void FinishWidget()
@@ -209,7 +209,7 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
 
     strcpy(buff, assetFileName.c_str());
 
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.f);
 
     ImGui::InputText(std::string("##AssetPath" + str).c_str(), buff, 128, ImGuiInputTextFlags_ReadOnly);
 
@@ -369,7 +369,7 @@ EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::stri
 
     strcpy(buff, entityName.c_str());
 
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.f);
 
     ImGui::InputText(std::string("##EntityName" + str).c_str(), buff, 128, ImGuiInputTextFlags_ReadOnly);
 

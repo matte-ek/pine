@@ -136,7 +136,7 @@ Pine::Graphics::GLTexture::GLTexture()
 
 void Pine::Graphics::GLTexture::Bind(int textureIndex)
 {
-    if (m_BoundTextures[textureIndex] == textureIndex)
+    if (m_BoundTextures[textureIndex] == m_Id)
     {
         return;
     }

@@ -69,3 +69,8 @@ int Pine::ModelRenderer::GetModelMeshIndex() const
 {
     return m_ModelMeshIndex;
 }
+
+Pine::Renderer3D::ModelRendererHintData& Pine::ModelRenderer::GetRenderingHintData()
+{
+    return m_RenderingHintData;
+}

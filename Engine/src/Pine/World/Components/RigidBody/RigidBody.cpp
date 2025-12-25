@@ -46,8 +46,8 @@ void Pine::RigidBody::UpdateBody()
     }
 
     const auto transform = GetParent()->GetTransform();
-    const auto position = transform->LocalPosition;
-    const auto rotation = transform->LocalRotation;
+    const auto position = transform->GetPosition();
+    const auto rotation = transform->GetRotation();
 
     m_RigidBodyTransform.p.x = position.x;
     m_RigidBodyTransform.p.y = position.y;

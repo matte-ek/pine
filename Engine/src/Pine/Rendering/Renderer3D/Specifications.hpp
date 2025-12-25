@@ -45,7 +45,7 @@ namespace Pine::Renderer3D::Specifications
     namespace ShaderStorages
     {
         constexpr int MATRICES = 0;
-        constexpr int TRANSFORM = 1;
+        constexpr int INSTANCE = 1;
         constexpr int MATERIAL = 2;
         constexpr int LIGHTS = 3;
         constexpr int SHADOWS = 4;

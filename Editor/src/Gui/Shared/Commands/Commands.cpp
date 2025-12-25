@@ -1,10 +1,11 @@
 #include <GLFW/glfw3.h>
-#include "Actions.hpp"
+#include "Commands.hpp"
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Gui/Shared/KeybindSystem/KeybindSystem.hpp"
+#include "Other/Actions/Actions.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 
@@ -26,7 +27,7 @@ namespace
     }
 }
 
-void Actions::Setup()
+void Commands::Setup()
 {
     Keybinds::Copy = KeybindSystem::RegisterKeybind("Copy", GLFW_KEY_C, true);
     Keybinds::Paste = KeybindSystem::RegisterKeybind("Paste", GLFW_KEY_V, true);
@@ -38,17 +39,17 @@ void Actions::Setup()
     Keybinds::Save = KeybindSystem::RegisterKeybind("Save", GLFW_KEY_S, true);
 }
 
-void Actions::Dispose()
+void Commands::Dispose()
 {
 }
 
-void Actions::Copy()
+void Commands::Copy()
 {
     ClipboardEntities = Selection::GetSelectedEntities();
     ClipboardAssets = Selection::GetSelectedAssets();
 }
 
-void Actions::Paste()
+void Commands::Paste()
 {
     Selection::Clear();
 
@@ -72,13 +73,13 @@ void Actions::Paste()
     }
 }
 
-void Actions::Duplicate()
+void Commands::Duplicate()
 {
     Copy();
     Paste();
 }
 
-void Actions::Delete()
+void Commands::Delete()
 {
     if (!Selection::GetSelectedEntities().empty())
     {
@@ -100,15 +101,16 @@ void Actions::Delete()
     Selection::Clear();
 }
 
-void Actions::Undo()
+void Commands::Undo()
+{
+    Actions::Undo();
+}
+
+void Commands::Redo()
 {
 }
 
-void Actions::Redo()
-{
-}
-
-void Actions::Refresh(bool engineAssets)
+void Commands::Refresh(bool engineAssets)
 {
     if (engineAssets)
     {
@@ -119,7 +121,7 @@ void Actions::Refresh(bool engineAssets)
     Panels::AssetBrowser::RebuildAssetTree();
 }
 
-void Actions::Save()
+void Commands::Save()
 {
     if (Pine::World::GetActiveLevel())
         Pine::World::GetActiveLevel()->CreateFromWorld();
@@ -127,7 +129,7 @@ void Actions::Save()
     Pine::Assets::SaveAll();
 }
 
-void Actions::Update()
+void Commands::Update()
 {
     if (KeybindSystem::IsKeybindPressed(Keybinds::Copy))
         Copy();

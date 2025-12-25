@@ -46,6 +46,9 @@ void Model::ProcessMesh(aiMesh *mesh, const aiScene *scene)
         }
     }
 
+    loadData.BoundingBoxMin = Vector3f(mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z);
+    loadData.BoundingBoxMax = Vector3f(mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z);
+
     std::vector<std::uint32_t> indices;
 
     for (unsigned int i = 0; i < mesh->mNumFaces; i++)
@@ -179,14 +182,26 @@ void Model::UploadModel()
         mesh->SetVertices(reinterpret_cast<float *>(loadData.Vertices), sizeof(Vector3f) * loadData.VertexCount);
 
         if (loadData.Normals)
+        {
             mesh->SetNormals(reinterpret_cast<float *>(loadData.Normals), sizeof(Vector3f) * loadData.VertexCount);
+        }
+
         if (loadData.UVs)
+        {
             mesh->SetUvs(reinterpret_cast<float *>(loadData.UVs), sizeof(Vector2f) * loadData.VertexCount);
+        }
+
         if (loadData.Tangents)
+        {
             mesh->SetTangents(reinterpret_cast<float *>(loadData.Tangents), sizeof(Vector3f) * loadData.VertexCount);
+        }
+
         if (loadData.Indices)
-            mesh->SetIndices(reinterpret_cast<unsigned int *>(loadData.Indices),
-                             sizeof(std::uint32_t) * loadData.IndicesCount);
+        {
+            mesh->SetIndices(loadData.Indices, sizeof(std::uint32_t) * loadData.IndicesCount);
+        }
+
+        mesh->SetAABB(loadData.BoundingBoxMin, loadData.BoundingBoxMax);
 
         bool hasEngineMaterialKey = m_Metadata.contains("material") && m_Metadata["material"].contains(std::to_string(i));
         std::string engineMaterial = hasEngineMaterialKey ? m_Metadata["material"][std::to_string(i)] : "null";
@@ -210,7 +225,7 @@ void Model::UploadModel()
                 material->SetFilePath(parentDirectory + modelName + std::to_string(i) + ".mat");
 
                 material->SetDiffuseColor(loadData.DefaultMaterial.DiffuseColor);
-                material->SetAmbientColor(loadData.DefaultMaterial.AmbientColor);
+                //material->SetAmbientColor(loadData.DefaultMaterial.AmbientColor);
                 material->SetShininess(loadData.DefaultMaterial.Shininess);
 
                 if (!loadData.DefaultMaterial.DiffuseMap.empty())

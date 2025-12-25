@@ -15,15 +15,21 @@ struct Light
 	float cutOffSmoothness;
 };
 
+struct Instance
+{
+	mat4 transformationMatrix;
+	ivec4 lightIndices;
+};
+
 layout(std140) uniform Matrices
 {
 	mat4 projectionMatrix;
 	mat4 viewMatrix;
 };
 
-layout(std140) uniform Transform 
+layout(std140) uniform Instances 
 {
-	mat4 transformationMatrices[128];
+	Instance instances[128];
 };
 
 layout(std140) uniform Lights 
@@ -39,32 +45,39 @@ out VertexData
 	vec3 cameraPos;
 	vec3 cameraDir;
 	vec3 normalDir;
-	vec3 lightDir[4];
+	vec3 lightDir[5];
+    flat ivec4 lightIndices;
 }vOut;
 
 uniform bool hasTangentData;
-
-// Light indices from Lights that should affect this object
-uniform ivec4 lightsIndices;
 
 #shader hooks
 
 void main()
 {
 	vec4 vertexPosition = vec4(vertex, 1.0);
-	mat4 transformationMatrix = transformationMatrices[gl_InstanceID];
+	mat4 transformationMatrix = instances[gl_InstanceID].transformationMatrix;
 
 	#shader preVertex
 
 	vOut.worldPosition = (transformationMatrix * vertexPosition).xyz;
 	vOut.uv = uv;
 	vOut.cameraPos = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vOut.lightIndices = instances[gl_InstanceID].lightIndices;
 
 	// Apply object transformation to our normal vector
 	vec3 worldNormalDir = normalize((transformationMatrix * vec4(normal, 0.0)).xyz);
 	
 	// Extract the camera origin from the view matrix, and calculate the direction from the vertex.
 	vec3 cameraDir = normalize(vOut.cameraPos - vOut.worldPosition.xyz);	
+
+	// Pass everything directly in world space
+	vOut.lightDir[0] = normalize(lights[0].rotation);
+
+	vOut.lightDir[1] = normalize(lights[vOut.lightIndices.x].position - vOut.worldPosition.xyz);
+	vOut.lightDir[2] = normalize(lights[vOut.lightIndices.y].position - vOut.worldPosition.xyz);
+	vOut.lightDir[3] = normalize(lights[vOut.lightIndices.z].position - vOut.worldPosition.xyz);
+	vOut.lightDir[4] = normalize(lights[vOut.lightIndices.w].position - vOut.worldPosition.xyz);
 
 	if (hasTangentData)
 	{
@@ -79,11 +92,11 @@ void main()
 			worldTangent.z, worldBiTangent.z, worldNormalDir.z
 		);
 
-		vOut.lightDir[0] = tangentMatrix * normalize(lights[0].rotation);
+		vOut.lightDir[0] = tangentMatrix * vOut.lightDir[0];
 
 		for (int i = 1; i < 4;i++)
 		{
-			vOut.lightDir[i] = tangentMatrix * normalize(lights[i].position - vOut.worldPosition.xyz);
+			vOut.lightDir[i] = tangentMatrix * vOut.lightDir[i];
 		}	
 
 		vOut.cameraDir = tangentMatrix * cameraDir;
@@ -91,14 +104,6 @@ void main()
 	}
 	else
 	{
-		// Pass everything directly in world space
-		vOut.lightDir[0] = normalize(lights[0].rotation);
-
-		for (int i = 1; i < 4;i++)
-		{
-			vOut.lightDir[i] = normalize(lights[i].position - vOut.worldPosition.xyz);
-		}	
-
 		vOut.cameraDir = cameraDir;
 		vOut.normalDir = worldNormalDir;
 	}

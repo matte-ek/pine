@@ -8,12 +8,6 @@ layout(std140) uniform Matrices
 	mat4 viewMatrix;
 };
 
-in VertexData
-{
-	vec2 uv;
-	vec3 worldPosition;
-}vIn;
-
 uniform vec3 m_Color;
 
 void main(void)

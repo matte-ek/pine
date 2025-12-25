@@ -18,6 +18,11 @@ namespace Pine
         bool m_Active = true;
         bool m_Static = false;
 
+        // This is a way to indicate to the engine components if the entity has been modified in a way
+        // that is usually not possible, say for example modifying the position of a static entity. This
+        // is primarily used by the editor.
+        bool m_Dirty = false;
+
         // Temporary entities are entities that by default should not get stored into for example a Level,
         // this could be used for in-game temporary stuff or an editor entity.
         bool m_Temporary = false;
@@ -44,6 +49,9 @@ namespace Pine
 
         void SetStatic(bool value);
         bool GetStatic() const;
+
+        void SetDirty(bool value);
+        bool IsDirty() const;
 
         void SetTemporary(bool value);
         bool GetTemporary() const;

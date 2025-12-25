@@ -25,6 +25,9 @@ namespace Pine
         // The number of components the array currently can fit (capacity)
         std::uint32_t m_ComponentArrayAllocatedCount = 0;
 
+        // Incrementing counter to hand out unique ids to every created component.
+        std::uint64_t m_UniqueIdCount = 0;
+
         // Cached version of GetHighestComponentIndex(), _should_ always be correct. Will be -1 if empty.
         int m_HighestComponentIndex = -1;
 
@@ -223,4 +226,56 @@ namespace Pine::Components
 
     // Internal hints that may be set by the engine to optimize component iteration
     void RecomputeHighestComponentIndex();
+}
+
+namespace Pine
+{
+
+    template<class T>
+    class ComponentHandle
+    {
+        mutable bool m_Valid = true;
+
+        ComponentType m_Type = ComponentType::Transform;
+        std::uint64_t m_UniqueId {};
+        std::uint32_t m_InternalId {};
+    public:
+
+        T *Get()
+        {
+            if (!m_Valid)
+            {
+                return nullptr;
+            }
+
+            const auto component = Components::GetByInternalId(m_Type, m_InternalId);
+            if (!component || component->GetUniqueId() != m_UniqueId)
+            {
+                m_Valid = false;
+                return nullptr;
+            }
+
+            return dynamic_cast<T*>(component);
+        }
+
+        T *operator->()
+        {
+            return Get();
+        }
+
+        ComponentHandle &operator=(const IComponent *component)
+        {
+            m_Type = component->GetType();
+            m_UniqueId = component->GetUniqueId();
+            m_InternalId = component->GetInternalId();
+
+            return *this;
+        }
+
+        bool operator==(const IComponent *b) const
+        {
+            return m_UniqueId == b->GetUniqueId();
+        }
+    };
+
 }

@@ -21,7 +21,7 @@ namespace Pine
 	private:
 		Vector3f m_DiffuseColor = Vector3f(1.f, 1.f, 1.f);
 		Vector3f m_SpecularColor = Vector3f(0.f, 0.f, 0.f);
-		Vector3f m_AmbientColor = Vector3f(0.05f, 0.05f, 0.05f);
+		Vector3f m_AmbientColor = Vector3f(0.00f, 0.00f, 0.00f);
 
 		AssetHandle<Texture2D> m_Diffuse;
 		AssetHandle<Texture2D> m_Specular;

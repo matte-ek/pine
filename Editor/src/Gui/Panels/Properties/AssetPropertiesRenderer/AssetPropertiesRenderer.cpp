@@ -149,6 +149,8 @@ namespace
             {
                 ImGui::Text("Render Count: %d", mesh->GetRenderCount());
                 ImGui::Text("Has Element Buffer: %s", mesh->HasElementBuffer() ? "Yes" : "No");
+                ImGui::Text("AABB Mins: (%f, %f, %f)", mesh->GetBoundingBoxMin().x, mesh->GetBoundingBoxMin().y, mesh->GetBoundingBoxMin().z);
+                ImGui::Text("AABB Maxs: (%f, %f, %f)", mesh->GetBoundingBoxMax().x, mesh->GetBoundingBoxMax().y, mesh->GetBoundingBoxMax().z);
 
                 const auto newMaterial = Widgets::AssetPicker("Material", std::to_string(i), mesh->GetMaterial(), Pine::AssetType::Material);
                 if (newMaterial.hasResult)

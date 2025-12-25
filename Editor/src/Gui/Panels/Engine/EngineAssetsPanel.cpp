@@ -4,7 +4,7 @@
 
 namespace
 {
-    bool m_Active = true;
+    bool m_Active = false;
 }
 
 void Panels::EngineAssetsPanel::Render()

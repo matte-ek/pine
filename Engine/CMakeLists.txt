@@ -23,15 +23,6 @@ find_package(imguizmo CONFIG REQUIRED)
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
-add_library(Engine ${SOURCES}
-        src/Pine/World/Components/AudioSource/AudioSource.hpp
-        src/Pine/World/Components/AudioSource/AudioSource.cpp
-        src/Pine/World/Components/AudioListener/AudioListener.hpp
-        src/Pine/World/Components/AudioListener/AudioListener.cpp
-        src/Pine/Rendering/Features/Shadows/Shadows.hpp
-        src/Pine/Rendering/Features/Shadows/Shadows.cpp
-        src/Pine/Threading/Threading.hpp
-        src/Pine/Threading/ThreadPool/ThreadPool.hpp
-        src/Pine/Threading/Threading.cpp)
+add_library(Engine ${SOURCES})
 
 target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL)

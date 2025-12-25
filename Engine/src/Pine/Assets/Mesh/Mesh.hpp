@@ -20,6 +20,9 @@ namespace Pine
         Model* m_Model = nullptr;
 
         bool m_HasTangentData = false;
+
+        Vector3f m_BoundingBoxMin = {};
+        Vector3f m_BoundingBoxMax = {};
     public:
         explicit Mesh(Model* model);
 
@@ -35,11 +38,16 @@ namespace Pine
 
         Model* GetModel() const;
 
+        const Vector3f& GetBoundingBoxMin() const;
+        const Vector3f& GetBoundingBoxMax() const;
+
         void SetVertices(float* vertices, std::size_t size);
         void SetIndices(std::uint32_t* indices, std::size_t size);
         void SetNormals(float* normals, std::size_t size);
         void SetTangents(float* tangents, std::size_t size);
         void SetUvs(float* uvs, std::size_t size);
+
+        void SetAABB(Vector3f min, Vector3f max);
 
         void Dispose();
     };

@@ -20,7 +20,7 @@ namespace Pine
         // to manually call SetDirty() to update the transformation matrix.
         void SetDirty();
 
-        void OnRender(float deltaTime) final;
+        void OnRender(float deltaTime) override;
 
         void LoadData(const nlohmann::json& j) override;
         void SaveData(nlohmann::json& j) override;

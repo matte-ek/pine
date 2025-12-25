@@ -12,6 +12,8 @@ namespace Pine
 
 namespace Pine::Renderer3D
 {
+    struct ModelRendererHintData;
+
     struct RenderConfiguration
     {
         // Global material override
@@ -42,15 +44,15 @@ namespace Pine::Renderer3D
     void PrepareMesh(Mesh* mesh, Material* overrideMaterial = nullptr);
 
     // Adds the transform to the ongoing instance batch, returns true if flushing is required, i.e. rendering via RenderMeshInstanced.
-    bool AddInstance(const Matrix4f& transformationMatrix);
+    bool AddInstance(const Matrix4f& transformationMatrix, ModelRendererHintData* data = nullptr);
 
     // Renders the prepared mesh with a single transform
-    void RenderMesh(const Matrix4f& transformationMatrix, int writeStencilBuffer = 0x00);
+    void RenderMesh(const Matrix4f& transformationMatrix, ModelRendererHintData* data = nullptr, int writeStencilBuffer = 0x00);
 
     // Renders the prepared mesh with the current instance batch, see Renderer3D::AddInstance(...)
     void RenderMeshInstanced();
 
-    void AddLight(const Light* light);
+    void AddLight(Light* light);
     void AddDirectionalShadowMap(Graphics::ITexture* depthMap);
     void UploadLights();
 

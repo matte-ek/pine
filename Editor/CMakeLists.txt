@@ -11,6 +11,8 @@ file(GLOB_RECURSE IMGUI_SOURCES "imgui/*.cpp")
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
-add_executable(Editor ${SOURCES} ${IMGUI_SOURCES})
+add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
+        src/Other/Actions/Actions.cpp
+        src/Other/Actions/Actions.hpp)
 
 target_link_libraries(Editor Engine mono-2.0)

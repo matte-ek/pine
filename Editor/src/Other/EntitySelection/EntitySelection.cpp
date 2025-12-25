@@ -63,6 +63,8 @@ namespace
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader3D;
         Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = true;
 
+        Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
+
         for (const auto &modelRenderer: Pine::Components::Get<Pine::ModelRenderer>())
         {
             if (!modelRenderer.GetModel())
