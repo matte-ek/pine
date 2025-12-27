@@ -146,7 +146,7 @@ physx::PxShape * Pine::Collider::CreateCollisionShape() const
     case ColliderType::Sphere:
         return Physics3D::GetPhysics()->createShape(physx::PxSphereGeometry(size.x), *Physics3D::GetDefaultMaterial());
     case ColliderType::Capsule:
-        return Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(size.x, size.y), *Physics3D::GetDefaultMaterial());
+        return Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(size.y, size.x), *Physics3D::GetDefaultMaterial());
     default:
         break;
     }

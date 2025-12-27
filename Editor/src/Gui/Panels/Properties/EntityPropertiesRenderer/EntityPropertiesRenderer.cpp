@@ -242,7 +242,7 @@ namespace
 
 				if (Widgets::InputFloat("Collider Height", &size.y))
 				{
-					collider->SetRadius(size.y);
+					collider->SetHeight(size.y);
 					m_UpdatedComponentData = true;
 				}
 			}
@@ -423,6 +423,8 @@ namespace
 					}
 				}
 			}
+
+		    ImGui::Spacing();
 		}
 
 		void RenderCollider2D(Pine::Collider2D* collider)
