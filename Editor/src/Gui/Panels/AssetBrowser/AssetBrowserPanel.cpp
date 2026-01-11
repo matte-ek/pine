@@ -781,7 +781,7 @@ void Panels::AssetBrowser::Render()
     const float spaceAvailable = ImGui::GetContentRegionAvail().x - static_cast<float>(iconSizePadding * 2);
     const int nrColumns = static_cast<int>(spaceAvailable) / iconSizePadding;
 
-    if (nrColumns == 0)
+    if (nrColumns <= 0)
     {
         ImGui::EndChild();
         ImGui::End();
