@@ -36,6 +36,7 @@ namespace Pine::Graphics
         void SetStencilTestEnabled(bool value) override;
         void SetFaceCullingEnabled(bool value) override;
         void SetMultiSampleEnabled(bool value) override;
+        void SetWireframeEnabled(bool value) override;
 
         void SetFaceCullingMode(FaceCullMode mode) override;
 

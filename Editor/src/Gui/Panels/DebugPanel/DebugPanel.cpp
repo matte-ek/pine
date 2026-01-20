@@ -51,7 +51,7 @@ void Panels::Debug::Render()
                 ImGui::Text("Has Computed Light Data: %d", lightData.HasComputedData);
 
                 // Point Lights
-                for (int i = 0; i < 3;i++)
+                for (int i = 0; i < 5;i++)
                 {
                     if (auto light = lightData.LightSlotIndex[i].Get())
                     {
@@ -64,7 +64,7 @@ void Panels::Debug::Render()
                 }
 
                 // Spotlights
-                if (auto light = lightData.LightSlotIndex[3].Get())
+                if (auto light = lightData.LightSlotIndex[5].Get())
                 {
                     ImGui::Text("Spot Light #1: %s", light->GetParent()->GetName().c_str());
                 }

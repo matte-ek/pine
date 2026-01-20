@@ -43,6 +43,7 @@ namespace Pine
         ~Entity();
 
         std::uint32_t GetId() const;
+        std::uint32_t GetInternalId() const;
 
         void SetActive(bool value);
         bool GetActive() const;

@@ -11,6 +11,8 @@
 #include <mono/metadata/exception.h>
 #include <unordered_map>
 
+#include "Pine/Script/Runtime/ScriptingRuntime.hpp"
+
 namespace
 {
     std::unordered_map<MonoType*, Pine::ComponentType> m_ComponentTypeLookupMap;
@@ -56,6 +58,29 @@ namespace
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         Pine::Entities::Delete(Pine::Entities::GetByInternalId(internalId));
+    }
+
+    MonoArray* GetChildren(std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+
+        auto entity = Pine::Entities::GetByInternalId(internalId);
+
+        if (!entity)
+        {
+            return nullptr;
+        }
+
+        auto& children = entity->GetChildren();
+        auto arr = mono_array_new(mono_domain_get(), Pine::Script::ObjectFactory::GetEntityClass(), children.size());
+
+        for (int i = 0; i < children.size();i++)
+        {
+            mono_array_setref(arr, i, mono_gchandle_get_target(entity->GetChildren()[i]->GetScriptHandle()->Handle));
+            //mono_array_set(arr, MonoObject*, i, mono_gchandle_get_target(entity->GetChildren()[i]->GetScriptHandle()->Handle));
+        }
+
+        return arr;
     }
 
     MonoObject* GetTransform(std::uint32_t internalId)
@@ -150,6 +175,7 @@ void Pine::Script::Interfaces::Entity::Setup()
     mono_add_internal_call("Pine.World.Entity::SetActive", reinterpret_cast<void*>(SetEntityActive));
     mono_add_internal_call("Pine.World.Entity::GetStatic", reinterpret_cast<void*>(GetEntityStatic));
     mono_add_internal_call("Pine.World.Entity::SetStatic", reinterpret_cast<void*>(SetEntityStatic));
+    mono_add_internal_call("Pine.World.Entity::GetChildren", reinterpret_cast<void*>(GetChildren));
     mono_add_internal_call("Pine.World.Entity::GetTransform", reinterpret_cast<void*>(GetTransform));
     mono_add_internal_call("Pine.World.Entity::HasComponent", reinterpret_cast<void*>(HasComponent));
     mono_add_internal_call("Pine.World.Entity::GetComponent", reinterpret_cast<void*>(GetComponent));

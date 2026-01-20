@@ -3,6 +3,8 @@
 #include <Pine/Assets/Assets.hpp>
 #include <Pine/Assets/Shader/Shader.hpp>
 #include <Pine/Graphics/Graphics.hpp>
+
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
 
@@ -23,6 +25,8 @@ void Pine::Rendering::PostProcessing::Shutdown()
 
 void Pine::Rendering::PostProcessing::Render(const RenderingContext *renderingContext, Graphics::IFrameBuffer *sceneFrameBuffer)
 {
+    PINE_PF_SCOPE();
+
     // Make sure Setup() has been called, and the engine files are available
     assert(m_PostProcessingShader != nullptr);
 

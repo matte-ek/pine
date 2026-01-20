@@ -20,6 +20,7 @@
 #include <GLFW/glfw3.h>
 #include <stdexcept>
 
+#include "Pine/Game/Game.hpp"
 #include "Pine/Physics/Physics2D/Physics2D.hpp"
 #include "Pine/Threading/Threading.hpp"
 
@@ -116,6 +117,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     Physics2D::Setup();
     Input::Setup();
     World::Setup();
+    Game::Setup();
     Utilities::HotReload::Setup();
 
     // Finish initialization
@@ -146,6 +148,9 @@ void Pine::Engine::Run()
     // At this point the user should have loaded their game assembly, so we can allow the
     // script manager to start preparing all the scripts.
     Script::Manager::ReloadScripts();
+
+    // If a startup level has been specified, it's now time to load it before starting the main loop.
+    Game::OnStartup();
 
     // The main rendering loop itself
     while (WindowManager::IsWindowOpen())

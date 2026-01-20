@@ -5,6 +5,7 @@
 #include "Pine/World/Components/IComponent/IComponent.hpp"
 
 #include "physx/PxPhysicsAPI.h"
+#include "Pine/Core/Math/Math.hpp"
 
 namespace Pine
 {
@@ -29,9 +30,13 @@ namespace Pine
         physx::PxRigidDynamic *m_RigidBody = nullptr;
         physx::PxTransform m_RigidBodyTransform;
 
+        std::array<bool, 3> m_PositionLock = {false, false, false};
         std::array<bool, 3> m_RotationLock = {false, false, false};
 
         Collider *m_EngineCollider = nullptr;
+
+        float m_MaxAngularVelocity = 0.0f;
+        float m_MaxLinearVelocity = 0.0f;
 
         void UpdateColliders();
         void UpdateBody();
@@ -39,6 +44,8 @@ namespace Pine
         RigidBody();
 
         physx::PxRigidDynamic *GetRigidBody() const;
+
+        void ApplyForce(const Vector3f& force, physx::PxForceMode::Enum mode = physx::PxForceMode::Enum::eFORCE) const;
 
         void SetRigidBodyType(RigidBodyType type);
         RigidBodyType GetRigidBodyType() const;
@@ -48,6 +55,18 @@ namespace Pine
 
         void SetGravityEnabled(bool value);
         bool GetGravityEnabled() const;
+
+        void SetMaxLinearVelocity(float maxLinearVelocity);
+        float GetMaxLinearVelocity() const;
+
+        void SetMaxAngularVelocity(float maxAngularVelocity);
+        float GetMaxAngularVelocity() const;
+
+        void SetRotationLock(std::array<bool, 3> value);
+        std::array<bool, 3> GetRotationLock() const;
+
+        void SetPositionLock(std::array<bool, 3> value);
+        std::array<bool, 3> GetPositionLock() const;
 
         bool IsColliderAttached(const Collider *collider) const;
 

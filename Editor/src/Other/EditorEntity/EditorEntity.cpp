@@ -68,7 +68,7 @@ namespace
         		m_Velocity *= 0.96f;
         	}
 
-        	transform->LocalPosition += m_Velocity;
+        	transform->SetLocalPosition(transform->GetLocalPosition() + m_Velocity);
         }
 
         void HandleMovement2D(float deltaTime) const
@@ -85,15 +85,15 @@ namespace
                 const float zoomFactor = m_Camera->GetOrthographicSize() * 0.5f + 0.5f;
 
                 // Allow moving with the mouse
-                transform->LocalPosition += Pine::Vector3f(0.f, -1.f, 0.f) * m_Pitch->GetAxisValue() * sensitivity * zoomFactor;
-                transform->LocalPosition += Pine::Vector3f(1.f, 0.f, 0.f) * m_Yaw->GetAxisValue() * sensitivity * zoomFactor;
+            	transform->SetLocalPosition(transform->GetLocalPosition() + Pine::Vector3f(0.f, -1.f, 0.f) * m_Pitch->GetAxisValue() * sensitivity * zoomFactor);
+                transform->SetLocalPosition(transform->GetLocalPosition() + Pine::Vector3f(1.f, 0.f, 0.f) * m_Yaw->GetAxisValue() * sensitivity * zoomFactor);
 
                 // Allow moving with the keyboard (put this outside m_CaptureMouse?)
-                transform->LocalPosition += Pine::Vector3f(0.f, 1.f, 0.f) * m_Forward->GetAxisValue() * deltaTime * m_SpeedMultiplier;
-                transform->LocalPosition += Pine::Vector3f(1.f, 0.f, 0.f) * m_Sideways->GetAxisValue() * deltaTime * m_SpeedMultiplier;
+                transform->SetLocalPosition(transform->GetLocalPosition() + Pine::Vector3f(0.f, 1.f, 0.f) * m_Forward->GetAxisValue() * deltaTime * m_SpeedMultiplier);
+                transform->SetLocalPosition(transform->GetLocalPosition() + Pine::Vector3f(1.f, 0.f, 0.f) * m_Sideways->GetAxisValue() * deltaTime * m_SpeedMultiplier);
             }
 
-            transform->LocalPosition.z = 0.1f;
+            transform->SetLocalPosition({transform->GetLocalPosition().x, transform->GetLocalPosition().y, 0.1f});
             transform->SetEulerAngles(Pine::Vector3f(0.f, 0.f, 0.f));
         }
 

@@ -23,6 +23,8 @@
 #include "Other/EntitySelection/EntitySelection.hpp"
 #include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
 #include "Panels/DebugPanel/DebugPanel.hpp"
+#include "Panels/GamePanel/GamePanel.hpp"
+#include "Pine/Performance/Performance.hpp"
 
 namespace
 {
@@ -42,7 +44,7 @@ namespace
 
         style.WindowPadding = ImVec2(8, 8);
         style.FramePadding = ImVec2(8, 4);
-        style.CellPadding = ImVec2(4, 2);
+        style.CellPadding = ImVec2(5, 5);
         style.ItemSpacing = ImVec2(4, 4);
         style.GrabMinSize = 8.f;
         style.FrameRounding = 4.f;
@@ -91,6 +93,7 @@ namespace
         colors[ImGuiCol_DockingPreview] = ImVec4(0.09f, 0.21f, 0.19f, 1.00f);
         colors[ImGuiCol_TabSelectedOverline]    = ImVec4(0.26f, 0.59f, 0.98f, 0.00f);
         colors[ImGuiCol_TabDimmedSelectedOverline]  = ImVec4(0.50f, 0.50f, 0.50f, 0.00f);
+        colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.10f, 0.14f, 0.13f, 1.00f);
     }
 
     void SetFonts()
@@ -165,6 +168,8 @@ namespace
         if (stage != Pine::RenderStage::PostRender)
             return;
 
+        PINE_PF_SCOPE();
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -186,6 +191,7 @@ namespace
         Panels::Profiler::Render();
         Panels::EngineAssetsPanel::Render();
         Panels::Debug::Render();
+        Panels::Game::Render();
 
         Commands::Update();
 
@@ -207,6 +213,8 @@ void Gui::Setup()
     Gizmo::Gizmo3D::Setup();
     EntitySelection::Setup();
     IconStorage::Setup();
+
+    Panels::Game::Setup();
 
     Pine::RenderManager::AddRenderCallback(OnPineRender);
 }

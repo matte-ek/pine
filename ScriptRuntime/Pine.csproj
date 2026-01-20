@@ -57,6 +57,7 @@
         <Compile Include="Properties\AssemblyInfo.cs"/>
         <Compile Include="World\Component.cs" />
         <Compile Include="World\Components\ModelRenderer.cs" />
+        <Compile Include="World\Components\RigidBody.cs" />
         <Compile Include="World\Components\Transform.cs" />
         <Compile Include="World\Entity.cs" />
     </ItemGroup>

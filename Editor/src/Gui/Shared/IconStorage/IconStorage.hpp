@@ -12,4 +12,6 @@ namespace IconStorage
 
 	Pine::Graphics::ITexture* GetIconTexture(const std::string& path);
 
+    Pine::Graphics::ITexture* GetPreviewTexture();
+    void HandlePreviewDragging();
 }

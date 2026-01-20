@@ -4,6 +4,8 @@
 #include "IconsMaterialDesign.h"
 #include "Pine/Input/Input.hpp"
 #include "Other/PlayHandler/PlayHandler.hpp"
+#include "Pine/Assets/Level/Level.hpp"
+#include "Pine/World/World.hpp"
 
 namespace
 {
@@ -55,6 +57,17 @@ void Panels::GameViewport::Render()
 
     m_Visible = true;
 
+    if (PlayHandler::GetGameState() == PlayHandler::EditorGameState::Stopped)
+    {
+        if (ImGui::Button(ICON_MD_PLAY_ARROW, ImVec2(45.f, 24.f)))
+            PlayHandler::Play();
+    }
+    else
+    {
+        if (ImGui::Button(ICON_MD_STOP, ImVec2(45.f, 24.f)))
+            PlayHandler::Stop();
+    }
+
     const auto avSize = ImGui::GetContentRegionAvail();
     const auto renderScale = RenderHandler::GetGameRenderingContext()->Size /
                              static_cast<Pine::Vector2f>(RenderHandler::GetGameFrameBuffer()->GetSize());
@@ -92,6 +105,24 @@ void Panels::GameViewport::Render()
     else
     {
         ReleaseCapture();
+    }
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (ImGui::AcceptDragDropPayload("Asset", ImGuiDragDropFlags_SourceAllowNullID))
+        {
+            const auto asset = *static_cast<Pine::IAsset**>(ImGui::GetDragDropPayload()->Data);
+
+            if (asset->GetType() == Pine::AssetType::Level)
+            {
+                if (auto level = dynamic_cast<Pine::Level*>(asset))
+                {
+                    Pine::World::SetActiveLevel(level);
+                }
+            }
+        }
+
+        ImGui::EndDragDropTarget();
     }
 
     Pine::Input::GetDefaultContext()->InputEnabled = m_CaptureMouse;

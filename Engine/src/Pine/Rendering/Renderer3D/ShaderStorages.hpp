@@ -18,7 +18,7 @@ namespace Pine::Renderer3D::ShaderStorages
         struct Instance
         {
             Matrix4f TransformationMatrix;
-            Vector4i LightIndices;
+            int LightIndices[8];
         }Instances[Specifications::General::MAX_INSTANCE_COUNT];
     };
 

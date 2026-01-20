@@ -137,15 +137,23 @@ namespace
         {
             Widgets::PopDisabled();
         }
+
+        ImGui::Separator();
+
+        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(IconStorage::GetPreviewTexture()->GetGraphicsIdentifier())), ImVec2(256.f, 256.f), ImVec2(1, 1), ImVec2(0, 0));
+
+        IconStorage::HandlePreviewDragging();
     }
 
     void RenderModel(Pine::Model *model)
     {
-        for (int i = 0; i < model->GetMeshes().size();i++)
+        ImGui::Text("Mesh count: %d", model->GetMeshes().size());
+
+        for (int i = 0; i < model->GetMeshes().size(); i++)
         {
             auto mesh = model->GetMeshes()[i];
-;
-            if (ImGui::CollapsingHeader(fmt::format("Mesh {}", i).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+
+            if (ImGui::CollapsingHeader(fmt::format("Mesh #{}", i + 1).c_str(), 0))
             {
                 ImGui::Text("Render Count: %d", mesh->GetRenderCount());
                 ImGui::Text("Has Element Buffer: %s", mesh->HasElementBuffer() ? "Yes" : "No");
@@ -173,7 +181,7 @@ namespace
                         material->SetFilePath(fmt::format("{}/{}_Material{}.mat", modelDirectory, std::filesystem::path(model->GetFileName()).stem().string(), i));
                         material->SaveToFile();
 
-                        auto loadedMat = dynamic_cast<Pine::Material*>(Pine::Assets::LoadFromFile(material->GetFilePath(), model->GetFileRootPath().string()));
+                        auto loadedMat = dynamic_cast<Pine::Material *>(Pine::Assets::LoadFromFile(material->GetFilePath(), model->GetFileRootPath().string()));
 
                         mesh->SetMaterial(loadedMat);
 
@@ -182,6 +190,12 @@ namespace
                 }
             }
         }
+
+        ImGui::Separator();
+
+        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(IconStorage::GetPreviewTexture()->GetGraphicsIdentifier())), ImVec2(512.f, 512.f), ImVec2(1, 1), ImVec2(0, 0));
+
+        IconStorage::HandlePreviewDragging();
     }
 
     void RenderBlueprint(Pine::Blueprint *blueprint)

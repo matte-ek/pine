@@ -8,6 +8,8 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 
+#include "Pine/Performance/Performance.hpp"
+
 namespace 
 {
 
@@ -144,6 +146,8 @@ void Pine::Input::Shutdown()
 
 void Pine::Input::Update()
 {
+    PINE_PF_SCOPE();
+
     auto window = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
     m_Window = window;
 

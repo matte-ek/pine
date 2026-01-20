@@ -20,6 +20,16 @@ namespace Pine.Math
             Z = value;
         }
 
+        public float Length()
+        {
+            return (float)System.Math.Sqrt(X * X + Y * Y + Z * Z);
+        }
+
+        public Vector3 Normalized()
+        {
+            return this / Length();
+        }
+
         public static Vector3 operator +(Vector3 a, Vector3 b)
         {
             return new Vector3(a.X + b.X, a.Y + b.Y, a.Z + b.Z);

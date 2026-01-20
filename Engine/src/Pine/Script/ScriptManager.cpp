@@ -18,6 +18,8 @@
 #include <mono/metadata/attrdefs.h>
 #include <mono/metadata/exception.h>
 
+#include "Pine/Performance/Performance.hpp"
+
 namespace
 {
     bool m_HasGameAssembly = false;
@@ -201,6 +203,8 @@ void Pine::Script::Manager::ReloadScripts()
 
 void Pine::Script::Manager::OnStart()
 {
+    PINE_PF_SCOPE();
+
     for (auto& scriptComponent : Components::Get<Pine::ScriptComponent>())
     {
         auto script = scriptComponent.GetScript();
@@ -238,6 +242,8 @@ void Pine::Script::Manager::OnStart()
 
 void Pine::Script::Manager::OnUpdate(float deltaTime)
 {
+    PINE_PF_SCOPE();
+
     for (auto& scriptComponent : Components::Get<Pine::ScriptComponent>())
     {
         auto script = scriptComponent.GetScript();

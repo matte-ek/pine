@@ -2,6 +2,7 @@
 
 #include <limits>
 
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
@@ -34,11 +35,20 @@ namespace
         constexpr float float_max = std::numeric_limits<float>::max();
 
         auto& data = modelRenderer->GetRenderingHintData();
-        bool computationRequired = !data.HasComputedData || !modelRenderer->GetParent()->GetStatic() || modelRenderer->GetParent()->IsDirty();
+
+        bool computationRequired =
+                    !data.HasComputedData ||
+                    modelRenderer->GetParent()->IsDirty() ||
+                    modelRenderer->GetParent()->GetTransform()->IsDirty();
 
         if (!computationRequired)
         {
             return;
+        }
+
+        for (int i = 0; i < 6;i++)
+        {
+            data.LightSlotIndex[i] = nullptr;
         }
 
         std::array<Pine::Light*, 4> lightCandidates {nullptr, nullptr, nullptr, nullptr};
@@ -109,6 +119,8 @@ namespace
 
 void Pine::Rendering::SceneProcessor::Lights::Prepare(SceneProcessorContext& context)
 {
+    PINE_PF_SCOPE();
+
     m_WorldLightRecomputationRequired = false;
 
     context.Lights = GetWorldLights();
@@ -124,5 +136,7 @@ void Pine::Rendering::SceneProcessor::Lights::Prepare(SceneProcessorContext& con
 
 void Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(const SceneProcessorContext& context, ModelRenderer* modelRenderer)
 {
+    PINE_PF_SCOPE();
+
     PrepareModelRendererInstance(context, modelRenderer);
 }

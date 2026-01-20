@@ -114,7 +114,7 @@ void Pine::RigidBody2D::OnPostPhysicsUpdate()
 	auto transform = GetParent()->GetTransform();
 
 	// this will fucking explode for objects with parents
-	transform->LocalPosition = { position.x, position.y, 0.f };
+	transform->SetLocalPosition({ position.x, position.y, 0.f });
 }
 
 void Pine::RigidBody2D::OnDestroyed()

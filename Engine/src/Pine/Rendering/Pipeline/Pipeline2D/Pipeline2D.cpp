@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 
 #include "Pine/Graphics/Graphics.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
@@ -38,6 +39,8 @@ void Pine::Pipeline2D::Shutdown()
 
 void Pine::Pipeline2D::Run(RenderingContext& context)
 {
+    PINE_PF_SCOPE();
+
     static const auto renderItemSort = [](const Drawable& a, const Drawable& b)
     {
         return a.m_Order < b.m_Order;

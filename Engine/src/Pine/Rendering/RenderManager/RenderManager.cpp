@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Pine/Core/Timer/Timer.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Common/Blur/Blur.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/PostProcessing/PostProcessing.hpp"
@@ -78,6 +79,8 @@ void Pine::RenderManager::Shutdown()
 
 void Pine::RenderManager::Run()
 {
+    PINE_PF_SCOPE();
+
     // Make sure we have at least one rendering context ready.
     if (m_RenderingContexts.empty() || m_RenderingContexts[0] == nullptr)
     {
@@ -127,9 +130,7 @@ void Pine::RenderManager::Run()
         }
 
         // Reset statistics
-        renderingContext->DrawCalls = 0;
-        renderingContext->VertexCount = 0;
-        renderingContext->RenderTime = 0;
+        renderingContext->Statistics.Reset();
 
         Timer renderTime;
 
@@ -192,7 +193,7 @@ void Pine::RenderManager::Run()
 
         renderTime.Stop();
 
-        renderingContext->RenderTime = renderTime.GetElapsedTime();
+        renderingContext->Statistics.RenderTime = renderTime.GetElapsedTime();
     }
 
     Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);

@@ -44,15 +44,15 @@ namespace
 			static bool isApplyingRotation = false;
 			static Pine::Vector3f eulerAngles;
 
-		    auto position = transform->LocalPosition;
+		    auto position = transform->GetLocalPosition();
 			auto rotation = isApplyingRotation ? eulerAngles : transform->GetEulerAngles();
-			auto scale = transform->LocalScale;
+			auto scale = transform->GetLocalScale();
 
 			transform->SetDirty();
 
 			if (Widgets::Vector3("Position", position))
 			{
-				transform->LocalPosition = position;
+				transform->SetLocalPosition(position);
 				m_UpdatedComponentData = true;
 			}
 
@@ -72,7 +72,7 @@ namespace
 
 			if (Widgets::Vector3("Scale", scale))
 			{
-				transform->LocalScale = scale;
+				transform->SetLocalScale(scale);
 				m_UpdatedComponentData = true;
 			}
 
@@ -254,6 +254,12 @@ namespace
 			auto mass = rigidBody->GetMass();
 			auto gravityEnabled = rigidBody->GetGravityEnabled();
 
+		    auto positionLock = rigidBody->GetPositionLock();
+		    auto rotationLock = rigidBody->GetRotationLock();
+
+		    auto maxLinearVelocity = rigidBody->GetMaxLinearVelocity();
+		    auto maxAngularVelocity = rigidBody->GetMaxAngularVelocity();
+
 			if (Widgets::Combobox("Rigid Body Type", &type, "Static\0Kinematic\0Dynamic\0"))
 			{
 				rigidBody->SetRigidBodyType(static_cast<Pine::RigidBodyType>(type));
@@ -266,11 +272,35 @@ namespace
 				m_UpdatedComponentData = true;
 			}
 
+		    if (Widgets::CheckboxVector3("Position Lock", positionLock))
+		    {
+		        rigidBody->SetPositionLock(positionLock);
+		        m_UpdatedComponentData = true;
+		    }
+
+		    if (Widgets::CheckboxVector3("Rotation Lock", rotationLock))
+		    {
+		        rigidBody->SetRotationLock(rotationLock);
+		        m_UpdatedComponentData = true;
+		    }
+
 			if (Widgets::Checkbox("Gravity Enabled", &gravityEnabled))
 			{
 				rigidBody->SetGravityEnabled(gravityEnabled);
 				m_UpdatedComponentData = true;
 			}
+
+		    if (Widgets::SliderFloat("Max Linear Velocity", &maxLinearVelocity, 0, 1000))
+		    {
+		        rigidBody->SetMaxLinearVelocity(maxLinearVelocity);
+		        m_UpdatedComponentData = true;
+		    }
+
+		    if (Widgets::SliderFloat("Max Angular Velocity", &maxAngularVelocity, 0, 1000))
+		    {
+		        rigidBody->SetMaxAngularVelocity(maxAngularVelocity);
+		        m_UpdatedComponentData = true;
+		    }
 		}
 
 		void RenderSpriteRenderer(Pine::SpriteRenderer* spriteRenderer)

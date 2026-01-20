@@ -2,16 +2,7 @@
 
 layout(location = 0) in vec3 vertex;
 
-struct Instance
-{
-	mat4 transformationMatrix;
-	ivec4 lightIndices;
-};
-
-layout(std140) uniform Instances 
-{
-	Instance instances[128];
-};
+#include "shared/common.glsl"
 
 #shader hooks
 

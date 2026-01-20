@@ -3,6 +3,7 @@
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Renderer3D/ShaderStorages.hpp"
 
 namespace
@@ -49,6 +50,8 @@ void Pine::Rendering::Skybox::Shutdown()
 
 void Pine::Rendering::Skybox::Render(const Texture3D* cubeMap)
 {
+    PINE_PF_SCOPE();
+
     if (!cubeMap->IsValid())
     {
         return;

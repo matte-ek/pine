@@ -784,6 +784,7 @@ void Panels::AssetBrowser::Render()
     if (nrColumns <= 0)
     {
         ImGui::EndChild();
+        ImGui::EndChild();
         ImGui::End();
 
         return;

@@ -348,6 +348,11 @@ void Pine::Graphics::OpenGL::SetMultiSampleEnabled(bool value)
 	value ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
 }
 
+void Pine::Graphics::OpenGL::SetWireframeEnabled(bool value)
+{
+    value ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
 void Pine::Graphics::OpenGL::SetFaceCullingMode(FaceCullMode mode)
 {
 	glCullFace(TranslateFaceCullingMode(mode));

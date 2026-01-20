@@ -291,7 +291,7 @@ namespace
                     // Render the quads
                     m_GraphicsAPI->DrawElementsInstanced(m_RenderLines ? Graphics::RenderMode::LineLoop : Graphics::RenderMode::Triangles, m_RenderCount, minSize);
 
-                    context->DrawCalls++;
+                    context->Statistics.DrawCalls++;
 
                     startIndex += minSize;
                 }

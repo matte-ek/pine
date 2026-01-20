@@ -1,5 +1,8 @@
 #include "IconStorage.hpp"
 
+#include <imgui.h>
+
+#include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Graphics/Graphics.hpp"
@@ -7,6 +10,7 @@
 #include "Pine/World/Components/Transform/Transform.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/Assets/Model/Model.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
 namespace
@@ -36,6 +40,8 @@ namespace
 
     Pine::Graphics::IFrameBuffer *m_PreviewFrameBuffer = nullptr;
     Pine::Graphics::IFrameBuffer *m_IconFrameBuffer = nullptr;
+
+    Pine::Vector2f m_PreviewAngle = {0.f, 0.f};
 
     Pine::Texture2D *GetStaticIconFromAsset(Pine::IAsset *asset)
     {
@@ -81,7 +87,7 @@ namespace
         }
     }
 
-    void RenderMaterial(const Icon &icon)
+    void RenderMaterial(const Icon &icon, bool isPreview)
     {
         static auto sphereModel = Pine::Assets::Get<Pine::Model>("editor/models/sphere.fbx");
         static Pine::Entity* sphereEntity = nullptr;
@@ -90,18 +96,26 @@ namespace
         {
             sphereEntity = new Pine::Entity(0);
             sphereEntity->AddComponent(new Pine::Transform());
-
-            sphereEntity->GetTransform()->LocalScale = Pine::Vector3f(10.f);
-            sphereEntity->GetTransform()->SetEulerAngles(Pine::Vector3f(0.f, -90.f, 0.f));
-            sphereEntity->GetTransform()->LocalPosition = Pine::Vector3f(0, 0, -0.2f);
-            sphereEntity->GetTransform()->OnRender(0.f);
+            sphereEntity->GetTransform()->SetLocalPosition(Pine::Vector3f(0, 0, -0.2f));
+            sphereEntity->GetTransform()->SetLocalScale(Pine::Vector3f(10.f));
         }
+
+        if (isPreview)
+        {
+            sphereEntity->GetTransform()->SetEulerAngles(Pine::Vector3f(m_PreviewAngle.y, -m_PreviewAngle.x, 0.f));
+        }
+        else
+        {
+            sphereEntity->GetTransform()->SetEulerAngles(Pine::Vector3f(0.f, -90.f, 0.f));
+        }
+
+        sphereEntity->GetTransform()->OnRender(0.f);
 
         Pine::Renderer3D::PrepareMesh(sphereModel->GetMeshes()[0], dynamic_cast<Pine::Material*>(icon.Asset));
         Pine::Renderer3D::RenderMesh(sphereEntity->GetTransform()->GetTransformationMatrix());
     }
 
-    void RenderModel(const Icon& icon)
+    void RenderModel(const Icon& icon, bool isPreview)
     {
         static Pine::Entity* modelEntity = nullptr;
 
@@ -129,8 +143,17 @@ namespace
         const auto center = (globalMins + globalMaxs) * 0.5f;
         const auto size = (glm::abs(globalMins) + globalMaxs);
 
-        modelEntity->GetTransform()->LocalScale = Pine::Vector3f(1.f);
-        modelEntity->GetTransform()->LocalPosition = Pine::Vector3f(0, -center.y, -1.f);
+        modelEntity->GetTransform()->SetLocalScale(Pine::Vector3f(1.f));
+        modelEntity->GetTransform()->SetLocalPosition(Pine::Vector3f(0, -center.y, -1.f));
+
+        if (isPreview)
+        {
+            modelEntity->GetTransform()->SetEulerAngles(Pine::Vector3f(m_PreviewAngle.y, -m_PreviewAngle.x, 0.f));
+        }
+        else
+        {
+            modelEntity->GetTransform()->SetEulerAngles(Pine::Vector3f(0.f));
+        }
 
         modelEntity->GetTransform()->OnRender(0.f);
 
@@ -141,7 +164,7 @@ namespace
         }
     }
 
-    void GenerateDynamicIcon(const Icon &icon)
+    void GenerateDynamicTexture(const Icon &icon, bool isPreview)
     {
         if (icon.Type != IconType::Dynamic)
         {
@@ -172,12 +195,16 @@ namespace
             cameraEntity->GetComponent<Pine::Camera>()->OnRender(0.f);
         }
 
-        m_IconFrameBuffer->Bind();
+        auto frameBuffer = isPreview ? m_PreviewFrameBuffer : m_IconFrameBuffer;
+        auto size = isPreview ? Pine::Vector2i(512, 512) : Pine::Vector2i(64, 64);
 
-        Pine::Graphics::GetGraphicsAPI()->SetViewport(Pine::Vector2i(0), Pine::Vector2i(64, 64));
+        frameBuffer->Bind();
+
+        Pine::Graphics::GetGraphicsAPI()->SetViewport(Pine::Vector2i(0), size);
         Pine::Graphics::GetGraphicsAPI()->ClearColor(Pine::Color(0, 0, 0, 0));
-        Pine::Graphics::GetGraphicsAPI()->ClearBuffers(Pine::Graphics::Buffers::ColorBuffer);
+        Pine::Graphics::GetGraphicsAPI()->ClearBuffers(Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::DepthBuffer);
         Pine::Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
+        Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 
         Pine::Renderer3D::FrameReset();
 
@@ -187,19 +214,22 @@ namespace
 
         if (icon.Asset->GetType() == Pine::AssetType::Material)
         {
-            RenderMaterial(icon);
+            RenderMaterial(icon, isPreview);
         }
 
         if (icon.Asset->GetType() == Pine::AssetType::Model)
         {
-            RenderModel(icon);
+            RenderModel(icon, isPreview);
         }
 
-        icon.DynamicTexture->Blit(
-            m_IconFrameBuffer,
-            Pine::Graphics::ColorBuffer,
-            Pine::Vector4i(0, 0, 64, 64),
-            Pine::Vector4i(0, 64, 64, 0));
+        if (!isPreview)
+        {
+            icon.DynamicTexture->Blit(
+                frameBuffer,
+                Pine::Graphics::ColorBuffer,
+                Pine::Vector4i(0, 0, size.x, size.y),
+                Pine::Vector4i(0, size.x, size.y, 0));
+        }
     }
 
     void OnRender(Pine::RenderingContext*, Pine::RenderStage stage, float)
@@ -216,9 +246,22 @@ namespace
             if (icon.Type == IconType::Static)
                 continue;
 
-            GenerateDynamicIcon(icon);
+            GenerateDynamicTexture(icon, false);
 
             icon.m_Dirty = false;
+        }
+
+        const auto& assets = Selection::GetSelectedAssets();
+        if (!assets.empty())
+        {
+            auto asset = assets.front();
+
+            if (ShouldGenerateDynamicIcon(asset) && m_IconCache.count(asset->GetPath()) > 0)
+            {
+                auto icon = m_IconCache[asset->GetPath()];
+
+                GenerateDynamicTexture(icon, true);
+            }
         }
     }
 }
@@ -227,7 +270,7 @@ void IconStorage::Setup()
 {
     m_PreviewFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
     m_PreviewFrameBuffer->Prepare();
-    m_PreviewFrameBuffer->AttachTextures(512, 512, Pine::Graphics::Buffers::ColorBuffer);
+    m_PreviewFrameBuffer->AttachTextures(512, 512, Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer);
     m_PreviewFrameBuffer->Finish();
 
     m_IconFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
@@ -240,6 +283,8 @@ void IconStorage::Setup()
 
 void IconStorage::Update()
 {
+    PINE_PF_SCOPE();
+
     std::vector<std::string> removeList;
 
     // Find and remove unloaded assets from the icon cache
@@ -320,6 +365,39 @@ Pine::Graphics::ITexture *IconStorage::GetIconTexture(const std::string &path)
     }
 
     return m_IconCache[path].StaticTexture->GetGraphicsTexture();
+}
+
+Pine::Graphics::ITexture* IconStorage::GetPreviewTexture()
+{
+    return m_PreviewFrameBuffer->GetColorBuffer();
+}
+
+// Slightly outside the scope for `IconStorage`, but this feels like an okay spot to put it.
+void IconStorage::HandlePreviewDragging()
+{
+    static bool isDragging = false;
+    static ImVec2 lastDragPos;
+
+    const auto& io = ImGui::GetIO();
+
+    if (ImGui::IsItemClicked())
+    {
+        isDragging = true;
+        lastDragPos = io.MousePos;
+    }
+
+    if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    {
+        isDragging = false;
+    }
+    else if (isDragging)
+    {
+        auto delta = Pine::Vector2i(io.MousePos.x - lastDragPos.x, io.MousePos.y - lastDragPos.y);
+
+        lastDragPos = io.MousePos;
+
+        m_PreviewAngle += delta;
+    }
 }
 
 void IconStorage::MarkIconDirty(const std::string &path)

@@ -13,7 +13,7 @@ namespace Pine
         {
             bool HasComputedData = false;
 
-            std::array<ComponentHandle<Light>, 4> LightSlotIndex = {};
+            std::array<ComponentHandle<Light>, 6> LightSlotIndex = {};
         };
     }
 

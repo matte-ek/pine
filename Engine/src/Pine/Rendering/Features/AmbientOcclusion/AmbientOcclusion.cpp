@@ -7,6 +7,7 @@
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Graphics/ShaderStorage/ShaderStorage.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Common/Blur/Blur.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
@@ -115,6 +116,8 @@ namespace
 
 void Rendering::AmbientOcclusion::Run(const RenderingContext& context)
 {
+    PINE_PF_SCOPE();
+
     if (context.SceneCamera == nullptr)
     {
         return;

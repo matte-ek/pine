@@ -93,6 +93,13 @@ namespace Pine
         {
             m_ComponentPtr = block->GetComponent(index);
 
+            if (!m_BlockParent->m_ComponentOccupationArray[index] &&
+                block->m_HighestComponentIndex != -1 &&
+                index < block->m_HighestComponentIndex)
+            {
+                ++(*this);
+            }
+
             if (!m_IterateDisabledObjects &&
                 m_ComponentPtr &&
                 block->m_HighestComponentIndex != -1 &&
@@ -234,7 +241,7 @@ namespace Pine
     template<class T>
     class ComponentHandle
     {
-        mutable bool m_Valid = true;
+        mutable bool m_Valid = false;
 
         ComponentType m_Type = ComponentType::Transform;
         std::uint64_t m_UniqueId {};
@@ -265,9 +272,16 @@ namespace Pine
 
         ComponentHandle &operator=(const IComponent *component)
         {
+            if (!component)
+            {
+                m_Valid = false;
+                return *this;
+            }
+
             m_Type = component->GetType();
             m_UniqueId = component->GetUniqueId();
             m_InternalId = component->GetInternalId();
+            m_Valid = true;
 
             return *this;
         }

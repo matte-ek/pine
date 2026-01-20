@@ -7,6 +7,7 @@
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/Graphics/Graphics.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
 #include "Pine/Rendering/Features/Shadows/Shadows.hpp"
 #include "Pine/Rendering/Features/Skybox/Skybox.hpp"
@@ -110,6 +111,8 @@ namespace
 
 	void RenderDepthPrepass(RenderingContext& renderingContext)
 	{
+		PINE_PF_SCOPE();
+
 		if (m_DepthBuffer == nullptr || renderingContext.SceneCamera == nullptr)
 		{
 			return;
@@ -140,6 +143,8 @@ namespace
 
 	void RenderScene(const std::vector<Light*>& lights, RenderingContext& context)
 	{
+		PINE_PF_SCOPE();
+
 		Renderer3D::FrameReset();
 
 		if (context.SceneCamera)
@@ -180,7 +185,7 @@ namespace
 		if (context.Skybox != nullptr)
 		{
 			Rendering::Skybox::Render(context.Skybox);
-			context.DrawCalls++;
+			context.Statistics.DrawCalls++;
 		}
 	}
 
@@ -240,6 +245,8 @@ void Pipeline3D::Shutdown()
 
 void Pipeline3D::Prepare()
 {
+	PINE_PF_SCOPE();
+
     Rendering::SceneProcessor::Prepare(m_SceneContext);
 }
 
@@ -247,6 +254,8 @@ void Pipeline3D::Run(RenderingContext& context, PipelineStage stage)
 {
 	if (stage == PipelineStage::Prepass)
 	{
+		PINE_PF_SCOPE_MANUAL("Pine::Pipeline3D::Run(PipelineStage::Prepass)");
+
 		// Render shadow pass
 		if (m_Configuration.RenderShadows)
 		{
@@ -265,6 +274,8 @@ void Pipeline3D::Run(RenderingContext& context, PipelineStage stage)
 
 		return;
 	}
+
+	PINE_PF_SCOPE_MANUAL("Pine::Pipeline3D::Run(PipelineStage::Default)");
 
 	// Render the final pass
 	RenderScene(m_SceneContext.Lights, context);

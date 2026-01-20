@@ -63,6 +63,11 @@ std::uint32_t Pine::Entity::GetId() const
     return m_Id;
 }
 
+std::uint32_t Pine::Entity::GetInternalId() const
+{
+    return m_InternalId;
+}
+
 void Pine::Entity::SetActive(bool value)
 {
     m_Active = value;

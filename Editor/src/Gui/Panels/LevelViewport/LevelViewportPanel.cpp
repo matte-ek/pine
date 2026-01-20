@@ -120,20 +120,20 @@ namespace
                 glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
 
                 if (m_GizmoMode == GizmoMode::Translate)
-                    transform->LocalPosition += position;
+                    transform->SetLocalPosition(transform->GetLocalPosition() + position);
                 if (m_GizmoMode == GizmoMode::Rotate)
-                    transform->LocalRotation *= rotation;
+                    transform->SetLocalRotation(transform->GetLocalRotation() * rotation);
             }
             else
             {
                 glm::decompose(matrix, scale, rotation, position, skew, perspective);
 
                 if (m_GizmoMode == GizmoMode::Translate)
-                    transform->LocalPosition = position;
+                    transform->SetLocalPosition(position);
                 if (m_GizmoMode == GizmoMode::Rotate)
-                    transform->LocalRotation = rotation;
+                    transform->SetLocalRotation(rotation);
                 if (m_GizmoMode == GizmoMode::Scale)
-                    transform->LocalScale = scale;
+                    transform->SetLocalScale(scale);
             }
 
             if (Selection::GetSelectedEntities().size() > 1)
@@ -148,11 +148,11 @@ namespace
                     auto entityTransform = entity->GetTransform();
 
                     if (m_GizmoMode == GizmoMode::Translate)
-                        entityTransform->LocalPosition += position;
+                        entityTransform->SetLocalPosition(entityTransform->GetLocalPosition() + position);
                     if (m_GizmoMode == GizmoMode::Rotate)
-                        entityTransform->LocalRotation *= rotation;
+                        entityTransform->SetLocalRotation(entityTransform->GetLocalRotation() * rotation);
                     if (m_GizmoMode == GizmoMode::Scale)
-                        entityTransform->LocalScale += scale;
+                        entityTransform->SetLocalScale(entityTransform->GetLocalScale() + scale);
 
                     entityTransform->OnRender(0.f);
                     entity->SetDirty(true);

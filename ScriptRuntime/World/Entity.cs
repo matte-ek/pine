@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Pine.Core;
 using Pine.World.Components;
@@ -27,7 +28,9 @@ namespace Pine.World
             get => GetStatic(InternalId);
             set => SetStatic(InternalId, value);
         }
-        
+
+        public IEnumerable<Entity> Children => GetChildren(InternalId);
+
         public void Destroy() => DestroyEntity(_internalId);
         
         public Transform Transform => GetTransform(InternalId);
@@ -72,6 +75,8 @@ namespace Pine.World
         private static extern bool GetStatic(uint id);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetStatic(uint id, bool value);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity[] GetChildren(uint id);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DestroyEntity(uint id);
         [MethodImpl(MethodImplOptions.InternalCall)]

@@ -5,6 +5,7 @@
 #include "IconsMaterialDesign.h"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/Assets/Assets.hpp"
@@ -87,6 +88,7 @@ namespace
 
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader3D;
         Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = true;
+        Pine::Renderer3D::GetRenderConfiguration().SkipMaterialInitialization = true;
 
         m_ObjectSolidShader3D->GetProgram()->Use();
         m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(0.8f, 0.3f, 0.f));
@@ -102,15 +104,15 @@ namespace
             modelRenderer->SetStencilBufferValue(0x00);
 
             // Render the model
-            auto oldScale = entity->GetTransform()->LocalScale;
-            const auto distance = glm::length(RenderHandler::GetLevelRenderingContext()->SceneCamera->GetParent()->GetTransform()->LocalPosition - entity->GetTransform()->LocalPosition);
+            auto oldScale = entity->GetTransform()->GetLocalScale();
+            const auto distance = glm::length(RenderHandler::GetLevelRenderingContext()->SceneCamera->GetParent()->GetTransform()->GetLocalPosition() - entity->GetTransform()->GetLocalPosition());
 
-            entity->GetTransform()->LocalScale += Pine::Vector3f((distance / 9.41f) * 0.05f);
+            entity->GetTransform()->SetLocalScale(entity->GetTransform()->GetLocalScale() + Pine::Vector3f((distance / 9.41f) * 0.05f));
 
             entity->GetTransform()->SetDirty();
             entity->GetTransform()->OnRender(0.f);
 
-            entity->GetTransform()->LocalScale = oldScale;
+            entity->GetTransform()->SetLocalScale(oldScale);
             entity->GetTransform()->SetDirty();
 
             auto transformationMatrix = entity->GetTransform()->GetTransformationMatrix();
@@ -134,8 +136,85 @@ namespace
 
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = nullptr;
         Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = false;
+        Pine::Renderer3D::GetRenderConfiguration().SkipMaterialInitialization = false;
 
         Pine::Graphics::GetGraphicsAPI()->SetStencilFunction(Pine::Graphics::TestFunction::Always, 0x00, 0x00);
+    }
+
+    void RenderCollider()
+    {
+        static auto boxPrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/cube.glb");
+        static auto spherePrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/sphere.glb");
+        static auto capsulePrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/capsule.glb");
+
+        const auto& selectedEntities = Selection::GetSelectedEntities();
+
+        if (selectedEntities.empty())
+            return;
+
+        Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader3D;
+        Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = true;
+        Pine::Renderer3D::GetRenderConfiguration().SkipMaterialInitialization = true;
+
+        Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(false);
+        Pine::Graphics::GetGraphicsAPI()->SetWireframeEnabled(true);
+
+        m_ObjectSolidShader3D->GetProgram()->Use();
+        m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(0.0f, 0.8f, 0.2f));
+
+        for (auto& entity : selectedEntities)
+        {
+            auto collider = entity->GetComponent<Pine::Collider>();
+
+            if (!collider)
+            {
+                continue;
+            }
+
+            Pine::Model* model = nullptr;
+            Pine::Vector3f size = collider->GetSize();
+
+            switch (collider->GetColliderType())
+            {
+                case Pine::ColliderType::Box:
+                    model = boxPrimitiveModel;
+                    break;
+                case Pine::ColliderType::Sphere:
+                    model = spherePrimitiveModel;
+                    size = Pine::Vector3f(collider->GetSize().x);
+                    break;
+                case Pine::ColliderType::Capsule:
+                    //model = capsulePrimitiveModel;
+                    //size = Pine::Vector3f(collider->GetSize().x, collider->GetSize().y, 1.f);
+                    break;
+                case Pine::ColliderType::ConvexMesh:
+                case Pine::ColliderType::ConcaveMesh:
+                case Pine::ColliderType::HeightField:
+                    break;
+            }
+
+            if (!model)
+            {
+                continue;
+            }
+
+            auto parentTransform = entity->GetTransform();
+            auto transformationMatrix = Pine::Matrix4f(1.f);
+
+            transformationMatrix = glm::translate(transformationMatrix, parentTransform->GetPosition() + collider->GetPosition());
+            transformationMatrix *= glm::toMat4(parentTransform->GetRotation());
+            transformationMatrix = glm::scale(transformationMatrix, parentTransform->GetScale() * size);
+
+            Pine::Renderer3D::PrepareMesh(model->GetMeshes()[0]);
+            Pine::Renderer3D::RenderMesh(transformationMatrix);
+        }
+
+        Pine::Renderer3D::GetRenderConfiguration().OverrideShader = nullptr;
+        Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = false;
+        Pine::Renderer3D::GetRenderConfiguration().SkipMaterialInitialization = false;
+
+        Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
+        Pine::Graphics::GetGraphicsAPI()->SetWireframeEnabled(false);
     }
 
     void OnRender(const Pine::RenderingContext* context, const Pine::RenderStage stage, float)
@@ -155,6 +234,7 @@ namespace
         if (stage == Pine::RenderStage::PostRender3D)
         {
             RenderSelectedObjectsOutline();
+            RenderCollider();
 
             return;
         }

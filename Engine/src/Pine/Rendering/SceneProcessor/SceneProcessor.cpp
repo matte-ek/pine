@@ -1,5 +1,6 @@
 ﻿#include "SceneProcessor.hpp"
 
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Entities/Entities.hpp"
@@ -12,6 +13,8 @@ namespace
     // materials will require discarding and blending.
     void PrepareRenderingBatch(Pine::Rendering::SceneProcessor::SceneProcessorContext& context)
     {
+        PINE_PF_SCOPE();
+
         context.RenderingBatch = Pine::Rendering::ObjectBatchData();
 
         for (auto& modelRenderer : Pine::Components::Get<Pine::ModelRenderer>())
@@ -63,6 +66,8 @@ namespace
 
 void Pine::Rendering::SceneProcessor::Prepare(SceneProcessorContext& context)
 {
+    PINE_PF_SCOPE();
+
     Lights::Prepare(context);
 
     PrepareRenderingBatch(context);

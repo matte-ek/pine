@@ -1,5 +1,6 @@
 #include "Physics2D.hpp"
 #include "box2d/b2_world.h"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
@@ -24,6 +25,8 @@ void Pine::Physics2D::Shutdown()
 
 void Pine::Physics2D::Update(double deltaTime)
 {
+    PINE_PF_SCOPE();
+
     static double accumulator = 0.0;
 
     if (Pine::World::IsPaused())

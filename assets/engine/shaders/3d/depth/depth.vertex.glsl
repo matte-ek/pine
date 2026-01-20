@@ -3,22 +3,7 @@
 layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec3 normal;
 
-struct Instance
-{
-	mat4 transformationMatrix;
-	ivec4 lightIndices;
-};
-
-layout(std140) uniform Matrices
-{
-	mat4 projectionMatrix;
-	mat4 viewMatrix;
-};
-
-layout(std140) uniform Instances 
-{
-	Instance instances[128];
-};
+#include "shared/common.glsl"
 
 out VertexData
 {

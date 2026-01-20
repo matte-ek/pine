@@ -64,6 +64,11 @@ void Pine::Script::ObjectFactory::Setup()
     assert(m_EntityValidProperty);
 }
 
+MonoClass* Pine::Script::ObjectFactory::GetEntityClass()
+{
+    return m_EntityClass;
+}
+
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, std::uint32_t internalId)
 {
     if (!m_PineImage)

@@ -28,7 +28,6 @@ namespace
     void FinishWidget()
     {
         ImGui::EndChild();
-
         ImGui::Columns(1);
     }
 
@@ -149,6 +148,21 @@ bool Widgets::InputFloat(const std::string& str, float* value)
     return ret;
 }
 
+bool Widgets::InputText(const std::string& str, char* buf, size_t size)
+{
+    bool ret = false;
+
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(-1.f);
+
+    ret = ImGui::InputText(std::string("##InputText" + str).c_str(), buf, size);
+
+    FinishWidget();
+
+    return ret;
+}
+
 bool Widgets::SliderFloat(const std::string& str, float* value, float min, float max)
 {
     bool ret = false;
@@ -173,6 +187,29 @@ bool Widgets::ColorPicker3(const std::string& str, Pine::Vector3f& color)
     ImGui::SetNextItemWidth(-1.f);
 
     ret = ImGui::ColorEdit3(std::string("##ColorPicker3" + str).c_str(), glm::value_ptr(color), ImGuiColorEditFlags_NoAlpha);
+
+    FinishWidget();
+
+    return ret;
+}
+
+bool Widgets::CheckboxVector3(const std::string& str, std::array<bool, 3>& vec)
+{
+    bool ret = false;
+
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(-1.f);
+
+    ret |= ImGui::Checkbox("X", &vec[0]);
+
+    ImGui::SameLine();
+
+    ret |= ImGui::Checkbox("Y", &vec[1]);
+
+    ImGui::SameLine();
+
+    ret |= ImGui::Checkbox("Z", &vec[2]);
 
     FinishWidget();
 

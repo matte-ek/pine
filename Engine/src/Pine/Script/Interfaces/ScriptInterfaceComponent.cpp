@@ -6,6 +6,7 @@
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "mono/metadata/object.h"
+#include "Pine/World/Components/RigidBody/RigidBody.hpp"
 
 namespace
 {
@@ -66,42 +67,56 @@ namespace
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
-        *position = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalPosition;
+        *position = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetLocalPosition();
     }
 
     void TransformSetLocalPosition(std::uint32_t internalId, Pine::Vector3f *position)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
-        Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalPosition = *position;
+        Pine::Components::GetByInternalId<Pine::Transform>(internalId)->SetLocalPosition(*position);
     }
 
     void TransformGetLocalRotation(std::uint32_t internalId, Pine::Quaternion *rotation)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
-        *rotation = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalRotation;
+        *rotation = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetLocalRotation();
     }
 
     void TransformSetLocalRotation(std::uint32_t internalId, Pine::Quaternion *rotation)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
-        Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalRotation = *rotation;
+        Pine::Components::GetByInternalId<Pine::Transform>(internalId)->SetLocalRotation(*rotation);
+    }
+
+    void TransformGetLocalEulerAngles(std::uint32_t internalId, Pine::Vector3f *rotation)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        *rotation = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetEulerAngles();
+    }
+
+    void TransformSetLocalEulerAngles(std::uint32_t internalId, Pine::Vector3f *rotation)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Transform>(internalId)->SetEulerAngles(*rotation);
     }
 
     void TransformGetLocalScale(std::uint32_t internalId, Pine::Vector3f *scale)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
-        *scale = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalScale;
+        *scale = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetLocalScale();
     }
 
     void TransformSetLocalScale(std::uint32_t internalId, Pine::Vector3f *scale)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
-        Pine::Components::GetByInternalId<Pine::Transform>(internalId)->LocalScale = *scale;
+        Pine::Components::GetByInternalId<Pine::Transform>(internalId)->SetLocalScale(*scale);
     }
 
     void TransformGetUp(std::uint32_t internalId, Pine::Vector3f *up)
@@ -126,6 +141,13 @@ namespace
     }
 
     // -----------------------------------------------------
+
+    void RigidBodyApplyForce(std::uint32_t internalId, const Pine::Vector3f *force, physx::PxForceMode::Enum mode)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::RigidBody>(internalId)->ApplyForce(*force, mode);
+    }
 }
 
 void Pine::Script::Interfaces::Component::Setup()
@@ -136,6 +158,8 @@ void Pine::Script::Interfaces::Component::Setup()
     mono_add_internal_call("Pine.World.Components.ModelRenderer::SetModel", reinterpret_cast<void *>(SetModel));
     mono_add_internal_call("Pine.World.Components.ModelRenderer::GetModel", reinterpret_cast<void *>(GetModel));
 
+    mono_add_internal_call("Pine.World.Components.RigidBody::ApplyForce", reinterpret_cast<void *>(RigidBodyApplyForce));
+
     mono_add_internal_call("Pine.World.Components.Transform::GetPosition", reinterpret_cast<void *>(TransformGetPosition));
     mono_add_internal_call("Pine.World.Components.Transform::GetRotation", reinterpret_cast<void *>(TransformGetRotation));
     mono_add_internal_call("Pine.World.Components.Transform::GetScale", reinterpret_cast<void *>(TransformGetScale));
@@ -143,6 +167,8 @@ void Pine::Script::Interfaces::Component::Setup()
     mono_add_internal_call("Pine.World.Components.Transform::SetLocalPosition", reinterpret_cast<void *>(TransformSetLocalPosition));
     mono_add_internal_call("Pine.World.Components.Transform::GetLocalRotation", reinterpret_cast<void *>(TransformGetLocalRotation));
     mono_add_internal_call("Pine.World.Components.Transform::SetLocalRotation", reinterpret_cast<void *>(TransformSetLocalRotation));
+    mono_add_internal_call("Pine.World.Components.Transform::SetLocalEulerAngles", reinterpret_cast<void *>(TransformSetLocalEulerAngles));
+    mono_add_internal_call("Pine.World.Components.Transform::GetLocalEulerAngles", reinterpret_cast<void *>(TransformGetLocalEulerAngles));
     mono_add_internal_call("Pine.World.Components.Transform::GetLocalScale", reinterpret_cast<void *>(TransformGetLocalScale));
     mono_add_internal_call("Pine.World.Components.Transform::SetLocalScale", reinterpret_cast<void *>(TransformSetLocalScale));
     mono_add_internal_call("Pine.World.Components.Transform::GetUp", reinterpret_cast<void *>(TransformGetUp));

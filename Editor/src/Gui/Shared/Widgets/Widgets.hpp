@@ -35,10 +35,13 @@ namespace Widgets
 
     bool InputInt(const std::string& str, int* value);
     bool InputFloat(const std::string& str, float* value);
+    bool InputText(const std::string& str, char* buf, size_t size);
 
     bool SliderFloat(const std::string& str, float* value, float min, float max);
 
     bool ColorPicker3(const std::string& str, Pine::Vector3f& color);
+
+    bool CheckboxVector3(const std::string& str, std::array<bool, 3>& vec);
 
     AssetPickerResult AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
     AssetPickerResult AssetPicker(const std::string& str, const std::string& id, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);

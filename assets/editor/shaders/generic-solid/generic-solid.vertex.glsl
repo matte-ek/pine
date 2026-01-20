@@ -14,7 +14,7 @@ layout(std140) uniform Matrices
 struct Instance
 {
 	mat4 transformationMatrix;
-	ivec4 lightIndices;
+	ivec4 lightIndices[2];
 };
 
 layout(std140) uniform Instances 

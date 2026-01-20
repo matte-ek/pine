@@ -21,6 +21,8 @@ namespace Pine::Script
     {
         void Setup();
 
+        MonoClass* GetEntityClass();
+
         ObjectHandle CreateScriptObject(const Pine::CSharpScript* script, const Pine::IComponent* component);
         ObjectHandle CreateEntity(std::uint32_t entityId, std::uint32_t internalId);
         ObjectHandle CreateComponent(const Pine::IComponent* engineComponent);

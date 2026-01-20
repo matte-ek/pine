@@ -7,6 +7,24 @@
 namespace Pine
 {
 
+    struct RenderingStatistics
+    {
+        int LightCount = 0;
+        int ModelLightCalculationCount = 0;
+        int DrawCalls = 0;
+        std::uint64_t VertexCount = 0;
+        double RenderTime = 0.f;
+
+        void Reset()
+        {
+            LightCount = 0;
+            ModelLightCalculationCount = 0;
+            DrawCalls = 0;
+            VertexCount = 0;
+            RenderTime = 0.f;
+        }
+    };
+
     struct RenderingContext
     {
         bool Active = true;
@@ -24,11 +42,9 @@ namespace Pine
 
         bool EnableStencilBuffer = true;
 
-        int PreAllocItems = 0;
+        RenderingStatistics Statistics;
 
-        int DrawCalls = 0;
-        std::uint64_t VertexCount = 0;
-        double RenderTime = 0.f;
+        int PreAllocItems = 0;
     };
 
 }

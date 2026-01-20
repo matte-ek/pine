@@ -15,6 +15,16 @@ physx::PxRigidDynamic * Pine::RigidBody::GetRigidBody() const
     return m_RigidBody;
 }
 
+void Pine::RigidBody::ApplyForce(const Vector3f& force, physx::PxForceMode::Enum mode) const
+{
+    if (m_RigidBody == nullptr)
+    {
+        return;
+    }
+
+    m_RigidBody->addForce(physx::PxVec3(force.x, force.y, force.z), mode);
+}
+
 void Pine::RigidBody::UpdateColliders()
 {
     const auto collider = m_Parent->GetComponent<Collider>();
@@ -61,7 +71,29 @@ void Pine::RigidBody::UpdateBody()
     if (m_RigidBody == nullptr)
     {
         m_RigidBody = Physics3D::GetPhysics()->createRigidDynamic(m_RigidBodyTransform);
+
         m_RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, m_RigidBodyType == RigidBodyType::Kinematic);
+        m_RigidBody->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, !m_GravityEnabled);
+
+        // Rotation lock
+        m_RigidBody->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, m_RotationLock[0]);
+        m_RigidBody->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, m_RotationLock[1]);
+        m_RigidBody->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z, m_RotationLock[2]);
+
+        // Position lock
+        m_RigidBody->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_LINEAR_X, m_PositionLock[0]);
+        m_RigidBody->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_LINEAR_Y, m_PositionLock[1]);
+        m_RigidBody->setRigidDynamicLockFlag(physx::PxRigidDynamicLockFlag::eLOCK_LINEAR_Z, m_PositionLock[2]);
+
+        if (m_MaxAngularVelocity != 0.f)
+        {
+            m_RigidBody->setMaxAngularVelocity(m_MaxAngularVelocity);
+        }
+
+        if (m_MaxLinearVelocity != 0.f)
+        {
+            m_RigidBody->setMaxLinearVelocity(m_MaxLinearVelocity);
+        }
 
         const auto shape = m_EngineCollider->CreateCollisionShape();
 
@@ -83,6 +115,7 @@ void Pine::RigidBody::UpdateBody()
         // scary.
         m_RigidBody->setGlobalPose(m_RigidBodyTransform);
     }
+
 }
 
 void Pine::RigidBody::SetRigidBodyType(RigidBodyType type)
@@ -115,6 +148,46 @@ bool Pine::RigidBody::GetGravityEnabled() const
     return m_GravityEnabled;
 }
 
+void Pine::RigidBody::SetMaxLinearVelocity(float maxLinearVelocity)
+{
+    m_MaxLinearVelocity = maxLinearVelocity;
+}
+
+float Pine::RigidBody::GetMaxLinearVelocity() const
+{
+    return m_MaxLinearVelocity;
+}
+
+void Pine::RigidBody::SetMaxAngularVelocity(float maxAngularVelocity)
+{
+    m_MaxAngularVelocity = maxAngularVelocity;
+}
+
+float Pine::RigidBody::GetMaxAngularVelocity() const
+{
+    return m_MaxAngularVelocity;
+}
+
+std::array<bool, 3> Pine::RigidBody::GetRotationLock() const
+{
+    return m_RotationLock;
+}
+
+void Pine::RigidBody::SetRotationLock(std::array<bool, 3> value)
+{
+    m_RotationLock = value;
+}
+
+std::array<bool, 3> Pine::RigidBody::GetPositionLock() const
+{
+    return m_PositionLock;
+}
+
+void Pine::RigidBody::SetPositionLock(std::array<bool, 3> value)
+{
+    m_PositionLock = value;
+}
+
 bool Pine::RigidBody::IsColliderAttached(const Collider *collider) const
 {
     return m_EngineCollider == collider;
@@ -141,8 +214,8 @@ void Pine::RigidBody::OnPostPhysicsUpdate()
     const auto position = m_RigidBody->getGlobalPose().p;
     const auto rotation = m_RigidBody->getGlobalPose().q;
 
-    transform->LocalPosition = {position.x, position.y, position.z};
-    transform->LocalRotation = {rotation.w, rotation.x, rotation.y, rotation.z};
+    transform->SetLocalPosition({position.x, position.y, position.z});
+    transform->SetLocalRotation({rotation.w, rotation.x, rotation.y, rotation.z});
 }
 
 void Pine::RigidBody::OnCopied()
@@ -168,6 +241,10 @@ void Pine::RigidBody::LoadData(const nlohmann::json &j)
     Serialization::LoadValue(j, "mass", m_Mass);
     Serialization::LoadValue(j, "grav", m_GravityEnabled);
     Serialization::LoadValue(j, "rtype", m_RigidBodyType);
+    Serialization::LoadValue(j, "mang", m_MaxAngularVelocity);
+    Serialization::LoadValue(j, "mlin", m_MaxLinearVelocity);
+    Serialization::LoadValue(j, "posl", m_PositionLock);
+    Serialization::LoadValue(j, "rotl", m_RotationLock);
 }
 
 void Pine::RigidBody::SaveData(nlohmann::json &j)
@@ -175,4 +252,8 @@ void Pine::RigidBody::SaveData(nlohmann::json &j)
     j["mass"] = m_Mass;
     j["grav"] = m_GravityEnabled;
     j["rtype"] = m_RigidBodyType;
+    j["mang"] = m_MaxAngularVelocity;
+    j["mlin"] = m_MaxLinearVelocity;
+    j["posl"] = m_PositionLock;
+    j["rotl"] = m_RotationLock;
 }

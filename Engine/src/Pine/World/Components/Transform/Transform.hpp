@@ -9,8 +9,13 @@ namespace Pine
     class Transform final : public IComponent
     {
     private:
-        bool m_IsDirty = true;
         Matrix4f m_TransformationMatrix = Matrix4f(1.f);
+
+        Vector3f m_LocalPosition = Vector3f(0.f);
+        Vector3f m_LocalScale = Vector3f(1.f);
+        Quaternion m_LocalRotation = glm::identity<glm::quat>();
+
+        bool m_IsDirty = true;
 
         void CalculateTransformationMatrix();
     public:
@@ -19,11 +24,21 @@ namespace Pine
         // If the parent is static, and we want the transform to update, you have
         // to manually call SetDirty() to update the transformation matrix.
         void SetDirty();
+        bool IsDirty() const;
 
         void OnRender(float deltaTime) override;
 
         void LoadData(const nlohmann::json& j) override;
         void SaveData(nlohmann::json& j) override;
+
+        const Vector3f& GetLocalPosition() const;
+        void SetLocalPosition(const Vector3f& position);
+
+        const Quaternion& GetLocalRotation() const;
+        void SetLocalRotation(const Quaternion& rotation);
+
+        const Vector3f& GetLocalScale() const;
+        void SetLocalScale(const Vector3f& scale);
 
         Vector3f GetPosition() const;
         Quaternion GetRotation() const;
@@ -33,14 +48,10 @@ namespace Pine
         Vector3f GetRight() const;
         Vector3f GetUp() const;
 
-        const Matrix4f& GetTransformationMatrix() const;
-
         Vector3f GetEulerAngles() const;
         void SetEulerAngles(Vector3f angle);
 
-        Vector3f LocalPosition = Vector3f(0.f);
-        Vector3f LocalScale = Vector3f(1.f);
-        Quaternion LocalRotation = glm::identity<glm::quat>();
+        const Matrix4f& GetTransformationMatrix() const;
     };
 
 }

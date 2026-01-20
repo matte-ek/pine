@@ -13,6 +13,8 @@ add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Other/Actions/Actions.cpp
-        src/Other/Actions/Actions.hpp)
+        src/Other/Actions/Actions.hpp
+        src/Gui/Panels/GamePanel/GamePanel.cpp
+        src/Gui/Panels/GamePanel/GamePanel.hpp)
 
 target_link_libraries(Editor Engine mono-2.0)

@@ -5,6 +5,7 @@ namespace Pine::Renderer3D::Specifications
     namespace General
     {
         constexpr int DYNAMIC_LIGHT_COUNT = 32;
+        constexpr int DYNAMIC_LIGHT_OBJECT_COUNT = 6;
         constexpr int MAX_INSTANCE_COUNT = 512;
 
         // TODO: Stop with this.

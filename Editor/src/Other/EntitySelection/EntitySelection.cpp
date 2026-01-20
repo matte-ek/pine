@@ -49,6 +49,7 @@ namespace
             {
                 // We cannot encode this properly since the entity index is too high, should hopefully never
                 // happen.
+                Pine::Log::Warning(fmt::format("EntitySelection: Failed to encode entity id {}, value is too high.", id));
                 break;
             }
         }
@@ -75,7 +76,7 @@ namespace
             auto entity = modelRenderer.GetParent();
 
             int meshIndex = -1;
-            for (const auto &mesh: modelRenderer.GetModel()->GetMeshes())
+            for (const auto &mesh : modelRenderer.GetModel()->GetMeshes())
             {
                 meshIndex++;
 
@@ -86,7 +87,7 @@ namespace
 
                 Pine::Renderer3D::PrepareMesh(mesh);
 
-                m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(ComputeColorIndex(static_cast<int>(entity->GetId())));
+                m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(ComputeColorIndex(static_cast<int>(entity->GetInternalId())));
 
                 Pine::Renderer3D::RenderMesh(entity->GetTransform()->GetTransformationMatrix());
             }
@@ -170,7 +171,7 @@ namespace
 
         if (entityId != 0)
         {
-            if (const auto pickedEntity = Pine::Entities::Find(entityId))
+            if (const auto pickedEntity = Pine::Entities::GetByInternalId(entityId))
             {
                 Selection::Add(pickedEntity, !m_PickMultiple);
             }

@@ -25,14 +25,16 @@ void Transform::SetDirty()
     m_IsDirty = true;
 }
 
+bool Transform::IsDirty() const
+{
+    return m_IsDirty;
+}
+
 void Transform::OnRender(float deltaTime)
 {
-    if (m_Parent->GetStatic())
+    if (!m_IsDirty)
     {
-        if (!m_IsDirty)
-        {
-            return;
-        }
+        return;
     }
 
     CalculateTransformationMatrix();
@@ -40,21 +42,56 @@ void Transform::OnRender(float deltaTime)
 
 void Transform::LoadData(const nlohmann::json &j)
 {
-    Serialization::LoadVector3(j, "pos", LocalPosition);
-    Serialization::LoadQuaternion(j, "rot", LocalRotation);
-    Serialization::LoadVector3(j, "scl", LocalScale);
+    Serialization::LoadVector3(j, "pos", m_LocalPosition);
+    Serialization::LoadQuaternion(j, "rot", m_LocalRotation);
+    Serialization::LoadVector3(j, "scl", m_LocalScale);
+
+    m_IsDirty = true;
 }
 
 void Transform::SaveData(nlohmann::json &j)
 {
-    j["pos"] = Serialization::StoreVector3(LocalPosition);
-    j["rot"] = Serialization::StoreQuaternion(LocalRotation);
-    j["scl"] = Serialization::StoreVector3(LocalScale);
+    j["pos"] = Serialization::StoreVector3(m_LocalPosition);
+    j["rot"] = Serialization::StoreQuaternion(m_LocalRotation);
+    j["scl"] = Serialization::StoreVector3(m_LocalScale);
+}
+
+const Vector3f& Transform::GetLocalPosition() const
+{
+    return m_LocalPosition;
+}
+
+void Transform::SetLocalPosition(const Vector3f& position)
+{
+    m_LocalPosition = position;
+    m_IsDirty = true;
+}
+
+const Quaternion& Transform::GetLocalRotation() const
+{
+    return m_LocalRotation;
+}
+
+void Transform::SetLocalRotation(const Quaternion& rotation)
+{
+    m_LocalRotation = rotation;
+    m_IsDirty = true;
+}
+
+const Vector3f& Transform::GetLocalScale() const
+{
+    return m_LocalScale;
+}
+
+void Transform::SetLocalScale(const Vector3f& scale)
+{
+    m_LocalScale = scale;
+    m_IsDirty = true;
 }
 
 Vector3f Transform::GetPosition() const
 {
-    Vector3f position = LocalPosition;
+    Vector3f position = m_LocalPosition;
 
     if (m_Parent->GetParent() != nullptr)
     {
@@ -66,11 +103,12 @@ Vector3f Transform::GetPosition() const
 
 Quaternion Transform::GetRotation() const
 {
-    Quaternion rotation = LocalRotation;
+    Quaternion rotation = m_LocalRotation;
 
     if (m_Parent->GetParent() != nullptr)
     {
-        rotation *= m_Parent->GetParent()->GetTransform()->GetRotation();
+        rotation = m_Parent->GetParent()->GetTransform()->GetRotation();
+        rotation *= m_LocalRotation;
     }
 
     return rotation;
@@ -78,7 +116,7 @@ Quaternion Transform::GetRotation() const
 
 Vector3f Transform::GetScale() const
 {
-    Vector3f scale = LocalScale;
+    Vector3f scale = m_LocalScale;
 
     if (m_Parent->GetParent() != nullptr)
     {
@@ -90,17 +128,17 @@ Vector3f Transform::GetScale() const
 
 Vector3f Transform::GetForward() const
 {
-    return LocalRotation * Vector3f(0.f, 0.f, -1.f);
+    return m_LocalRotation * Vector3f(0.f, 0.f, -1.f);
 }
 
 Vector3f Transform::GetRight() const
 {
-    return LocalRotation * Vector3f(1.f, 0.f, 0.f);
+    return m_LocalRotation * Vector3f(1.f, 0.f, 0.f);
 }
 
 Vector3f Transform::GetUp() const
 {
-    return LocalRotation * Vector3f(0.f, 1.f, 0.f);
+    return m_LocalRotation * Vector3f(0.f, 1.f, 0.f);
 }
 
 const Matrix4f &Transform::GetTransformationMatrix() const
@@ -110,10 +148,11 @@ const Matrix4f &Transform::GetTransformationMatrix() const
 
 Vector3f Transform::GetEulerAngles() const
 {
-    return degrees(eulerAngles(LocalRotation));
+    return degrees(eulerAngles(m_LocalRotation));
 }
 
 void Transform::SetEulerAngles(Vector3f angle)
 {
-    LocalRotation = glm::quat(radians(angle));
+    m_LocalRotation = glm::quat(radians(angle));
+    m_IsDirty = true;
 }

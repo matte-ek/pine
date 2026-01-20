@@ -6,6 +6,7 @@
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 #include "Pine/Script/ScriptManager.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Physics/Physics2D/Physics2D.hpp"
 
 namespace
@@ -85,6 +86,8 @@ float Pine::World::GetTimeScale()
 
 void Pine::World::Update()
 {
+    PINE_PF_SCOPE();
+
     const auto deltaTime = CalculateFrameTime();
 
     Physics3D::Update(deltaTime);

@@ -98,6 +98,7 @@ namespace Pine::Graphics
         virtual void SetStencilTestEnabled(bool value) = 0;
         virtual void SetFaceCullingEnabled(bool value) = 0;
         virtual void SetMultiSampleEnabled(bool value) = 0;
+        virtual void SetWireframeEnabled(bool value) = 0;
 
         virtual void SetBlendingFunction(BlendingFunction source, BlendingFunction destination) = 0;
 

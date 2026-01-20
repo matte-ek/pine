@@ -1,4 +1,7 @@
 #include "Shader.hpp"
+
+#include <sstream>
+
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Log/Log.hpp"
@@ -15,58 +18,93 @@ namespace
 {
     constexpr std::array<const char*, 4> ShaderTypesString = { "Vertex", "Fragment", "Compute", "Geometry" };
 
-    bool LoadAndCompileShader(const std::string& filePath,
-                              const nlohmann::json& json,
-                              Pine::Graphics::IShaderProgram* program,
-                              const Pine::Shader* shader,
-                              Pine::Graphics::ShaderType type,
-                              const std::vector<std::string>& versionMacros)
+    struct ShaderCompileContext
     {
-        assert(ShaderTypesString.size() == static_cast<int>(Pine::Graphics::ShaderType::ShaderTypeCount));
+        Pine::Graphics::ShaderType Type{};
+        Pine::Graphics::IShaderProgram* Program{};
+        Pine::Shader* Shader{};
 
-        const auto shaderTypeStr = ShaderTypesString[static_cast<int>(type)];
-        const auto hasParentShader = !shader->IsBaseShader();
-        const auto parentShader = shader->GetParentShader();
+        std::string FilePath;
+        nlohmann::json Json;
 
-        if (!std::filesystem::exists(filePath) && !hasParentShader)
-        {
-            Pine::Log::Error("Failed to find shader file " + filePath);
-            return false;
-        }
+        std::vector<std::string> VersionMacros;
+    };
 
-        const std::string file = Pine::File::ReadFile(filePath).value_or("");
-        std::string src;
-
-        if (file.empty() && !hasParentShader)
-        {
-            Pine::Log::Error("Failed to read file " + filePath);
-            return false;
-        }
+    std::string ProcessShaderLine(ShaderCompileContext& shaderCompileContext, const std::string& line)
+    {
+        const auto shaderTypeStr = ShaderTypesString[static_cast<int>(shaderCompileContext.Type)];
+        const auto hasParentShader = !shaderCompileContext.Shader->IsBaseShader();
+        const auto parentShader = shaderCompileContext.Shader->GetParentShader();
 
         if (hasParentShader)
         {
-            const auto parentShaderSource = Pine::File::ReadFile(parentShader->GetShaderSourceFile(type).value()).value();
+            bool isPreHook = Pine::String::StartsWith(line, "#shader pre");
+            bool isPostHook = Pine::String::StartsWith(line, "#shader post");
 
-            src = Pine::String::Replace(parentShaderSource, "#shader hooks", file);
-
-            if (json.contains("hooks"))
+            if (Pine::String::StartsWith(line, "#shader hooks"))
             {
-                for (const auto& hook : json["hooks"].items())
-                {
-                    if (!Pine::String::EndsWith(hook.key(), shaderTypeStr))
-                        continue;
+                return Pine::File::ReadFile(parentShader->GetShaderSourceFile(shaderCompileContext.Type).value()).value();
+            }
 
-                    if (Pine::String::StartsWith(hook.key(), "Pre"))
-                        src = Pine::String::Replace(src, fmt::format("#shader pre{}", shaderTypeStr), fmt::format("{}();", hook.value().get<std::string>()));
-                    if (Pine::String::StartsWith(hook.key(), "Post"))
-                        src = Pine::String::Replace(src, fmt::format("#shader post{}", shaderTypeStr), fmt::format("{}();", hook.value().get<std::string>()));
-                }
+            if (shaderCompileContext.Json.contains("hooks") && (isPreHook || isPostHook))
+            {
+                std::string hookName = line.substr(isPreHook ? 11 : 12);
+
+                // TODO: implement this crap whenever i feel like it (and it's actually needed)
             }
         }
-        else
+
+        if (Pine::String::StartsWith(line, "#include "))
         {
-            src = file;
+            std::string fileName = Pine::String::Replace(line.substr(9), "\"", "");
+            std::filesystem::path filePath = shaderCompileContext.Shader->GetFilePath().parent_path().string() + "/" + fileName;
+
+            if (std::filesystem::exists(filePath))
+            {
+                return Pine::File::ReadFile(filePath).value();
+            }
+            else
+            {
+                Pine::Log::Warning(fmt::format("Failed to find shader include file {} compiling {}", filePath.string(), shaderCompileContext.Shader->GetFileName()));
+                return "";
+            }
         }
+
+        return line;
+    }
+
+    bool LoadAndCompileShader(ShaderCompileContext& shaderCompileContext)
+    {
+        assert(ShaderTypesString.size() == static_cast<int>(Pine::Graphics::ShaderType::ShaderTypeCount));
+
+        const auto shaderTypeStr = ShaderTypesString[static_cast<int>(shaderCompileContext.Type)];
+        const auto hasParentShader = !shaderCompileContext.Shader->IsBaseShader();
+        const auto parentShader = shaderCompileContext.Shader->GetParentShader();
+
+        if (!std::filesystem::exists(shaderCompileContext.FilePath) && !hasParentShader)
+        {
+            Pine::Log::Error("Failed to find shader file " + shaderCompileContext.FilePath);
+            return false;
+        }
+
+        const std::string file = Pine::File::ReadFile(shaderCompileContext.FilePath).value_or("");
+
+        if (file.empty() && !hasParentShader)
+        {
+            Pine::Log::Error("Failed to read file " + shaderCompileContext.FilePath);
+            return false;
+        }
+
+        std::istringstream stream(file);
+        std::ostringstream outputStream;
+        std::string line;
+
+        while (std::getline(stream, line))
+        {
+            outputStream << ProcessShaderLine(shaderCompileContext, line) << std::endl;
+        }
+
+        std::string src = outputStream.str();
 
         // Remove remaining stuff from the source.
         src = Pine::String::Replace(src, fmt::format("#shader pre{}", shaderTypeStr), "");
@@ -74,20 +112,20 @@ namespace
         src = Pine::String::Replace(src, "#shader hooks", "");
 
         // Insert any macros for pre-processor if we have to
-        if (!versionMacros.empty())
+        if (!shaderCompileContext.VersionMacros.empty())
         {
             // Since we need to add the macros after the version, find that first
             const auto offset = src.find('\n') + 1;
 
-            for (const auto& macro : versionMacros)
+            for (const auto& macro : shaderCompileContext.VersionMacros)
             {
                 src = src.insert(offset, fmt::format("#define {}\n", macro));
             }
         }
 
-        if (!program->CompileAndLoadShader(src, type))
+        if (!shaderCompileContext.Program->CompileAndLoadShader(src, shaderCompileContext.Type))
         {
-            Pine::Log::Error(fmt::format("Error occurred in file {}", filePath));
+            Pine::Log::Error(fmt::format("Error occurred in file {}", shaderCompileContext.FilePath));
 
             return false;
         }
@@ -125,7 +163,7 @@ bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
     if (!jsonOpt.has_value())
         return false;
 
-    const auto j = jsonOpt.value();
+    const auto& j = jsonOpt.value();
 
     // First we'll always try to deal with the default version
     if (!LoadShaderPackage(j, 0, {}))
@@ -283,10 +321,20 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
         }
     }
 
+    ShaderCompileContext shaderCompileContext;
+
+    shaderCompileContext.Program = shaderProgram;
+    shaderCompileContext.Shader = this;
+    shaderCompileContext.VersionMacros = versionMacros;
+    shaderCompileContext.Json = j;
+
     // Load and compile all specified shaders
     if (!vertexPath.empty())
     {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, vertexPath), j, shaderProgram, this, Graphics::ShaderType::Vertex, versionMacros))
+        shaderCompileContext.FilePath = GetAbsolutePath(this, vertexPath);
+        shaderCompileContext.Type = Graphics::ShaderType::Vertex;
+
+        if (!LoadAndCompileShader(shaderCompileContext))
         {
             return false;
         }
@@ -299,7 +347,10 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
     if (!fragmentPath.empty())
     {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, fragmentPath), j, shaderProgram, this, Graphics::ShaderType::Fragment, versionMacros))
+        shaderCompileContext.FilePath = GetAbsolutePath(this, fragmentPath);
+        shaderCompileContext.Type = Graphics::ShaderType::Fragment;
+
+        if (!LoadAndCompileShader(shaderCompileContext))
         {
             return false;
         }
@@ -312,7 +363,10 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
     if (!computePath.empty())
     {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, computePath), j, shaderProgram, this, Graphics::ShaderType::Compute, versionMacros))
+        shaderCompileContext.FilePath = GetAbsolutePath(this, computePath);
+        shaderCompileContext.Type = Graphics::ShaderType::Compute;
+
+        if (!LoadAndCompileShader(shaderCompileContext))
         {
             return false;
         }
@@ -325,7 +379,10 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
     if (!geometryPath.empty())
     {
-        if (!LoadAndCompileShader(GetAbsolutePath(this, geometryPath), j, shaderProgram, this, Graphics::ShaderType::Geometry, versionMacros))
+        shaderCompileContext.FilePath = GetAbsolutePath(this, geometryPath);
+        shaderCompileContext.Type = Graphics::ShaderType::Geometry;
+
+        if (!LoadAndCompileShader(shaderCompileContext))
         {
             return false;
         }

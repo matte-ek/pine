@@ -11,16 +11,6 @@ struct TextureSamplers
     sampler2DArrayShadow shadowMap;
 };
 
-struct Light 
-{
-	vec3 position;
-	vec3 rotation;
-	vec3 color;
-	vec3 attenuation;
-	float cutOffAngle;
-	float cutOffSmoothness;
-};
-
 struct BaseResult
 {
     vec3 diffuse;
@@ -28,31 +18,7 @@ struct BaseResult
     vec3 ambient;
 };
 
-layout(std140) uniform Matrices
-{
-	mat4 projectionMatrix;
-	mat4 viewMatrix;
-};
-
-layout(std140) uniform Lights 
-{
-	Light lights[32];
-	vec3 worldAmbientColor;
-};
-
-layout(std140) uniform Shadows
-{
-	mat4 lightSpaceMatrix[8];
-};
-
-layout(std140) uniform Material
-{
-    vec3 diffuseColor;
-    vec3 specularColor;
-    vec3 ambientColor;
-    float shininess;
-    float uvScale;
-}material;
+#include "shared/common.glsl"
 
 in VertexData
 {
@@ -61,8 +27,8 @@ in VertexData
     vec3 cameraPos;
 	vec3 cameraDir;
 	vec3 normalDir;
-	vec3 lightDir[5];
-    flat ivec4 lightIndices;
+	vec3 lightDir[8];
+    flat int lightIndices[8];
 }vIn;
 
 uniform TextureSamplers textureSamplers;
@@ -116,9 +82,11 @@ vec3 calculateDirectionalLight()
     if (hasDirectionalShadowMap)
     {
         float fragCameraDistance = length(vIn.worldPosition - vIn.cameraPos);
+        
         float th1 = 5.f;
         float th2 = 10.f;
         float th3 = 30.f;
+
         int cascadeIndex = int(fragCameraDistance > th1) + int(fragCameraDistance > th2) + int(fragCameraDistance > th3);
         mat4 lsMatrix = lightSpaceMatrix[cascadeIndex];
 
@@ -216,31 +184,23 @@ vec3 calculatePointLight(int index, int directionIndex)
 
 vec3 calculateSpotLights()
 {
-    vec3 a = vec3(0.f);
-    vec3 b = vec3(0.f);
-    vec3 c = vec3(0.f);
+    vec3 lightColorOutput = vec3(0.f);
 
-    if (vIn.lightIndices.x != 0) {
-        a = calculateSpotLight(vIn.lightIndices.x, 1);
+    for (int i = 0; i < 5;i++) {
+        if (vIn.lightIndices[i] != 0) {
+            lightColorOutput += calculateSpotLight(vIn.lightIndices[i], i + 1);
+        }
     }
 
-    if (vIn.lightIndices.y != 0) {
-        b = calculateSpotLight(vIn.lightIndices.y, 2);
-    }
-
-    if (vIn.lightIndices.z != 0) {
-        c = calculateSpotLight(vIn.lightIndices.z, 3);
-    }
-
-    return a + b + c;
+    return lightColorOutput;
 }
 
 vec3 calculatePointLights()
 {
     vec3 a = vec3(0.f);
 
-    if (vIn.lightIndices.w != 0) {
-        a = calculatePointLight(vIn.lightIndices.w, 4);
+    if (vIn.lightIndices[5] != 0) {
+        a = calculatePointLight(vIn.lightIndices[5], 6);
     }
 
     return a;

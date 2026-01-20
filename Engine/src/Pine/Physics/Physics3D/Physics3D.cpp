@@ -5,6 +5,7 @@
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 
 #include "physx/PxPhysicsAPI.h"
+#include "Pine/Performance/Performance.hpp"
 
 namespace
 {
@@ -50,6 +51,8 @@ void Pine::Physics3D::Shutdown()
 
 void Pine::Physics3D::Update(double deltaTime)
 {
+    PINE_PF_SCOPE();
+
     static double accumulator = 0.0;
 
     if (World::IsPaused())

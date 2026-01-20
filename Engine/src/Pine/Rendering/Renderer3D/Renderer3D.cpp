@@ -182,11 +182,15 @@ bool Renderer3D::AddInstance(const Matrix4f& transformationMatrix, ModelRenderer
     {
         auto& lightIndices = ShaderStorages::Instance.Data().Instances[instanceId].LightIndices;
 
-        for (int i = 0; i < 4;i++)
+        for (int i = 0; i < 6;i++)
         {
             if (auto light = data->LightSlotIndex[i].Get())
             {
                 lightIndices[i] = light->GetLightHintData().LightIndex;
+            }
+            else
+            {
+                lightIndices[i] = 0;
             }
         }
     }
@@ -200,11 +204,15 @@ void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, ModelRendererH
     {
         auto& lightIndices = ShaderStorages::Instance.Data().Instances[0].LightIndices;
 
-        for (int i = 0; i < 4;i++)
+        for (int i = 0; i < 6;i++)
         {
             if (auto light = data->LightSlotIndex[i].Get())
             {
                 lightIndices[i] = light->GetLightHintData().LightIndex;
+            }
+            else
+            {
+                lightIndices[i] = 0;
             }
         }
     }
@@ -229,7 +237,7 @@ void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, ModelRendererH
 
     if (m_RenderingContext != nullptr)
     {
-        m_RenderingContext->DrawCalls++;
+        m_RenderingContext->Statistics.DrawCalls++;
     }
 
     if (writeStencilBuffer != 0)
@@ -259,7 +267,7 @@ void Renderer3D::RenderMeshInstanced()
 
     if (m_RenderingContext != nullptr)
     {
-        m_RenderingContext->DrawCalls++;
+        m_RenderingContext->Statistics.DrawCalls++;
     }
 
     m_CurrentInstanceIndex = 0;
@@ -387,22 +395,17 @@ void Renderer3D::AddLight(Light *light)
 
     if (light->GetLightType() == LightType::PointLight)
     {
-        if (LightIndices.x == 0)
+        for (int i = 0; i < 5;i++)
         {
-            LightIndices.x = lightSlot;
-        }
-        else if (LightIndices.y == 0)
-        {
-            LightIndices.y = lightSlot;
-        }
-        else
-        {
-            LightIndices.z = lightSlot;
+            if (LightIndices[i] == 0)
+            {
+                LightIndices[i] = lightSlot;
+            }
         }
     }
     else if (light->GetLightType() == LightType::SpotLight)
     {
-        LightIndices.w = lightSlot;
+        LightIndices[5] = lightSlot;
     }
 }
 
@@ -415,8 +418,6 @@ void Renderer3D::UploadLights()
 
 void Renderer3D::AddDirectionalShadowMap(Graphics::ITexture *depthMap)
 {
-    auto& lightData = ShaderStorages::Lights.Data();
-
     m_DirectionalShadowMap = depthMap;
     m_HasDirectionalShadowMap = true;
 }
@@ -426,6 +427,12 @@ void Renderer3D::FrameReset()
     for (auto& Light : ShaderStorages::Lights.Data().Lights)
     {
         Light.Color = Vector3f(0.0f, 0.0f, 0.0f);
+    }
+
+    auto& [_, LightIndices] = ShaderStorages::Instance.Data().Instances[0];
+    for (int i = 0; i < 8;i++)
+    {
+        LightIndices[i] = 0;
     }
 
     ShaderStorages::Lights.Data().AmbientColor = Vector3f(0.f);

@@ -39,10 +39,7 @@ namespace Pine.World.Components
                 GetLocalPosition(InternalId, out var position);
                 return position;
             }
-            set
-            {
-                SetLocalPosition(InternalId, ref value);
-            }
+            set => SetLocalPosition(InternalId, ref value);
         }
         
         public Quaternion LocalRotation
@@ -52,10 +49,17 @@ namespace Pine.World.Components
                 GetLocalRotation(InternalId, out var rotation);
                 return rotation;
             }
-            set
+            set => SetLocalRotation(InternalId, ref value);
+        }
+        
+        public Vector3 LocalEulerAngles
+        {
+            get
             {
-                SetLocalRotation(InternalId, ref value);
+                GetLocalEulerAngles(InternalId, out var rotation);
+                return rotation;
             }
+            set => SetLocalEulerAngles(InternalId, ref value);
         }
         
         public Vector3 LocalScale
@@ -65,10 +69,7 @@ namespace Pine.World.Components
                 GetLocalScale(InternalId, out var scale);
                 return scale;
             }
-            set
-            {
-                SetLocalScale(InternalId, ref value);
-            }
+            set => SetLocalScale(InternalId, ref value);
         }
         
         public Vector3 Up
@@ -112,6 +113,10 @@ namespace Pine.World.Components
         private static extern void SetLocalRotation(uint id, ref Quaternion rotation);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetLocalRotation(uint id, out Quaternion rotation);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetLocalEulerAngles(uint id, ref Vector3 euler);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetLocalEulerAngles(uint id, out Vector3 euler);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetLocalScale(uint id, ref Vector3 scale);
         [MethodImpl(MethodImplOptions.InternalCall)]
