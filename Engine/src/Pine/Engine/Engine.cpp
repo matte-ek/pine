@@ -150,7 +150,13 @@ void Pine::Engine::Run()
     Script::Manager::ReloadScripts();
 
     // If a startup level has been specified, it's now time to load it before starting the main loop.
-    Game::OnStartup();
+    Game::OnStart();
+
+    // If we're in production mode (i.e. the game host), make sure to call all the "on start" things.
+    if (m_EngineConfiguration.m_ProductionMode)
+    {
+        World::OnStart();
+    }
 
     // The main rendering loop itself
     while (WindowManager::IsWindowOpen())

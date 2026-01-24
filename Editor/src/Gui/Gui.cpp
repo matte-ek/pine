@@ -168,7 +168,7 @@ namespace
         if (stage != Pine::RenderStage::PostRender)
             return;
 
-        PINE_PF_SCOPE();
+        PINE_PF_SCOPE_MANUAL("Editor::OnPineRender()");
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();

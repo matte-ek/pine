@@ -9,6 +9,7 @@ namespace
         j["name"] = entity->GetName();
         j["active"] = entity->GetActive();
         j["static"] = entity->GetStatic();
+        j["tags"] = entity->GetTags();
 
         for (auto component : entity->GetComponents())
         {
@@ -36,6 +37,7 @@ namespace
         entity->SetName(j["name"]);
         entity->SetActive(j["active"]);
         entity->SetStatic(j["static"]);
+        entity->SetTags(j.contains("tags") ? j["tags"].get<std::uint64_t>() : 0);
 
         for (const auto& componentData : j["components"])
         {
@@ -58,7 +60,6 @@ namespace
             }
         }
     }
-
 }
 
 Pine::Blueprint::Blueprint()

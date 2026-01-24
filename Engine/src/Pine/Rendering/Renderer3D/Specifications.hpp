@@ -15,11 +15,13 @@ namespace Pine::Renderer3D::Specifications
 
     namespace Shadows
     {
-        constexpr int SHADOW_MAP_RESOLUTION = 2048;
+        constexpr int SHADOW_MAP_RESOLUTION = 4096;
 
         // Note: Changing this will require manual configuration,
         // configure ranges Shadows.cpp and the rendering shader.
-        constexpr int CASCADE_COUNT = 4;
+        constexpr int CASCADE_COUNT = 2;
+
+        constexpr float MAX_SHADOW_DISTANCE = 1024.f;
     }
 
     namespace PostProcessing

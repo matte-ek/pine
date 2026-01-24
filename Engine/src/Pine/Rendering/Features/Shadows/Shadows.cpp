@@ -63,8 +63,10 @@ namespace
         return glm::ortho(min.x, max.x, min.y, max.y, min.z - farPlaneMargin, max.z + farPlaneMargin);
     }
 
-    void RenderScene(const Rendering::ObjectBatchMap& mapBatch)
+    void RenderScene(const Rendering::ObjectBatchMap& mapBatch, const Camera* sceneCamera)
     {
+        const auto cameraPosition = sceneCamera->GetParent()->GetTransform()->GetPosition();
+
         for (const auto& [modelGroup, objectRenderInstances] : mapBatch)
         {
             const auto model = modelGroup.Model;
@@ -80,7 +82,14 @@ namespace
                 {
                     const auto modelRenderer = renderer;
 
-                    modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
+                    auto modelRendererTransform = modelRenderer->GetParent()->GetTransform();
+
+                    if (glm::distance2(cameraPosition, modelRendererTransform->GetLocalPosition()) > MAX_SHADOW_DISTANCE)
+                    {
+                        continue;
+                    }
+
+                    modelRendererTransform->OnRender(0.f);
 
                     if (const int modelMeshIndex = modelRenderer->GetModelMeshIndex(); modelMeshIndex >= 0)
                     {
@@ -90,7 +99,7 @@ namespace
                         }
                     }
 
-                    if (Renderer3D::AddInstance(modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix()))
+                    if (Renderer3D::AddInstance(modelRendererTransform->GetTransformationMatrix()))
                     {
                         Renderer3D::RenderMeshInstanced();
                     }
@@ -106,14 +115,16 @@ namespace
         const float oldNearPane = m_SceneCamera->GetNearPlane();
         const float oldFarPlane = m_SceneCamera->GetFarPlane();
 
-        const std::array<float, CASCADE_COUNT> farPlane = { 5.f, 10.f, 30.f, m_SceneCamera->GetFarPlane() };
+        const std::array<float, CASCADE_COUNT> farPlane = { 10.f, m_SceneCamera->GetFarPlane() };
 
         auto& shadowData = Renderer3D::ShaderStorages::Shadows.Data();
 
         for (int i = 0; i < CASCADE_COUNT; i++)
         {
             if (i != 0)
+            {
                 m_SceneCamera->SetNearPlane(oldNearPane + farPlane[i - 1]);
+            }
 
             m_SceneCamera->SetFarPlane(farPlane[i]);
             m_SceneCamera->OnRender(0.f);
@@ -164,7 +175,7 @@ namespace
         renderSettings.SkipMaterialInitialization = true;
 
         // Render scene
-        RenderScene(batchData.OpaqueObjects);
+        RenderScene(batchData.OpaqueObjects, m_SceneCamera);
 
         // Restore Renderer3D
         renderSettings.OverrideShader = nullptr;

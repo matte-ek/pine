@@ -26,4 +26,9 @@ namespace Pine::Script::Interfaces
     {
         void Setup();
     }
+
+    namespace Physics
+    {
+        void Setup();
+    }
 }

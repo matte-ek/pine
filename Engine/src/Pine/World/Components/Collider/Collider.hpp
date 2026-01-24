@@ -18,6 +18,11 @@ namespace Pine
         HeightField
     };
 
+    enum ColliderLayer
+    {
+        ColliderLayerDefault = (1 << 0)
+    };
+
     class Collider final : public IComponent
     {
     private:
@@ -29,6 +34,12 @@ namespace Pine
         physx::PxTransform m_Transform = physx::PxTransform();
 
         physx::PxRigidStatic* m_CollisionRigidBody = nullptr;
+
+        std::uint32_t m_Layer = ColliderLayerDefault;
+        std::uint32_t m_LayerMask = 0xFFFFFFFF;
+
+        bool m_IsTrigger = false;
+        std::uint32_t m_TriggerMask = 0xFFFFFFFF;
 
         void UpdateBody();
     public:
@@ -51,10 +62,22 @@ namespace Pine
         void SetHeight(float height);
         float GetHeight() const;
 
-        void Reset();
+        void SetLayer(std::uint32_t layer);
+        std::uint32_t GetLayer() const;
+
+        void SetLayerMask(std::uint32_t includeLayers);
+        std::uint32_t GetLayerMask() const;
+
+        void SetIsTrigger(bool isTrigger);
+        bool IsTrigger() const;
+
+        void SetTriggerMask(std::uint32_t mask);
+        std::uint32_t GetTriggerMask() const;
 
         physx::PxShape* CreateCollisionShape() const;
-        physx::PxRigidStatic* GetCollider() const;
+        physx::PxFilterData GetFilterData() const;
+
+        void Reset();
 
         void OnPrePhysicsUpdate() override;
         void OnDestroyed() override;

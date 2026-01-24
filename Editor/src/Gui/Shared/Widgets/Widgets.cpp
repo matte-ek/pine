@@ -10,6 +10,8 @@
 
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
+#include "Pine/Game/Game.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
 
 namespace
 {
@@ -103,7 +105,7 @@ bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector, float spee
     return xChanged || yChanged || zChanged;
 }
 
-bool Widgets::Combobox(const std::string& str, int* value, const char* items)
+bool Widgets::DropDown(const std::string& str, int* value, const char* items)
 {
     bool ret = false;
     
@@ -384,6 +386,97 @@ void Widgets::TilesetAtlas(Pine::Tileset* tileset, int& selectedItem)
         ImGui::Columns(1);
     }
     ImGui::EndChild();
+}
+
+bool Widgets::LayerSelection(const std::string& text, std::uint32_t& layers)
+{
+    static std::string previewTextBuffer;
+
+    bool ret = false;
+
+    PrepareWidget(text);
+
+    ImGui::SetNextItemWidth(-1.f);
+
+    // Build preview text
+    if (layers == 0)
+    {
+        previewTextBuffer = "Nothing";
+    }
+    else if (layers == 0xFFFFFFFF)
+    {
+        previewTextBuffer = "Everything";
+    }
+    else
+    {
+        previewTextBuffer = "";
+
+        if (layers & Pine::ColliderLayerDefault)
+        {
+            previewTextBuffer = "Default";
+        }
+
+        for (int i = 0; i < 31; i++)
+        {
+            if (layers & (1 << (i + 1)))
+            {
+                if (!previewTextBuffer.empty())
+                {
+                    previewTextBuffer += ", ";
+                }
+
+                previewTextBuffer += Pine::Game::GetGameProperties().ColliderLayers[i];
+            }
+        }
+    }
+
+    if (ImGui::BeginCombo(text.c_str(), previewTextBuffer.c_str(), 0))
+    {
+        // Always show built in default layer
+        if (ImGui::Selectable("Default", layers & (1 << 0)))
+        {
+            if (layers & (1 << 0))
+            {
+                layers &= ~(1 << 0);
+            }
+            else
+            {
+                layers |= (1 << 0);
+            }
+
+            ret = true;
+        }
+
+        for (int i = 0; i < 31; i++)
+        {
+            bool selected = layers & (1 << (i + 1));
+
+            if (Pine::Game::GetGameProperties().ColliderLayers[i].empty())
+            {
+                continue;
+            }
+
+            if (ImGui::Selectable(Pine::Game::GetGameProperties().ColliderLayers[i].c_str(), &selected))
+            {
+                if (selected)
+                {
+                    layers |= (1 << (i + 1));
+                }
+                else
+                {
+                    layers &= ~(1 << (i + 1));
+                }
+
+                ret = true;
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    FinishWidget();
+
+    return ret;
 }
 
 EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::string &id, const Pine::Entity *entity)

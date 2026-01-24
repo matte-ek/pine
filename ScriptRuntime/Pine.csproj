@@ -42,11 +42,12 @@
         <Compile Include="Assets\Asset.cs" />
         <Compile Include="Assets\AssetManager.cs" />
         <Compile Include="Assets\Blueprint.cs" />
+        <Compile Include="Assets\CSharpScript.cs" />
         <Compile Include="Assets\Level.cs" />
         <Compile Include="Assets\Material.cs" />
         <Compile Include="Assets\Model.cs" />
+        <Compile Include="Core\EditorUtils.cs" />
         <Compile Include="Core\Log.cs" />
-        <Compile Include="Core\Script.cs" />
         <Compile Include="Input\InputBind.cs" />
         <Compile Include="Input\InputManager.cs" />
         <Compile Include="Input\KeyCode.cs" />
@@ -54,12 +55,17 @@
         <Compile Include="Math\Vector2.cs" />
         <Compile Include="Math\Vector3.cs" />
         <Compile Include="Math\Vector4.cs" />
+        <Compile Include="Physics\Data\RayCastHit.cs" />
+        <Compile Include="Physics\Data\RaycastResult.cs" />
+        <Compile Include="Physics\Physics3D.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
         <Compile Include="World\Component.cs" />
         <Compile Include="World\Components\ModelRenderer.cs" />
         <Compile Include="World\Components\RigidBody.cs" />
+        <Compile Include="World\Components\Script.cs" />
         <Compile Include="World\Components\Transform.cs" />
         <Compile Include="World\Entity.cs" />
+        <Compile Include="World\EntityList.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

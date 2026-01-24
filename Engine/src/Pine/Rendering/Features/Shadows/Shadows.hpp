@@ -21,7 +21,6 @@ namespace Pine::Rendering::Shadows
 {
     struct ShadowConfiguration
     {
-
     };
 
     void Setup();

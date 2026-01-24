@@ -130,7 +130,7 @@ namespace
             material->SetTextureScale(textureScale);
 
         auto renderMode = static_cast<int>(material->GetRenderingMode());
-        if (Widgets::Combobox("Rendering Mode", &renderMode, "Opaque\0Discard\0Transparent\0"))
+        if (Widgets::DropDown("Rendering Mode", &renderMode, "Opaque\0Discard\0Transparent\0"))
             material->SetRenderingMode(static_cast<Pine::MaterialRenderingMode>(renderMode));
 
         if (material->IsMeshGenerated())
@@ -473,27 +473,4 @@ void AssetPropertiesPanel::Render(Pine::IAsset *asset)
             ImGui::Text("No asset properties available.");
             break;
     }
-
-    /*
-
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    if (ImGui::Button("Open File", ImVec2(100.f, 30.f)))
-    {
-
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Remove", ImVec2(100.f, 30.f)))
-    {
-        std::filesystem::remove(asset->GetFilePath());
-
-        Selection::Clear();
-
-        Panels::AssetBrowser::RebuildAssetTree();
-    }
-    */
 }

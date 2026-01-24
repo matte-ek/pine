@@ -29,6 +29,12 @@ namespace Pine.World
             set => SetStatic(InternalId, value);
         }
 
+        public ulong Tags
+        {
+            get => GetTags(InternalId);
+            set => SetTags(InternalId, value);
+        }
+
         public IEnumerable<Entity> Children => GetChildren(InternalId);
 
         public void Destroy() => DestroyEntity(_internalId);
@@ -38,6 +44,27 @@ namespace Pine.World
         public bool HasComponent<T>() where T: Component => HasComponent(InternalId, typeof(T));
         public T AddComponent<T>() where T : Component => (T)AddComponent(InternalId, typeof(T));
         public T GetComponent<T>() where T : Component => (T)GetComponent(InternalId, typeof(T));
+        public T[] GetComponents<T>() where T : Component => (T[])GetComponents(InternalId, typeof(T));
+
+        public T GetScript<T>() where T : Script
+        {
+            var components = GetComponents(InternalId, typeof(Script));
+
+            foreach (var component in components)
+            {
+                if (!(component is Script scriptComponent))
+                {
+                    continue;
+                }
+
+                if (scriptComponent.GetScriptInstance() is T scriptInstance)
+                {
+                    return scriptInstance;
+                }
+            }
+            
+            return null;
+        }
         
         internal uint InternalId
         {
@@ -76,6 +103,10 @@ namespace Pine.World
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetStatic(uint id, bool value);
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern ulong GetTags(uint id);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetTags(uint id, ulong tags);
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern Entity[] GetChildren(uint id);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DestroyEntity(uint id);
@@ -87,6 +118,8 @@ namespace Pine.World
         private static extern Component AddComponent(uint id, Type type);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern Component GetComponent(uint id, Type type);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Component[] GetComponents(uint id, Type type);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern Entity CreateEntity(string name);
     }

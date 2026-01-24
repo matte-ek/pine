@@ -33,7 +33,7 @@ void Pine::Collider::UpdateBody()
     if (!m_CollisionRigidBody)
     {
         const auto transform = GetParent()->GetTransform();
-        const auto position = transform->GetPosition();
+        const auto position = transform->GetPosition() + m_Position;
         const auto rotation = transform->GetRotation();
 
         m_Transform.p.x = position.x;
@@ -55,6 +55,7 @@ void Pine::Collider::UpdateBody()
         }
 
         m_CollisionRigidBody->attachShape(*collisionShape);
+        m_CollisionRigidBody->userData = m_Parent;
 
         collisionShape->release();
 
@@ -122,6 +123,46 @@ float Pine::Collider::GetHeight() const
     return m_Size.y;
 }
 
+void Pine::Collider::SetLayer(std::uint32_t layer)
+{
+    m_Layer = layer;
+}
+
+std::uint32_t Pine::Collider::GetLayer() const
+{
+    return m_Layer;
+}
+
+void Pine::Collider::SetLayerMask(std::uint32_t includeLayers)
+{
+    m_LayerMask = includeLayers;
+}
+
+std::uint32_t Pine::Collider::GetLayerMask() const
+{
+    return m_LayerMask;
+}
+
+void Pine::Collider::SetIsTrigger(bool isTrigger)
+{
+    m_IsTrigger = isTrigger;
+}
+
+bool Pine::Collider::IsTrigger() const
+{
+    return m_IsTrigger;
+}
+
+void Pine::Collider::SetTriggerMask(std::uint32_t mask)
+{
+    m_TriggerMask = mask;
+}
+
+std::uint32_t Pine::Collider::GetTriggerMask() const
+{
+    return m_TriggerMask;
+}
+
 void Pine::Collider::Reset()
 {
     if (!m_CollisionRigidBody)
@@ -138,20 +179,44 @@ void Pine::Collider::Reset()
 physx::PxShape * Pine::Collider::CreateCollisionShape() const
 {
     auto size = m_Size * GetParent()->GetTransform()->GetScale();
+    physx::PxShape* shape = nullptr;
 
     switch (m_ColliderType)
     {
     case ColliderType::Box:
-        return Physics3D::GetPhysics()->createShape(physx::PxBoxGeometry(size.x, size.y, size.z), *Physics3D::GetDefaultMaterial());
+        shape = Physics3D::GetPhysics()->createShape(physx::PxBoxGeometry(size.x, size.y, size.z), *Physics3D::GetDefaultMaterial());
+        break;
     case ColliderType::Sphere:
-        return Physics3D::GetPhysics()->createShape(physx::PxSphereGeometry(size.x), *Physics3D::GetDefaultMaterial());
+        shape = Physics3D::GetPhysics()->createShape(physx::PxSphereGeometry(size.x), *Physics3D::GetDefaultMaterial());
+        break;
     case ColliderType::Capsule:
-        return Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(size.y, size.x), *Physics3D::GetDefaultMaterial());
+        shape = Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(size.y, size.x), *Physics3D::GetDefaultMaterial());
     default:
         break;
     }
 
-    return nullptr;
+    if (shape)
+    {
+        shape->setSimulationFilterData(GetFilterData());
+        shape->setQueryFilterData(GetFilterData());
+
+        shape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, m_IsTrigger);
+        shape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, !m_IsTrigger);
+    }
+
+    return shape;
+}
+
+physx::PxFilterData Pine::Collider::GetFilterData() const
+{
+    physx::PxFilterData ret;
+
+    ret.word0 = m_Layer;
+    ret.word1 = m_LayerMask;
+    ret.word2 = m_IsTrigger ? m_TriggerMask : 0;
+    ret.word3 = 0;
+
+    return ret;
 }
 
 void Pine::Collider::OnPrePhysicsUpdate()
@@ -186,6 +251,10 @@ void Pine::Collider::LoadData(const nlohmann::json &j)
     Serialization::LoadVector3(j, "pos", m_Position);
     Serialization::LoadVector3(j, "size", m_Size);
     Serialization::LoadValue(j, "ctype", m_ColliderType);
+    Serialization::LoadValue(j, "lay", m_Layer);
+    Serialization::LoadValue(j, "lmask", m_LayerMask);
+    Serialization::LoadValue(j, "trig", m_IsTrigger);
+    Serialization::LoadValue(j, "trigm", m_TriggerMask);
 }
 
 void Pine::Collider::SaveData(nlohmann::json &j)
@@ -193,4 +262,8 @@ void Pine::Collider::SaveData(nlohmann::json &j)
     j["pos"] = Serialization::StoreVector3(m_Position);
     j["size"] = Serialization::StoreVector3(m_Size);
     j["ctype"] = m_ColliderType;
+    j["lay"] = m_Layer;
+    j["lmask"] = m_LayerMask;
+    j["trig"] = m_IsTrigger;
+    j["trigm"] = m_TriggerMask;
 }

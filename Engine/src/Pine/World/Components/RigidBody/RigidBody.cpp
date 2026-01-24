@@ -56,7 +56,7 @@ void Pine::RigidBody::UpdateBody()
     }
 
     const auto transform = GetParent()->GetTransform();
-    const auto position = transform->GetPosition();
+    const auto position = transform->GetPosition() + m_EngineCollider->GetPosition();
     const auto rotation = transform->GetRotation();
 
     m_RigidBodyTransform.p.x = position.x;
@@ -98,17 +98,17 @@ void Pine::RigidBody::UpdateBody()
         const auto shape = m_EngineCollider->CreateCollisionShape();
 
         m_RigidBody->attachShape(*shape);
+        m_RigidBody->userData = m_Parent;
 
         shape->release();
 
         Physics3D::GetScene()->addActor(*m_RigidBody);
     }
 
-    m_RigidBody->setMass(m_Mass);
-
     if (m_RigidBodyType == RigidBodyType::Kinematic)
     {
         m_RigidBody->setKinematicTarget(m_RigidBodyTransform);
+        m_RigidBody->setMass(m_Mass);
     }
     else
     {
@@ -214,8 +214,11 @@ void Pine::RigidBody::OnPostPhysicsUpdate()
     const auto position = m_RigidBody->getGlobalPose().p;
     const auto rotation = m_RigidBody->getGlobalPose().q;
 
-    transform->SetLocalPosition({position.x, position.y, position.z});
-    transform->SetLocalRotation({rotation.w, rotation.x, rotation.y, rotation.z});
+    if (m_RigidBodyType == RigidBodyType::Dynamic)
+    {
+        transform->SetLocalPosition(Vector3f(position.x, position.y, position.z) - m_EngineCollider->GetPosition());
+        transform->SetLocalRotation({rotation.w, rotation.x, rotation.y, rotation.z});
+    }
 }
 
 void Pine::RigidBody::OnCopied()

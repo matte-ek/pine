@@ -8,6 +8,7 @@
 #include "Other/Actions/Actions.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
+#include "Scripting/ScriptingUtilities.hpp"
 
 namespace
 {
@@ -92,6 +93,11 @@ void Commands::Delete()
     {
         for (auto asset : Selection::GetSelectedAssets())
         {
+            if (asset->GetType() == Pine::AssetType::CSharpScript)
+            {
+                ScriptingUtilities::DeleteScript(asset->GetFilePath().string());
+            }
+
             std::filesystem::remove(asset->GetFilePath());
         }
 

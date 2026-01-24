@@ -13,6 +13,8 @@ namespace Pine::Physics3D
     void Setup();
     void Shutdown();
 
+    void ConnectVisualDebugger();
+
     void Update(double deltaTime);
 
     physx::PxPhysics* GetPhysics();

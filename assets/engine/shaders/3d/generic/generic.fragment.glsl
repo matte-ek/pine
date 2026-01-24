@@ -83,11 +83,11 @@ vec3 calculateDirectionalLight()
     {
         float fragCameraDistance = length(vIn.worldPosition - vIn.cameraPos);
         
-        float th1 = 5.f;
-        float th2 = 10.f;
-        float th3 = 30.f;
+        float th1 = 10.f;
+        //float th2 = 30.f;
+        //float th3 = 30.f;
 
-        int cascadeIndex = int(fragCameraDistance > th1) + int(fragCameraDistance > th2) + int(fragCameraDistance > th3);
+        int cascadeIndex = int(fragCameraDistance > th1);// + int(fragCameraDistance > th2);// + int(fragCameraDistance > th3);
         mat4 lsMatrix = lightSpaceMatrix[cascadeIndex];
 
         vec4 pointInDepthMap = lsMatrix * vec4(vIn.worldPosition, 1.0);

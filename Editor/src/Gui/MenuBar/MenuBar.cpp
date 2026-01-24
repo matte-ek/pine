@@ -4,6 +4,7 @@
 #include "Gui/Panels/Console/ConsolePanel.hpp"
 #include "Gui/Panels/DebugPanel/DebugPanel.hpp"
 #include "Gui/Panels/EntityList/EntityListPanel.hpp"
+#include "Gui/Panels/GamePanel/GamePanel.hpp"
 #include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
 #include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
 #include "Gui/Panels/Profiler/ProfilerPanel.hpp"
@@ -137,6 +138,11 @@ void MenuBar::Render()
             if (ImGui::MenuItem("Profiler", nullptr, Panels::Profiler::GetActive()))
             {
                 Panels::Profiler::SetActive(!Panels::Profiler::GetActive());
+            }
+
+            if (ImGui::MenuItem("Game Properties", nullptr, Panels::Game::GetActive()))
+            {
+                Panels::Game::SetActive(!Panels::Game::GetActive());
             }
 
             if (ImGui::MenuItem("Debug", nullptr, Panels::Debug::GetActive()))

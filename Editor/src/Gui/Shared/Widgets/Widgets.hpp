@@ -31,7 +31,7 @@ namespace Widgets
     bool Vector2(const std::string& str, Pine::Vector2f& vector, float speed = 0.01f);
     bool Vector3(const std::string& str, Pine::Vector3f& vector, float speed = 0.01f);
 
-    bool Combobox(const std::string& str, int* value, const char* items);
+    bool DropDown(const std::string& str, int* value, const char* items);
 
     bool InputInt(const std::string& str, int* value);
     bool InputFloat(const std::string& str, float* value);
@@ -53,6 +53,8 @@ namespace Widgets
     bool Icon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, int size = 64);
 
     void TilesetAtlas(Pine::Tileset* tileset, int& selectedItem);
+
+    bool LayerSelection(const std::string& text, std::uint32_t& layers);
 
     void PushDisabled();
     void PopDisabled();

@@ -67,6 +67,7 @@ bool Pine::Script::Runtime::Setup()
     Interfaces::Component::Setup();
     Interfaces::Asset::Setup();
     Interfaces::Input::Setup();
+    Interfaces::Physics::Setup();
     ObjectFactory::Setup();
 
     if (m_IsReloading)

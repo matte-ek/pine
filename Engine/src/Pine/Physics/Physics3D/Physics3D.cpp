@@ -9,34 +9,65 @@
 
 namespace
 {
-    physx::PxDefaultAllocator m_Allocator;
-    physx::PxDefaultErrorCallback m_ErrorCallback;
+    using namespace physx;
 
-    physx::PxFoundation* m_Foundation;
+    PxDefaultAllocator m_Allocator;
+    PxDefaultErrorCallback m_ErrorCallback;
 
-    physx::PxPhysics* m_Physics;
+    PxFoundation* m_Foundation;
 
-    physx::PxDefaultCpuDispatcher* m_Dispatcher;
+    PxPhysics* m_Physics;
 
-    physx::PxScene* m_Scene;
+    PxDefaultCpuDispatcher* m_Dispatcher;
 
-    physx::PxMaterial* m_DefaultMaterial;
+    PxScene* m_Scene;
+
+    PxMaterial* m_DefaultMaterial;
+
+    PxPvd* m_Pvd;
+
+    PxFilterFlags PineFilterShader(
+        PxFilterObjectAttributes attributes0, PxFilterData filterData0,
+        PxFilterObjectAttributes attributes1, PxFilterData filterData1,
+        PxPairFlags& pairFlags, const void* constantBlock, PxU32 constantBlockSize)
+    {
+        if(PxFilterObjectIsTrigger(attributes0) || PxFilterObjectIsTrigger(attributes1))
+        {
+            // Handle the trigger layer mask, word3.
+            if ((filterData0.word3 & filterData1.word0) || (filterData1.word3 & filterData0.word0))
+            {
+                pairFlags |= PxPairFlag::eTRIGGER_DEFAULT;
+            }
+
+            return PxFilterFlag::eDEFAULT;
+        }
+
+        // Make sure the layer mask of each object allow these objects to collide.
+        if ((filterData0.word0 & filterData1.word1) && (filterData1.word0 & filterData0.word1))
+        {
+            pairFlags = PxPairFlag::eCONTACT_DEFAULT;
+        }
+
+        return PxFilterFlag::eDEFAULT;
+    }
 }
 
 void Pine::Physics3D::Setup()
 {
     m_Foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_Allocator, m_ErrorCallback);
-    m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, physx::PxTolerancesScale(), true, nullptr);
+    m_Pvd = PxCreatePvd(*m_Foundation);
 
-    m_Dispatcher = physx::PxDefaultCpuDispatcherCreate(2);
+    m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), true, m_Pvd);
+
+    m_Dispatcher = PxDefaultCpuDispatcherCreate(2);
 
     m_DefaultMaterial = m_Physics->createMaterial(0.5f, 0.5f, 0.1f);
 
-    physx::PxSceneDesc sceneDescriptor(m_Physics->getTolerancesScale());
+    PxSceneDesc sceneDescriptor(m_Physics->getTolerancesScale());
 
-    sceneDescriptor.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+    sceneDescriptor.gravity = PxVec3(0.0f, -9.81f, 0.0f);
     sceneDescriptor.cpuDispatcher = m_Dispatcher;
-    sceneDescriptor.filterShader = physx::PxDefaultSimulationFilterShader;
+    sceneDescriptor.filterShader = PineFilterShader;
 
     m_Scene = m_Physics->createScene(sceneDescriptor);
 }
@@ -47,6 +78,20 @@ void Pine::Physics3D::Shutdown()
     PX_RELEASE(m_Dispatcher);
     PX_RELEASE(m_Physics);
     PX_RELEASE(m_Foundation);
+}
+
+void Pine::Physics3D::ConnectVisualDebugger()
+{
+    PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+
+    m_Pvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
+
+    if (PxPvdSceneClient* pvdClient = m_Scene->getScenePvdClient())
+    {
+        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+        pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+    }
 }
 
 void Pine::Physics3D::Update(double deltaTime)
@@ -86,17 +131,17 @@ void Pine::Physics3D::Update(double deltaTime)
         rigidBody.OnPostPhysicsUpdate();
 }
 
-physx::PxPhysics* Pine::Physics3D::GetPhysics()
+PxPhysics* Pine::Physics3D::GetPhysics()
 {
     return m_Physics;
 }
 
-physx::PxScene * Pine::Physics3D::GetScene()
+PxScene * Pine::Physics3D::GetScene()
 {
     return m_Scene;
 }
 
-physx::PxMaterial * Pine::Physics3D::GetDefaultMaterial()
+PxMaterial * Pine::Physics3D::GetDefaultMaterial()
 {
     return m_DefaultMaterial;
 }

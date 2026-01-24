@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "Gui/Shared/Commands/Commands.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
@@ -19,6 +20,7 @@
 #include "Other/OsNative/OsNative.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
+#include "Scripting/ScriptingUtilities.hpp"
 
 namespace
 {
@@ -469,14 +471,23 @@ namespace
                         delete asset;
                     }
 
+                    if (itemCreationType == 6)
+                    {
+                        if (!std::filesystem::path(buffer).has_extension())
+                        {
+                            strcat(buffer, ".cs");
+                        }
+
+                        ScriptingUtilities::AddScript(m_CurrentDirectory->Path.string() + "/" + buffer);
+                    }
+
                     itemCreationType = -1;
 
                     Panels::AssetBrowser::RebuildAssetTree();
 
                     if (!finalAssetPath.empty())
                     {
-                        const auto newAsset = Pine::Assets::Get(finalAssetPath, true);
-                        if (newAsset)
+                        if (const auto newAsset = Pine::Assets::Get(finalAssetPath, true))
                         {
                             Selection::AddAsset(newAsset);
                         }
@@ -540,6 +551,11 @@ namespace
                     itemCreationType = 5;
                 }
 
+                if (ImGui::MenuItem("Script", nullptr))
+                {
+                    itemCreationType = 6;
+                }
+
                 if (itemCreationType != -1)
                 {
                     openCreateItemDialog = true;
@@ -562,6 +578,11 @@ namespace
 
             if (ImGui::MenuItem("Remove", "DEL", false, isTargetingAsset || isTargetingDirectory))
             {
+                if (isTargetingAsset && m_SelectedItem->Asset->GetType() == Pine::AssetType::CSharpScript)
+                {
+                    ScriptingUtilities::DeleteScript(m_SelectedItem->Asset->GetFilePath().string());
+                }
+
                 std::filesystem::remove(m_SelectedItem->Path.string());
 
                 Selection::Clear();
@@ -819,7 +840,9 @@ void Panels::AssetBrowser::Render()
             else
             {
                 if (newEntrySelection->Asset != nullptr)
+                {
                     Selection::Add<Pine::IAsset>(newEntrySelection->Asset, true);
+                }
 
                 m_SelectedItem = newEntrySelection;
             }
@@ -878,6 +901,5 @@ void Panels::AssetBrowser::Render()
     }
 
     ImGui::EndChild();
-
     ImGui::End();
 }

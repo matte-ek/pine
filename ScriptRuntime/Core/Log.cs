@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace Pine.Core
 {
-    public class Log
+    public static class Log
     {
         public static void Info(string message)
         {

@@ -9,6 +9,9 @@ namespace Pine
     class Blueprint : public IAsset
     {
     private:
+        bool m_IsReference = false;
+        Blueprint* m_Blueprint;
+
         // Stored entity which is the entity the blueprint is describing. This does not
         // point to any existing entity in the world.
         Entity* m_Entity = nullptr;

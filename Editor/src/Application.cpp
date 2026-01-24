@@ -6,7 +6,7 @@
 
 #include "Other/EditorEntity/EditorEntity.hpp"
 #include "Pine/World/World.hpp"
-#include "Scripting/ScriptReload.hpp"
+#include "Scripting/ScriptingUtilities.hpp"
 
 int main()
 {
@@ -31,7 +31,7 @@ int main()
     EditorEntity::Setup();
     RenderHandler::Setup();
     Gui::Setup();
-    ScriptReload::Setup();
+    ScriptingUtilities::Setup();
 
     // Enter main loop
     Pine::Engine::Run();

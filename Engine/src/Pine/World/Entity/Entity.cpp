@@ -88,6 +88,16 @@ bool Pine::Entity::GetStatic() const
     return m_Static;
 }
 
+void Pine::Entity::SetTags(std::uint64_t tags)
+{
+    m_Tags = tags;
+}
+
+std::uint64_t Pine::Entity::GetTags() const
+{
+    return m_Tags;
+}
+
 void Pine::Entity::SetDirty(bool value)
 {
     m_Dirty = value;

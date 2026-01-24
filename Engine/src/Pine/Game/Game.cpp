@@ -13,6 +13,11 @@ namespace
     Pine::Game::GameProperties m_GameProperties;
 }
 
+void Pine::Game::SetGameProperties(const GameProperties& gameProperties)
+{
+    m_GameProperties = gameProperties;
+}
+
 const Pine::Game::GameProperties& Pine::Game::GetGameProperties()
 {
     return m_GameProperties;
@@ -37,10 +42,21 @@ void Pine::Game::Setup()
     Serialization::LoadValue(j, "name", m_GameProperties.Name);
     Serialization::LoadValue(j, "version", m_GameProperties.Version);
     Serialization::LoadValue(j, "author", m_GameProperties.Author);
+
+    for (int i = 0; i < 64;i++)
+    {
+        Serialization::LoadValue(j, fmt::format("tag{}", i), m_GameProperties.EntityTags[i]);
+    }
+
+    for (int i = 0; i < 31;i++)
+    {
+        Serialization::LoadValue(j, fmt::format("layer{}", i), m_GameProperties.ColliderLayers[i]);
+    }
+
     Serialization::LoadValue(j, "startupLevel", m_GameProperties.StartupLevel);
 }
 
-void Pine::Game::OnStartup()
+void Pine::Game::OnStart()
 {
     if (m_GameProperties.StartupLevel.empty())
     {

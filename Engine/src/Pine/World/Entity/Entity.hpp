@@ -18,6 +18,8 @@ namespace Pine
         bool m_Active = true;
         bool m_Static = false;
 
+        std::uint64_t m_Tags = 0;
+
         // This is a way to indicate to the engine components if the entity has been modified in a way
         // that is usually not possible, say for example modifying the position of a static entity. This
         // is primarily used by the editor.
@@ -50,6 +52,9 @@ namespace Pine
 
         void SetStatic(bool value);
         bool GetStatic() const;
+
+        void SetTags(std::uint64_t tags);
+        std::uint64_t GetTags() const;
 
         void SetDirty(bool value);
         bool IsDirty() const;

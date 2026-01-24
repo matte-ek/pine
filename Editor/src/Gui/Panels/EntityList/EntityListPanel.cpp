@@ -155,7 +155,9 @@ namespace
             if (m_DidDropEntity)
             {
                 if (entityIndex >= Pine::Entities::GetList().size())
+                {
                     entityIndex = static_cast<int>(Pine::Entities::GetList().size()) - 1;
+                }
 
                 Pine::Entities::MoveEntity(m_DroppedEntity, entityIndex);
             }

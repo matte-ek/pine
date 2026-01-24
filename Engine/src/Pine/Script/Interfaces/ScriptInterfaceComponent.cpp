@@ -7,6 +7,7 @@
 #include "Pine/World/Components/Components.hpp"
 #include "mono/metadata/object.h"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
+#include "Pine/World/Components/Script/ScriptComponent.hpp"
 
 namespace
 {
@@ -37,7 +38,14 @@ namespace
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
 
-        return mono_gchandle_get_target(dynamic_cast<Pine::ModelRenderer*>(Pine::Components::GetByInternalId(Pine::ComponentType::ModelRenderer, internalId))->GetModel()->GetScriptHandle()->Handle);
+        auto model = dynamic_cast<Pine::ModelRenderer*>(Pine::Components::GetByInternalId(Pine::ComponentType::ModelRenderer, internalId))->GetModel();
+
+        if (!model)
+        {
+            return nullptr;
+        }
+
+        return mono_gchandle_get_target(model->GetScriptHandle()->Handle);
     }
 
     // -----------------------------------------------------
@@ -148,6 +156,29 @@ namespace
 
         Pine::Components::GetByInternalId<Pine::RigidBody>(internalId)->ApplyForce(*force, mode);
     }
+
+    // -----------------------------------------------------
+
+    MonoObject* ScriptGetCSharpScript(std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+
+        auto script = dynamic_cast<Pine::ScriptComponent*>(Pine::Components::GetByInternalId(Pine::ComponentType::Script, internalId))->GetScript();
+        if (!script) return nullptr;
+
+        return mono_gchandle_get_target(script->GetScriptHandle()->Handle);
+    }
+
+    MonoObject* ScriptGetInstance(std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+
+        auto script = dynamic_cast<Pine::ScriptComponent*>(Pine::Components::GetByInternalId(Pine::ComponentType::Script, internalId));
+        if (!script) return nullptr;
+
+        return mono_gchandle_get_target(script->GetScriptObjectHandle()->Handle);
+    }
+
 }
 
 void Pine::Script::Interfaces::Component::Setup()
@@ -174,4 +205,7 @@ void Pine::Script::Interfaces::Component::Setup()
     mono_add_internal_call("Pine.World.Components.Transform::GetUp", reinterpret_cast<void *>(TransformGetUp));
     mono_add_internal_call("Pine.World.Components.Transform::GetRight", reinterpret_cast<void *>(TransformGetRight));
     mono_add_internal_call("Pine.World.Components.Transform::GetForward", reinterpret_cast<void *>(TransformGetForward));
+
+    mono_add_internal_call("Pine.World.Components.Script::GetScript", reinterpret_cast<void *>(ScriptGetCSharpScript));
+    mono_add_internal_call("Pine.World.Components.Script::GetScriptInstanceInternal", reinterpret_cast<void *>(ScriptGetInstance));
 }

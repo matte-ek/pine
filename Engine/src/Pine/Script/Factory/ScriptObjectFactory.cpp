@@ -24,6 +24,8 @@ namespace
     MonoClassField *m_EntityIdProperty = nullptr;
     MonoClassField *m_EntityValidProperty = nullptr;
 
+    MonoClass *m_RaycastHitClass = nullptr;
+
     struct ComponentTypeData
     {
         MonoClass *m_ComponentClass = nullptr;
@@ -58,6 +60,8 @@ void Pine::Script::ObjectFactory::Setup()
     m_EntityValidProperty = mono_class_get_field_from_name(m_EntityClass, "_isValid");
     m_EntityIdProperty = mono_class_get_field_from_name(m_EntityClass, "Id");
 
+    m_RaycastHitClass = mono_class_from_name(m_PineImage, "Pine.Physics.Data", "RayCastHit");
+
     assert(m_EntityClass);
     assert(m_EntityInternalIdField);
     assert(m_EntityIdProperty);
@@ -67,6 +71,16 @@ void Pine::Script::ObjectFactory::Setup()
 MonoClass* Pine::Script::ObjectFactory::GetEntityClass()
 {
     return m_EntityClass;
+}
+
+MonoClass* Pine::Script::ObjectFactory::GetComponentClass(Pine::ComponentType type)
+{
+    return m_ComponentObjectFactory[type]->m_ComponentClass;
+}
+
+MonoClass* Pine::Script::ObjectFactory::GetRayCastHitClass()
+{
+    return m_RaycastHitClass;
 }
 
 Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, std::uint32_t internalId)

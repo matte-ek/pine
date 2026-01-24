@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 #include "Pine/Script/Runtime/ScriptingRuntime.hpp"
+#include "Pine/World/Components/Script/ScriptComponent.hpp"
 
 namespace
 {
@@ -51,6 +52,18 @@ namespace
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Entities::GetByInternalId(internalId)->SetStatic(active);
+    }
+
+    std::uint64_t GetEntityTags(std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+        return Pine::Entities::GetByInternalId(internalId)->GetTags();
+    }
+
+    void SetEntityTags(std::uint32_t internalId, std::uint64_t tags)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+        Pine::Entities::GetByInternalId(internalId)->SetTags(tags);
     }
 
     void DestroyEntity(std::uint32_t internalId)
@@ -142,11 +155,48 @@ namespace
         {
             if (component->GetType() == componentType)
             {
+                if (component->GetType() == Pine::ComponentType::Script)
+                {
+                    return mono_gchandle_get_target(dynamic_cast<Pine::ScriptComponent*>(component)->GetScriptObjectHandle()->Handle);
+                }
+
                 return mono_gchandle_get_target(component->GetComponentScriptHandle()->Handle);
             }
         }
 
         return nullptr;
+    }
+
+    MonoArray* GetComponents(std::uint32_t id, MonoReflectionType* reflectionType)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == id) return nullptr;
+
+        auto componentType = GetComponentType(reflectionType);
+
+        std::vector<Pine::IComponent*> components;
+
+        for (const auto& component : Pine::Entities::GetByInternalId(id)->GetComponents())
+        {
+            if (component->GetType() == componentType)
+            {
+                components.push_back(component);
+            }
+        }
+
+        auto arr = mono_array_new(mono_domain_get(), Pine::Script::ObjectFactory::GetComponentClass(componentType), components.size());
+        for (int i = 0; i < components.size();i++)
+        {
+            uint32_t handle = components[i]->GetComponentScriptHandle()->Handle;
+
+            if (components[i]->GetType() == Pine::ComponentType::Script)
+            {
+                handle = dynamic_cast<Pine::ScriptComponent*>(components[i])->GetScriptObjectHandle()->Handle;
+            }
+
+            mono_array_setref(arr, i, mono_gchandle_get_target(handle));
+        }
+
+        return arr;
     }
 
     MonoObject* AddComponent(std::uint32_t id, MonoReflectionType* reflectionType)
@@ -163,6 +213,52 @@ namespace
         return mono_gchandle_get_target(Pine::Entities::Create(mono_string_to_utf8(name))->GetScriptHandle()->Handle);
     }
 
+    MonoObject* FindEntityByName(MonoString* name)
+    {
+        auto entity = Pine::Entities::Find(mono_string_to_utf8(name));
+
+        if (!entity)
+        {
+            return nullptr;
+        }
+
+        return mono_gchandle_get_target(entity->GetScriptHandle()->Handle);
+    }
+
+    MonoArray* FindEntityByTag(uint64_t tag)
+    {
+        std::vector<Pine::Entity*> entities;
+
+        for (const auto& entity : Pine::Entities::GetList())
+        {
+            if (entity->GetTags() & tag)
+            {
+                entities.push_back(entity);
+            }
+        }
+
+        auto arr = mono_array_new(mono_domain_get(), Pine::Script::ObjectFactory::GetEntityClass(), entities.size());
+
+        for (int i = 0; i < entities.size();i++)
+        {
+            mono_array_setref(arr, i, mono_gchandle_get_target(entities[i]->GetScriptHandle()->Handle));
+        }
+
+        return arr;
+    }
+
+    MonoArray* GetAll()
+    {
+        auto arr = mono_array_new(mono_domain_get(), Pine::Script::ObjectFactory::GetEntityClass(), Pine::Entities::GetList().size());
+
+        for (int i = 0; i < Pine::Entities::GetList().size();i++)
+        {
+            mono_array_setref(arr, i, mono_gchandle_get_target(Pine::Entities::GetList()[i]->GetScriptHandle()->Handle));
+        }
+
+        return arr;
+    }
+
 }
 
 void Pine::Script::Interfaces::Entity::Setup()
@@ -175,11 +271,19 @@ void Pine::Script::Interfaces::Entity::Setup()
     mono_add_internal_call("Pine.World.Entity::SetActive", reinterpret_cast<void*>(SetEntityActive));
     mono_add_internal_call("Pine.World.Entity::GetStatic", reinterpret_cast<void*>(GetEntityStatic));
     mono_add_internal_call("Pine.World.Entity::SetStatic", reinterpret_cast<void*>(SetEntityStatic));
+    mono_add_internal_call("Pine.World.Entity::GetTags", reinterpret_cast<void*>(GetEntityTags));
+    mono_add_internal_call("Pine.World.Entity::SetTags", reinterpret_cast<void*>(SetEntityTags));
     mono_add_internal_call("Pine.World.Entity::GetChildren", reinterpret_cast<void*>(GetChildren));
     mono_add_internal_call("Pine.World.Entity::GetTransform", reinterpret_cast<void*>(GetTransform));
     mono_add_internal_call("Pine.World.Entity::HasComponent", reinterpret_cast<void*>(HasComponent));
     mono_add_internal_call("Pine.World.Entity::GetComponent", reinterpret_cast<void*>(GetComponent));
+    mono_add_internal_call("Pine.World.Entity::GetComponents", reinterpret_cast<void*>(GetComponents));
     mono_add_internal_call("Pine.World.Entity::AddComponent", reinterpret_cast<void*>(AddComponent));
     mono_add_internal_call("Pine.World.Entity::CreateEntity", reinterpret_cast<void*>(CreateEntity));
     mono_add_internal_call("Pine.World.Entity::DestroyEntity", reinterpret_cast<void*>(DestroyEntity));
+
+    mono_add_internal_call("Pine.World.EntityList::FindByName", reinterpret_cast<void*>(FindEntityByName));
+    mono_add_internal_call("Pine.World.EntityList::FindByTag", reinterpret_cast<void*>(FindEntityByTag));
+    mono_add_internal_call("Pine.World.EntityList::GetAll", reinterpret_cast<void*>(GetAll));
+
 }

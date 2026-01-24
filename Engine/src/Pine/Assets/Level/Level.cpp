@@ -77,11 +77,11 @@ void Pine::Level::Load()
     if (m_LevelSettings.HasCamera)
     {
         const auto& entityList = Entities::GetList();
-        const auto entityCameraIndex = m_LevelSettings.CameraEntity - entityOffset;
+        const auto entityCameraIndex = m_LevelSettings.CameraEntity - entityOffset - 2;
 
         if (entityCameraIndex < entityList.size())
         {
-            primaryRenderingContext->SceneCamera = entityList[m_LevelSettings.CameraEntity - entityOffset]->GetComponent<Pine::Camera>();
+            primaryRenderingContext->SceneCamera = entityList[entityCameraIndex]->GetComponent<Pine::Camera>();
         }
     }
 
@@ -169,7 +169,6 @@ bool Pine::Level::SaveToFile()
         j["settings"]["camera"] = m_LevelSettings.CameraEntity;
 
     j["settings"]["skybox"] = Serialization::StoreAsset(m_LevelSettings.Skybox);
-
     j["settings"]["ambientColor"] = Serialization::StoreVector3(m_LevelSettings.AmbientColor);
 
     Serialization::SaveToFile(m_FilePath, j);
