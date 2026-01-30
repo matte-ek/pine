@@ -203,6 +203,9 @@ void Model::UploadModel()
 
         mesh->SetAABB(loadData.BoundingBoxMin, loadData.BoundingBoxMax);
 
+        m_BoundingBoxMin = glm::min(loadData.BoundingBoxMin, m_BoundingBoxMin);
+        m_BoundingBoxMax = glm::max(loadData.BoundingBoxMax, m_BoundingBoxMax);
+
         bool hasEngineMaterialKey = m_Metadata.contains("material") && m_Metadata["material"].contains(std::to_string(i));
         std::string engineMaterial = hasEngineMaterialKey ? m_Metadata["material"][std::to_string(i)] : "null";
 
@@ -263,6 +266,16 @@ Mesh* Model::CreateMesh()
 const std::vector<Mesh*> &Model::GetMeshes() const
 {
     return m_Meshes;
+}
+
+const Vector3f& Model::GetBoundingBoxMin() const
+{
+    return m_BoundingBoxMin;
+}
+
+const Vector3f& Model::GetBoundingBoxMax() const
+{
+    return m_BoundingBoxMax;
 }
 
 bool Model::LoadFromFile(AssetLoadStage stage)

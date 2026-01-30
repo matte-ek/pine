@@ -47,6 +47,9 @@ namespace Pine
         std::vector<Mesh*> m_Meshes;
         std::vector<MeshLoadData> m_MeshLoadData;
 
+        Vector3f m_BoundingBoxMin = {};
+        Vector3f m_BoundingBoxMax = {};
+
         bool m_UsedAsCollider = false;
 
         void ProcessMesh(aiMesh *mesh, const aiScene *scene);
@@ -58,7 +61,11 @@ namespace Pine
         Model();
 
         Mesh* CreateMesh();
+
         const std::vector<Mesh*>& GetMeshes() const;
+
+        const Pine::Vector3f& GetBoundingBoxMin() const;
+        const Pine::Vector3f& GetBoundingBoxMax() const;
 
         bool LoadFromFile(AssetLoadStage stage) override;
         bool SaveToFile() override;

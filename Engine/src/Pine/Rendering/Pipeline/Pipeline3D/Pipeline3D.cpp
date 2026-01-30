@@ -9,6 +9,7 @@
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
+#include "Pine/Rendering/Features/RenderCulling/RenderCulling.hpp"
 #include "Pine/Rendering/Features/Shadows/Shadows.hpp"
 #include "Pine/Rendering/Features/Skybox/Skybox.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
@@ -50,9 +51,14 @@ namespace
 
 				bool hasStencilBufferOverride = false;
 
-				for (const auto [renderer, distance] : objectRenderInstances)
+				for (auto [renderer, distance] : objectRenderInstances)
 				{
 					const auto modelRenderer = renderer;
+
+				    if (!modelRenderer->GetRenderingHintData().HasPassedFrustumCulling)
+				    {
+				        continue;
+				    }
 
 					modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
 
@@ -150,6 +156,8 @@ namespace
 		if (context.SceneCamera)
         {
             Renderer3D::SetCamera(context.SceneCamera);
+
+	        Rendering::RenderCulling::RunFrustumCulling(context.SceneCamera);
         }
 
         Renderer3D::UseRenderingContext(&context);

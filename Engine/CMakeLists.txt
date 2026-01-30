@@ -29,6 +29,31 @@ add_library(Engine ${SOURCES}
         src/Pine/Performance/Performance.cpp
         src/Pine/Performance/Performance.hpp
         src/Pine/Game/Game.cpp
-        src/Pine/Game/Game.hpp)
+        src/Pine/Game/Game.hpp
+        src/Pine/Script/Interfaces/ScriptInterfacePhysics.cpp
+        src/Pine/Rendering/Features/RenderCulling/RenderCulling.cpp
+        src/Pine/Rendering/Features/RenderCulling/RenderCulling.hpp)
+
+if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
+    if(UNIX)
+        # Add rpath setting to find .so libraries on unix based systems
+        set_target_properties(Engine PROPERTIES
+                BUILD_WITH_INSTALL_RPATH TRUE
+                INSTALL_RPATH "$ORIGIN"
+        )
+    endif()
+    add_custom_command(TARGET Engine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-library>
+            $<TARGET_FILE_DIR:Engine>)
+    if(WIN32)
+        add_custom_command(TARGET Engine POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-device-library>
+                $<TARGET_FILE_DIR:Engine>)
+    endif()
+else()
+    message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
+endif()
 
 target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL)

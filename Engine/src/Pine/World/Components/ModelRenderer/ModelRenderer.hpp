@@ -11,8 +11,8 @@ namespace Pine
     {
         struct ModelRendererHintData
         {
+            bool HasPassedFrustumCulling = false;
             bool HasComputedData = false;
-
             std::array<ComponentHandle<Light>, 6> LightSlotIndex = {};
         };
     }
