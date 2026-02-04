@@ -122,7 +122,7 @@ void Pine::Serialization::LoadQuaternion(const nlohmann::json& j, const std::str
     quaternion.w = j[name]["w"].get<float>();
 }
 
-nlohmann::json Pine::Serialization::StoreAsset(const IAsset* asset)
+nlohmann::json Pine::Serialization::StoreAsset(const Asset* asset)
 {
     return asset == nullptr ? "null" : asset->GetPath();
 }

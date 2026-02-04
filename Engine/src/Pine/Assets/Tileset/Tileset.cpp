@@ -1,6 +1,6 @@
 #include "Tileset.hpp"
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"

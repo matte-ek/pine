@@ -1,24 +1,24 @@
-#include "IAsset.hpp"
+#include "Asset.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
-std::uint32_t Pine::IAsset::GetId() const
+std::uint32_t Pine::Asset::GetId() const
 {
     return m_Id;
 }
 
-void Pine::IAsset::SetId(std::uint32_t id)
+void Pine::Asset::SetId(std::uint32_t id)
 {
     m_Id = id;
 }
 
-void Pine::IAsset::CreateScriptHandle()
+void Pine::Asset::CreateScriptHandle()
 {
     m_ScriptObjectHandle = Script::ObjectFactory::CreateAsset(this);
 }
 
-void Pine::IAsset::DestroyScriptHandle()
+void Pine::Asset::DestroyScriptHandle()
 {
     if (m_ScriptObjectHandle.Object == nullptr)
     {
@@ -28,96 +28,96 @@ void Pine::IAsset::DestroyScriptHandle()
     Script::ObjectFactory::DisposeObject(&m_ScriptObjectHandle);
 }
 
-Pine::Script::ObjectHandle* Pine::IAsset::GetScriptHandle()
+Pine::Script::ObjectHandle* Pine::Asset::GetScriptHandle()
 {
     return &m_ScriptObjectHandle;
 }
 
-const std::string& Pine::IAsset::GetFileName() const
+const std::string& Pine::Asset::GetFileName() const
 {
     return m_FileName;
 }
 
-Pine::AssetType Pine::IAsset::GetType() const
+Pine::AssetType Pine::Asset::GetType() const
 {
     return m_Type;
 }
 
-void Pine::IAsset::SetPath(const std::string& path)
+void Pine::Asset::SetPath(const std::string& path)
 {
     // For cross-platform compatibility, always use forward slash
     m_Path = String::Replace(path, "\\", "/");
     m_FileName = std::filesystem::path(path).filename().string();
 }
 
-const std::string& Pine::IAsset::GetPath() const
+const std::string& Pine::Asset::GetPath() const
 {
     return m_Path;
 }
 
-void Pine::IAsset::SetFilePath(const std::filesystem::path& path)
+void Pine::Asset::SetFilePath(const std::filesystem::path& path)
 {
     SetFilePath(path, "");
 }
 
-void Pine::IAsset::SetFilePath(const std::filesystem::path& path, const std::filesystem::path& root)
+void Pine::Asset::SetFilePath(const std::filesystem::path& path, const std::filesystem::path& root)
 {
     m_FilePath = String::Replace(path.string(), "\\", "/");
     m_FileRootPath = String::Replace(root.string(), "\\", "/");
     m_HasFile = true;
 }
 
-const std::filesystem::path& Pine::IAsset::GetFilePath() const
+const std::filesystem::path& Pine::Asset::GetFilePath() const
 {
     return m_FilePath;
 }
 
-const std::filesystem::path& Pine::IAsset::GetFileRootPath() const
+const std::filesystem::path& Pine::Asset::GetFileRootPath() const
 {
     return m_FileRootPath;
 }
 
-Pine::AssetState Pine::IAsset::GetState() const
+Pine::AssetState Pine::Asset::GetState() const
 {
     return m_State;
 }
 
-bool Pine::IAsset::SaveToFile()
+bool Pine::Asset::SaveToFile()
 {
     return false;
 }
 
-Pine::AssetLoadMode Pine::IAsset::GetLoadMode() const
+Pine::AssetLoadMode Pine::Asset::GetLoadMode() const
 {
     return m_LoadMode;
 }
 
-bool Pine::IAsset::LoadFromFile(AssetLoadStage stage) // NOLINT(google-default-arguments)
+bool Pine::Asset::LoadFromFile(AssetLoadStage stage) // NOLINT(google-default-arguments)
 {
     return true;
 }
 
-bool Pine::IAsset::HasFile() const
+bool Pine::Asset::HasFile() const
 {
     return m_HasFile;
 }
 
-bool Pine::IAsset::HasMetadata() const
+bool Pine::Asset::HasMetadata() const
 {
     return m_HasMetadata;
 }
 
-bool Pine::IAsset::HasDependencies() const
+bool Pine::Asset::HasDependencies() const
 {
     return m_HasDependencies;
 }
 
-const std::vector<std::string>& Pine::IAsset::GetDependencies() const
+const std::vector<std::string>& Pine::Asset::GetDependencies() const
 {
     return m_DependencyFiles;
 }
 
-void Pine::IAsset::LoadMetadata()
+void Pine::Asset::LoadMetadata()
 {
     if (!HasFile())
         return;
@@ -146,7 +146,7 @@ void Pine::IAsset::LoadMetadata()
     }
 }
 
-void Pine::IAsset::SaveMetadata()
+void Pine::Asset::SaveMetadata()
 {
     if (!(m_HasMetadata || m_HasDependencies))
         return;
@@ -165,7 +165,7 @@ void Pine::IAsset::SaveMetadata()
     Serialization::SaveToFile(metadataFile, outputJson);
 }
 
-void Pine::IAsset::MarkAsUpdated()
+void Pine::Asset::MarkAsUpdated()
 {
     if (!m_HasFile)
     {
@@ -176,27 +176,27 @@ void Pine::IAsset::MarkAsUpdated()
     m_HasBeenModified = false;
 }
 
-bool Pine::IAsset::HasBeenUpdated() const
+bool Pine::Asset::HasBeenUpdated() const
 {
     return last_write_time(m_FilePath) != m_DiskWriteTime;
 }
 
-bool Pine::IAsset::IsDeleted() const
+bool Pine::Asset::IsDeleted() const
 {
     return m_IsDeleted;
 }
 
-void Pine::IAsset::MarkAsDeleted()
+void Pine::Asset::MarkAsDeleted()
 {
     m_IsDeleted = true;
 }
 
-bool Pine::IAsset::IsModified() const
+bool Pine::Asset::IsModified() const
 {
     return m_HasBeenModified;
 }
 
-void Pine::IAsset::MarkAsModified()
+void Pine::Asset::MarkAsModified()
 {
     m_HasBeenModified = true;
 }

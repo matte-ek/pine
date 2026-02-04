@@ -6,7 +6,7 @@
 #include <AL/alc.h>
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Audio/Interfaces/IAudioObject.hpp"
 
 #pragma pack(push, 1)

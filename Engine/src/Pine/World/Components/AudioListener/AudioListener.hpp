@@ -1,6 +1,6 @@
 #pragma once
 #include "Pine/World/Components/IComponent/IComponent.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 
 namespace Pine
 {

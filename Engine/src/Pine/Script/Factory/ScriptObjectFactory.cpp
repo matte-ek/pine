@@ -3,7 +3,7 @@
 #include <mono/metadata/assembly.h>
 #include <cassert>
 #include <unordered_map>
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/World/Components/IComponent/IComponent.hpp"
 #include "ScriptObjectFactory.hpp"
 #include "Pine/Script/Runtime/ScriptingRuntime.hpp"
@@ -181,7 +181,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const
     return {object, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::IAsset *asset)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::Asset *asset)
 {
     if (!m_PineImage)
     {

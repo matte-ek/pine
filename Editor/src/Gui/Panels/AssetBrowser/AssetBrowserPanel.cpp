@@ -2,7 +2,7 @@
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "imgui.h"
@@ -45,7 +45,7 @@ namespace
 
         std::string DisplayText;
 
-        Pine::IAsset* Asset = nullptr;
+        Pine::Asset* Asset = nullptr;
 
         Pine::Graphics::ITexture* Icon = nullptr;
 
@@ -194,7 +194,7 @@ namespace
             }
             ImGui::EndChild();
 
-            ImGui::SetDragDropPayload("Asset", &file->Asset, sizeof(Pine::IAsset*));
+            ImGui::SetDragDropPayload("Asset", &file->Asset, sizeof(Pine::Asset*));
 
             ImGui::EndDragDropSource();
         }
@@ -240,7 +240,7 @@ namespace
             {
                 if (ImGui::AcceptDragDropPayload("Asset", ImGuiDragDropFlags_SourceAllowNullID))
                 {
-                    const auto asset = *static_cast<Pine::IAsset**>(ImGui::GetDragDropPayload()->Data);
+                    const auto asset = *static_cast<Pine::Asset**>(ImGui::GetDragDropPayload()->Data);
                     const auto newPath = directory->Path.string() + "/" + asset->GetFileName();
 
                     std::filesystem::rename(asset->GetFilePath(), newPath);
@@ -420,7 +420,7 @@ namespace
 
                 if ((ImGui::Button("Create", ImVec2(100.f, 30.f)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) && strlen(buffer) > 0)
                 {
-                    Pine::IAsset* asset = nullptr;
+                    Pine::Asset* asset = nullptr;
                     const char* fileExtension = nullptr;
                     std::string finalAssetPath;
 
@@ -822,7 +822,7 @@ void Panels::AssetBrowser::Render()
             if (selectedEntry->Type == EntryType::File)
             {
                 if (selectedEntry->Asset != nullptr)
-                    Selection::Add<Pine::IAsset>(selectedEntry->Asset, true);
+                    Selection::Add<Pine::Asset>(selectedEntry->Asset, true);
             }
         }
     }
@@ -841,7 +841,7 @@ void Panels::AssetBrowser::Render()
             {
                 if (newEntrySelection->Asset != nullptr)
                 {
-                    Selection::Add<Pine::IAsset>(newEntrySelection->Asset, true);
+                    Selection::Add<Pine::Asset>(newEntrySelection->Asset, true);
                 }
 
                 m_SelectedItem = newEntrySelection;

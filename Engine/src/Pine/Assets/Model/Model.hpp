@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Mesh/Mesh.hpp"
 
 class aiMesh;
@@ -41,7 +41,7 @@ namespace Pine
         MeshMaterialData DefaultMaterial;
     };
 
-    class Model : public IAsset
+    class Model : public Asset
     {
     protected:
         std::vector<Mesh*> m_Meshes;

@@ -3,7 +3,7 @@
 #include <glm/vec3.hpp>
 
 #include "Pine/World/Components/IComponent/IComponent.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Core/Math/Math.hpp"
 
 namespace Pine

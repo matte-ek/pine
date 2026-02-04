@@ -6,7 +6,7 @@ namespace Pine
 {
     enum class ComponentType;
     class IComponent;
-    class IAsset;
+    class Asset;
     class CSharpScript;
 }
 
@@ -29,7 +29,7 @@ namespace Pine::Script
         ObjectHandle CreateScriptObject(const Pine::CSharpScript* script, const Pine::IComponent* component);
         ObjectHandle CreateEntity(std::uint32_t entityId, std::uint32_t internalId);
         ObjectHandle CreateComponent(const Pine::IComponent* engineComponent);
-        ObjectHandle CreateAsset(const Pine::IAsset* asset);
+        ObjectHandle CreateAsset(const Pine::Asset* asset);
 
         void DisposeEntity(ObjectHandle* handle);
         void DisposeComponent(const IComponent* component, ObjectHandle* handle);

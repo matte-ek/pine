@@ -211,7 +211,7 @@ Pine::Graphics::IShaderProgram* Pine::Shader::GetProgram(ShaderVersion version) 
 
 bool Pine::Shader::HasBeenUpdated() const
 {
-    if (IAsset::HasBeenUpdated())
+    if (Asset::HasBeenUpdated())
     {
         return true;
     }
@@ -229,7 +229,7 @@ bool Pine::Shader::HasBeenUpdated() const
 
 void Pine::Shader::MarkAsUpdated()
 {
-    IAsset::MarkAsUpdated();
+    Asset::MarkAsUpdated();
 
     for (const auto& shaderFile : m_ShaderFiles)
     {

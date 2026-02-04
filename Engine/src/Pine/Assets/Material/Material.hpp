@@ -1,7 +1,7 @@
 #pragma once
 #include <glm/vec3.hpp>
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 
@@ -16,7 +16,7 @@ namespace Pine
 		Size
 	};
 
-	class Material final : public IAsset
+	class Material final : public Asset
 	{
 	private:
 		Vector3f m_DiffuseColor = Vector3f(1.f, 1.f, 1.f);

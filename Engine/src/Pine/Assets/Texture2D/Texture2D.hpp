@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Graphics/Interfaces/ITexture.hpp"
 
 namespace Pine
@@ -11,7 +11,7 @@ namespace Pine
         bool m_GenerateMipmaps = false;
     };
 
-    class Texture2D : public IAsset
+    class Texture2D : public Asset
     {
     private:
         int m_Width = 0;

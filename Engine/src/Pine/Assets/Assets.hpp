@@ -1,5 +1,5 @@
 #pragma once
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 
 #include <filesystem>
 #include <string>
@@ -25,7 +25,7 @@ namespace Pine::Assets
     // Attempts to load an asset from a file on disk, will guess the asset type
     // depending on the file extension. Will use the root path as the relative path
     // it's going to as the internal path. You can always overwrite this with mapPath.
-    IAsset* LoadFromFile(const std::filesystem::path& filePath, const std::string& rootPath = "", const std::string& mapPath = "");
+    Asset* LoadFromFile(const std::filesystem::path& filePath, const std::string& rootPath = "", const std::string& mapPath = "");
 
     // Attempts to recursively load all asset files from a directory. Will by default
     // map all assets as relative path to the specified path, however you can overwrite this
@@ -40,7 +40,7 @@ namespace Pine::Assets
 
     // Attempts to find an already loaded asset with it's mapped path.
     // includeFilePath allows you to find the asset by its file path instead of "fake" engine path.
-    IAsset* Get(const std::string& path, bool includeFilePath = false, bool logWarning = true);
+    Asset* Get(const std::string& path, bool includeFilePath = false, bool logWarning = true);
 
     template<typename T>
     T* Get(const std::string& path)
@@ -48,16 +48,16 @@ namespace Pine::Assets
         return dynamic_cast<T*>(Get(path));
     }
 
-    IAsset* GetById(std::uint32_t id);
+    Asset* GetById(std::uint32_t id);
 
-    IAsset* GetOrLoad(const std::string& inputPath, bool includeFilePath = false);
+    Asset* GetOrLoad(const std::string& inputPath, bool includeFilePath = false);
 
     // Moves an already existing asset to a new path, the newPath needs to be a file system path,
     // and the asset will use the same root path as the old path.
-    void MoveAsset(IAsset* asset, const std::filesystem::path& newFilePath);
+    void MoveAsset(Asset* asset, const std::filesystem::path& newFilePath);
 
     // Returns the entire map used internally within the asset manager
-    const std::unordered_map<std::string, IAsset*>& GetAll();
+    const std::unordered_map<std::string, Asset*>& GetAll();
 
     // Saves all new asset data that has been modified to disk
     void SaveAll();

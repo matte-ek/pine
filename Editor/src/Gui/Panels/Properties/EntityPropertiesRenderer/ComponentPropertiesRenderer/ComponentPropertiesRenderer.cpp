@@ -394,7 +394,7 @@ namespace
         int scalingMode = static_cast<int>(spriteRenderer->GetScalingMode());
         int order = spriteRenderer->GetOrder();
 
-        auto [newStaticTextureSet, newStaticTexture] = Widgets::AssetPicker("Static Texture", reinterpret_cast<Pine::IAsset *>(spriteRenderer->GetTexture()));
+        auto [newStaticTextureSet, newStaticTexture] = Widgets::AssetPicker("Static Texture", reinterpret_cast<Pine::Asset *>(spriteRenderer->GetTexture()));
 
         if (newStaticTextureSet)
         {

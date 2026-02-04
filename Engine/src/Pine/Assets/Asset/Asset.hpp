@@ -91,7 +91,7 @@ namespace Pine
     template<class T>
     class AssetHandle;
 
-    class IAsset
+    class Asset
     {
     protected:
         std::string m_FileName;
@@ -142,7 +142,7 @@ namespace Pine
         template<typename>
         friend class AssetHandle;
     public:
-        virtual ~IAsset() = default;
+        virtual ~Asset() = default;
 
         void SetId(std::uint32_t id);
         std::uint32_t GetId() const;
@@ -201,9 +201,9 @@ namespace Pine
             // Make sure to remove any pending deletion assets
             if (m_Asset)
             {
-                if (reinterpret_cast<IAsset *>(m_Asset)->m_IsDeleted)
+                if (reinterpret_cast<Asset *>(m_Asset)->m_IsDeleted)
                 {
-                    --reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount;
+                    --reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
 
                     m_Asset = nullptr;
                 }
@@ -217,23 +217,23 @@ namespace Pine
             return m_Asset;
         }
 
-        AssetHandle &operator=(IAsset *asset)
+        AssetHandle &operator=(Asset *asset)
         {
             // Decrease the ref count on the asset we already have
             if (m_Asset != nullptr)
-                --reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount;
+                --reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
 
             // Assign the new asset
             m_Asset = static_cast<T *>(asset);
 
             // Make sure the new asset updates its reference count
             if (asset != nullptr)
-                ++reinterpret_cast<IAsset *>(m_Asset)->m_ReferenceCount;
+                ++reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
 
             return *this;
         }
 
-        inline bool operator==(const IAsset *b)
+        inline bool operator==(const Asset *b)
         {
             return m_Asset == b;
         }
@@ -242,7 +242,7 @@ namespace Pine
     struct AssetResolveReference
     {
         std::string m_Path;
-        AssetHandle<IAsset> *m_AssetHandle;
+        AssetHandle<Asset> *m_AssetHandle;
         AssetType m_Type = AssetType::Invalid;
     };
 }

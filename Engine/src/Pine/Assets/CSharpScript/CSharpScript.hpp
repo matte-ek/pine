@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 
 namespace Pine
 {
     struct ScriptData;
     class ScriptComponent;
 
-    class CSharpScript : public IAsset
+    class CSharpScript : public Asset
     {
     private:
         ScriptData* m_ScriptData = nullptr;

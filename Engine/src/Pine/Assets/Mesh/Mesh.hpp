@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Graphics/Interfaces/IVertexArray.hpp"
 

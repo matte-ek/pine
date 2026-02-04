@@ -4,7 +4,7 @@ namespace
 {
 
     std::vector<Pine::Entity*> m_SelectedEntities;
-    std::vector<Pine::IAsset*> m_SelectedAssets;
+    std::vector<Pine::Asset*> m_SelectedAssets;
 
 }
 
@@ -30,7 +30,7 @@ void Selection::AddEntity(Pine::Entity* entity)
     m_SelectedEntities.push_back(entity);
 }
 
-void Selection::AddAsset(Pine::IAsset* asset)
+void Selection::AddAsset(Pine::Asset* asset)
 {
     if (asset == nullptr)
     {
@@ -63,7 +63,7 @@ const std::vector<Pine::Entity*>& Selection::GetSelectedEntities()
     return m_SelectedEntities;
 }
 
-const std::vector<Pine::IAsset*>& Selection::GetSelectedAssets()
+const std::vector<Pine::Asset*>& Selection::GetSelectedAssets()
 {
     return m_SelectedAssets;
 }

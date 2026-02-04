@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Graphics/Interfaces/IShaderProgram.hpp"
 #include <optional>
 #include <unordered_map>
@@ -15,7 +15,7 @@ namespace Pine
         PerformanceFast = (1 << 1)
     };
 
-    class Shader : public IAsset
+    class Shader : public Asset
     {
     private:
         std::vector<Graphics::IShaderProgram*> m_ShaderPrograms;
@@ -27,7 +27,7 @@ namespace Pine
 
         Shader* m_ParentShader = nullptr;
 
-        std::vector<IAsset*> m_ShaderFiles;
+        std::vector<Asset*> m_ShaderFiles;
 
         bool LoadShaderPackage(const nlohmann::json& j, std::uint32_t shaderVersion, const std::vector<std::string>& versionMacros);
     public:

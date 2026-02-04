@@ -1,5 +1,5 @@
 #include "Tilemap.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::Tilemap::Tilemap()

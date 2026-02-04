@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 
 namespace Pine
@@ -15,7 +15,7 @@ namespace Pine
         Back
     };
 
-    class Texture3D : public IAsset
+    class Texture3D : public Asset
     {
     private:
         Graphics::ITexture* m_CubeMapTexture = nullptr;

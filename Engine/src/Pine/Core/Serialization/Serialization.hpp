@@ -1,6 +1,6 @@
 #pragma once
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -9,7 +9,7 @@
 
 namespace Pine
 {
-    class IAsset;
+    class Asset;
 }
 
 namespace Pine::Serialization
@@ -28,7 +28,7 @@ namespace Pine::Serialization
 
     nlohmann::json StoreQuaternion(const Quaternion& quaternion);
 
-    nlohmann::json StoreAsset(const IAsset* asset);
+    nlohmann::json StoreAsset(const Asset* asset);
 
     template <typename T>
     nlohmann::json StoreAsset(const AssetHandle<T> asset)
@@ -54,7 +54,7 @@ namespace Pine::Serialization
 
         if (Assets::GetState() == AssetManagerState::LoadDirectory && allowReference)
         {
-            Assets::AddAssetResolveReference({j[name], reinterpret_cast<AssetHandle<IAsset>*>(&asset)});
+            Assets::AddAssetResolveReference({j[name], reinterpret_cast<AssetHandle<Asset>*>(&asset)});
         }
         else
         {

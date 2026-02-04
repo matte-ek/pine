@@ -256,7 +256,7 @@ namespace
         {
             if (const auto payload = ImGui::AcceptDragDropPayload("Asset"))
             {
-                auto droppedAsset = *static_cast<Pine::IAsset**>(payload->Data);
+                auto droppedAsset = *static_cast<Pine::Asset**>(payload->Data);
 
                 if (droppedAsset && droppedAsset->GetType() == Pine::AssetType::Texture2D)
                 {
@@ -414,7 +414,7 @@ namespace
     }
 }
 
-void AssetPropertiesPanel::Render(Pine::IAsset *asset)
+void AssetPropertiesPanel::Render(Pine::Asset *asset)
 {
     auto fileIcon = IconStorage::GetIconTexture(asset->GetPath());
 

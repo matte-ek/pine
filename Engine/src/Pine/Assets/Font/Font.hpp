@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Graphics/Interfaces/ITexture.hpp"
 #include <stb_truetype.h>
 
@@ -16,7 +16,7 @@ namespace Pine
         Graphics::ITexture* m_TextureFontAtlas = nullptr;
     };
 
-    class Font : public IAsset
+    class Font : public Asset
     {
     private:
         std::vector<FontData> m_FontAtlas;

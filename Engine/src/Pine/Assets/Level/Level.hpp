@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 
 namespace Pine
 {
@@ -21,7 +21,7 @@ namespace Pine
         std::uint32_t CameraEntity = 0;
     };
 
-    class Level : public IAsset
+    class Level : public Asset
     {
     private:
         std::vector<Blueprint*> m_Blueprints;

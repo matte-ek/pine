@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
 namespace Pine
 {
 
-    class Blueprint : public IAsset
+    class Blueprint : public Asset
     {
     private:
         bool m_IsReference = false;
