@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Pine/Core/Math/Math.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 class b2Body;
 class b2Fixture;
@@ -16,7 +16,7 @@ namespace Pine
         Kinematic
     };
 
-    class RigidBody2D final : public IComponent
+    class RigidBody2D final : public Component
     {
     private:
         void UpdateBody();

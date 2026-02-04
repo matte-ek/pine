@@ -1,5 +1,5 @@
 #pragma once
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
 {
@@ -105,7 +105,7 @@ namespace Pine
                 block->m_HighestComponentIndex != -1 &&
                 index < block->m_HighestComponentIndex)
             {
-                if (!reinterpret_cast<IComponent*>(m_ComponentPtr)->IsWorldEnabled())
+                if (!reinterpret_cast<Component*>(m_ComponentPtr)->IsWorldEnabled())
                 {
                     ++(*this);
                 }
@@ -135,7 +135,7 @@ namespace Pine
 
             // Else start searching for the next component
             while (!m_BlockParent->m_ComponentOccupationArray[m_ComponentIndex] ||
-                  (!m_IterateDisabledObjects && !reinterpret_cast<IComponent*>(m_BlockParent->GetComponent(m_ComponentIndex))->IsWorldEnabled()))
+                  (!m_IterateDisabledObjects && !reinterpret_cast<Component*>(m_BlockParent->GetComponent(m_ComponentIndex))->IsWorldEnabled()))
             {
                 if (m_ComponentIndex >= m_BlockParent->m_HighestComponentIndex)
                 {
@@ -176,22 +176,22 @@ namespace Pine::Components
     void Shutdown();
 
     // Component Types
-    const std::vector<ComponentDataBlock<IComponent>*>& GetComponentTypes();
+    const std::vector<ComponentDataBlock<Component>*>& GetComponentTypes();
 
     // Creation and deletion of components
-    IComponent* Create(ComponentType type, bool standalone = false);
-    IComponent* Copy(IComponent* component, bool standalone = false);
-    bool Destroy(IComponent* component);
+    Component* Create(ComponentType type, bool standalone = false);
+    Component* Copy(Component* component, bool standalone = false);
+    bool Destroy(Component* component);
 
     // Iteration through component objects
-    ComponentDataBlock<IComponent>& GetData(ComponentType type);
+    ComponentDataBlock<Component>& GetData(ComponentType type);
 
     // Returns a ComponentType from a template type
     template<typename T>
     ComponentType GetType()
     {
         static T ent;
-        static auto type = static_cast<IComponent*>(&ent)->GetType();
+        static auto type = static_cast<Component*>(&ent)->GetType();
 
         return type;
     }
@@ -226,7 +226,7 @@ namespace Pine::Components
         return block.GetComponent(internalId);
     }
 
-    IComponent* GetByInternalId(Pine::ComponentType type, std::uint32_t internalId);
+    Component* GetByInternalId(Pine::ComponentType type, std::uint32_t internalId);
 
     // Internal hints that may be set by the engine to optimize component iteration
     void SetIgnoreHighestEntityIndexFlag(bool ignore);
@@ -270,7 +270,7 @@ namespace Pine
             return Get();
         }
 
-        ComponentHandle &operator=(const IComponent *component)
+        ComponentHandle &operator=(const Component *component)
         {
             if (!component)
             {
@@ -286,7 +286,7 @@ namespace Pine
             return *this;
         }
 
-        bool operator==(const IComponent *b) const
+        bool operator==(const Component *b) const
         {
             return m_UniqueId == b->GetUniqueId();
         }

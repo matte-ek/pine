@@ -15,7 +15,7 @@
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
@@ -594,7 +594,7 @@ namespace
         }
     }
 
-    void RenderComponent(Pine::IComponent* component, int index)
+    void RenderComponent(Pine::Component* component, int index)
     {
         const std::string displayText = std::string(Pine::ComponentTypeToString(component->GetType())) + "##" + std::to_string(index);
 
@@ -673,7 +673,7 @@ namespace
     }
 }
 
-bool ComponentPropertiesRenderer::Render(Pine::IComponent* component, int index)
+bool ComponentPropertiesRenderer::Render(Pine::Component* component, int index)
 {
     RenderComponent(component, index);
     return m_UpdatedComponentData;

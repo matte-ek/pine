@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 #include "physx/PxPhysicsAPI.h"
 #include "Pine/Core/Math/Math.hpp"
@@ -18,7 +18,7 @@ namespace Pine
 
     class Collider;
 
-    class RigidBody final : public IComponent
+    class RigidBody final : public Component
     {
     private:
         RigidBodyType m_RigidBodyType = RigidBodyType::Dynamic;

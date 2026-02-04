@@ -1,7 +1,7 @@
 #pragma once
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/World/Components/Components.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
 {
@@ -17,7 +17,7 @@ namespace Pine
         };
     }
 
-    class ModelRenderer final : public IComponent
+    class ModelRenderer final : public Component
     {
         AssetHandle<Model> m_Model;
         AssetHandle<Material> m_OverrideMaterial;

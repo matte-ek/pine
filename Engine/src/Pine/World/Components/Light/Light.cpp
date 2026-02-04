@@ -2,7 +2,7 @@
 #include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::Light::Light()
-        : IComponent(ComponentType::Light)
+        : Component(ComponentType::Light)
 {
 }
 

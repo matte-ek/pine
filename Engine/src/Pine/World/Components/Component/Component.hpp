@@ -106,7 +106,7 @@ namespace Pine
 
     class Entity;
 
-    class IComponent
+    class Component
     {
     protected:
         bool m_Active = true;
@@ -123,9 +123,9 @@ namespace Pine
 
         Entity *m_Parent = nullptr;
     public:
-        explicit IComponent(ComponentType type);
+        explicit Component(ComponentType type);
 
-        virtual ~IComponent() = default;
+        virtual ~Component() = default;
 
         void SetUniqueId(std::uint64_t id);
         std::uint64_t GetUniqueId() const;

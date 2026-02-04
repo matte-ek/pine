@@ -1,6 +1,6 @@
 #pragma once
 #include "Pine/World/Components/Components.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include <cstdint>
@@ -31,7 +31,7 @@ namespace Pine
 
         std::string m_Name = "Entity";
 
-        std::vector<IComponent*> m_Components;
+        std::vector<Component*> m_Components;
         std::vector<Entity*> m_Children;
 
         Script::ObjectHandle m_EntityScriptHandle = { nullptr, 0 };
@@ -91,11 +91,11 @@ namespace Pine
         }
 
         // Creates and attaches the component to the entity
-        IComponent* AddComponent(ComponentType type);
+        Component* AddComponent(ComponentType type);
 
         // Attaches an existing component to the entity, please prefer to use
         // the other AddComponent()'s if you want to create a new component though.
-        IComponent* AddComponent(IComponent* component);
+        Component* AddComponent(Component* component);
 
         // Removes the first component with the specified type from the entity, returns
         // true if any component was removed.
@@ -115,7 +115,7 @@ namespace Pine
         }
 
         // Removes the component with the provided pointer, returns false on failure.
-        bool RemoveComponent(const IComponent* component);
+        bool RemoveComponent(const Component* component);
 
         // Removes all components, including the Transform component, making this entity invalid, please re-add
         // the Transform component as soon as possible.
@@ -143,7 +143,7 @@ namespace Pine
             return GetComponent<T>() != nullptr;
         }
 
-        IComponent* GetComponent(ComponentType type) const;
+        Component* GetComponent(ComponentType type) const;
 
         bool HasComponent(ComponentType type) const;
 
@@ -152,7 +152,7 @@ namespace Pine
         Transform* GetTransform() const;
 
         // Returns a list of all attached components to the entity.
-        const std::vector<IComponent*>& GetComponents() const;
+        const std::vector<Component*>& GetComponents() const;
 
         // Creates a new entity and marks it as a child to this entity.
         Entity* CreateChild();

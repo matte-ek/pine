@@ -2,7 +2,7 @@
 #include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::TilemapRenderer::TilemapRenderer() :
-      IComponent(ComponentType::TilemapRenderer)
+      Component(ComponentType::TilemapRenderer)
 {
 }
 

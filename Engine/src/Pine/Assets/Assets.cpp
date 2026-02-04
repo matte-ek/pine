@@ -1,6 +1,6 @@
 #include "Assets.hpp"
 
-#include "Pine/Assets/Asset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Font/Font.hpp"
@@ -13,13 +13,11 @@
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
-#include "Pine/Engine/Engine.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 
 #include <cmath>
-#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include <thread>

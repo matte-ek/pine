@@ -2,7 +2,7 @@
 #include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::ModelRenderer::ModelRenderer()
-        : IComponent(ComponentType::ModelRenderer)
+        : Component(ComponentType::ModelRenderer)
 {
 }
 

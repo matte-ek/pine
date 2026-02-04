@@ -5,7 +5,7 @@
 #include "Pine/Rendering/Rendering.hpp"
 
 Pine::Camera::Camera() :
-        IComponent(ComponentType::Camera)
+        Component(ComponentType::Camera)
 {
 }
 

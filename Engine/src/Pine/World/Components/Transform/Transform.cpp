@@ -16,7 +16,7 @@ void Transform::CalculateTransformationMatrix()
 }
 
 Transform::Transform() :
-    IComponent(ComponentType::Transform)
+    Component(ComponentType::Transform)
 {
 }
 

@@ -1,6 +1,6 @@
 #include "Interfaces.hpp"
 #include "Pine/World/Components/Components.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "mono/metadata/class.h"
 #include "mono/metadata/metadata.h"
@@ -173,7 +173,7 @@ namespace
 
         auto componentType = GetComponentType(reflectionType);
 
-        std::vector<Pine::IComponent*> components;
+        std::vector<Pine::Component*> components;
 
         for (const auto& component : Pine::Entities::GetByInternalId(id)->GetComponents())
         {

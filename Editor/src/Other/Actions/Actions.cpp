@@ -70,7 +70,7 @@ ActionComponent::ActionComponent() :
     m_Type = Component;
 }
 
-void ActionComponent::Store(Pine::IComponent* component)
+void ActionComponent::Store(Pine::Component* component)
 {
     m_Index = component->GetInternalId();
     m_ComponentType = component->GetType();
@@ -89,7 +89,7 @@ void ActionComponent::Apply()
     component->LoadData(m_Data);
 }
 
-void Actions::RegisterComponentAction(ActionEvent event, Pine::IComponent* component)
+void Actions::RegisterComponentAction(ActionEvent event, Pine::Component* component)
 {
     auto action = new ActionComponent();
 

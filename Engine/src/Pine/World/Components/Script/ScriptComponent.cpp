@@ -2,7 +2,7 @@
 #include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::ScriptComponent::ScriptComponent()
-    : IComponent(ComponentType::Script)
+    : Component(ComponentType::Script)
 {
 }
 
@@ -39,14 +39,14 @@ Pine::CSharpScript *Pine::ScriptComponent::GetScript() const
 
 void Pine::ScriptComponent::OnCreated()
 {
-    IComponent::OnCreated();
+    Component::OnCreated();
 
     CreateInstance();
 }
 
 void Pine::ScriptComponent::OnCopied()
 {
-    IComponent::OnCopied();
+    Component::OnCopied();
 
     m_ScriptObjectHandle.Object = nullptr;
     m_ScriptObjectHandle.Handle = 0;
@@ -54,7 +54,7 @@ void Pine::ScriptComponent::OnCopied()
 
 void Pine::ScriptComponent::OnDestroyed()
 {
-    IComponent::OnDestroyed();
+    Component::OnDestroyed();
 
     DestroyInstance();
 }

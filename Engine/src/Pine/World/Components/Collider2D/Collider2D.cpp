@@ -105,7 +105,7 @@ float Pine::Collider2D::ComputeRotation() const
 }
 
 Pine::Collider2D::Collider2D()
-	: IComponent(ComponentType::Collider2D)
+	: Component(ComponentType::Collider2D)
 {
 }
 
@@ -161,7 +161,7 @@ void Pine::Collider2D::OnPrePhysicsUpdate()
 
 void Pine::Collider2D::OnDestroyed()
 {
-	IComponent::OnDestroyed();
+	Component::OnDestroyed();
 
 	if (m_Body)
 	{
@@ -174,7 +174,7 @@ void Pine::Collider2D::OnDestroyed()
 
 void Pine::Collider2D::OnCopied()
 {
-	IComponent::OnCopied();
+	Component::OnCopied();
 
 	m_Body = nullptr;
 	m_Fixture = nullptr;
@@ -186,7 +186,7 @@ void Pine::Collider2D::OnRender(float deltaTime)
 
 void Pine::Collider2D::LoadData(const nlohmann::json& j)
 {
-	IComponent::LoadData(j);
+	Component::LoadData(j);
 
 	Serialization::LoadValue(j, "ctype", m_ColliderType);
 	Serialization::LoadVector2(j, "coffset", m_ColliderOffset);
@@ -196,7 +196,7 @@ void Pine::Collider2D::LoadData(const nlohmann::json& j)
 
 void Pine::Collider2D::SaveData(nlohmann::json& j)
 {
-	IComponent::SaveData(j);
+	Component::SaveData(j);
 
 	j["ctype"] = m_ColliderType;
 	j["coffset"] = Serialization::StoreVector2(m_ColliderOffset);

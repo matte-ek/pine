@@ -9,7 +9,7 @@
 #include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::Collider::Collider::Collider()
-        : IComponent(ComponentType::Collider)
+        : Component(ComponentType::Collider)
 {
 }
 
@@ -228,7 +228,7 @@ void Pine::Collider::OnPrePhysicsUpdate()
 
 void Pine::Collider::OnDestroyed()
 {
-    IComponent::OnDestroyed();
+    Component::OnDestroyed();
 
     if (m_CollisionRigidBody)
     {
@@ -241,7 +241,7 @@ void Pine::Collider::OnDestroyed()
 
 void Pine::Collider::OnCopied()
 {
-    IComponent::OnCopied();
+    Component::OnCopied();
 
     m_CollisionRigidBody = nullptr;
 }

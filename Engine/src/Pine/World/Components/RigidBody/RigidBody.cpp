@@ -6,7 +6,7 @@
 #include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::RigidBody::RigidBody()
-        : IComponent(ComponentType::RigidBody)
+        : Component(ComponentType::RigidBody)
 {
 }
 
@@ -223,12 +223,12 @@ void Pine::RigidBody::OnPostPhysicsUpdate()
 
 void Pine::RigidBody::OnCopied()
 {
-    IComponent::OnCopied();
+    Component::OnCopied();
 }
 
 void Pine::RigidBody::OnDestroyed()
 {
-    IComponent::OnDestroyed();
+    Component::OnDestroyed();
 
     if (m_RigidBody)
     {

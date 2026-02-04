@@ -9,7 +9,7 @@
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Game/Game.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 

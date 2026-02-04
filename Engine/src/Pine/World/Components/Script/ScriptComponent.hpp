@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace Pine
 {
 
-    class ScriptComponent final : public IComponent
+    class ScriptComponent final : public Component
     {
     private:
         AssetHandle<CSharpScript> m_Script;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Pine/Core/Math/Math.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
 {
@@ -12,7 +12,7 @@ namespace Pine
         Orthographic
     };
 
-    class Camera final : public IComponent
+    class Camera final : public Component
     {
     private:
         CameraType m_CameraType = CameraType::Perspective;

@@ -3,7 +3,7 @@
 #include <box2d/b2_math.h>
 
 #include "Pine/Core/Math/Math.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 class b2Fixture;
 class b2Body;
@@ -18,7 +18,7 @@ namespace Pine
         Tilemap
     };
 
-    class Collider2D final : public IComponent
+    class Collider2D final : public Component
     {
     private:
         Collider2DType m_ColliderType = Collider2DType::Box;

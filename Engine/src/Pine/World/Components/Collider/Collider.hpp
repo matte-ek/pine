@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Pine/Core/Math/Math.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 #include "physx/PxPhysicsAPI.h"
 
@@ -23,7 +23,7 @@ namespace Pine
         ColliderLayerDefault = (1 << 0)
     };
 
-    class Collider final : public IComponent
+    class Collider final : public Component
     {
     private:
         ColliderType m_ColliderType = ColliderType::Box;

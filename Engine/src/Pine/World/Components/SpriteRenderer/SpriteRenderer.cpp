@@ -2,7 +2,7 @@
 #include "Pine/Core/Serialization/Serialization.hpp"
 
 Pine::SpriteRenderer::SpriteRenderer() :
-      IComponent(ComponentType::SpriteRenderer)
+      Component(ComponentType::SpriteRenderer)
 {
 }
 
