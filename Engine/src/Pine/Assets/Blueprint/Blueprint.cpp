@@ -1,5 +1,5 @@
 #include "Blueprint.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../Core/Serialization/Json/SerializationJson.hpp"
 
 namespace
 {
@@ -157,7 +157,7 @@ nlohmann::json Pine::Blueprint::ToJson() const
 
 bool Pine::Blueprint::LoadFromFile(AssetLoadStage stage)
 {
-   auto json = Serialization::LoadFromFile(m_FilePath);
+   auto json = SerializationJson::LoadFromFile(m_FilePath);
 
    if (!json.has_value())
    {
@@ -173,7 +173,7 @@ bool Pine::Blueprint::LoadFromFile(AssetLoadStage stage)
 
 bool Pine::Blueprint::SaveToFile()
 {
-    Serialization::SaveToFile(m_FilePath, ToJson());
+    SerializationJson::SaveToFile(m_FilePath, ToJson());
 
     return true;
 }

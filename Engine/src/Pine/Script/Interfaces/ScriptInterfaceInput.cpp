@@ -1,5 +1,5 @@
 #include "Interfaces.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/Input/Input.hpp"

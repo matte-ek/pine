@@ -266,5 +266,15 @@ void Entities::MoveEntity(const Entity* entity, std::size_t newIndex)
 
 Entity *Entities::GetByInternalId(std::uint32_t internalId)
 {
+    if (internalId >= m_MaxEntityCount)
+    {
+        return nullptr;
+    }
+
+    if (!m_EntityOccupationArray[internalId])
+    {
+        return nullptr;
+    }
+
     return &m_Entities[internalId];
 }

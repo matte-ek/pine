@@ -63,7 +63,7 @@ namespace Pine::Renderer3D
 
     void SetShader(Shader* shader, ShaderVersion preferredVersion = ShaderVersion::Default);
 
-    void SetAmbientColor(Vector3f ambientColor);
+    void PrepareScene(Vector3f ambientColor, Vector4f fogColor, float fogDistance, float fogIntensity);
 
     void UseRenderingContext(RenderingContext* renderingContext);
 }

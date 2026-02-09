@@ -5,8 +5,8 @@
 namespace Pine
 {
     enum class ComponentType;
-    class IComponent;
-    class IAsset;
+    class Component;
+    class Asset;
     class CSharpScript;
 }
 
@@ -26,13 +26,13 @@ namespace Pine::Script
         MonoClass* GetComponentClass(Pine::ComponentType type);
         MonoClass* GetRayCastHitClass();
 
-        ObjectHandle CreateScriptObject(const Pine::CSharpScript* script, const Pine::IComponent* component);
+        ObjectHandle CreateScriptObject(const Pine::CSharpScript* script, const Pine::Component* component);
         ObjectHandle CreateEntity(std::uint32_t entityId, std::uint32_t internalId);
-        ObjectHandle CreateComponent(const Pine::IComponent* engineComponent);
-        ObjectHandle CreateAsset(const Pine::IAsset* asset);
+        ObjectHandle CreateComponent(const Pine::Component* engineComponent);
+        ObjectHandle CreateAsset(const Pine::Asset* asset);
 
         void DisposeEntity(ObjectHandle* handle);
-        void DisposeComponent(const IComponent* component, ObjectHandle* handle);
+        void DisposeComponent(const Component* component, ObjectHandle* handle);
         void DisposeObject(ObjectHandle* handle);
     }
 }

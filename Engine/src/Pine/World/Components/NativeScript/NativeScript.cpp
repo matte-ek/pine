@@ -1,6 +1,6 @@
 #include "NativeScript.hpp"
 
 Pine::NativeScript::NativeScript()
-	: IComponent(ComponentType::NativeScript)
+	: Component(ComponentType::NativeScript)
 {
 }

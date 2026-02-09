@@ -2,7 +2,7 @@
 
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::Texture3D::Texture3D()
 {
@@ -12,7 +12,7 @@ Pine::Texture3D::Texture3D()
 
 bool Pine::Texture3D::LoadFromFile(AssetLoadStage stage)
 {
-    auto j = Serialization::LoadFromFile(m_FilePath);
+    auto j = SerializationJson::LoadFromFile(m_FilePath);
 
     if (!j.has_value())
     {
@@ -24,7 +24,7 @@ bool Pine::Texture3D::LoadFromFile(AssetLoadStage stage)
 
     bool readyToBuild = false;
 
-    Serialization::LoadAsset(json, "texture", m_Texture, false);
+    SerializationJson::LoadAsset(json, "texture", m_Texture, false);
 
     if (!m_Texture.Get())
     {
@@ -32,7 +32,7 @@ bool Pine::Texture3D::LoadFromFile(AssetLoadStage stage)
 
         for (int i = 0; i < 6;i++)
         {
-            Serialization::LoadAsset(json["side"], std::to_string(i), m_SideTextures[i], false);
+            SerializationJson::LoadAsset(json["side"], std::to_string(i), m_SideTextures[i], false);
 
             if (!m_SideTextures[i].Get())
             {
@@ -59,7 +59,7 @@ bool Pine::Texture3D::SaveToFile()
 {
     nlohmann::json j;
 
-    j["texture"] = Serialization::StoreAsset(m_Texture.Get());
+    j["texture"] = SerializationJson::StoreAsset(m_Texture.Get());
 
     if (m_Texture.Get())
     {
@@ -68,7 +68,7 @@ bool Pine::Texture3D::SaveToFile()
 
     for (int i = 0; i < 6;i++)
     {
-        j["side"][std::to_string(i)] = Serialization::StoreAsset(m_SideTextures[i].Get());
+        j["side"][std::to_string(i)] = SerializationJson::StoreAsset(m_SideTextures[i].Get());
 
         if (m_SideTextures[i].Get())
         {
@@ -78,7 +78,7 @@ bool Pine::Texture3D::SaveToFile()
 
     m_HasDependencies = true;
 
-    Serialization::SaveToFile(m_FilePath, j);
+    SerializationJson::SaveToFile(m_FilePath, j);
 
     return true;
 }

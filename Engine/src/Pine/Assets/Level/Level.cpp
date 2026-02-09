@@ -1,5 +1,5 @@
 #include "Level.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
@@ -77,7 +77,7 @@ void Pine::Level::Load()
     if (m_LevelSettings.HasCamera)
     {
         const auto& entityList = Entities::GetList();
-        const auto entityCameraIndex = m_LevelSettings.CameraEntity - entityOffset - 2;
+        const auto entityCameraIndex = m_LevelSettings.CameraEntity - entityOffset;
 
         if (entityCameraIndex < entityList.size())
         {
@@ -118,7 +118,7 @@ Pine::LevelSettings& Pine::Level::GetLevelSettings()
 
 bool Pine::Level::LoadFromFile(AssetLoadStage stage)
 {
-    const auto json = Serialization::LoadFromFile(m_FilePath);
+    const auto json = SerializationJson::LoadFromFile(m_FilePath);
 
     if (!json.has_value())
     {
@@ -141,9 +141,12 @@ bool Pine::Level::LoadFromFile(AssetLoadStage stage)
 
     if (j.contains("settings"))
     {
-        Serialization::LoadValue(j["settings"], "camera", m_LevelSettings.CameraEntity);
-        Serialization::LoadAsset(j["settings"], "skybox", m_LevelSettings.Skybox);
-        Serialization::LoadVector3(j["settings"], "ambientColor", m_LevelSettings.AmbientColor);
+        SerializationJson::LoadValue(j["settings"], "camera", m_LevelSettings.CameraEntity);
+        SerializationJson::LoadAsset(j["settings"], "skybox", m_LevelSettings.Skybox);
+        SerializationJson::LoadVector3(j["settings"], "ambientColor", m_LevelSettings.AmbientColor);
+        SerializationJson::LoadVector4(j["settings"], "fogColor", m_LevelSettings.FogColor);
+        SerializationJson::LoadValue(j["settings"], "fogDistance", m_LevelSettings.FogDistance);
+        SerializationJson::LoadValue(j["settings"], "fogIntensity", m_LevelSettings.FogIntensity);
 
         if (j["settings"].contains("camera"))
         {
@@ -168,10 +171,13 @@ bool Pine::Level::SaveToFile()
     if (m_LevelSettings.HasCamera)
         j["settings"]["camera"] = m_LevelSettings.CameraEntity;
 
-    j["settings"]["skybox"] = Serialization::StoreAsset(m_LevelSettings.Skybox);
-    j["settings"]["ambientColor"] = Serialization::StoreVector3(m_LevelSettings.AmbientColor);
+    j["settings"]["skybox"] = SerializationJson::StoreAsset(m_LevelSettings.Skybox);
+    j["settings"]["ambientColor"] = SerializationJson::StoreVector3(m_LevelSettings.AmbientColor);
+    j["settings"]["fogColor"] = SerializationJson::StoreVector4(m_LevelSettings.FogColor);
+    j["settings"]["fogDistance"] = m_LevelSettings.FogDistance;
+    j["settings"]["fogIntensity"] = m_LevelSettings.FogIntensity;
 
-    Serialization::SaveToFile(m_FilePath, j);
+    SerializationJson::SaveToFile(m_FilePath, j);
 
     return true;
 }

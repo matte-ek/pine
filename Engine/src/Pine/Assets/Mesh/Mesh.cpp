@@ -41,7 +41,7 @@ void Pine::Mesh::SetMaterial(Material*material)
 {
     m_Material = material;
 
-    if (material && !material->IsMeshGenerated())
+    if (material && !material->IsMeshGenerated() && m_Model)
     {
         m_Model->MarkAsModified();
     }
@@ -52,7 +52,7 @@ void Pine::Mesh::SetMaterial(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Material), AssetType::Material});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<Asset>*>(&m_Material), AssetType::Material});
 }
 
 Pine::Material *Pine::Mesh::GetMaterial() const
@@ -78,7 +78,7 @@ const Pine::Vector3f& Pine::Mesh::GetBoundingBoxMax() const
 void Pine::Mesh::SetVertices(float* vertices, std::size_t size)
 {
     m_VertexArray->Bind();
-    m_VertexArray->StoreFloatArrayBuffer(reinterpret_cast<float*>(vertices), size, Buffers::VERTEX_ARRAY_BUFFER, 3, Graphics::BufferUsageHint::StaticDraw);
+    m_VertexArray->StoreFloatArrayBuffer(vertices, size, Buffers::VERTEX_ARRAY_BUFFER, 3, Graphics::BufferUsageHint::StaticDraw);
     m_RenderCount = static_cast<std::uint32_t>(size / sizeof(Vector3f));
 }
 

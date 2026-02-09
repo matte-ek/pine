@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Pine/Core/Math/Math.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
 {
 
-    class Transform final : public IComponent
+    class Transform final : public Component
     {
     private:
         Matrix4f m_TransformationMatrix = Matrix4f(1.f);

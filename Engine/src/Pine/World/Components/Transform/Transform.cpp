@@ -1,5 +1,5 @@
 #include "Transform.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
 using namespace Pine;
@@ -16,7 +16,7 @@ void Transform::CalculateTransformationMatrix()
 }
 
 Transform::Transform() :
-    IComponent(ComponentType::Transform)
+    Component(ComponentType::Transform)
 {
 }
 
@@ -42,18 +42,18 @@ void Transform::OnRender(float deltaTime)
 
 void Transform::LoadData(const nlohmann::json &j)
 {
-    Serialization::LoadVector3(j, "pos", m_LocalPosition);
-    Serialization::LoadQuaternion(j, "rot", m_LocalRotation);
-    Serialization::LoadVector3(j, "scl", m_LocalScale);
+    SerializationJson::LoadVector3(j, "pos", m_LocalPosition);
+    SerializationJson::LoadQuaternion(j, "rot", m_LocalRotation);
+    SerializationJson::LoadVector3(j, "scl", m_LocalScale);
 
     m_IsDirty = true;
 }
 
 void Transform::SaveData(nlohmann::json &j)
 {
-    j["pos"] = Serialization::StoreVector3(m_LocalPosition);
-    j["rot"] = Serialization::StoreQuaternion(m_LocalRotation);
-    j["scl"] = Serialization::StoreVector3(m_LocalScale);
+    j["pos"] = SerializationJson::StoreVector3(m_LocalPosition);
+    j["rot"] = SerializationJson::StoreQuaternion(m_LocalRotation);
+    j["scl"] = SerializationJson::StoreVector3(m_LocalScale);
 }
 
 const Vector3f& Transform::GetLocalPosition() const

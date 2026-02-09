@@ -1,6 +1,6 @@
 #include "Assets.hpp"
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Font/Font.hpp"
@@ -13,18 +13,18 @@
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
-#include "Pine/Engine/Engine.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 
 #include <cmath>
-#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include <thread>
 #include <unordered_map>
 #include <mutex>
+
+#include "Terrain/Terrain.hpp"
 
 using namespace Pine;
 
@@ -34,11 +34,11 @@ namespace
 
     // All assets currently registered by Pine, they don't have to be
     // valid assets, or loaded assets.
-    std::unordered_map<std::string, IAsset*> m_Assets;
+    std::unordered_map<std::string, Asset*> m_Assets;
 
     // These are a read-only mirrors of `m_Assets`, but has the file path or id as a key instead.
-    std::unordered_map<std::string, IAsset*> m_AssetsFilePath;
-    std::unordered_map<std::uint32_t, IAsset*> m_AssetsId;
+    std::unordered_map<std::string, Asset*> m_AssetsFilePath;
+    std::unordered_map<std::uint32_t, Asset*> m_AssetsId;
 
     // Which assets paths we need to resolve to asset pointers during the end of an ongoing load
     std::vector<AssetResolveReference> m_AssetResolveReferences;
@@ -55,7 +55,7 @@ namespace
         AssetType m_Type;
 
         // This function should create the asset object itself
-        std::function<IAsset*()> m_Factory;
+        std::function<Asset*()> m_Factory;
     };
 
     std::vector m_AssetFactories = {
@@ -69,6 +69,7 @@ namespace
         AssetFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
         AssetFactory( { { "tset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
         AssetFactory( { { "tmap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
+        AssetFactory( { { "terrain" }, AssetType::Terrain, [](){ return new Terrain(); } } ),
         AssetFactory( { { "wav", "wave", "flac", "ogg", "oga", "spx" }, AssetType::Audio, [](){ return new AudioFile(); } } ),
         AssetFactory( {{ "cs" }, AssetType::CSharpScript, [](){ return new CSharpScript(); } } )
     };
@@ -116,7 +117,7 @@ namespace
         return filePath;
     }
 
-    IAsset* FindExistingAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
+    Asset* FindExistingAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
     {
         const auto path = GetAssetMapPath(filePath, rootPath, mapPath);
 
@@ -126,7 +127,7 @@ namespace
         return m_Assets[path];
     }
 
-    IAsset* PrepareAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
+    Asset* PrepareAssetFromFile(const std::filesystem::path& filePath, const std::string& rootPath, const std::string& mapPath)
     {
         if (!exists(filePath))
             return nullptr;
@@ -138,7 +139,7 @@ namespace
 
         const auto factory = GetAssetFactoryFromFileName(filePath.filename());
 
-        IAsset* asset;
+        Asset* asset;
 
         if (factory != nullptr)
             asset = factory->m_Factory();
@@ -162,7 +163,7 @@ namespace
         MultiThread
     };
 
-    bool LoadAssetDataFromFile(IAsset* asset, LoadThreadingModeContext threadingModeContext, AssetLoadStage loadStage)
+    bool LoadAssetDataFromFile(Asset* asset, LoadThreadingModeContext threadingModeContext, AssetLoadStage loadStage)
     {
         // Verify that we are in the main thread if the asset's load mode requires us to be
         if ((asset->GetLoadMode() == AssetLoadMode::SingleThread ||
@@ -194,11 +195,11 @@ void Assets::Shutdown()
     }
 }
 
-IAsset* Assets::LoadFromFile(const std::filesystem::path& path, const std::string& rootPath,
+Asset* Assets::LoadFromFile(const std::filesystem::path& path, const std::string& rootPath,
                              const std::string& mapPath)
 {
     bool hasExistingAsset = false;
-    IAsset* asset;
+    Asset* asset;
 
     if (auto existingAsset = FindExistingAssetFromFile(path, rootPath, mapPath))
     {
@@ -284,14 +285,14 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
     m_State = AssetManagerState::LoadDirectory;
 
     // First gather a list of everything we need to load
-    std::vector<IAsset*> loadPool;
+    std::vector<Asset*> loadPool;
 
     for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(directoryPath))
     {
         if (dirEntry.is_directory())
             continue;
 
-        IAsset* asset;
+        Asset* asset;
 
         if (auto existingAsset = FindExistingAssetFromFile(dirEntry.path(), useAsRelativePath ? directoryPath.string() : "", ""))
         {
@@ -323,9 +324,9 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
     }
 
     // Sort everything
-    std::vector<IAsset*> singleThreadLoadAssets;
-    std::vector<IAsset*> multiThreadLoadAssets;
-    std::vector<IAsset*> dependencyAssets;
+    std::vector<Asset*> singleThreadLoadAssets;
+    std::vector<Asset*> multiThreadLoadAssets;
+    std::vector<Asset*> dependencyAssets;
 
     for (const auto& asset : loadPool)
     {
@@ -363,7 +364,7 @@ int Assets::LoadDirectory(const std::filesystem::path& directoryPath, bool useAs
 
     // Maybe "multiThreadLoadAssets" could be passed through the capture list instead (?)
     // Important part is that it's marked as const
-    const auto loadThread = [](const std::vector<IAsset*>& multiThreadLoadAssets, int startIndex, int endIndex)
+    const auto loadThread = [](const std::vector<Asset*>& multiThreadLoadAssets, int startIndex, int endIndex)
     {
         for (int i = startIndex;i < endIndex;i++)
         {
@@ -570,7 +571,7 @@ void Assets::AddAssetResolveReference(const AssetResolveReference& resolveRefere
     m_AssetResolveReferences.push_back(resolveReference);
 }
 
-IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath, bool logWarning)
+Asset* Assets::Get(const std::string& inputPath, bool includeFilePath, bool logWarning)
 {
     const auto path = String::Replace(inputPath, "\\", "/");
 
@@ -594,7 +595,7 @@ IAsset* Assets::Get(const std::string& inputPath, bool includeFilePath, bool log
     return m_Assets[path];
 }
 
-IAsset* Assets::GetById(std::uint32_t id)
+Asset* Assets::GetById(std::uint32_t id)
 {
     if (m_AssetsId.count(id) == 0)
         return nullptr;
@@ -602,7 +603,7 @@ IAsset* Assets::GetById(std::uint32_t id)
     return m_AssetsId[id];
 }
 
-IAsset *Assets::GetOrLoad(const std::string &inputPath, const bool includeFilePath)
+Asset *Assets::GetOrLoad(const std::string &inputPath, const bool includeFilePath)
 {
     // This should never be called during a LoadDirectory operation!!!
     assert(m_State != AssetManagerState::LoadDirectory);
@@ -623,7 +624,7 @@ IAsset *Assets::GetOrLoad(const std::string &inputPath, const bool includeFilePa
     return m_Assets[path];
 }
 
-void Assets::MoveAsset(IAsset *asset, const std::filesystem::path &newFilePath)
+void Assets::MoveAsset(Asset *asset, const std::filesystem::path &newFilePath)
 {
     const auto newPath = GetAssetMapPath(newFilePath, asset->GetFileRootPath().string(), "");
     const auto oldPath = asset->GetPath();
@@ -639,7 +640,7 @@ void Assets::MoveAsset(IAsset *asset, const std::filesystem::path &newFilePath)
     m_AssetsFilePath[newFilePath.string()] = asset;
 }
 
-const std::unordered_map<std::string, IAsset*>& Assets::GetAll()
+const std::unordered_map<std::string, Asset*>& Assets::GetAll()
 {
     return m_Assets;
 }

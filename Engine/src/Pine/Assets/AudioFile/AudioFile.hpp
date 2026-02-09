@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Audio/WaveFile/WaveFile.hpp"
 #include "Pine/Audio/AudioSourceObject/AudioSourceObject.hpp"
 
@@ -21,7 +21,7 @@ namespace Pine
         Stopped
     };
 
-    class AudioFile : public IAsset
+    class AudioFile : public Asset
     {
     private:
         AudioFileFormat m_AudioFileFormat = AudioFileFormat::Unknown;

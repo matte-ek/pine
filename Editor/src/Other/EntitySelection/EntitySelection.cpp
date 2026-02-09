@@ -35,14 +35,14 @@ namespace
 
         while (value >= 0)
         {
-            auto [quot, rem] = std::div(value, 255);
+            auto [quot, rem] = std::div(value, 256);
 
-            colorValue[pass] = static_cast<float>(rem) / 255.f;
+            colorValue[pass] = static_cast<float>(rem) / 256.f;
 
             if (quot == 0)
                 break;
 
-            value -= quot;
+            value -= quot * 255;
             pass++;
 
             if (pass >= 2)
@@ -55,6 +55,15 @@ namespace
         }
 
         return { colorValue[0], colorValue[1], colorValue[2] };
+    }
+
+    Pine::Vector3f ComputeColorIndexNew(std::uint32_t id)
+    {
+        std::uint8_t byte0 = id & 0xFF;
+        std::uint8_t byte1 = ((id >> 8) & 0xFF);
+        std::uint8_t byte2 = ((id >> 16) & 0xFF);
+
+        return { static_cast<float>(byte0) / 255.f, static_cast<float>(byte1) / 255.f, static_cast<float>(byte2) / 255.f };
     }
 
     void HandleRendering3D(const Pine::RenderingContext *context)
@@ -87,7 +96,7 @@ namespace
 
                 Pine::Renderer3D::PrepareMesh(mesh);
 
-                m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(ComputeColorIndex(static_cast<int>(entity->GetInternalId())));
+                m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(ComputeColorIndexNew(entity->GetInternalId()));
 
                 Pine::Renderer3D::RenderMesh(entity->GetTransform()->GetTransformationMatrix());
             }
@@ -164,10 +173,9 @@ namespace
                                   sizeof(mouseColorData),
                                   mouseColorData);
 
-        const auto digit0 = static_cast<int>(mouseColorData[2] * pow(255, 2));
-        const auto digit1 = static_cast<int>(mouseColorData[1] * pow(255, 1));
-        const auto digit2 = static_cast<int>(mouseColorData[0] * pow(255, 0));
-        const auto entityId = digit0 + digit1 + digit2;
+        std::uint32_t entityId = *reinterpret_cast<std::uint32_t*>(mouseColorData);
+
+        entityId &= 0x00FFFFFF;
 
         if (entityId != 0)
         {

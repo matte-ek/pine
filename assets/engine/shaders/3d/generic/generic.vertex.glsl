@@ -13,6 +13,7 @@ out VertexData
 	vec3 worldPosition;
 	vec3 cameraPos;
 	vec3 cameraDir;
+	float cameraDistance;
 	vec3 normalDir;
 	vec3 lightDir[8];
     flat int lightIndices[8];
@@ -45,6 +46,7 @@ void main()
 	vOut.worldPosition = (transformationMatrix * vertexPosition).xyz;
 	vOut.uv = uv;
 	vOut.cameraPos = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	vOut.cameraDistance = length(vOut.worldPosition - vOut.cameraPos);
 
 	writeLightIndices();
 

@@ -195,6 +195,21 @@ bool Widgets::ColorPicker3(const std::string& str, Pine::Vector3f& color)
     return ret;
 }
 
+bool Widgets::ColorPicker4(const std::string& str, Pine::Vector4f& color)
+{
+    bool ret = false;
+
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(-1.f);
+
+    ret = ImGui::ColorEdit4(std::string("##ColorPicker4" + str).c_str(), glm::value_ptr(color), ImGuiColorEditFlags_NoAlpha);
+
+    FinishWidget();
+
+    return ret;
+}
+
 bool Widgets::CheckboxVector3(const std::string& str, std::array<bool, 3>& vec)
 {
     bool ret = false;
@@ -218,12 +233,12 @@ bool Widgets::CheckboxVector3(const std::string& str, std::array<bool, 3>& vec)
     return ret;
 }
 
-AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType)
+AssetPickerResult Widgets::AssetPicker(const std::string& str, const Pine::Asset* asset, Pine::AssetType restrictedType)
 {
     return AssetPicker(str, "", asset, restrictedType);
 }
 
-AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string& id, const Pine::IAsset* asset, Pine::AssetType restrictedType)
+AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string& id, const Pine::Asset* asset, Pine::AssetType restrictedType)
 {
     AssetPickerResult ret;
 
@@ -254,14 +269,14 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
 
     if (ImGui::IsItemClicked() && asset != nullptr)
     {
-        Selection::Add(const_cast<Pine::IAsset*>(asset), true);
+        Selection::Add(const_cast<Pine::Asset*>(asset), true);
     }
 
     if (ImGui::BeginDragDropTarget())
     {
         if (const auto payload = ImGui::AcceptDragDropPayload("Asset"))
         {
-            auto droppedAsset = *static_cast<Pine::IAsset**>(payload->Data);
+            auto droppedAsset = *static_cast<Pine::Asset**>(payload->Data);
 
             if (droppedAsset && (restrictedType == Pine::AssetType::Invalid || droppedAsset->GetType() == restrictedType))
             {

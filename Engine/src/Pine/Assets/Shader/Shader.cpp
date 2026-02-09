@@ -5,7 +5,7 @@
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/Interfaces/IShaderProgram.hpp"
@@ -32,6 +32,7 @@ namespace
 
     std::string ProcessShaderLine(ShaderCompileContext& shaderCompileContext, const std::string& line)
     {
+        /*
         const auto shaderTypeStr = ShaderTypesString[static_cast<int>(shaderCompileContext.Type)];
         const auto hasParentShader = !shaderCompileContext.Shader->IsBaseShader();
         const auto parentShader = shaderCompileContext.Shader->GetParentShader();
@@ -53,6 +54,7 @@ namespace
                 // TODO: implement this crap whenever i feel like it (and it's actually needed)
             }
         }
+        */
 
         if (Pine::String::StartsWith(line, "#include "))
         {
@@ -61,7 +63,18 @@ namespace
 
             if (std::filesystem::exists(filePath))
             {
-                return Pine::File::ReadFile(filePath).value();
+                auto includedFile = Pine::File::ReadFile(filePath).value();
+
+                std::istringstream stream(includedFile);
+                std::ostringstream outputStream;
+
+                std::string includedFileLine;
+                while (std::getline(stream, includedFileLine))
+                {
+                    outputStream << ProcessShaderLine(shaderCompileContext, includedFileLine) << std::endl;
+                }
+
+                return outputStream.str();
             }
             else
             {
@@ -158,7 +171,7 @@ Pine::Shader::Shader()
 bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
 {
     // Attempt to parse JSON
-    const auto jsonOpt = Serialization::LoadFromFile(m_FilePath);
+    const auto jsonOpt = SerializationJson::LoadFromFile(m_FilePath);
 
     if (!jsonOpt.has_value())
         return false;
@@ -211,7 +224,7 @@ Pine::Graphics::IShaderProgram* Pine::Shader::GetProgram(ShaderVersion version) 
 
 bool Pine::Shader::HasBeenUpdated() const
 {
-    if (IAsset::HasBeenUpdated())
+    if (Asset::HasBeenUpdated())
     {
         return true;
     }
@@ -229,7 +242,7 @@ bool Pine::Shader::HasBeenUpdated() const
 
 void Pine::Shader::MarkAsUpdated()
 {
-    IAsset::MarkAsUpdated();
+    Asset::MarkAsUpdated();
 
     for (const auto& shaderFile : m_ShaderFiles)
     {
@@ -270,7 +283,7 @@ Pine::Shader* Pine::Shader::GetParentShader() const
 std::optional<std::string> Pine::Shader::GetShaderSourceFile(Graphics::ShaderType type) const
 {
     // Attempt to parse JSON
-    auto jsonOpt = Serialization::LoadFromFile(m_FilePath);
+    auto jsonOpt = SerializationJson::LoadFromFile(m_FilePath);
 
     if (!jsonOpt.has_value())
         return std::nullopt;
@@ -413,7 +426,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
         if (m_ParentShader != nullptr)
         {
-            auto parentJson = Serialization::LoadFromFile(m_ParentShader->GetFilePath()).value();
+            auto parentJson = SerializationJson::LoadFromFile(m_ParentShader->GetFilePath()).value();
 
             for (const auto& item : parentJson["texture_samplers"].items())
             {

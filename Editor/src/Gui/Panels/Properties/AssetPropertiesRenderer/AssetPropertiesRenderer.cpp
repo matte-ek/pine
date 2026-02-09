@@ -20,6 +20,7 @@
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Gui/Panels/Properties/EntityPropertiesRenderer/EntityPropertiesRenderer.hpp"
+#include "Pine/Assets/Terrain/Terrain.hpp"
 #include "Pine/Rendering/Rendering.hpp"
 #include "Pine/World/World.hpp"
 
@@ -207,6 +208,8 @@ namespace
         ImGui::Spacing();
 
         EntityPropertiesPanel::Render(blueprint->GetEntity());
+
+        blueprint->MarkAsModified();
     }
 
     void RenderLevel(Pine::Level *level)
@@ -256,7 +259,7 @@ namespace
         {
             if (const auto payload = ImGui::AcceptDragDropPayload("Asset"))
             {
-                auto droppedAsset = *static_cast<Pine::IAsset**>(payload->Data);
+                auto droppedAsset = *static_cast<Pine::Asset**>(payload->Data);
 
                 if (droppedAsset && droppedAsset->GetType() == Pine::AssetType::Texture2D)
                 {
@@ -410,11 +413,43 @@ namespace
 
     void RenderAudioFile(Pine::AudioFile *audiofile)
     {
+    }
 
+    void RenderTerrain(Pine::Terrain *terrain)
+    {
+        ImGui::Text("Chunk count: %d", terrain->GetChunks().size());
+
+        int index = 0;
+        for (auto& chunk : terrain->GetChunks())
+        {
+            index++;
+
+            if (ImGui::CollapsingHeader(fmt::format("Chunk #{}", index).c_str()))
+            {
+                auto newHeightmap = Widgets::AssetPicker("Heightmap", chunk.HeightmapTexture.Get(), Pine::AssetType::Texture2D);
+                if (newHeightmap.hasResult)
+                {
+                    chunk.HeightmapTexture = newHeightmap.asset;
+
+                    terrain->MarkAsModified();
+                }
+            }
+        }
+
+        if (ImGui::Button("Add chunk"))
+        {
+            terrain->CreateChunk({0, 0});
+            terrain->MarkAsModified();
+        }
+
+        if (ImGui::Button("Generate"))
+        {
+            terrain->Generate();
+        }
     }
 }
 
-void AssetPropertiesPanel::Render(Pine::IAsset *asset)
+void AssetPropertiesPanel::Render(Pine::Asset *asset)
 {
     auto fileIcon = IconStorage::GetIconTexture(asset->GetPath());
 
@@ -468,6 +503,9 @@ void AssetPropertiesPanel::Render(Pine::IAsset *asset)
             break;
         case Pine::AssetType::Audio:
             RenderAudioFile(dynamic_cast<Pine::AudioFile *>(asset));
+            break;
+        case Pine::AssetType::Terrain:
+            RenderTerrain(dynamic_cast<Pine::Terrain *>(asset));
             break;
         default:
             ImGui::Text("No asset properties available.");

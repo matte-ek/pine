@@ -10,6 +10,7 @@
 	},
 	"versions":
 	{
-		"VERSION_DISCARD": 1
+		"VERSION_DISCARD": 1,
+		"VERSION_TERRAIN": 2
 	}
 }

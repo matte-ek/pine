@@ -15,13 +15,14 @@
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
+#include "Pine/World/Components/TerrainRenderer/TerrainRendererComponent.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "Rendering/RenderHandler.hpp"
 
@@ -394,7 +395,7 @@ namespace
         int scalingMode = static_cast<int>(spriteRenderer->GetScalingMode());
         int order = spriteRenderer->GetOrder();
 
-        auto [newStaticTextureSet, newStaticTexture] = Widgets::AssetPicker("Static Texture", reinterpret_cast<Pine::IAsset *>(spriteRenderer->GetTexture()));
+        auto [newStaticTextureSet, newStaticTexture] = Widgets::AssetPicker("Static Texture", reinterpret_cast<Pine::Asset *>(spriteRenderer->GetTexture()));
 
         if (newStaticTextureSet)
         {
@@ -594,7 +595,22 @@ namespace
         }
     }
 
-    void RenderComponent(Pine::IComponent* component, int index)
+    // -----------------------------------------------------------------------------------------------------------------------
+
+    void RenderTerrainRenderer(Pine::TerrainRendererComponent* terrainRendererComponent)
+    {
+        auto terrain = terrainRendererComponent->GetTerrain();
+
+        const auto newTerrain = Widgets::AssetPicker("Terrain", terrain, Pine::AssetType::Terrain);
+
+        if (newTerrain.hasResult)
+        {
+            terrainRendererComponent->SetTerrain(dynamic_cast<Pine::Terrain*>(newTerrain.asset));
+            m_UpdatedComponentData = true;
+        }
+    }
+
+    void RenderComponent(Pine::Component* component, int index)
     {
         const std::string displayText = std::string(Pine::ComponentTypeToString(component->GetType())) + "##" + std::to_string(index);
 
@@ -666,6 +682,9 @@ namespace
                 case Pine::ComponentType::RigidBody2D:
                     RenderRigidBody2D(dynamic_cast<Pine::RigidBody2D *>(component));
                     break;
+                case Pine::ComponentType::TerrainRenderer:
+                    RenderTerrainRenderer(dynamic_cast<Pine::TerrainRendererComponent *>(component));
+                    break;
                 default:
                     break;
             }
@@ -673,7 +692,7 @@ namespace
     }
 }
 
-bool ComponentPropertiesRenderer::Render(Pine::IComponent* component, int index)
+bool ComponentPropertiesRenderer::Render(Pine::Component* component, int index)
 {
     RenderComponent(component, index);
     return m_UpdatedComponentData;

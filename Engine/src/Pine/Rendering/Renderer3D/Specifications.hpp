@@ -21,7 +21,7 @@ namespace Pine::Renderer3D::Specifications
         // configure ranges Shadows.cpp and the rendering shader.
         constexpr int CASCADE_COUNT = 2;
 
-        constexpr float MAX_SHADOW_DISTANCE = 1024.f;
+        constexpr float MAX_SHADOW_DISTANCE = 1500.f;
     }
 
     namespace PostProcessing
@@ -52,5 +52,7 @@ namespace Pine::Renderer3D::Specifications
         constexpr int MATERIAL = 2;
         constexpr int LIGHTS = 3;
         constexpr int SHADOWS = 4;
+        constexpr int WORLD = 5;
+        constexpr int AO_DATA = 6;
     }
 }

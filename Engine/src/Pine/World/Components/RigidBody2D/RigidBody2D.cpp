@@ -4,7 +4,7 @@
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_world.h>
 
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Physics/Physics2D/Physics2D.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
 #include "Pine/World/Entity/Entity.hpp"
@@ -77,7 +77,7 @@ void Pine::RigidBody2D::UpdateBody()
 }
 
 Pine::RigidBody2D::RigidBody2D()
-	: IComponent(ComponentType::RigidBody2D)
+	: Component(ComponentType::RigidBody2D)
 {
 }
 
@@ -119,7 +119,7 @@ void Pine::RigidBody2D::OnPostPhysicsUpdate()
 
 void Pine::RigidBody2D::OnDestroyed()
 {
-	IComponent::OnDestroyed();
+	Component::OnDestroyed();
 
 	if (m_Body)
 	{
@@ -132,7 +132,7 @@ void Pine::RigidBody2D::OnDestroyed()
 
 void Pine::RigidBody2D::OnCopied()
 {
-	IComponent::OnCopied();
+	Component::OnCopied();
 
 	m_Body = nullptr;
 	m_Fixture = nullptr;
@@ -140,19 +140,19 @@ void Pine::RigidBody2D::OnCopied()
 
 void Pine::RigidBody2D::OnRender(float deltaTime)
 {
-	IComponent::OnRender(deltaTime);
+	Component::OnRender(deltaTime);
 }
 
 void Pine::RigidBody2D::LoadData(const nlohmann::json& j)
 {
-	IComponent::LoadData(j);
+	Component::LoadData(j);
 
-	Serialization::LoadValue(j, "rtype", m_RigidBodyType);
+	SerializationJson::LoadValue(j, "rtype", m_RigidBodyType);
 }
 
 void Pine::RigidBody2D::SaveData(nlohmann::json& j)
 {
-	IComponent::SaveData(j);
+	Component::SaveData(j);
 
 	j["rtype"] = m_RigidBodyType;
 }

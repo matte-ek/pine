@@ -1,8 +1,8 @@
 #include "TilemapRenderer.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::TilemapRenderer::TilemapRenderer() :
-      IComponent(ComponentType::TilemapRenderer)
+      Component(ComponentType::TilemapRenderer)
 {
 }
 
@@ -28,12 +28,12 @@ int Pine::TilemapRenderer::GetOrder() const
 
 void Pine::TilemapRenderer::LoadData(const nlohmann::json& j)
 {
-    Serialization::LoadAsset(j, "tm", m_Tilemap);
-    Serialization::LoadValue(j, "odr", m_Order);
+    SerializationJson::LoadAsset(j, "tm", m_Tilemap);
+    SerializationJson::LoadValue(j, "odr", m_Order);
 }
 
 void Pine::TilemapRenderer::SaveData(nlohmann::json& j)
 {
-    j["tm"] = Serialization::StoreAsset(m_Tilemap.Get());
+    j["tm"] = SerializationJson::StoreAsset(m_Tilemap.Get());
     j["odr"] = m_Order;
 }

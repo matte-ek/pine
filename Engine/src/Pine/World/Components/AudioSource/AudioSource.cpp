@@ -2,7 +2,7 @@
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
 
 Pine::AudioSource::AudioSource()
-    : IComponent(ComponentType::AudioSource)
+    : Component(ComponentType::AudioSource)
 {
 }
 
@@ -61,7 +61,7 @@ float Pine::AudioSource::GetVolume() const
 
 void Pine::AudioSource::OnSetup()
 {
-    IComponent::OnSetup();
+    Component::OnSetup();
 
     if (m_Standalone)
         return;

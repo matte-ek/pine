@@ -1,10 +1,10 @@
 #pragma once
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
 {
 
-    class NativeScript : public IComponent
+    class NativeScript : public Component
 	{
 	private:
 	public:

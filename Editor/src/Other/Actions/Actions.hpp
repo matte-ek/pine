@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 namespace Actions
 {
@@ -51,12 +51,12 @@ namespace Actions
     public:
         ActionComponent();
 
-        void Store(Pine::IComponent* component);
+        void Store(Pine::Component* component);
 
         void Apply() override;
     };
 
-    void RegisterComponentAction(ActionEvent event, Pine::IComponent* component);
+    void RegisterComponentAction(ActionEvent event, Pine::Component* component);
 
     void Undo();
     void Redo();

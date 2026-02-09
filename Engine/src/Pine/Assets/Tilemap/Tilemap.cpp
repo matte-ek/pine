@@ -1,6 +1,6 @@
 #include "Tilemap.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
+#include "../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::Tilemap::Tilemap()
 {
@@ -83,14 +83,14 @@ const Pine::TileInstance* Pine::Tilemap::GetTileByPosition(Vector2i gridPosition
 
 bool Pine::Tilemap::LoadFromFile(AssetLoadStage stage)
 {
-    auto jsonOpt = Serialization::LoadFromFile(m_FilePath);
+    auto jsonOpt = SerializationJson::LoadFromFile(m_FilePath);
 
     if (!jsonOpt.has_value())
         return false;
 
     const auto j = jsonOpt.value();
 
-    Serialization::LoadAsset(j, "tileSet", m_Tileset, false);
+    SerializationJson::LoadAsset(j, "tileSet", m_Tileset, false);
 
     if (j.contains("tiles"))
     {
@@ -109,7 +109,7 @@ bool Pine::Tilemap::SaveToFile()
 {
     nlohmann::json j;
 
-    j["tileSet"] = Serialization::StoreAsset(m_Tileset.Get());
+    j["tileSet"] = SerializationJson::StoreAsset(m_Tileset.Get());
 
     for (const auto& tileInstance : m_Tiles)
     {
@@ -134,7 +134,7 @@ bool Pine::Tilemap::SaveToFile()
         j["tiles"].push_back(tileInstanceData);
     }
 
-    Serialization::SaveToFile(m_FilePath, j);
+    SerializationJson::SaveToFile(m_FilePath, j);
 
     if (m_Tileset.Get())
     {

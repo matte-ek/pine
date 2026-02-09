@@ -32,7 +32,7 @@ namespace
         Vector4f Kernel[64];
     };
 
-    Graphics::ShaderStorage<KernelData> KernelDataStorage(5, "KernelData");
+    Graphics::ShaderStorage<KernelData> KernelDataStorage(Renderer3D::Specifications::ShaderStorages::AO_DATA, "KernelData");
 
     void CreateRenderBuffer()
     {

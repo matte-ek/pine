@@ -1,8 +1,8 @@
 #include "Light.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::Light::Light()
-        : IComponent(ComponentType::Light)
+        : Component(ComponentType::Light)
 {
 }
 
@@ -63,18 +63,18 @@ Pine::Renderer3D::LightHintData& Pine::Light::GetLightHintData()
 
 void Pine::Light::LoadData(const nlohmann::json &j)
 {
-    Serialization::LoadValue(j, "lightType", m_LightType);
-    Serialization::LoadVector3(j, "lightColor", m_LightColor);
-    Serialization::LoadVector3(j, "lightAttenuation", m_LightAttenuation);
-    Serialization::LoadValue(j, "spotlightRadius", m_SpotlightRadius);
-    Serialization::LoadValue(j, "spotlightCutoff", m_SpotlightCutoff);
+    SerializationJson::LoadValue(j, "lightType", m_LightType);
+    SerializationJson::LoadVector3(j, "lightColor", m_LightColor);
+    SerializationJson::LoadVector3(j, "lightAttenuation", m_LightAttenuation);
+    SerializationJson::LoadValue(j, "spotlightRadius", m_SpotlightRadius);
+    SerializationJson::LoadValue(j, "spotlightCutoff", m_SpotlightCutoff);
 }
 
 void Pine::Light::SaveData(nlohmann::json &j)
 {
     j["lightType"] = static_cast<int>(m_LightType);
-    j["lightColor"] = Serialization::StoreVector3(m_LightColor);
-    j["lightAttenuation"] = Serialization::StoreVector3(m_LightAttenuation);
+    j["lightColor"] = SerializationJson::StoreVector3(m_LightColor);
+    j["lightAttenuation"] = SerializationJson::StoreVector3(m_LightAttenuation);
     j["spotlightRadius"] = m_SpotlightRadius;
     j["spotlightCutoff"] = m_SpotlightCutoff;
 }

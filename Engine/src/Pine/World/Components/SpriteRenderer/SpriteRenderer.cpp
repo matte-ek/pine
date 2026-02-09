@@ -1,8 +1,8 @@
 #include "SpriteRenderer.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::SpriteRenderer::SpriteRenderer() :
-      IComponent(ComponentType::SpriteRenderer)
+      Component(ComponentType::SpriteRenderer)
 {
 }
 
@@ -48,16 +48,16 @@ Pine::SpriteScalingMode Pine::SpriteRenderer::GetScalingMode() const
 
 void Pine::SpriteRenderer::LoadData(const nlohmann::json& j)
 {
-    Serialization::LoadAsset(j, "tex", m_StaticTexture);
-    Serialization::LoadValue(j, "scl", m_ScalingMode);
-    Serialization::LoadValue(j, "odr", m_Order);
-    Serialization::LoadVector4(j, "clr", m_Color);
+    SerializationJson::LoadAsset(j, "tex", m_StaticTexture);
+    SerializationJson::LoadValue(j, "scl", m_ScalingMode);
+    SerializationJson::LoadValue(j, "odr", m_Order);
+    SerializationJson::LoadVector4(j, "clr", m_Color);
 }
 
 void Pine::SpriteRenderer::SaveData(nlohmann::json& j)
 {
-    j["tex"] = Serialization::StoreAsset(m_StaticTexture.Get());
+    j["tex"] = SerializationJson::StoreAsset(m_StaticTexture.Get());
     j["scl"] = m_ScalingMode;
     j["odr"] = m_Order;
-    j["clr"] = Serialization::StoreVector4(m_Color);
+    j["clr"] = SerializationJson::StoreVector4(m_Color);
 }

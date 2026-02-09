@@ -22,7 +22,7 @@ namespace
     struct Drawable
     {
         RenderItemType m_Type = RenderItemType::SpriteRenderer;
-        Pine::IComponent* m_ComponentPointer = nullptr;
+        Pine::Component* m_ComponentPointer = nullptr;
         int m_Order = 0;
     };
 

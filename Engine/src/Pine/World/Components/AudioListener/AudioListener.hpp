@@ -1,12 +1,12 @@
 #pragma once
-#include "Pine/World/Components/IComponent/IComponent.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 
 namespace Pine
 {
     class AudioFile;
 
-    class AudioListener final : public IComponent
+    class AudioListener final : public Component
     {
     private:
     public:

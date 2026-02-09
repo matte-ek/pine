@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 namespace Pine
 {
 
-    class InvalidAsset : public IAsset
+    class InvalidAsset : public Asset
     {
     public:
         InvalidAsset();

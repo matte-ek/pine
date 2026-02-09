@@ -1,5 +1,5 @@
 #pragma once
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/Core/Math/Math.hpp"
 
 namespace Pine
@@ -20,7 +20,7 @@ namespace Pine
         };
     }
 
-    class Light final  : public IComponent
+    class Light final  : public Component
     {
     private:
         LightType m_LightType = LightType::Directional;

@@ -4,7 +4,7 @@
 
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/World/World.hpp"
 
@@ -25,7 +25,7 @@ const Pine::Game::GameProperties& Pine::Game::GetGameProperties()
 
 void Pine::Game::Setup()
 {
-    auto json = Serialization::LoadFromFile("game.json");
+    auto json = SerializationJson::LoadFromFile("game/game.json");
 
     if (!json.has_value())
     {
@@ -39,21 +39,21 @@ void Pine::Game::Setup()
 
     const auto& j = json.value();
 
-    Serialization::LoadValue(j, "name", m_GameProperties.Name);
-    Serialization::LoadValue(j, "version", m_GameProperties.Version);
-    Serialization::LoadValue(j, "author", m_GameProperties.Author);
+    SerializationJson::LoadValue(j, "name", m_GameProperties.Name);
+    SerializationJson::LoadValue(j, "version", m_GameProperties.Version);
+    SerializationJson::LoadValue(j, "author", m_GameProperties.Author);
 
     for (int i = 0; i < 64;i++)
     {
-        Serialization::LoadValue(j, fmt::format("tag{}", i), m_GameProperties.EntityTags[i]);
+        SerializationJson::LoadValue(j, fmt::format("tag{}", i), m_GameProperties.EntityTags[i]);
     }
 
     for (int i = 0; i < 31;i++)
     {
-        Serialization::LoadValue(j, fmt::format("layer{}", i), m_GameProperties.ColliderLayers[i]);
+        SerializationJson::LoadValue(j, fmt::format("layer{}", i), m_GameProperties.ColliderLayers[i]);
     }
 
-    Serialization::LoadValue(j, "startupLevel", m_GameProperties.StartupLevel);
+    SerializationJson::LoadValue(j, "startupLevel", m_GameProperties.StartupLevel);
 }
 
 void Pine::Game::OnStart()

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
 
 namespace Pine
@@ -22,7 +22,7 @@ namespace Pine
         Vector2i m_Position = Vector2i(0);
     }; 
 
-    class Tilemap : public IAsset
+    class Tilemap : public Asset
     {
     private:
         AssetHandle<Tileset> m_Tileset;

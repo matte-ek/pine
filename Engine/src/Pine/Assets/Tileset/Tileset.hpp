@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
 
@@ -35,7 +35,7 @@ namespace Pine
         Texture2D* m_Texture;
     };
 
-    class Tileset : public IAsset
+    class Tileset : public Asset
     {
     private:
         Graphics::TextureAtlas* m_TextureAtlas = nullptr;

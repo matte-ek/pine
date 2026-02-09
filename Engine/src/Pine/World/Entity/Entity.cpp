@@ -150,7 +150,7 @@ Pine::Blueprint * Pine::Entity::GetBlueprint() const
 }
 */
 
-Pine::IComponent* Pine::Entity::AddComponent(ComponentType type)
+Pine::Component* Pine::Entity::AddComponent(ComponentType type)
 {
     const auto component = Components::Create(type);
 
@@ -162,7 +162,7 @@ Pine::IComponent* Pine::Entity::AddComponent(ComponentType type)
     return component;
 }
 
-Pine::IComponent* Pine::Entity::AddComponent(IComponent* component)
+Pine::Component* Pine::Entity::AddComponent(Component* component)
 {
     component->SetParent(this);
     component->OnCreated();
@@ -172,7 +172,7 @@ Pine::IComponent* Pine::Entity::AddComponent(IComponent* component)
     return component;
 }
 
-bool Pine::Entity::RemoveComponent(const IComponent* targetComponent)
+bool Pine::Entity::RemoveComponent(const Component* targetComponent)
 {
     for (int i = 0; i < m_Components.size();i++)
     {
@@ -200,7 +200,7 @@ void Pine::Entity::ClearComponents()
     m_Components.clear();
 }
 
-Pine::IComponent * Pine::Entity::GetComponent(ComponentType type) const
+Pine::Component * Pine::Entity::GetComponent(ComponentType type) const
 {
     for (auto component : m_Components)
     {
@@ -230,7 +230,7 @@ Pine::Transform* Pine::Entity::GetTransform() const
     return dynamic_cast<Transform*>(m_Components[0]);
 }
 
-const std::vector<Pine::IComponent*>& Pine::Entity::GetComponents() const
+const std::vector<Pine::Component*>& Pine::Entity::GetComponents() const
 {
     return m_Components;
 }

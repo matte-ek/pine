@@ -1,8 +1,8 @@
 #include "ModelRenderer.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::ModelRenderer::ModelRenderer()
-        : IComponent(ComponentType::ModelRenderer)
+        : Component(ComponentType::ModelRenderer)
 {
 }
 
@@ -28,15 +28,15 @@ Pine::Material * Pine::ModelRenderer::GetOverrideMaterial() const
 
 void Pine::ModelRenderer::LoadData(const nlohmann::json &j)
 {
-    Serialization::LoadAsset<Pine::Model>(j, "model", m_Model);
-    Serialization::LoadAsset<Pine::Material>(j, "overrideMaterial", m_OverrideMaterial);
-    Serialization::LoadValue(j, "modelMeshIndex", m_ModelMeshIndex);
+    SerializationJson::LoadAsset<Pine::Model>(j, "model", m_Model);
+    SerializationJson::LoadAsset<Pine::Material>(j, "overrideMaterial", m_OverrideMaterial);
+    SerializationJson::LoadValue(j, "modelMeshIndex", m_ModelMeshIndex);
 }
 
 void Pine::ModelRenderer::SaveData(nlohmann::json &j)
 {
-    j["model"] = Serialization::StoreAsset(m_Model);
-    j["overrideMaterial"] = Serialization::StoreAsset(m_OverrideMaterial);
+    j["model"] = SerializationJson::StoreAsset(m_Model);
+    j["overrideMaterial"] = SerializationJson::StoreAsset(m_OverrideMaterial);
     j["modelMeshIndex"] = m_ModelMeshIndex;
 }
 

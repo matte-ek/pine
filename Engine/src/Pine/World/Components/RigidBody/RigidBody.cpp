@@ -3,10 +3,10 @@
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::RigidBody::RigidBody()
-        : IComponent(ComponentType::RigidBody)
+        : Component(ComponentType::RigidBody)
 {
 }
 
@@ -223,12 +223,12 @@ void Pine::RigidBody::OnPostPhysicsUpdate()
 
 void Pine::RigidBody::OnCopied()
 {
-    IComponent::OnCopied();
+    Component::OnCopied();
 }
 
 void Pine::RigidBody::OnDestroyed()
 {
-    IComponent::OnDestroyed();
+    Component::OnDestroyed();
 
     if (m_RigidBody)
     {
@@ -241,13 +241,13 @@ void Pine::RigidBody::OnDestroyed()
 
 void Pine::RigidBody::LoadData(const nlohmann::json &j)
 {
-    Serialization::LoadValue(j, "mass", m_Mass);
-    Serialization::LoadValue(j, "grav", m_GravityEnabled);
-    Serialization::LoadValue(j, "rtype", m_RigidBodyType);
-    Serialization::LoadValue(j, "mang", m_MaxAngularVelocity);
-    Serialization::LoadValue(j, "mlin", m_MaxLinearVelocity);
-    Serialization::LoadValue(j, "posl", m_PositionLock);
-    Serialization::LoadValue(j, "rotl", m_RotationLock);
+    SerializationJson::LoadValue(j, "mass", m_Mass);
+    SerializationJson::LoadValue(j, "grav", m_GravityEnabled);
+    SerializationJson::LoadValue(j, "rtype", m_RigidBodyType);
+    SerializationJson::LoadValue(j, "mang", m_MaxAngularVelocity);
+    SerializationJson::LoadValue(j, "mlin", m_MaxLinearVelocity);
+    SerializationJson::LoadValue(j, "posl", m_PositionLock);
+    SerializationJson::LoadValue(j, "rotl", m_RotationLock);
 }
 
 void Pine::RigidBody::SaveData(nlohmann::json &j)

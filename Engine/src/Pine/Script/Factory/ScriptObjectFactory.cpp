@@ -3,8 +3,8 @@
 #include <mono/metadata/assembly.h>
 #include <cassert>
 #include <unordered_map>
-#include "Pine/Assets/IAsset/IAsset.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "ScriptObjectFactory.hpp"
 #include "Pine/Script/Runtime/ScriptingRuntime.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
@@ -102,7 +102,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32
     return {entity, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Pine::IComponent *engineComponent)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Pine::Component *engineComponent)
 {
     if (!m_PineImage || engineComponent->GetParent()->GetScriptHandle()->Handle == 0)
     {
@@ -157,7 +157,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Pi
     return {component, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const Pine::CSharpScript *script, const Pine::IComponent *component)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const Pine::CSharpScript *script, const Pine::Component *component)
 {
     auto data = script->GetScriptData();
     if (!data || !data->IsReady)
@@ -181,7 +181,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const
     return {object, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::IAsset *asset)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::Asset *asset)
 {
     if (!m_PineImage)
     {
@@ -248,7 +248,7 @@ void Pine::Script::ObjectFactory::DisposeEntity(Pine::Script::ObjectHandle *hand
     DisposeObject(handle);
 }
 
-void Pine::Script::ObjectFactory::DisposeComponent(const IComponent* component, Pine::Script::ObjectHandle *handle)
+void Pine::Script::ObjectFactory::DisposeComponent(const Component* component, Pine::Script::ObjectHandle *handle)
 {
     const auto& componentData = m_ComponentObjectFactory[component->GetType()];
 

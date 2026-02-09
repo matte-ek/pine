@@ -13,7 +13,7 @@
 namespace
 {
     std::vector<Pine::Entity*> ClipboardEntities;
-    std::vector<Pine::IAsset*> ClipboardAssets;
+    std::vector<Pine::Asset*> ClipboardAssets;
 
     namespace Keybinds
     {

@@ -7,7 +7,7 @@
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TilemapRenderer/TilemapRenderer.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
@@ -18,14 +18,15 @@
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
+#include "TerrainRenderer/TerrainRendererComponent.hpp"
 
 using namespace Pine;
 
 namespace
 {
-    std::vector<ComponentDataBlock<IComponent>*> m_ComponentDataBlocks;
+    std::vector<ComponentDataBlock<Component>*> m_ComponentDataBlocks;
 
-    bool ResizeComponentDataBlock(ComponentDataBlock<IComponent>* block, std::uint32_t size)
+    bool ResizeComponentDataBlock(ComponentDataBlock<Component>* block, std::uint32_t size)
     {
         // Allocate the new data
         void* arrayData = malloc(block->m_ComponentSize * size);
@@ -66,7 +67,7 @@ namespace
         }
 
         // Set the new array pointers
-        block->m_ComponentArray = static_cast<IComponent*>(arrayData);
+        block->m_ComponentArray = static_cast<Component*>(arrayData);
         block->m_ComponentArraySize = block->m_ComponentSize * size;
 
         block->m_ComponentOccupationArray = arrayOccupationData;
@@ -95,9 +96,9 @@ namespace
         if (overrideInstanceCount != 0)
             instanceCount = overrideInstanceCount;
 
-        ResizeComponentDataBlock(reinterpret_cast<ComponentDataBlock<IComponent>*>(block), instanceCount);
+        ResizeComponentDataBlock(reinterpret_cast<ComponentDataBlock<Component>*>(block), instanceCount);
 
-        m_ComponentDataBlocks.push_back(reinterpret_cast<ComponentDataBlock<IComponent>*>(block));
+        m_ComponentDataBlocks.push_back(reinterpret_cast<ComponentDataBlock<Component>*>(block));
 
         return block;
     }
@@ -116,7 +117,7 @@ void Components::Setup()
 {
     CreateComponentDataBlock<Transform>();
     CreateComponentDataBlock<ModelRenderer>();
-    CreateComponentDataBlock<NativeScript>(1); // Stub for Terrain Renderer
+    CreateComponentDataBlock<TerrainRendererComponent>(32);
     CreateComponentDataBlock<Camera>(32);
     CreateComponentDataBlock<Light>();
     CreateComponentDataBlock<Collider>();
@@ -151,16 +152,16 @@ void Components::Shutdown()
     m_ComponentDataBlocks.clear();
 }
 
-const std::vector<ComponentDataBlock<IComponent>*>&Components::GetComponentTypes()
+const std::vector<ComponentDataBlock<Component>*>&Components::GetComponentTypes()
 {
     return m_ComponentDataBlocks;
 }
 
-IComponent* Components::Create(ComponentType type, bool standalone)
+Component* Components::Create(ComponentType type, bool standalone)
 {
     const auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
 
-    IComponent* component;
+    Component* component;
     std::uint32_t componentLookupId = 0;
     std::uint64_t uniqueId = 0;
 
@@ -168,7 +169,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
     // or in the data block
     if (standalone)
     {
-        component = static_cast<IComponent*>(malloc(componentDataBlock->m_ComponentSize));
+        component = static_cast<Component*>(malloc(componentDataBlock->m_ComponentSize));
     }
     else
     {
@@ -212,7 +213,7 @@ IComponent* Components::Create(ComponentType type, bool standalone)
     return component;
 }
 
-IComponent* Components::Copy(IComponent* component, bool standalone)
+Component* Components::Copy(Component* component, bool standalone)
 {
     const auto newComponent = Create(component->GetType(), standalone);
 
@@ -226,7 +227,7 @@ IComponent* Components::Copy(IComponent* component, bool standalone)
     return newComponent;
 }
 
-bool Components::Destroy(IComponent* targetComponent)
+bool Components::Destroy(Component* targetComponent)
 {
     if (m_ComponentDataBlocks.empty())
     {
@@ -264,12 +265,12 @@ bool Components::Destroy(IComponent* targetComponent)
     return true;
 }
 
-ComponentDataBlock<IComponent>& Components::GetData(ComponentType type)
+ComponentDataBlock<Component>& Components::GetData(ComponentType type)
 {
     return *m_ComponentDataBlocks[static_cast<int>(type)];
 }
 
-IComponent* Components::GetByInternalId(ComponentType type, std::uint32_t internalId)
+Component* Components::GetByInternalId(ComponentType type, std::uint32_t internalId)
 {
     auto& block = GetData(type);
 

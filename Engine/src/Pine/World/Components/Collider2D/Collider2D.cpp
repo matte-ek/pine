@@ -7,7 +7,7 @@
 #include <box2d/b2_fixture.h>
 #include <box2d/b2_polygon_shape.h>
 
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
 #include "Pine/World/Entity/Entity.hpp"
@@ -105,7 +105,7 @@ float Pine::Collider2D::ComputeRotation() const
 }
 
 Pine::Collider2D::Collider2D()
-	: IComponent(ComponentType::Collider2D)
+	: Component(ComponentType::Collider2D)
 {
 }
 
@@ -161,7 +161,7 @@ void Pine::Collider2D::OnPrePhysicsUpdate()
 
 void Pine::Collider2D::OnDestroyed()
 {
-	IComponent::OnDestroyed();
+	Component::OnDestroyed();
 
 	if (m_Body)
 	{
@@ -174,7 +174,7 @@ void Pine::Collider2D::OnDestroyed()
 
 void Pine::Collider2D::OnCopied()
 {
-	IComponent::OnCopied();
+	Component::OnCopied();
 
 	m_Body = nullptr;
 	m_Fixture = nullptr;
@@ -186,20 +186,20 @@ void Pine::Collider2D::OnRender(float deltaTime)
 
 void Pine::Collider2D::LoadData(const nlohmann::json& j)
 {
-	IComponent::LoadData(j);
+	Component::LoadData(j);
 
-	Serialization::LoadValue(j, "ctype", m_ColliderType);
-	Serialization::LoadVector2(j, "coffset", m_ColliderOffset);
-	Serialization::LoadVector2(j, "csize", m_ColliderSize);
-	Serialization::LoadValue(j, "crot", m_ColliderRotation);
+	SerializationJson::LoadValue(j, "ctype", m_ColliderType);
+	SerializationJson::LoadVector2(j, "coffset", m_ColliderOffset);
+	SerializationJson::LoadVector2(j, "csize", m_ColliderSize);
+	SerializationJson::LoadValue(j, "crot", m_ColliderRotation);
 }
 
 void Pine::Collider2D::SaveData(nlohmann::json& j)
 {
-	IComponent::SaveData(j);
+	Component::SaveData(j);
 
 	j["ctype"] = m_ColliderType;
-	j["coffset"] = Serialization::StoreVector2(m_ColliderOffset);
-	j["csize"] = Serialization::StoreVector2(m_ColliderSize);
+	j["coffset"] = SerializationJson::StoreVector2(m_ColliderOffset);
+	j["csize"] = SerializationJson::StoreVector2(m_ColliderSize);
 	j["crot"] = m_ColliderRotation;
 }

@@ -111,7 +111,7 @@ void Panels::GameViewport::Render()
     {
         if (ImGui::AcceptDragDropPayload("Asset", ImGuiDragDropFlags_SourceAllowNullID))
         {
-            const auto asset = *static_cast<Pine::IAsset**>(ImGui::GetDragDropPayload()->Data);
+            const auto asset = *static_cast<Pine::Asset**>(ImGui::GetDragDropPayload()->Data);
 
             if (asset->GetType() == Pine::AssetType::Level)
             {

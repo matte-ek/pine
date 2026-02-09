@@ -3,5 +3,5 @@
 
 namespace ComponentPropertiesRenderer
 {
-    bool Render(Pine::IComponent* component, int index);
+    bool Render(Pine::Component* component, int index);
 }

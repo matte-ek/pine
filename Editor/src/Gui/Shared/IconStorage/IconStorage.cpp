@@ -26,7 +26,7 @@ namespace
     {
         std::string Path;
 
-        Pine::IAsset *Asset = nullptr;
+        Pine::Asset *Asset = nullptr;
 
         Pine::Texture2D *StaticTexture = nullptr;
         Pine::Graphics::IFrameBuffer *DynamicTexture = nullptr;
@@ -43,7 +43,7 @@ namespace
 
     Pine::Vector2f m_PreviewAngle = {0.f, 0.f};
 
-    Pine::Texture2D *GetStaticIconFromAsset(Pine::IAsset *asset)
+    Pine::Texture2D *GetStaticIconFromAsset(Pine::Asset *asset)
     {
         switch (asset->GetType())
         {
@@ -74,7 +74,7 @@ namespace
         }
     }
 
-    bool ShouldGenerateDynamicIcon(const Pine::IAsset *asset)
+    bool ShouldGenerateDynamicIcon(const Pine::Asset *asset)
     {
         switch (asset->GetType())
         {

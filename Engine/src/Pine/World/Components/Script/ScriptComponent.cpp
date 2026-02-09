@@ -1,8 +1,8 @@
 #include "ScriptComponent.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::ScriptComponent::ScriptComponent()
-    : IComponent(ComponentType::Script)
+    : Component(ComponentType::Script)
 {
 }
 
@@ -39,14 +39,14 @@ Pine::CSharpScript *Pine::ScriptComponent::GetScript() const
 
 void Pine::ScriptComponent::OnCreated()
 {
-    IComponent::OnCreated();
+    Component::OnCreated();
 
     CreateInstance();
 }
 
 void Pine::ScriptComponent::OnCopied()
 {
-    IComponent::OnCopied();
+    Component::OnCopied();
 
     m_ScriptObjectHandle.Object = nullptr;
     m_ScriptObjectHandle.Handle = 0;
@@ -54,7 +54,7 @@ void Pine::ScriptComponent::OnCopied()
 
 void Pine::ScriptComponent::OnDestroyed()
 {
-    IComponent::OnDestroyed();
+    Component::OnDestroyed();
 
     DestroyInstance();
 }
@@ -96,10 +96,10 @@ Pine::Script::ObjectHandle *Pine::ScriptComponent::GetScriptObjectHandle()
 
 void Pine::ScriptComponent::LoadData(const nlohmann::json &j)
 {
-    Serialization::LoadAsset(j, "script", m_Script);
+    SerializationJson::LoadAsset(j, "script", m_Script);
 }
 
 void Pine::ScriptComponent::SaveData(nlohmann::json &j)
 {
-    j["script"] = Serialization::StoreAsset(m_Script);
+    j["script"] = SerializationJson::StoreAsset(m_Script);
 }

@@ -1,9 +1,9 @@
 #include "Tileset.hpp"
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../Core/Serialization/Json/SerializationJson.hpp"
 
 constexpr int TextureAtlasSize = 512;
 
@@ -129,7 +129,7 @@ int Pine::Tileset::GetTileSize() const
 
 bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
 {
-    const auto jsonOpt = Serialization::LoadFromFile(m_FilePath);
+    const auto jsonOpt = SerializationJson::LoadFromFile(m_FilePath);
 
     if (!jsonOpt.has_value())
     {
@@ -138,7 +138,7 @@ bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
 
     const auto j = jsonOpt.value();
 
-    Serialization::LoadValue(j, "tileSize", m_TileSize);
+    SerializationJson::LoadValue(j, "tileSize", m_TileSize);
 
     if (j.contains("tiles"))
     {
@@ -163,8 +163,8 @@ bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
 
             auto tile = AddTile(tileTexture, flags);
 
-            Serialization::LoadVector2(tileData, "offset", tile->m_ColliderOffset);
-            Serialization::LoadVector2(tileData, "size", tile->m_ColliderSize);
+            SerializationJson::LoadVector2(tileData, "offset", tile->m_ColliderOffset);
+            SerializationJson::LoadVector2(tileData, "size", tile->m_ColliderSize);
 
             if (tileData.contains("rotation"))
                 tile->m_ColliderRotation = tileData["rotation"];
@@ -194,10 +194,10 @@ bool Pine::Tileset::SaveToFile()
             tileJson["flags"] = tile.m_DefaultFlags;
 
         if (tile.m_ColliderOffset != Pine::Vector2f(0.f))
-            tileJson["offset"] = Serialization::StoreVector2(tile.m_ColliderOffset);
+            tileJson["offset"] = SerializationJson::StoreVector2(tile.m_ColliderOffset);
 
         if (tile.m_ColliderSize != Pine::Vector2f(1.f))
-            tileJson["size"] = Serialization::StoreVector2(tile.m_ColliderSize);
+            tileJson["size"] = SerializationJson::StoreVector2(tile.m_ColliderSize);
 
         if (tile.m_ColliderRotation != 0.f)
             tileJson["rotation"] = tile.m_ColliderRotation;
@@ -205,7 +205,7 @@ bool Pine::Tileset::SaveToFile()
         j["tiles"].push_back(tileJson);
     }
 
-    Serialization::SaveToFile(m_FilePath, j);
+    SerializationJson::SaveToFile(m_FilePath, j);
 
     if (!m_Tiles.empty())
     {

@@ -1,5 +1,5 @@
 #pragma once
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include <vector>
 
@@ -11,17 +11,17 @@
 namespace Selection
 {
     void AddEntity(Pine::Entity* entity);
-    void AddAsset(Pine::IAsset* asset);
+    void AddAsset(Pine::Asset* asset);
 
     void Clear();
 
     const std::vector<Pine::Entity*>& GetSelectedEntities();
-    const std::vector<Pine::IAsset*>& GetSelectedAssets();
+    const std::vector<Pine::Asset*>& GetSelectedAssets();
 
     template <typename T>
     void Add(T* item, bool limitOne = false)
     {
-        static_assert(std::is_same_v<T, Pine::Entity> || std::is_same_v<T, Pine::IAsset>);
+        static_assert(std::is_same_v<T, Pine::Entity> || std::is_same_v<T, Pine::Asset>);
 
         if (limitOne)
             Clear();
@@ -30,16 +30,16 @@ namespace Selection
         {
             AddEntity(reinterpret_cast<Pine::Entity*>(item));
         }
-        else if (std::is_same_v<T, Pine::IAsset>)
+        else if (std::is_same_v<T, Pine::Asset>)
         {
-            AddAsset(reinterpret_cast<Pine::IAsset*>(item));
+            AddAsset(reinterpret_cast<Pine::Asset*>(item));
         }
     }
 
     template <typename T>
     bool IsSelected(T* item)
     {
-        static_assert(std::is_same_v<T, Pine::Entity> || std::is_same_v<T, Pine::IAsset>);
+        static_assert(std::is_same_v<T, Pine::Entity> || std::is_same_v<T, Pine::Asset>);
 
         if (std::is_same_v<T, Pine::Entity>)
         {
@@ -53,11 +53,11 @@ namespace Selection
 
             return false;
         }
-        else if (std::is_same_v<T, Pine::IAsset>)
+        else if (std::is_same_v<T, Pine::Asset>)
         {
             for (auto asset : GetSelectedAssets())
             {
-                if (asset == reinterpret_cast<Pine::IAsset*>(item))
+                if (asset == reinterpret_cast<Pine::Asset*>(item))
                 {
                     return true;
                 }

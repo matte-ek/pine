@@ -1,6 +1,6 @@
 #include "Material.hpp"
 
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../Core/Serialization/Json/SerializationJson.hpp"
 
 Pine::Material::Material()
 {
@@ -64,7 +64,7 @@ void Pine::Material::SetDiffuse(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Diffuse), AssetType::Texture2D});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<Asset>*>(&m_Diffuse), AssetType::Texture2D});
 }
 
 void Pine::Material::SetSpecular(const std::string &fileReference)
@@ -72,7 +72,7 @@ void Pine::Material::SetSpecular(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Specular), AssetType::Texture2D});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<Asset>*>(&m_Specular), AssetType::Texture2D});
 }
 
 void Pine::Material::SetNormal(const std::string &fileReference)
@@ -80,7 +80,7 @@ void Pine::Material::SetNormal(const std::string &fileReference)
     assert(!fileReference.empty());
     assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
 
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<IAsset>*>(&m_Normal), AssetType::Texture2D});
+    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<Asset>*>(&m_Normal), AssetType::Texture2D});
 }
 
 Pine::Texture2D* Pine::Material::GetDiffuse() const
@@ -144,7 +144,7 @@ float Pine::Material::GetTextureScale() const
 
 bool Pine::Material::LoadFromFile(AssetLoadStage stage)
 {
-	const auto json = Serialization::LoadFromFile(m_FilePath);
+	const auto json = SerializationJson::LoadFromFile(m_FilePath);
 
 	if (!json.has_value())
 	{
@@ -153,20 +153,20 @@ bool Pine::Material::LoadFromFile(AssetLoadStage stage)
 
 	const auto& j = json.value();
 
-	Serialization::LoadVector3(j, "diffuseColor", m_DiffuseColor);
-	Serialization::LoadVector3(j, "specularColor", m_SpecularColor);
-	Serialization::LoadVector3(j, "ambientColor", m_AmbientColor);
+	SerializationJson::LoadVector3(j, "diffuseColor", m_DiffuseColor);
+	SerializationJson::LoadVector3(j, "specularColor", m_SpecularColor);
+	SerializationJson::LoadVector3(j, "ambientColor", m_AmbientColor);
 
-	Serialization::LoadAsset(j, "diffuse", m_Diffuse);
-	Serialization::LoadAsset(j, "specular", m_Specular);
-	Serialization::LoadAsset(j, "normal", m_Normal);
+	SerializationJson::LoadAsset(j, "diffuse", m_Diffuse);
+	SerializationJson::LoadAsset(j, "specular", m_Specular);
+	SerializationJson::LoadAsset(j, "normal", m_Normal);
 
-	Serialization::LoadAsset(j, "shader", m_Shader);
+	SerializationJson::LoadAsset(j, "shader", m_Shader);
 
-	Serialization::LoadValue(j, "renderingMode", m_RenderingMode);
+	SerializationJson::LoadValue(j, "renderingMode", m_RenderingMode);
 
-	Serialization::LoadValue(j, "shininess", m_Shininess);
-	Serialization::LoadValue(j, "textureScale", m_TextureScale);
+	SerializationJson::LoadValue(j, "shininess", m_Shininess);
+	SerializationJson::LoadValue(j, "textureScale", m_TextureScale);
 
     m_IsMeshGeneratedMaterial = false;
 	m_State = AssetState::Loaded;
@@ -178,22 +178,22 @@ bool Pine::Material::SaveToFile()
 {
 	nlohmann::json j;
 
-	j["diffuseColor"] = Serialization::StoreVector3(m_DiffuseColor);
-	j["specularColor"] = Serialization::StoreVector3(m_SpecularColor);
-	j["ambientColor"] = Serialization::StoreVector3(m_AmbientColor);
+	j["diffuseColor"] = SerializationJson::StoreVector3(m_DiffuseColor);
+	j["specularColor"] = SerializationJson::StoreVector3(m_SpecularColor);
+	j["ambientColor"] = SerializationJson::StoreVector3(m_AmbientColor);
 
-	j["diffuse"] = Serialization::StoreAsset(m_Diffuse.Get());
-	j["specular"] = Serialization::StoreAsset(m_Specular.Get());
-	j["normal"] = Serialization::StoreAsset(m_Normal.Get());
+	j["diffuse"] = SerializationJson::StoreAsset(m_Diffuse.Get());
+	j["specular"] = SerializationJson::StoreAsset(m_Specular.Get());
+	j["normal"] = SerializationJson::StoreAsset(m_Normal.Get());
 
-	j["shader"] = Serialization::StoreAsset(m_Shader.Get());
+	j["shader"] = SerializationJson::StoreAsset(m_Shader.Get());
 
 	j["renderingMode"] = m_RenderingMode;
 
 	j["shininess"] = m_Shininess;
 	j["textureScale"] = m_TextureScale;
 
-	Serialization::SaveToFile(m_FilePath, j);
+	SerializationJson::SaveToFile(m_FilePath, j);
 
 	return true;
 }

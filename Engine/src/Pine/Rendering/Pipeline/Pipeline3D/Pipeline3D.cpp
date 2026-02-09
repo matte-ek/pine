@@ -12,6 +12,7 @@
 #include "Pine/Rendering/Features/RenderCulling/RenderCulling.hpp"
 #include "Pine/Rendering/Features/Shadows/Shadows.hpp"
 #include "Pine/Rendering/Features/Skybox/Skybox.hpp"
+#include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
@@ -31,6 +32,17 @@ namespace
 
 	void RenderBatch(const Rendering::ObjectBatchMap& mapBatch, MaterialRenderingMode materialRenderingMode)
 	{
+	    if (materialRenderingMode == MaterialRenderingMode::Opaque)
+	    {
+	        for (const auto& terrainRenderer : Components::Get<TerrainRendererComponent>())
+	        {
+	            if (terrainRenderer.GetTerrain() == nullptr)
+	                continue;
+
+	            Rendering::TerrainRenderer::Render(&terrainRenderer);
+	        }
+	    }
+
 		for (const auto& [modelGroup, objectRenderInstances] : mapBatch)
 		{
 			const auto model = modelGroup.Model;
@@ -160,8 +172,15 @@ namespace
 	        Rendering::RenderCulling::RunFrustumCulling(context.SceneCamera);
         }
 
+	    const auto& levelSettings = World::GetActiveLevel()->GetLevelSettings();
+
         Renderer3D::UseRenderingContext(&context);
-		Renderer3D::SetAmbientColor(World::GetActiveLevel()->GetLevelSettings().AmbientColor);
+
+		Renderer3D::PrepareScene(
+		    levelSettings.AmbientColor,
+		    levelSettings.FogColor,
+		    levelSettings.FogDistance,
+		    levelSettings.FogIntensity);
 
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 		Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);

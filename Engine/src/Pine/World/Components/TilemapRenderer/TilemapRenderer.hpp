@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
 {
 
-    class TilemapRenderer final : public IComponent
+    class TilemapRenderer final : public Component
     {
     private:
         AssetHandle<Tilemap> m_Tilemap;

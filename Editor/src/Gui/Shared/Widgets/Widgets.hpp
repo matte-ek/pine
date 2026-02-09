@@ -1,5 +1,5 @@
 #pragma once
-#include "Pine/Assets/IAsset/IAsset.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/Color/Color.hpp"
 #include "Pine/Core/Math/Math.hpp"
@@ -20,7 +20,7 @@ struct EntityPickerResult
 struct AssetPickerResult
 {
     bool hasResult = false;
-    Pine::IAsset* asset = nullptr;
+    Pine::Asset* asset = nullptr;
 };
 
 namespace Widgets
@@ -40,11 +40,12 @@ namespace Widgets
     bool SliderFloat(const std::string& str, float* value, float min, float max);
 
     bool ColorPicker3(const std::string& str, Pine::Vector3f& color);
+    bool ColorPicker4(const std::string& str, Pine::Vector4f& color);
 
     bool CheckboxVector3(const std::string& str, std::array<bool, 3>& vec);
 
-    AssetPickerResult AssetPicker(const std::string& str, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
-    AssetPickerResult AssetPicker(const std::string& str, const std::string& id, const Pine::IAsset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
+    AssetPickerResult AssetPicker(const std::string& str, const Pine::Asset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
+    AssetPickerResult AssetPicker(const std::string& str, const std::string& id, const Pine::Asset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
 
     EntityPickerResult EntityPicker(const std::string& str, const std::string& id, const Pine::Entity* entity);
     EntityPickerResult EntityPicker(const std::string& str, const Pine::Entity* entity);

@@ -62,6 +62,7 @@ void Renderer3D::Setup()
     ShaderStorages::Material.Create();
     ShaderStorages::Lights.Create();
     ShaderStorages::Shadows.Create();
+    ShaderStorages::World.Create();
 }
 
 void Renderer3D::Shutdown()
@@ -71,6 +72,7 @@ void Renderer3D::Shutdown()
     ShaderStorages::Material.Dispose();
     ShaderStorages::Lights.Dispose();
     ShaderStorages::Shadows.Dispose();
+    ShaderStorages::World.Dispose();
 }
 
 Renderer3D::RenderConfiguration& Renderer3D::GetRenderConfiguration()
@@ -299,27 +301,32 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     {
         if (!ShaderStorages::Matrix.AttachShaderProgram(shaderProgram))
         {
-            Log::Error("Renderer3D: Shader is missing 'Matrix' shader storage, expect rendering issues.");
+            Log::Warning("Renderer3D: Shader is missing 'Matrix' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Instance.AttachShaderProgram(shaderProgram))
         {
-            Log::Error("Renderer3D: Shader is missing 'Transform' shader storage, expect rendering issues.");
+            Log::Warning("Renderer3D: Shader is missing 'Transform' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Material.AttachShaderProgram(shaderProgram))
         {
-            Log::Error("Renderer3D: Shader is missing 'Material' shader storage, expect rendering issues.");
+            Log::Warning("Renderer3D: Shader is missing 'Material' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Lights.AttachShaderProgram(shaderProgram))
         {
-            Log::Error("Renderer3D: Shader is missing 'Lights' shader storage, expect rendering issues.");
+            Log::Warning("Renderer3D: Shader is missing 'Lights' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Shadows.AttachShaderProgram(shaderProgram))
         {
-            Log::Error("Renderer3D: Shader is missing 'Shadows' shader storage, expect rendering issues.");
+            Log::Warning("Renderer3D: Shader is missing 'Shadows' shader storage, expect rendering issues.");
+        }
+
+        if (!ShaderStorages::World.AttachShaderProgram(shaderProgram))
+        {
+            Log::Warning("Renderer3D: Shader is missing 'World' shader storage, expect rendering issues.");
         }
 
         shader->SetReady(true, version);
@@ -334,9 +341,15 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     m_HasDirectionalShadowMapUniform = m_Shader->GetUniformVariable("hasDirectionalShadowMap");
 }
 
-void Renderer3D::SetAmbientColor(Vector3f ambientColor)
+void Renderer3D::PrepareScene(Vector3f ambientColor, Vector4f fogColor, float fogDistance, float fogIntensity)
 {
-    ShaderStorages::Lights.Data().AmbientColor = ambientColor;
+    auto& worldData = ShaderStorages::World.Data();
+
+    worldData.AmbientColor = Vector4f(ambientColor, 1.f);
+    worldData.FogColor = fogColor;
+    worldData.FogSettings  = Vector4f(fogDistance, fogIntensity, 0, 0);
+
+    ShaderStorages::World.Upload();
 }
 
 void Renderer3D::UseRenderingContext(RenderingContext *renderingContext)
@@ -435,7 +448,10 @@ void Renderer3D::FrameReset()
         LightIndices[i] = 0;
     }
 
-    ShaderStorages::Lights.Data().AmbientColor = Vector3f(0.f);
+    ShaderStorages::World.Data().AmbientColor = Vector4f(0.f, 0.f, 0.f, 1.f);
+    ShaderStorages::World.Data().FogColor = Vector4f(0.f, 0.f, 0.f, 0.f);
+    ShaderStorages::World.Data().FogSettings = Vector4f(25.f, 0.f, 0.f, 0.f);
+    ShaderStorages::World.Upload();
 
     m_RenderingContext = nullptr;
     m_Shader = nullptr;

@@ -7,7 +7,7 @@
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Level/Level.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../../../Engine/src/Pine/Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Game/Game.hpp"
 
 namespace
@@ -139,7 +139,7 @@ void Panels::Game::Render()
 
             j["startupLevel"] = m_GameProperties.StartupLevel;
 
-            Pine::Serialization::SaveToFile("game.json", j);
+            Pine::SerializationJson::SaveToFile("game/game.json", j);
             Pine::Game::SetGameProperties(m_GameProperties);
         }
     }

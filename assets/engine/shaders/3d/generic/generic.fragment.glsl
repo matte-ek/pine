@@ -26,6 +26,7 @@ in VertexData
 	vec3 worldPosition;
     vec3 cameraPos;
 	vec3 cameraDir;
+	float cameraDistance;
 	vec3 normalDir;
 	vec3 lightDir[8];
     flat int lightIndices[8];
@@ -63,7 +64,7 @@ BaseResult calculateBaseLightning(vec3 lightDirection, int lightIndex)
     vec3 halfwayDirection = normalize(lightDirection + vIn.cameraDir);
     float specularFactor = pow(max(dot(normal, halfwayDirection), 0.0), material.shininess);
 
-    vec3 ambient = (material.ambientColor + (worldAmbientColor * diffuseColor)) * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
+    vec3 ambient = (material.ambientColor + (world.ambientColor.rgb * diffuseColor)) * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz;
     vec3 diffuse = lights[lightIndex].color * diffuseColor * texture(textureSamplers.diffuse, vIn.uv * material.uvScale).xyz * diffuseFactor;
     vec3 specular = lights[lightIndex].color * material.specularColor * (1 - texture(textureSamplers.specular, vIn.uv * material.uvScale).xyz) * specularFactor;
 
@@ -206,6 +207,13 @@ vec3 calculatePointLights()
     return a;
 }
 
+vec4 calculateFog(vec4 input)
+{
+    float fogDensity = min(max(0, vIn.cameraDistance - world.fogSettings.x) / 10, 1) * world.fogSettings.y;
+
+    return mix(input, world.fogColor, fogDensity);
+}
+
 void main(void)
 {
     #shader preFragment
@@ -223,7 +231,7 @@ void main(void)
     vec4 spotLights = vec4(calculateSpotLights(), 1.0);
     vec4 pointLights = vec4(calculatePointLights(), 1.0);
 
-    m_OutputColor = directionalLight + spotLights + pointLights;
+    m_OutputColor = calculateFog(directionalLight + spotLights + pointLights);
 
     #shader postFragment
 }

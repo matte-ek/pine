@@ -24,15 +24,16 @@ find_package(imguizmo CONFIG REQUIRED)
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_library(Engine ${SOURCES}
-        src/Pine/Performance/ScopedTimer/ScopedTimer.cpp
-        src/Pine/Performance/ScopedTimer/ScopedTimer.hpp
-        src/Pine/Performance/Performance.cpp
-        src/Pine/Performance/Performance.hpp
-        src/Pine/Game/Game.cpp
-        src/Pine/Game/Game.hpp
-        src/Pine/Script/Interfaces/ScriptInterfacePhysics.cpp
-        src/Pine/Rendering/Features/RenderCulling/RenderCulling.cpp
-        src/Pine/Rendering/Features/RenderCulling/RenderCulling.hpp)
+        src/Pine/Assets/Terrain/Terrain.cpp
+        src/Pine/Assets/Terrain/Terrain.hpp
+        src/Pine/World/Components/TerrainRenderer/TerrainRendererComponent.cpp
+        src/Pine/World/Components/TerrainRenderer/TerrainRendererComponent.hpp
+        src/Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.cpp
+        src/Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp
+        src/Pine/Physics/Physics3D/PhysicsTerrain/PhysicsTerrain.cpp
+        src/Pine/Physics/Physics3D/PhysicsTerrain/PhysicsTerrain.hpp
+        src/Pine/Core/Serialization/Serialization.cpp
+        src/Pine/Core/Serialization/Serialization.hpp)
 
 if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
     if(UNIX)

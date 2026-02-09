@@ -38,6 +38,10 @@ void Panels::LevelPanel::Render()
         const auto newCameraEntity = Widgets::EntityPicker("Camera", cameraParent);
 
         Widgets::ColorPicker3("Ambient Color", currentLevel->GetLevelSettings().AmbientColor);
+        Widgets::ColorPicker4("Fog Color", currentLevel->GetLevelSettings().FogColor);
+
+        Widgets::SliderFloat("Fog Intensity", &currentLevel->GetLevelSettings().FogIntensity, 0.0f, 1.0f);
+        Widgets::SliderFloat("Fog Distance", &currentLevel->GetLevelSettings().FogDistance, 1.0f, 250.0f);
 
         if (newSkybox.hasResult)
         {

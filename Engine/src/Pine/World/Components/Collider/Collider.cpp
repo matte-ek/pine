@@ -1,15 +1,15 @@
 #include "Collider.hpp"
-#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "Pine/Core/Serialization/Serialization.hpp"
+#include "../../../Core/Serialization/Json/SerializationJson.hpp"
+#include "Pine/World/Components/TerrainRenderer/TerrainRendererComponent.hpp"
 
 Pine::Collider::Collider::Collider()
-        : IComponent(ComponentType::Collider)
+        : Component(ComponentType::Collider)
 {
 }
 
@@ -181,6 +181,7 @@ physx::PxShape * Pine::Collider::CreateCollisionShape() const
     auto size = m_Size * GetParent()->GetTransform()->GetScale();
     physx::PxShape* shape = nullptr;
 
+
     switch (m_ColliderType)
     {
     case ColliderType::Box:
@@ -190,9 +191,31 @@ physx::PxShape * Pine::Collider::CreateCollisionShape() const
         shape = Physics3D::GetPhysics()->createShape(physx::PxSphereGeometry(size.x), *Physics3D::GetDefaultMaterial());
         break;
     case ColliderType::Capsule:
-        shape = Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(size.y, size.x), *Physics3D::GetDefaultMaterial());
+        shape = Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(size.x, size.y), *Physics3D::GetDefaultMaterial());
     default:
         break;
+    }
+
+    if (m_ColliderType == ColliderType::HeightField)
+    {
+        physx::PxHeightFieldGeometry geometry;
+
+        auto terrainRenderer = m_Parent->GetComponent<TerrainRendererComponent>();
+        if (terrainRenderer && terrainRenderer->GetTerrain())
+        {
+            const auto& terrainChunks = terrainRenderer->GetTerrain()->GetChunks();
+
+            for (const auto& chunk : terrainChunks)
+            {
+                geometry.heightField = static_cast<physx::PxHeightField*>(chunk.PhysicsData.PhysicsHeightField);
+            }
+        }
+
+        geometry.heightScale = 0.01;
+        geometry.columnScale = static_cast<float>(TERRAIN_CHUNK_SIZE) / static_cast<float>(TERRAIN_CHUNK_VERTEX_COUNT);
+        geometry.rowScale = static_cast<float>(TERRAIN_CHUNK_SIZE) / static_cast<float>(TERRAIN_CHUNK_VERTEX_COUNT);
+
+        shape = Physics3D::GetPhysics()->createShape(geometry, *Physics3D::GetDefaultMaterial());
     }
 
     if (shape)
@@ -202,6 +225,22 @@ physx::PxShape * Pine::Collider::CreateCollisionShape() const
 
         shape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, m_IsTrigger);
         shape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, !m_IsTrigger);
+
+        if (m_ColliderType == ColliderType::Capsule)
+        {
+            physx::PxTransform relativePose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0, 0, 1)));
+
+            shape->setLocalPose(relativePose);
+        }
+        else if (m_ColliderType == ColliderType::HeightField)
+        {
+            physx::PxTransform transform;
+
+            transform.p = physx::PxVec3(-(TERRAIN_CHUNK_SIZE * 0.5f), 0.f, -(TERRAIN_CHUNK_SIZE * 0.5f));
+            transform.q = physx::PxQuat(physx::PxIdentity);
+
+            shape->setLocalPose(transform);
+        }
     }
 
     return shape;
@@ -228,7 +267,7 @@ void Pine::Collider::OnPrePhysicsUpdate()
 
 void Pine::Collider::OnDestroyed()
 {
-    IComponent::OnDestroyed();
+    Component::OnDestroyed();
 
     if (m_CollisionRigidBody)
     {
@@ -241,26 +280,26 @@ void Pine::Collider::OnDestroyed()
 
 void Pine::Collider::OnCopied()
 {
-    IComponent::OnCopied();
+    Component::OnCopied();
 
     m_CollisionRigidBody = nullptr;
 }
 
 void Pine::Collider::LoadData(const nlohmann::json &j)
 {
-    Serialization::LoadVector3(j, "pos", m_Position);
-    Serialization::LoadVector3(j, "size", m_Size);
-    Serialization::LoadValue(j, "ctype", m_ColliderType);
-    Serialization::LoadValue(j, "lay", m_Layer);
-    Serialization::LoadValue(j, "lmask", m_LayerMask);
-    Serialization::LoadValue(j, "trig", m_IsTrigger);
-    Serialization::LoadValue(j, "trigm", m_TriggerMask);
+    SerializationJson::LoadVector3(j, "pos", m_Position);
+    SerializationJson::LoadVector3(j, "size", m_Size);
+    SerializationJson::LoadValue(j, "ctype", m_ColliderType);
+    SerializationJson::LoadValue(j, "lay", m_Layer);
+    SerializationJson::LoadValue(j, "lmask", m_LayerMask);
+    SerializationJson::LoadValue(j, "trig", m_IsTrigger);
+    SerializationJson::LoadValue(j, "trigm", m_TriggerMask);
 }
 
 void Pine::Collider::SaveData(nlohmann::json &j)
 {
-    j["pos"] = Serialization::StoreVector3(m_Position);
-    j["size"] = Serialization::StoreVector3(m_Size);
+    j["pos"] = SerializationJson::StoreVector3(m_Position);
+    j["size"] = SerializationJson::StoreVector3(m_Size);
     j["ctype"] = m_ColliderType;
     j["lay"] = m_Layer;
     j["lmask"] = m_LayerMask;

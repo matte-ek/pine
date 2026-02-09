@@ -1,76 +1,122 @@
-#pragma once
-#include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/IAsset/IAsset.hpp"
-#include "Pine/Core/Math/Math.hpp"
-#include <filesystem>
-#include <nlohmann/json.hpp>
-#include <optional>
+﻿#pragma once
 #include <string>
+#include <unordered_map>
+#include <vector>
 
-namespace Pine
-{
-    class IAsset;
-}
+#include "../../../../../Editor/include/IconsMaterialDesign.h"
+#include "Pine/Core/Math/Math.hpp"
 
 namespace Pine::Serialization
 {
-
-    /* General */
-
-    std::optional<nlohmann::json> LoadFromFile(const std::filesystem::path& path);
-    void SaveToFile(const std::filesystem::path& path, const nlohmann::json& json);
-
-    /* Store */
-
-    nlohmann::json StoreVector2(const Vector2f& vector);
-    nlohmann::json StoreVector3(const Vector3f& vector);
-    nlohmann::json StoreVector4(const Vector4f& vector);
-
-    nlohmann::json StoreQuaternion(const Quaternion& quaternion);
-
-    nlohmann::json StoreAsset(const IAsset* asset);
-
-    template <typename T>
-    nlohmann::json StoreAsset(const AssetHandle<T> asset)
+    enum class SerializationType
     {
-        return StoreAsset(asset.Get());
-    }
+        Flexible,
+        Compact
+    };
 
-    /* Load */
-
-    void LoadVector2(const nlohmann::json& j, const std::string& name, Vector2f& vec);
-    void LoadVector3(const nlohmann::json& j, const std::string& name, Vector3f& vec);
-    void LoadVector4(const nlohmann::json& j, const std::string& name, Vector4f& vec);
-
-    void LoadQuaternion(const nlohmann::json& j, const std::string& name, Quaternion& quaternion);
-
-    template <typename T>
-    void LoadAsset(const nlohmann::json& j, const std::string& name, AssetHandle<T>& asset, bool allowReference = true)
+    enum class DataType : std::uint8_t
     {
-        if (!j.contains(name))
-            return;
-        if (j[name] == "null")
-            return;
+        Invalid = 0,
 
-        if (Assets::GetState() == AssetManagerState::LoadDirectory && allowReference)
+        // Known size
+        Int32,
+        Float32,
+        Vec2,
+        Vec3,
+        Vec4,
+        Quaternion,
+
+        // Unknown size
+        String,
+        Asset,
+        Data,
+
+        Count
+    };
+
+    class Serializer;
+
+    class Data
+    {
+    protected:
+        const char* m_Name;
+
+        bool m_IsArray = false;
+        DataType m_Type;
+        size_t m_DataSize;
+
+        char m_Data[16] {};
+        void* m_VariableData = nullptr;
+    public:
+        Data(
+            Serializer* parentSerializer,
+            DataType type,
+            const char* name,
+            size_t size = 0);
+
+        ~Data();
+
+        template <typename T>
+        T Read();
+
+        const char* ReadString() const;
+
+        template <typename T>
+        void Write(const T& data);
+
+        void WriteString(const char* str);
+        void WriteString(const std::string& str);
+
+        void* GetData() const;
+        size_t GetDataSize() const;
+
+        friend class Serializer;
+    };
+
+    template<typename T>
+    T Data::Read()
+    {
+        if (static_cast<std::uint8_t>(m_Type) < static_cast<std::uint8_t>(DataType::String))
         {
-            Assets::AddAssetResolveReference({j[name], reinterpret_cast<AssetHandle<IAsset>*>(&asset)});
+            return *reinterpret_cast<T*>(m_Data);
         }
         else
         {
-            asset = Assets::Get(j[name]);
+            return T();
         }
     }
 
-    // Quick and easy way to load any data, but only if it exists. Generally makes the code look cleaner
-    // within the component code.
-    template <typename T>
-    void LoadValue(const nlohmann::json& j, const std::string& name, T& value)
+    template<typename T>
+    void Data::Write(const T& data)
     {
-        if (!j.contains(name))
-            return;
+        m_DataSize = sizeof(T);
 
-        value = j[name];
+        if (static_cast<std::uint8_t>(m_Type) < static_cast<std::uint8_t>(DataType::String))
+        {
+            if (sizeof(T) > sizeof(m_Data))
+            {
+                m_VariableData = malloc(m_DataSize);
+                memcpy(m_VariableData, &data, sizeof(T));
+                return;
+            }
+
+            memcpy(m_Data, &data, sizeof(T));
+        }
+        else
+        {
+            m_VariableData = malloc(m_DataSize);
+            memcpy(m_VariableData, &data, m_DataSize);
+        }
     }
 
+    class Serializer
+    {
+    protected:
+        std::vector<Data*> m_Data;
+    public:
+        bool Read(void* data, size_t size) const;
+        void* Write(size_t& outputSize) const;
+
+        friend class Data;
+    };
 }

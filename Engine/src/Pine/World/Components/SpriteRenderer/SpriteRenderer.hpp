@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
-#include "Pine/World/Components/IComponent/IComponent.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
 {
@@ -12,7 +12,7 @@ namespace Pine
         Repeat
     };
 
-    class SpriteRenderer final : public IComponent
+    class SpriteRenderer final : public Component
     {
     private:
         AssetHandle<Texture2D> m_StaticTexture;

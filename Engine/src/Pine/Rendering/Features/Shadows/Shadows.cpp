@@ -115,7 +115,7 @@ namespace
         const float oldNearPane = m_SceneCamera->GetNearPlane();
         const float oldFarPlane = m_SceneCamera->GetFarPlane();
 
-        const std::array<float, CASCADE_COUNT> farPlane = { 10.f, m_SceneCamera->GetFarPlane() };
+        const std::array<float, CASCADE_COUNT> farPlane = { 10.f, sqrtf(MAX_SHADOW_DISTANCE) + 5.f };
 
         auto& shadowData = Renderer3D::ShaderStorages::Shadows.Data();
 
