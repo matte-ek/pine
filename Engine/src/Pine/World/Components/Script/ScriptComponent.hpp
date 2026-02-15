@@ -2,6 +2,7 @@
 
 #include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace Pine
@@ -13,6 +14,11 @@ namespace Pine
         AssetHandle<CSharpScript> m_Script;
 
         Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
+
+        struct ScriptSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ASSET(Script);
+        };
     public:
         ScriptComponent();
 
@@ -28,8 +34,8 @@ namespace Pine
         void OnCopied() override;
         void OnDestroyed() override;
 
-        void LoadData(const nlohmann::json& j) override;
-        void SaveData(nlohmann::json& j) override;
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
     };
 
 }

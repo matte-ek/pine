@@ -1,63 +1,91 @@
 #include "Blueprint.hpp"
 #include "../../Core/Serialization/Json/SerializationJson.hpp"
+#include "Pine/Core/File/File.hpp"
 
 namespace
 {
 
-    void StoreEntity(nlohmann::json& j, const Pine::Entity* entity)
+    struct EntitySerializer : Pine::Serialization::Serializer
     {
-        j["name"] = entity->GetName();
-        j["active"] = entity->GetActive();
-        j["static"] = entity->GetStatic();
-        j["tags"] = entity->GetTags();
+        PINE_SERIALIZE_STRING(Name);
+        PINE_SERIALIZE_PRIMITIVE(Active, Pine::Serialization::DataType::Boolean);
+        PINE_SERIALIZE_PRIMITIVE(Static, Pine::Serialization::DataType::Boolean);
+        PINE_SERIALIZE_PRIMITIVE(Tags, Pine::Serialization::DataType::Int64);
+        PINE_SERIALIZE_ARRAY(Components);
+        PINE_SERIALIZE_ARRAY(Children);
+    };
+
+    struct ComponentSerializer : Pine::Serialization::Serializer
+    {
+        PINE_SERIALIZE_PRIMITIVE(Type, Pine::Serialization::DataType::Int32);
+        PINE_SERIALIZE_DATA(Data);
+    };
+
+    void StoreEntity(Pine::ByteSpan& span, const Pine::Entity* entity)
+    {
+        EntitySerializer entitySerializer;
+
+        entitySerializer.Name.Write(entity->GetName());
+        entitySerializer.Active.Write(entity->GetActive());
+        entitySerializer.Static.Write(entity->GetStatic());
+        entitySerializer.Tags.Write(entity->GetTags());
 
         for (auto component : entity->GetComponents())
         {
-            nlohmann::json componentJson;
+            ComponentSerializer componentSerializer;
 
-            componentJson["type"] = component->GetType();
+            componentSerializer.Type.Write(component->GetType());
+            componentSerializer.Data.Write(component->SaveData());
 
-            component->SaveData(componentJson);
-
-            j["components"].push_back(componentJson);
+            entitySerializer.Components.AddData(componentSerializer.Write());
         }
 
         for (auto child : entity->GetChildren())
         {
-            nlohmann::json entityJson;
+            Pine::ByteSpan entityByteSpan;
 
-            StoreEntity(entityJson, child);
+            StoreEntity(entityByteSpan, child);
 
-            j["children"].push_back(entityJson);
+            entitySerializer.Children.AddData(entityByteSpan);
         }
+
+        span = entitySerializer.Write();
     }
 
-    void LoadEntity(const nlohmann::json& j, Pine::Entity* entity)
+    void LoadEntity(const Pine::ByteSpan& byteSpan, Pine::Entity* entity)
     {
-        entity->SetName(j["name"]);
-        entity->SetActive(j["active"]);
-        entity->SetStatic(j["static"]);
-        entity->SetTags(j.contains("tags") ? j["tags"].get<std::uint64_t>() : 0);
+        EntitySerializer entitySerializer;
 
-        for (const auto& componentData : j["components"])
+        entitySerializer.Read(byteSpan);
+
+        std::string name;
+        entitySerializer.Name.Read(name);
+
+        entity->SetName(name);
+        entity->SetActive(entitySerializer.Active.Read<bool>());
+        entity->SetStatic(entitySerializer.Static.Read<bool>());
+        entity->SetTags(entitySerializer.Tags.Read<std::uint64_t>());
+
+        for (int i = 0; i < entitySerializer.Components.GetDataCount();i++)
         {
-            auto component = Pine::Components::Create(componentData["type"], true);
+            ComponentSerializer componentSerializer;
 
-            component->LoadData(componentData);
+            componentSerializer.Read(entitySerializer.Components.GetData(i));
+
+            auto component = Pine::Components::Create(static_cast<Pine::ComponentType>(componentSerializer.Type.Read<int32_t>()), true);
+
+            component->LoadData(componentSerializer.Data.Read());
 
             entity->AddComponent(component);
         }
 
-        if (j.contains("children"))
+        for (int i = 0; i < entitySerializer.Children.GetDataCount();i++)
         {
-            for (const auto& childData : j["children"])
-            {
-                auto child = new Pine::Entity(0);
+            auto child = new Pine::Entity(0);
 
-                entity->AddChild(child);
+            entity->AddChild(child);
 
-                LoadEntity(childData, child);
-            }
+            LoadEntity(entitySerializer.Children.GetData(i), child);
         }
     }
 }
@@ -134,37 +162,37 @@ Pine::Entity* Pine::Blueprint::Spawn() const
    return entity;
 }
 
-void Pine::Blueprint::FromJson(const nlohmann::json& j)
+void Pine::Blueprint::FromByteSpan(const ByteSpan& byteSpan)
 {
-   m_Entity = new Entity(0);
+    m_Entity = new Entity(0);
 
-   LoadEntity(j, m_Entity);
+    LoadEntity(byteSpan, m_Entity);
 }
 
-nlohmann::json Pine::Blueprint::ToJson() const
+Pine::ByteSpan Pine::Blueprint::ToByteSpan() const
 {
-   if (!m_Entity)
-   {
+    if (!m_Entity)
+    {
         throw std::runtime_error("Attempted to serialize invalid blueprint.");
-   }
+    }
 
-   nlohmann::json json;
+    ByteSpan span;
 
-   StoreEntity(json, m_Entity);
+    StoreEntity(span, m_Entity);
 
-   return json;
+    return span;
 }
 
 bool Pine::Blueprint::LoadFromFile(AssetLoadStage stage)
 {
-   auto json = SerializationJson::LoadFromFile(m_FilePath);
+   auto data = File::ReadCompressed(m_FilePath);
 
-   if (!json.has_value())
+   if (!data.data)
    {
-        return false;
+       return false;
    }
 
-   FromJson(json.value());
+   FromByteSpan(data);
 
    m_State = AssetState::Loaded;
 
@@ -173,7 +201,7 @@ bool Pine::Blueprint::LoadFromFile(AssetLoadStage stage)
 
 bool Pine::Blueprint::SaveToFile()
 {
-    SerializationJson::SaveToFile(m_FilePath, ToJson());
+    File::WriteCompressed(m_FilePath, ToByteSpan());
 
     return true;
 }

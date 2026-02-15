@@ -1,5 +1,6 @@
 #include "Level.hpp"
 #include "../../Core/Serialization/Json/SerializationJson.hpp"
+#include "Pine/Core/File/File.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
@@ -12,7 +13,7 @@ Pine::Level::Level()
 
 void Pine::Level::CreateFromWorld()
 {
-    auto primaryRenderingContext = Pine::RenderManager::GetPrimaryRenderingContext();
+    auto primaryRenderingContext = RenderManager::GetPrimaryRenderingContext();
     const auto currentCameraEntity = primaryRenderingContext->SceneCamera != nullptr ? primaryRenderingContext->SceneCamera->GetParent() : nullptr;
 
     ClearBlueprints();
@@ -43,11 +44,15 @@ void Pine::Level::CreateFromWorld()
     {
         // Ignore children as we take care of those when processing their parents.
         if (entity->GetParent() != nullptr)
+        {
             continue;
+        }
 
         // See comment for m_Temporary
         if (entity->GetTemporary())
+        {
             continue;
+        }
 
         auto blueprint = new Blueprint();
 
@@ -118,41 +123,32 @@ Pine::LevelSettings& Pine::Level::GetLevelSettings()
 
 bool Pine::Level::LoadFromFile(AssetLoadStage stage)
 {
-    const auto json = SerializationJson::LoadFromFile(m_FilePath);
+    const auto fileByteSpan = File::ReadCompressed(m_FilePath);
 
-    if (!json.has_value())
+    if (!fileByteSpan.data)
     {
         return false;
     }
 
-    const auto& j = json.value();
+    LevelSerializer levelSerializer;
 
-    if (j.contains("entities"))
+    levelSerializer.Read(fileByteSpan);
+
+    for (int i = 0; i < levelSerializer.Blueprints.GetDataCount();i++)
     {
-        for (const auto& blueprintJson : j["entities"])
-        {
-            auto blueprint = new Blueprint();
+        auto blueprint = new Blueprint();
 
-            blueprint->FromJson(blueprintJson);
+        blueprint->FromByteSpan(levelSerializer.Blueprints.GetData(i));
 
-            m_Blueprints.push_back(blueprint);
-        }
+        m_Blueprints.push_back(blueprint);
     }
 
-    if (j.contains("settings"))
-    {
-        SerializationJson::LoadValue(j["settings"], "camera", m_LevelSettings.CameraEntity);
-        SerializationJson::LoadAsset(j["settings"], "skybox", m_LevelSettings.Skybox);
-        SerializationJson::LoadVector3(j["settings"], "ambientColor", m_LevelSettings.AmbientColor);
-        SerializationJson::LoadVector4(j["settings"], "fogColor", m_LevelSettings.FogColor);
-        SerializationJson::LoadValue(j["settings"], "fogDistance", m_LevelSettings.FogDistance);
-        SerializationJson::LoadValue(j["settings"], "fogIntensity", m_LevelSettings.FogIntensity);
-
-        if (j["settings"].contains("camera"))
-        {
-            m_LevelSettings.HasCamera = true;
-        }
-    }
+    levelSerializer.Skybox.Read(m_LevelSettings.Skybox);
+    levelSerializer.AmbientColor.Read(m_LevelSettings.AmbientColor);
+    levelSerializer.FogColor.Read(m_LevelSettings.FogColor);
+    levelSerializer.FogIntensity.Read(m_LevelSettings.FogIntensity);
+    levelSerializer.FogDistance.Read(m_LevelSettings.FogDistance);
+    levelSerializer.Camera.Read(m_LevelSettings.CameraEntity);
 
     m_State = AssetState::Loaded;
 
@@ -161,23 +157,22 @@ bool Pine::Level::LoadFromFile(AssetLoadStage stage)
 
 bool Pine::Level::SaveToFile()
 {
-    nlohmann::json j;
+    LevelSerializer levelSerializer;
 
     for (auto bp : m_Blueprints)
     {
-        j["entities"].push_back(bp->ToJson());
+        levelSerializer.Blueprints.AddData(bp->ToByteSpan());
     }
 
-    if (m_LevelSettings.HasCamera)
-        j["settings"]["camera"] = m_LevelSettings.CameraEntity;
+    levelSerializer.Camera.Write(m_LevelSettings.HasCamera ? m_LevelSettings.CameraEntity : 0);
 
-    j["settings"]["skybox"] = SerializationJson::StoreAsset(m_LevelSettings.Skybox);
-    j["settings"]["ambientColor"] = SerializationJson::StoreVector3(m_LevelSettings.AmbientColor);
-    j["settings"]["fogColor"] = SerializationJson::StoreVector4(m_LevelSettings.FogColor);
-    j["settings"]["fogDistance"] = m_LevelSettings.FogDistance;
-    j["settings"]["fogIntensity"] = m_LevelSettings.FogIntensity;
+    levelSerializer.Skybox.Write(m_LevelSettings.Skybox);
+    levelSerializer.AmbientColor.Write(m_LevelSettings.AmbientColor);
+    levelSerializer.FogColor.Write(m_LevelSettings.FogColor);
+    levelSerializer.FogIntensity.Write(m_LevelSettings.FogIntensity);
+    levelSerializer.FogDistance.Write(m_LevelSettings.FogDistance);
 
-    SerializationJson::SaveToFile(m_FilePath, j);
+    File::WriteCompressed(m_FilePath, levelSerializer.Write());
 
     return true;
 }

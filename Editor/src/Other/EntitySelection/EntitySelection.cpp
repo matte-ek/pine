@@ -49,7 +49,7 @@ namespace
             {
                 // We cannot encode this properly since the entity index is too high, should hopefully never
                 // happen.
-                Pine::Log::Warning(fmt::format("EntitySelection: Failed to encode entity id {}, value is too high.", id));
+                Pine::Log::Warning(fmt::format("Failed to encode entity id {}, value is too high.", id));
                 break;
             }
         }

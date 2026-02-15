@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pine/Core/Math/Math.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
 
 class b2Body;
@@ -32,6 +33,13 @@ namespace Pine
 
         b2Body* m_Body = nullptr;
         b2Fixture* m_Fixture = nullptr;
+
+        struct RigidBody2DSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(Size, Serialization::DataType::Vec2);
+            PINE_SERIALIZE_PRIMITIVE(BodyType, Serialization::DataType::Int32);
+        };
     public:
         RigidBody2D();
 
@@ -45,8 +53,9 @@ namespace Pine
         void OnCopied() override;
 
         void OnRender(float deltaTime) override;
-        void LoadData(const nlohmann::json& j) override;
-        void SaveData(nlohmann::json& j) override;
+
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
     };
 
 

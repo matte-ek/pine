@@ -36,6 +36,30 @@ const Pine::Vector4f& Pine::SpriteRenderer::GetColor() const
     return m_Color;
 }
 
+void Pine::SpriteRenderer::LoadData(const ByteSpan& span)
+{
+    SpriteRendererSerializer serializer;
+
+    serializer.Read(span);
+
+    serializer.StaticTexture.Read(m_StaticTexture);
+    serializer.Color.Read(m_Color);
+    serializer.ScalingMode.Read(m_ScalingMode);
+    serializer.Order.Read(m_Order);
+}
+
+Pine::ByteSpan Pine::SpriteRenderer::SaveData()
+{
+    SpriteRendererSerializer serializer;
+
+    serializer.StaticTexture.Write(m_StaticTexture);
+    serializer.Color.Write(m_Color);
+    serializer.ScalingMode.Write(m_ScalingMode);
+    serializer.Order.Write(m_Order);
+
+    return serializer.Write();
+}
+
 void Pine::SpriteRenderer::SetScalingMode(SpriteScalingMode scalingMode)
 {
     m_ScalingMode = scalingMode;
@@ -44,20 +68,4 @@ void Pine::SpriteRenderer::SetScalingMode(SpriteScalingMode scalingMode)
 Pine::SpriteScalingMode Pine::SpriteRenderer::GetScalingMode() const
 {
     return m_ScalingMode;
-}
-
-void Pine::SpriteRenderer::LoadData(const nlohmann::json& j)
-{
-    SerializationJson::LoadAsset(j, "tex", m_StaticTexture);
-    SerializationJson::LoadValue(j, "scl", m_ScalingMode);
-    SerializationJson::LoadValue(j, "odr", m_Order);
-    SerializationJson::LoadVector4(j, "clr", m_Color);
-}
-
-void Pine::SpriteRenderer::SaveData(nlohmann::json& j)
-{
-    j["tex"] = SerializationJson::StoreAsset(m_StaticTexture.Get());
-    j["scl"] = m_ScalingMode;
-    j["odr"] = m_Order;
-    j["clr"] = SerializationJson::StoreVector4(m_Color);
 }

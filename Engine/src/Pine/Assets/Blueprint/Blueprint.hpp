@@ -9,9 +9,6 @@ namespace Pine
     class Blueprint : public Asset
     {
     private:
-        bool m_IsReference = false;
-        Blueprint* m_Blueprint;
-
         // Stored entity which is the entity the blueprint is describing. This does not
         // point to any existing entity in the world.
         Entity* m_Entity = nullptr;
@@ -35,8 +32,8 @@ namespace Pine
         Entity* Spawn() const;
 
         // Serializes or de-serializes the stored entity
-        void FromJson(const nlohmann::json& j);
-        nlohmann::json ToJson() const;
+        void FromByteSpan(const ByteSpan& byteSpan);
+        ByteSpan ToByteSpan() const;
 
         bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default) override;
         bool SaveToFile() override;

@@ -20,6 +20,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(imguizmo CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
@@ -33,7 +34,8 @@ add_library(Engine ${SOURCES}
         src/Pine/Physics/Physics3D/PhysicsTerrain/PhysicsTerrain.cpp
         src/Pine/Physics/Physics3D/PhysicsTerrain/PhysicsTerrain.hpp
         src/Pine/Core/Serialization/Serialization.cpp
-        src/Pine/Core/Serialization/Serialization.hpp)
+        src/Pine/Core/Serialization/Serialization.hpp
+        src/Pine/Core/Span/Span.hpp)
 
 if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
     if(UNIX)
@@ -57,4 +59,4 @@ else()
     message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
 endif()
 
-target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL)
+target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL ZLIB::ZLIB)

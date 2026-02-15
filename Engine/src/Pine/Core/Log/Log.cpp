@@ -1,6 +1,9 @@
 #include "Log.hpp"
 
+#include <deque>
+#include <string>
 #include <iostream>
+#include <iomanip>
 #include <mutex>
 #include <fmt/format.h>
 
@@ -10,6 +13,7 @@
 
 namespace
 {
+    std::deque<Pine::LogMessage> m_LogMessages;
     std::mutex m_LogMutex;
 
 #ifdef _WIN32
@@ -51,18 +55,26 @@ namespace
     }
 #endif
 
-    void PrintMessage(const char* prefix, ConsoleColor color, const char* str, ConsoleColor msgColor = ConsoleColor::None)
+    void PrintMessage(
+        const char* prefix,
+        const char* fileName,
+        int fileLine,
+        ConsoleColor color,
+        std::string_view str,
+        ConsoleColor msgColor = ConsoleColor::None)
     {
         SetConsoleColor(color);
 
-        std::cout << prefix << ": ";
+        std::cout << std::setw(10) << std::left << fmt::format("[{}] ", prefix);
+
+        SetConsoleColor(ConsoleColor::DarkGray);
+
+        std::cout << fmt::format("{}:{} ", fileName, fileLine);
 
         SetConsoleColor(msgColor);
 
         std::cout << str << std::endl;
     }
-
-    std::vector<Pine::LogMessage> m_LogMessages;
 
     void AddLogMessage(const Pine::LogMessage& message)
     {
@@ -75,47 +87,47 @@ namespace
     }
 }
 
-void Pine::Log::Verbose(const std::string &str)
+void Pine::Log::LogVerbose(const char* fileName, int fileLine, std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
-    PrintMessage("verbose", ConsoleColor::DarkGray, str.c_str(), ConsoleColor::DarkGray);
-    AddLogMessage({str, Pine::LogSeverity::Verbose});
+    PrintMessage("verbose", fileName, fileLine, ConsoleColor::DarkGray, str);
+    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Verbose});
 }
 
-void Pine::Log::Info(const std::string &str)
+void Pine::Log::LogInfo(const char* fileName, int fileLine, std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
-    PrintMessage("info", ConsoleColor::White, str.c_str());
-    AddLogMessage({str, Pine::LogSeverity::Info});
+    PrintMessage("info", fileName, fileLine, ConsoleColor::White, str);
+    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Info});
 }
 
-void Pine::Log::Warning(const std::string &str)
+void Pine::Log::LogWarning(const char* fileName, int fileLine, std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
-    PrintMessage("warning", ConsoleColor::Yellow, str.c_str());
-    AddLogMessage({str, Pine::LogSeverity::Warning});
+    PrintMessage("warning", fileName, fileLine,  ConsoleColor::Yellow, str);
+    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Warning});
 }
 
-void Pine::Log::Error(const std::string &str)
+void Pine::Log::LogError(const char* fileName, int fileLine, std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
-    PrintMessage("error", ConsoleColor::Red, str.c_str());
-    AddLogMessage({str, Pine::LogSeverity::Error});
+    PrintMessage("error", fileName, fileLine, ConsoleColor::Red, str);
+    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Error});
 }
 
-void Pine::Log::Fatal(const std::string &str)
+void Pine::Log::LogFatal(const char* fileName, int fileLine, std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
-    PrintMessage("fatal", ConsoleColor::Red, str.c_str(), ConsoleColor::Red);
-    AddLogMessage({str, Pine::LogSeverity::Fatal});
+    PrintMessage("fatal", fileName, fileLine, ConsoleColor::Red, str, ConsoleColor::Red);
+    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Fatal});
 }
 
-const std::vector<Pine::LogMessage> &Pine::Log::GetLogMessages()
+const std::deque<Pine::LogMessage> &Pine::Log::GetLogMessages()
 {
     return m_LogMessages;
 }

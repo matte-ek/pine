@@ -59,6 +59,24 @@ void Pine::ScriptComponent::OnDestroyed()
     DestroyInstance();
 }
 
+void Pine::ScriptComponent::LoadData(const ByteSpan& span)
+{
+    ScriptSerializer scriptSerializer;
+
+    scriptSerializer.Read(span);
+
+    scriptSerializer.Script.Read(m_Script);
+}
+
+Pine::ByteSpan Pine::ScriptComponent::SaveData()
+{
+    ScriptSerializer scriptSerializer;
+
+    scriptSerializer.Script.Write(m_Script);
+
+    return scriptSerializer.Write();
+}
+
 void Pine::ScriptComponent::CreateInstance()
 {
     if (m_Standalone)
@@ -92,14 +110,4 @@ void Pine::ScriptComponent::DestroyInstance()
 Pine::Script::ObjectHandle *Pine::ScriptComponent::GetScriptObjectHandle()
 {
     return &m_ScriptObjectHandle;
-}
-
-void Pine::ScriptComponent::LoadData(const nlohmann::json &j)
-{
-    SerializationJson::LoadAsset(j, "script", m_Script);
-}
-
-void Pine::ScriptComponent::SaveData(nlohmann::json &j)
-{
-    j["script"] = SerializationJson::StoreAsset(m_Script);
 }

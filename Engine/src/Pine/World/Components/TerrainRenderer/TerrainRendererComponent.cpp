@@ -17,12 +17,20 @@ Pine::Terrain* Pine::TerrainRendererComponent::GetTerrain() const
     return m_Terrain.Get();
 }
 
-void Pine::TerrainRendererComponent::LoadData(const nlohmann::json& j)
+void Pine::TerrainRendererComponent::LoadData(const ByteSpan& span)
 {
-    SerializationJson::LoadAsset(j, "ter", m_Terrain);
+    TerrainSerializer terrainSerializer;
+
+    terrainSerializer.Read(span);
+
+    terrainSerializer.Terrain.Read(m_Terrain);
 }
 
-void Pine::TerrainRendererComponent::SaveData(nlohmann::json& j)
+Pine::ByteSpan Pine::TerrainRendererComponent::SaveData()
 {
-    j["ter"] = SerializationJson::StoreAsset(m_Terrain.Get());
+    TerrainSerializer terrainSerializer;
+
+    terrainSerializer.Terrain.Write(m_Terrain);
+
+    return terrainSerializer.Write();
 }

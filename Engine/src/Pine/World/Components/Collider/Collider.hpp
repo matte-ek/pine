@@ -4,6 +4,7 @@
 #include "Pine/World/Components/Component/Component.hpp"
 
 #include "physx/PxPhysicsAPI.h"
+#include "Pine/Core/Serialization/Serialization.hpp"
 
 namespace Pine
 {
@@ -42,6 +43,17 @@ namespace Pine
         std::uint32_t m_TriggerMask = 0xFFFFFFFF;
 
         void UpdateBody();
+
+        struct ColliderSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(Position, Serialization::DataType::Vec3);
+            PINE_SERIALIZE_PRIMITIVE(Size, Serialization::DataType::Vec3);
+            PINE_SERIALIZE_PRIMITIVE(Layer, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(LayerMask, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(IsTrigger, Serialization::DataType::Boolean);
+            PINE_SERIALIZE_PRIMITIVE(TriggerMask, Serialization::DataType::Int32);
+        };
     public:
         Collider();
 
@@ -83,8 +95,8 @@ namespace Pine
         void OnDestroyed() override;
         void OnCopied() override;
 
-        void LoadData(const nlohmann::json &j) override;
-        void SaveData(nlohmann::json &j) override;
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
     };
 
 }

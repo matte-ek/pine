@@ -239,24 +239,32 @@ void Pine::RigidBody::OnDestroyed()
     }
 }
 
-void Pine::RigidBody::LoadData(const nlohmann::json &j)
+void Pine::RigidBody::LoadData(const ByteSpan& span)
 {
-    SerializationJson::LoadValue(j, "mass", m_Mass);
-    SerializationJson::LoadValue(j, "grav", m_GravityEnabled);
-    SerializationJson::LoadValue(j, "rtype", m_RigidBodyType);
-    SerializationJson::LoadValue(j, "mang", m_MaxAngularVelocity);
-    SerializationJson::LoadValue(j, "mlin", m_MaxLinearVelocity);
-    SerializationJson::LoadValue(j, "posl", m_PositionLock);
-    SerializationJson::LoadValue(j, "rotl", m_RotationLock);
+    RigidBodySerializer serializer;
+
+    serializer.Read(span);
+
+    serializer.Type.Read(m_Type);
+    serializer.Mass.Read(m_Mass);
+    serializer.GravityEnabled.Read(m_GravityEnabled);
+    serializer.PositionLock.Read(m_PositionLock);
+    serializer.RotationLock.Read(m_RotationLock);
+    serializer.MaxAngularVelocity.Read(m_MaxAngularVelocity);
+    serializer.MaxLinearVelocity.Read(m_MaxLinearVelocity);
 }
 
-void Pine::RigidBody::SaveData(nlohmann::json &j)
+Pine::ByteSpan Pine::RigidBody::SaveData()
 {
-    j["mass"] = m_Mass;
-    j["grav"] = m_GravityEnabled;
-    j["rtype"] = m_RigidBodyType;
-    j["mang"] = m_MaxAngularVelocity;
-    j["mlin"] = m_MaxLinearVelocity;
-    j["posl"] = m_PositionLock;
-    j["rotl"] = m_RotationLock;
+    RigidBodySerializer serializer;
+
+    serializer.Type.Write(m_Type);
+    serializer.Mass.Write(m_Mass);
+    serializer.GravityEnabled.Write(m_GravityEnabled);
+    serializer.PositionLock.Write(m_PositionLock);
+    serializer.RotationLock.Write(m_RotationLock);
+    serializer.MaxAngularVelocity.Write(m_MaxAngularVelocity);
+    serializer.MaxLinearVelocity.Write(m_MaxLinearVelocity);
+
+    return serializer.Write();
 }

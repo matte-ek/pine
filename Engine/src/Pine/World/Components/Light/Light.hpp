@@ -1,6 +1,7 @@
 #pragma once
 #include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/Core/Math/Math.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 
 namespace Pine
 {
@@ -33,6 +34,15 @@ namespace Pine
         float m_SpotlightCutoff = 1.0f;
 
         Renderer3D::LightHintData m_LightHintData;
+
+        struct LightSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(Color, Serialization::DataType::Vec3);
+            PINE_SERIALIZE_PRIMITIVE(Attenuation, Serialization::DataType::Vec3);
+            PINE_SERIALIZE_PRIMITIVE(SpotlightRadius, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(SpotlightCutoff, Serialization::DataType::Float32);
+        };
     public:
         Light();
 
@@ -53,8 +63,8 @@ namespace Pine
 
         Renderer3D::LightHintData& GetLightHintData();
 
-        void LoadData(const nlohmann::json& j) override;
-        void SaveData(nlohmann::json& j) override;
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
     };
 
 }

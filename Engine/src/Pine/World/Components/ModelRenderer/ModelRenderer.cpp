@@ -26,20 +26,6 @@ Pine::Material * Pine::ModelRenderer::GetOverrideMaterial() const
     return m_OverrideMaterial.Get();
 }
 
-void Pine::ModelRenderer::LoadData(const nlohmann::json &j)
-{
-    SerializationJson::LoadAsset<Pine::Model>(j, "model", m_Model);
-    SerializationJson::LoadAsset<Pine::Material>(j, "overrideMaterial", m_OverrideMaterial);
-    SerializationJson::LoadValue(j, "modelMeshIndex", m_ModelMeshIndex);
-}
-
-void Pine::ModelRenderer::SaveData(nlohmann::json &j)
-{
-    j["model"] = SerializationJson::StoreAsset(m_Model);
-    j["overrideMaterial"] = SerializationJson::StoreAsset(m_OverrideMaterial);
-    j["modelMeshIndex"] = m_ModelMeshIndex;
-}
-
 void Pine::ModelRenderer::SetOverrideStencilBuffer(bool value)
 {
     m_OverrideStencilBuffer = value;
@@ -73,4 +59,26 @@ int Pine::ModelRenderer::GetModelMeshIndex() const
 Pine::Renderer3D::ModelRendererHintData& Pine::ModelRenderer::GetRenderingHintData()
 {
     return m_RenderingHintData;
+}
+
+void Pine::ModelRenderer::LoadData(const ByteSpan& span)
+{
+    ModelRendererSerializer serializer;
+
+    serializer.Read(span);
+
+    serializer.Model.Read(m_Model);
+    serializer.OverrideMaterial.Read(m_OverrideMaterial);
+    serializer.MeshIndex.Read(m_ModelMeshIndex);
+}
+
+Pine::ByteSpan Pine::ModelRenderer::SaveData()
+{
+    ModelRendererSerializer serializer;
+
+    serializer.Model.Write(m_Model);
+    serializer.OverrideMaterial.Write(m_OverrideMaterial);
+    serializer.MeshIndex.Write(m_ModelMeshIndex);
+
+    return serializer.Write();
 }

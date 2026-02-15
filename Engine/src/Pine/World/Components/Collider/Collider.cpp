@@ -285,24 +285,32 @@ void Pine::Collider::OnCopied()
     m_CollisionRigidBody = nullptr;
 }
 
-void Pine::Collider::LoadData(const nlohmann::json &j)
+void Pine::Collider::LoadData(const ByteSpan& span)
 {
-    SerializationJson::LoadVector3(j, "pos", m_Position);
-    SerializationJson::LoadVector3(j, "size", m_Size);
-    SerializationJson::LoadValue(j, "ctype", m_ColliderType);
-    SerializationJson::LoadValue(j, "lay", m_Layer);
-    SerializationJson::LoadValue(j, "lmask", m_LayerMask);
-    SerializationJson::LoadValue(j, "trig", m_IsTrigger);
-    SerializationJson::LoadValue(j, "trigm", m_TriggerMask);
+    ColliderSerializer serializer;
+
+    serializer.Read(span);
+
+    serializer.Type.Read(m_ColliderType);
+    serializer.Position.Read(m_Position);
+    serializer.Size.Read(m_Size);
+    serializer.Layer.Read(m_Layer);
+    serializer.LayerMask.Read(m_LayerMask);
+    serializer.IsTrigger.Read(m_IsTrigger);
+    serializer.TriggerMask.Read(m_TriggerMask);
 }
 
-void Pine::Collider::SaveData(nlohmann::json &j)
+Pine::ByteSpan Pine::Collider::SaveData()
 {
-    j["pos"] = SerializationJson::StoreVector3(m_Position);
-    j["size"] = SerializationJson::StoreVector3(m_Size);
-    j["ctype"] = m_ColliderType;
-    j["lay"] = m_Layer;
-    j["lmask"] = m_LayerMask;
-    j["trig"] = m_IsTrigger;
-    j["trigm"] = m_TriggerMask;
+    ColliderSerializer serializer;
+
+    serializer.Type.Read(m_ColliderType);
+    serializer.Position.Read(m_Position);
+    serializer.Size.Read(m_Size);
+    serializer.Layer.Read(m_Layer);
+    serializer.LayerMask.Read(m_LayerMask);
+    serializer.IsTrigger.Read(m_IsTrigger);
+    serializer.TriggerMask.Read(m_TriggerMask);
+
+    return serializer.Write();
 }

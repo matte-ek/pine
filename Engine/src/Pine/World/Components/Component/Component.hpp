@@ -1,6 +1,8 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+
+#include "Pine/Core/Span/Span.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace Pine
@@ -171,8 +173,8 @@ namespace Pine
         virtual void OnPrePhysicsUpdate();
         virtual void OnPostPhysicsUpdate();
 
-        virtual void LoadData(const nlohmann::json &j);
-        virtual void SaveData(nlohmann::json &j);
+        virtual void LoadData(const ByteSpan& data);
+        virtual ByteSpan SaveData();
     };
 
 }

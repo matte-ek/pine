@@ -143,16 +143,24 @@ void Pine::RigidBody2D::OnRender(float deltaTime)
 	Component::OnRender(deltaTime);
 }
 
-void Pine::RigidBody2D::LoadData(const nlohmann::json& j)
+void Pine::RigidBody2D::LoadData(const ByteSpan& span)
 {
-	Component::LoadData(j);
+    RigidBody2DSerializer serializer;
 
-	SerializationJson::LoadValue(j, "rtype", m_RigidBodyType);
+    serializer.Read(span);
+
+    serializer.Type.Read(m_RigidBodyType);
+    serializer.Size.Read(m_BodySize);
+    serializer.BodyType.Read(m_BodyType);
 }
 
-void Pine::RigidBody2D::SaveData(nlohmann::json& j)
+Pine::ByteSpan Pine::RigidBody2D::SaveData()
 {
-	Component::SaveData(j);
+    RigidBody2DSerializer serializer;
 
-	j["rtype"] = m_RigidBodyType;
+    serializer.Type.Write(m_RigidBodyType);
+    serializer.Size.Write(m_BodySize);
+    serializer.BodyType.Write(m_BodyType);
+
+    return serializer.Write();
 }

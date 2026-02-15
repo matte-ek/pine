@@ -43,7 +43,7 @@ namespace
 
     void Worker(int workerId)
     {
-        Pine::Log::Verbose(fmt::format("[Threading] Worker #{} has started.", workerId + 1));
+        Pine::Log::Verbose(fmt::format("Worker #{} has started.", workerId + 1));
 
         while (m_IsRunning)
         {
@@ -67,7 +67,7 @@ namespace
             task->ConditionVariable.notify_all();
         }
 
-        Pine::Log::Verbose(fmt::format("Threading: Worker #{} has stopped.", workerId + 1));
+        Pine::Log::Verbose(fmt::format("Worker #{} has stopped.", workerId + 1));
     }
 }
 

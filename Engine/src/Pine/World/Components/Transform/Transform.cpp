@@ -1,8 +1,13 @@
 #include "Transform.hpp"
 #include "../../../Core/Serialization/Json/SerializationJson.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
 using namespace Pine;
+
+namespace
+{
+}
 
 void Transform::CalculateTransformationMatrix()
 {
@@ -40,20 +45,28 @@ void Transform::OnRender(float deltaTime)
     CalculateTransformationMatrix();
 }
 
-void Transform::LoadData(const nlohmann::json &j)
+void Transform::LoadData(const ByteSpan& span)
 {
-    SerializationJson::LoadVector3(j, "pos", m_LocalPosition);
-    SerializationJson::LoadQuaternion(j, "rot", m_LocalRotation);
-    SerializationJson::LoadVector3(j, "scl", m_LocalScale);
+    TransformSerializer serializer;
+
+    serializer.Read(span);
+
+    serializer.LocalPosition.Read(m_LocalPosition);
+    serializer.LocalRotation.Read(m_LocalRotation);
+    serializer.LocalScale.Read(m_LocalScale);
 
     m_IsDirty = true;
 }
 
-void Transform::SaveData(nlohmann::json &j)
+ByteSpan Transform::SaveData()
 {
-    j["pos"] = SerializationJson::StoreVector3(m_LocalPosition);
-    j["rot"] = SerializationJson::StoreQuaternion(m_LocalRotation);
-    j["scl"] = SerializationJson::StoreVector3(m_LocalScale);
+    TransformSerializer serializer;
+
+    serializer.LocalPosition.Write(m_LocalPosition);
+    serializer.LocalRotation.Write(m_LocalRotation);
+    serializer.LocalScale.Write(m_LocalScale);
+
+    return serializer.Write();
 }
 
 const Vector3f& Transform::GetLocalPosition() const

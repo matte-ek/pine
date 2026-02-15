@@ -108,9 +108,6 @@ namespace
             HandleMovement2D(deltaTime);
             HandleMovement3D(deltaTime);
 		}
-
-		void LoadData(const nlohmann::json& j) override {}
-		void SaveData(nlohmann::json& j) override {}
 	};
 
 }

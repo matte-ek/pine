@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
@@ -22,6 +23,14 @@ namespace Pine
         SpriteScalingMode m_ScalingMode = SpriteScalingMode::Stretch;
 
         int m_Order = 0;
+
+        struct SpriteRendererSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ASSET(StaticTexture);
+            PINE_SERIALIZE_PRIMITIVE(Color, Serialization::DataType::Vec4);
+            PINE_SERIALIZE_PRIMITIVE(ScalingMode, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(Order, Serialization::DataType::Int32);
+        };
     public:
         explicit SpriteRenderer();
 
@@ -37,8 +46,8 @@ namespace Pine
         void SetColor(const Pine::Vector4f& color);
         const Pine::Vector4f& GetColor() const;
 
-        void LoadData(const nlohmann::json& j) override;
-        void SaveData(nlohmann::json& j) override;
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
     };
 
 }

@@ -61,20 +61,28 @@ Pine::Renderer3D::LightHintData& Pine::Light::GetLightHintData()
     return m_LightHintData;
 }
 
-void Pine::Light::LoadData(const nlohmann::json &j)
+void Pine::Light::LoadData(const ByteSpan& span)
 {
-    SerializationJson::LoadValue(j, "lightType", m_LightType);
-    SerializationJson::LoadVector3(j, "lightColor", m_LightColor);
-    SerializationJson::LoadVector3(j, "lightAttenuation", m_LightAttenuation);
-    SerializationJson::LoadValue(j, "spotlightRadius", m_SpotlightRadius);
-    SerializationJson::LoadValue(j, "spotlightCutoff", m_SpotlightCutoff);
+    LightSerializer serializer;
+
+    serializer.Read(span);
+
+    serializer.Type.Read(m_LightType);
+    serializer.Color.Read(m_LightColor);
+    serializer.Attenuation.Read(m_LightAttenuation);
+    serializer.SpotlightRadius.Read(m_SpotlightRadius);
+    serializer.SpotlightCutoff.Read(m_SpotlightCutoff);
 }
 
-void Pine::Light::SaveData(nlohmann::json &j)
+Pine::ByteSpan Pine::Light::SaveData()
 {
-    j["lightType"] = static_cast<int>(m_LightType);
-    j["lightColor"] = SerializationJson::StoreVector3(m_LightColor);
-    j["lightAttenuation"] = SerializationJson::StoreVector3(m_LightAttenuation);
-    j["spotlightRadius"] = m_SpotlightRadius;
-    j["spotlightCutoff"] = m_SpotlightCutoff;
+    LightSerializer serializer;
+
+    serializer.Type.Write(m_LightType);
+    serializer.Color.Write(m_LightColor);
+    serializer.Attenuation.Write(m_LightAttenuation);
+    serializer.SpotlightRadius.Write(m_SpotlightRadius);
+    serializer.SpotlightCutoff.Write(m_SpotlightCutoff);
+
+    return serializer.Write();
 }

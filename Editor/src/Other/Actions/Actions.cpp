@@ -74,7 +74,6 @@ void ActionComponent::Store(Pine::Component* component)
 {
     m_Index = component->GetInternalId();
     m_ComponentType = component->GetType();
-    component->SaveData(m_Data);
 }
 
 void ActionComponent::Apply()
@@ -85,8 +84,6 @@ void ActionComponent::Apply()
     {
         return;
     }
-
-    component->LoadData(m_Data);
 }
 
 void Actions::RegisterComponentAction(ActionEvent event, Pine::Component* component)

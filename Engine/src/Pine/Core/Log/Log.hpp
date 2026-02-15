@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
-#include <vector>
+#include <string_view>
+#include <deque>
 #include <fmt/format.h>
 
 namespace Pine
@@ -17,7 +17,12 @@ namespace Pine
 
     struct LogMessage
     {
+        const char* FileName;
+
+        int FileLine;
+
         std::string Message;
+
         LogSeverity Type;
     };
 
@@ -26,12 +31,19 @@ namespace Pine
 namespace Pine::Log
 {
 
-    void Verbose(const std::string& str);
-    void Info(const std::string& str);
-    void Warning(const std::string& str);
-    void Error(const std::string& str);
-    void Fatal(const std::string& str);
+#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
-    const std::vector<LogMessage>& GetLogMessages();
+#define Verbose(str) LogVerbose(__FILENAME__, __LINE__, str)
+#define Info(str) LogInfo(__FILENAME__, __LINE__, str)
+#define Warning(str) LogWarning(__FILENAME__, __LINE__, str)
+#define Error(str) LogError(__FILENAME__, __LINE__, str)
+#define Fatal(str) LogFatal(__FILENAME__, __LINE__, str)
 
+    void LogVerbose(const char* fileName, int fileLine, std::string_view str);
+    void LogInfo(const char* fileName, int fileLine, std::string_view str);
+    void LogWarning(const char* fileName, int fileLine, std::string_view str);
+    void LogError(const char* fileName, int fileLine, std::string_view str);
+    void LogFatal(const char* fileName, int fileLine, std::string_view str);
+
+    const std::deque<LogMessage>& GetLogMessages();
 }

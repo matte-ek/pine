@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pine/Core/Math/Math.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
@@ -32,6 +33,15 @@ namespace Pine
 
         void BuildProjectionMatrix();
         void BuildViewMatrix();
+
+        struct CameraSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(NearPlane, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(FarPlane, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(FieldOfView, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(OrthographicSize, Serialization::DataType::Float32);
+        };
     public:
         explicit Camera();
 
@@ -61,8 +71,8 @@ namespace Pine
 
         void OnRender(float) override;
 
-        void LoadData(const nlohmann::json& j) override;
-        void SaveData(nlohmann::json& j) override;
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
 
         const Matrix4f& GetProjectionMatrix() const;
         const Matrix4f& GetViewMatrix() const;

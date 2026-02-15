@@ -26,14 +26,22 @@ int Pine::TilemapRenderer::GetOrder() const
     return m_Order;
 }
 
-void Pine::TilemapRenderer::LoadData(const nlohmann::json& j)
+void Pine::TilemapRenderer::LoadData(const ByteSpan& span)
 {
-    SerializationJson::LoadAsset(j, "tm", m_Tilemap);
-    SerializationJson::LoadValue(j, "odr", m_Order);
+    TilemapSerializer serializer;
+
+    serializer.Read(span);
+
+    serializer.Tilemap.Read(m_Tilemap);
+    serializer.Order.Read(m_Order);
 }
 
-void Pine::TilemapRenderer::SaveData(nlohmann::json& j)
+Pine::ByteSpan Pine::TilemapRenderer::SaveData()
 {
-    j["tm"] = SerializationJson::StoreAsset(m_Tilemap.Get());
-    j["odr"] = m_Order;
+    TilemapSerializer serializer;
+
+    serializer.Tilemap.Write(m_Tilemap);
+    serializer.Order.Write(m_Order);
+
+    return serializer.Write();
 }

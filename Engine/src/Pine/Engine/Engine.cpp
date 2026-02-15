@@ -43,7 +43,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     if (!glfwInit())
     {
-        Log::Fatal("[Engine] Failed to setup core library: GLFW");
+        Log::Fatal("Failed to setup core library: GLFW");
 
         return false;
     }
@@ -51,7 +51,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     if (!WindowManager::Internal::CreateWindow(engineConfiguration.m_WindowPosition, engineConfiguration.m_WindowSize,
                                                engineConfiguration.m_WindowTitle, WindowManager::ScreenType::Default))
     {
-        Log::Fatal("[Engine] Failed to setup window");
+        Log::Fatal("Failed to setup window");
 
         glfwTerminate();
 
@@ -61,7 +61,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     // Set up our graphics API.
     if (!Graphics::Setup(engineConfiguration.m_GraphicsAPI))
     {
-        Log::Fatal("[Engine] Failed to setup graphics API");
+        Log::Fatal("Failed to setup graphics API");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -74,7 +74,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     if (!Audio::Setup())
     {
-        Log::Fatal("[Engine] Failed to setup audio API");
+        Log::Fatal("Failed to setup audio API");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -99,7 +99,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
         Assets::LoadDirectory("engine/materials", false) != 0
      || Assets::LoadDirectory("engine", false) != 0)
     {
-        Log::Fatal("[Engine] Failed to load engine assets.");
+        Log::Fatal("Failed to load engine assets.");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -124,7 +124,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     m_IsInitialized = true;
     m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
-    Log::Info("[Engine] Pine was successfully initialized.");
+    Log::Info("Pine was successfully initialized.");
 
     return true;
 }
@@ -133,7 +133,7 @@ void Pine::Engine::Run()
 {
     if (!m_IsInitialized)
     {
-        throw std::runtime_error("[Engine] Engine has not been initialized.");
+        throw std::runtime_error("Engine has not been initialized.");
     }
 
     const auto windowPointer = static_cast<GLFWwindow*>(WindowManager::GetWindowPointer());
@@ -182,7 +182,7 @@ void Pine::Engine::Shutdown()
 {
     if (!m_IsInitialized)
     {
-        throw std::runtime_error("[Engine] Engine has not been initialized.");
+        throw std::runtime_error("Engine has not been initialized.");
     }
 
     Script::Manager::Dispose();

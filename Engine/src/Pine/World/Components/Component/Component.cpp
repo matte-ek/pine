@@ -93,12 +93,13 @@ void Pine::Component::OnPostPhysicsUpdate()
 {
 }
 
-void Pine::Component::LoadData(const nlohmann::json& j)
+void Pine::Component::LoadData(const ByteSpan& data)
 {
 }
 
-void Pine::Component::SaveData(nlohmann::json& j)
+Pine::ByteSpan Pine::Component::SaveData()
 {
+    return {};
 }
 
 bool Pine::Component::IsWorldEnabled() const

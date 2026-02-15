@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pine/Core/Math/Math.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
 
 namespace Pine
@@ -18,6 +19,13 @@ namespace Pine
         bool m_IsDirty = true;
 
         void CalculateTransformationMatrix();
+
+        struct TransformSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_PRIMITIVE(LocalPosition, Pine::Serialization::DataType::Vec3);
+            PINE_SERIALIZE_PRIMITIVE(LocalRotation, Pine::Serialization::DataType::Quaternion);
+            PINE_SERIALIZE_PRIMITIVE(LocalScale, Pine::Serialization::DataType::Vec3);
+        };
     public:
         explicit Transform();
 
@@ -28,8 +36,8 @@ namespace Pine
 
         void OnRender(float deltaTime) override;
 
-        void LoadData(const nlohmann::json& j) override;
-        void SaveData(nlohmann::json& j) override;
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
 
         const Vector3f& GetLocalPosition() const;
         void SetLocalPosition(const Vector3f& position);

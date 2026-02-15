@@ -61,22 +61,30 @@ void Pine::Camera::OnRender(float)
     BuildViewMatrix();
 }
 
-void Pine::Camera::LoadData(const nlohmann::json &j)
+void Pine::Camera::LoadData(const ByteSpan& span)
 {
-    SerializationJson::LoadValue(j, "cameraType", m_CameraType);
-    SerializationJson::LoadValue(j, "nearPlane", m_NearPlane);
-    SerializationJson::LoadValue(j, "farPlane", m_FarPlane);
-    SerializationJson::LoadValue(j, "fieldOfView", m_FieldOfView);
-    SerializationJson::LoadValue(j, "orthographicSize", m_OrthographicSize);
+    CameraSerializer serializer;
+
+    serializer.Read(span);
+
+    serializer.Type.Read(m_CameraType);
+    serializer.NearPlane.Read(m_NearPlane);
+    serializer.FarPlane.Read(m_FarPlane);
+    serializer.FieldOfView.Read(m_FieldOfView);
+    serializer.OrthographicSize.Read(m_OrthographicSize);
 }
 
-void Pine::Camera::SaveData(nlohmann::json &j)
+Pine::ByteSpan Pine::Camera::SaveData()
 {
-    j["cameraType"] = static_cast<int>(m_CameraType);
-    j["nearPlane"] = m_NearPlane;
-    j["farPlane"] = m_FarPlane;
-    j["fieldOfView"] = m_FieldOfView;
-    j["orthographicSize"] = m_OrthographicSize;
+    CameraSerializer serializer;
+
+    serializer.Type.Write(m_CameraType);
+    serializer.NearPlane.Write(m_NearPlane);
+    serializer.FarPlane.Write(m_FarPlane);
+    serializer.FieldOfView.Write(m_FieldOfView);
+    serializer.OrthographicSize.Write(m_OrthographicSize);
+
+    return serializer.Write();
 }
 
 const Pine::Matrix4f &Pine::Camera::GetProjectionMatrix() const

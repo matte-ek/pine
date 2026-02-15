@@ -6,6 +6,7 @@
 
 #include "physx/PxPhysicsAPI.h"
 #include "Pine/Core/Math/Math.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 
 namespace Pine
 {
@@ -40,6 +41,19 @@ namespace Pine
 
         void UpdateColliders();
         void UpdateBody();
+
+        struct RigidBodySerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(Mass, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(GravityEnabled, Serialization::DataType::Boolean);
+
+            PINE_SERIALIZE_ARRAY_FIXED(PositionLock, bool);
+            PINE_SERIALIZE_ARRAY_FIXED(RotationLock, bool);
+
+            PINE_SERIALIZE_PRIMITIVE(MaxAngularVelocity, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(MaxLinearVelocity, Serialization::DataType::Float32);
+        };
     public:
         RigidBody();
 
@@ -76,8 +90,8 @@ namespace Pine
         void OnCopied() override;
         void OnDestroyed() override;
 
-        void LoadData(const nlohmann::json &j) override;
-        void SaveData(nlohmann::json &j) override;
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
     };
 
 

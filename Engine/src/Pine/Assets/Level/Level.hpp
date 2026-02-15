@@ -27,6 +27,18 @@ namespace Pine
         std::vector<Blueprint*> m_Blueprints;
 
         LevelSettings m_LevelSettings;
+
+        struct LevelSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ARRAY(Blueprints);
+
+            PINE_SERIALIZE_ASSET(Skybox);
+            PINE_SERIALIZE_PRIMITIVE(AmbientColor, Serialization::DataType::Vec3);
+            PINE_SERIALIZE_PRIMITIVE(FogColor, Serialization::DataType::Vec4);
+            PINE_SERIALIZE_PRIMITIVE(FogDistance, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(FogIntensity, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(Camera, Serialization::DataType::Int32);
+        };
     public:
         explicit Level();
 

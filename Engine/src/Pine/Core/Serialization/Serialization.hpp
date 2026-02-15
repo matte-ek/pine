@@ -3,8 +3,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../../../../Editor/include/IconsMaterialDesign.h"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Core/Math/Math.hpp"
+#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Core/Span/Span.hpp"
 
 namespace Pine::Serialization
 {
@@ -19,7 +22,9 @@ namespace Pine::Serialization
         Invalid = 0,
 
         // Known size
+        Boolean,
         Int32,
+        Int64,
         Float32,
         Vec2,
         Vec3,
@@ -30,6 +35,7 @@ namespace Pine::Serialization
         String,
         Asset,
         Data,
+        Array,
 
         Count
     };
@@ -38,85 +44,218 @@ namespace Pine::Serialization
 
     class Data
     {
-    protected:
+    private:
         const char* m_Name;
-
-        bool m_IsArray = false;
         DataType m_Type;
-        size_t m_DataSize;
-
-        char m_Data[16] {};
-        void* m_VariableData = nullptr;
     public:
         Data(
             Serializer* parentSerializer,
             DataType type,
-            const char* name,
-            size_t size = 0);
+            const char* name);
 
-        ~Data();
+        virtual ~Data() = default;
 
-        template <typename T>
-        T Read();
+        const char* GetName() const;
+        DataType GetType() const;
 
-        const char* ReadString() const;
+        virtual size_t GetDataSize() const = 0;
+    };
 
-        template <typename T>
-        void Write(const T& data);
+    // Data storage used for types smaller than 16 bytes
+    class DataPrimitive final : public Data
+    {
+    private:
+        char m_Data[16];
+        size_t m_DataSize;
+    protected:
+        void Write(const void* data, size_t size);
 
-        void WriteString(const char* str);
-        void WriteString(const std::string& str);
+        const void* GetData() const;
+        size_t GetDataSize() const override;
+    public:
+        DataPrimitive(Serializer* parentSerializer, DataType type, const char* name);
 
-        void* GetData() const;
-        size_t GetDataSize() const;
+        template<typename TPrimitive>
+        bool Read(TPrimitive& data)
+        {
+            if (sizeof(TPrimitive) != m_DataSize)
+            {
+                Pine::Log::Warning("Failed to write primitive type, size is mismatched. Is the type correct?");
+                return false;
+            }
+
+            data = *static_cast<const TPrimitive*>(GetData());
+
+            return true;
+        }
+
+        template<typename TPrimitive>
+        TPrimitive Read()
+        {
+            assert(sizeof(TPrimitive) == m_DataSize);
+
+            return *static_cast<const TPrimitive*>(GetData());
+        }
+
+        template<typename TPrimitive>
+        bool Write(const TPrimitive& data)
+        {
+            assert(sizeof(TPrimitive) == m_DataSize);
+
+            memcpy(m_Data, &data, sizeof(TPrimitive));
+
+            return true;
+        }
 
         friend class Serializer;
     };
 
-    template<typename T>
-    T Data::Read()
+    // Data storage used for types larger than 16 bytes.
+    class DataFixed : public Data
     {
-        if (static_cast<std::uint8_t>(m_Type) < static_cast<std::uint8_t>(DataType::String))
-        {
-            return *reinterpret_cast<T*>(m_Data);
-        }
-        else
-        {
-            return T();
-        }
-    }
+    private:
+        void* m_Data;
+        size_t m_DataSize;
+    protected:
+        const void* GetData() const;
+        size_t GetDataSize() const override;
+    public:
+        DataFixed(Serializer* parentSerializer, DataType type, const char* name);
+        ~DataFixed() override;
 
-    template<typename T>
-    void Data::Write(const T& data)
-    {
-        m_DataSize = sizeof(T);
+        bool ReadRaw(void** data, size_t& size) const;
+        void WriteRaw(const void* data, size_t size);
 
-        if (static_cast<std::uint8_t>(m_Type) < static_cast<std::uint8_t>(DataType::String))
+        ByteSpan Read() const;
+
+        bool Read(std::string& str) const;
+        void Write(const std::string& str);
+
+        bool Read(ByteSpan& span) const;
+        void Write(const ByteSpan& span);
+
+        template <typename TAsset>
+        bool Read(AssetHandle<TAsset>& handle, bool allowReference = true)
         {
-            if (sizeof(T) > sizeof(m_Data))
+            if (m_DataSize == 0 || GetType() != DataType::Asset)
             {
-                m_VariableData = malloc(m_DataSize);
-                memcpy(m_VariableData, &data, sizeof(T));
+                return false;
+            }
+
+            std::string path(static_cast<const char*>(m_Data), m_DataSize);
+
+            if (Assets::GetState() == AssetManagerState::LoadDirectory && allowReference)
+            {
+                Assets::AddAssetResolveReference({path, reinterpret_cast<AssetHandle<Asset>*>(&handle)});
+            }
+            else
+            {
+                handle = Assets::Get(path);
+            }
+
+            return true;
+        }
+
+        template <typename TAsset>
+        void Write(AssetHandle<TAsset>& handle)
+        {
+            if (GetType() != DataType::Asset)
+            {
+                throw new std::logic_error("Data type invalid.");
+            }
+
+            Write(handle.Get() == nullptr ? "null" : handle.Get()->GetPath());
+        }
+
+        friend class Serializer;
+    };
+
+    // Data storage used for "list" arrays, any element can be any size. Somewhat inefficient for smaller elements.
+    class DataArray final : public Data
+    {
+    private:
+        std::vector<ByteSpan> m_Data;
+    public:
+        DataArray(Serializer* parentSerializer, const char* name);
+        ~DataArray() override;
+
+        void Reset();
+
+        void AddData(const void* data, size_t size);
+        void AddData(const ByteSpan& span);
+
+        const ByteSpan& GetData(size_t index) const;
+
+        size_t GetDataCount() const;
+        size_t GetDataSize() const override;
+
+        friend class Serializer;
+    };
+
+    // Data storage for arrays with fixed storage elements.
+    class DataArrayFixed final : protected DataFixed
+    {
+    private:
+        size_t m_DataStride;
+    public:
+        DataArrayFixed(Serializer* parentSerializer, const char* name, size_t elementSize);
+
+        template<typename TElement, size_t TSize>
+        void Read(std::array<TElement, TSize>& data)
+        {
+            if (GetDataCount() != TSize || m_DataStride != sizeof(TElement))
+            {
                 return;
             }
 
-            memcpy(m_Data, &data, sizeof(T));
+            memcpy(data.data(), GetData(), GetDataSize());
         }
-        else
+
+        template<typename TElement, size_t TSize>
+        void Write(const std::array<TElement, TSize>& data)
         {
-            m_VariableData = malloc(m_DataSize);
-            memcpy(m_VariableData, &data, m_DataSize);
+            if (GetDataCount() != TSize || m_DataStride != sizeof(TElement))
+            {
+                return;
+            }
+
+            WriteRaw(data.data(), data.size());
         }
-    }
+
+        std::uint32_t GetDataCount() const;
+    };
 
     class Serializer
     {
     protected:
         std::vector<Data*> m_Data;
     public:
-        bool Read(void* data, size_t size) const;
-        void* Write(size_t& outputSize) const;
+        Serializer() = default;
+        ~Serializer();
+
+        bool Read(const std::filesystem::path& path) const;
+        bool Write(const std::filesystem::path& path) const;
+
+        bool Read(const ByteSpan& span) const;
+        ByteSpan Write() const;
+
+        bool Read(const void* data, size_t size) const;
+        std::byte* Write(size_t& outputSize) const;
+
+        using Primitive  = DataPrimitive;
+        using Fixed      = DataFixed;
+        using Array      = DataArray;
+        using ArrayFixed = DataArrayFixed;
 
         friend class Data;
     };
 }
+
+#define PINE_SERIALIZE_PRIMITIVE(str, type) static_assert(static_cast<int>(type) < static_cast<int>(Pine::Serialization::DataType::String)); Pine::Serialization::DataPrimitive str = Pine::Serialization::DataPrimitive(this, type, #str)
+
+#define PINE_SERIALIZE_DATA(str) Pine::Serialization::DataFixed str = Pine::Serialization::DataFixed(this, Pine::Serialization::DataType::Data, #str)
+#define PINE_SERIALIZE_STRING(str) Pine::Serialization::DataFixed str = Pine::Serialization::DataFixed(this, Pine::Serialization::DataType::String, #str)
+#define PINE_SERIALIZE_ASSET(str) Pine::Serialization::DataFixed str = Pine::Serialization::DataFixed(this, Pine::Serialization::DataType::Asset, #str)
+
+#define PINE_SERIALIZE_ARRAY(str) Pine::Serialization::DataArray str = Pine::Serialization::DataArray(this, #str)
+#define PINE_SERIALIZE_ARRAY_FIXED(str, type) Pine::Serialization::DataArrayFixed str = Pine::Serialization::DataArrayFixed(this, #str, sizeof(type))

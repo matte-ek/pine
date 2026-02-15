@@ -1,5 +1,6 @@
 #pragma once
 #include "Pine/Assets/Model/Model.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
 
@@ -28,6 +29,13 @@ namespace Pine
         int m_ModelMeshIndex = -1;
 
         Renderer3D::ModelRendererHintData m_RenderingHintData;
+
+        struct ModelRendererSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ASSET(Model);
+            PINE_SERIALIZE_ASSET(OverrideMaterial);
+            PINE_SERIALIZE_PRIMITIVE(MeshIndex, Pine::Serialization::DataType::Int32);
+        };
     public:
         ModelRenderer();
 
@@ -48,8 +56,8 @@ namespace Pine
 
         Renderer3D::ModelRendererHintData& GetRenderingHintData();
 
-        void LoadData(const nlohmann::json& j) override;
-        void SaveData(nlohmann::json& j) override;
+        void LoadData(const ByteSpan& span) override;
+        ByteSpan SaveData() override;
     };
 
 }

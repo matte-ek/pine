@@ -184,22 +184,26 @@ void Pine::Collider2D::OnRender(float deltaTime)
 {
 }
 
-void Pine::Collider2D::LoadData(const nlohmann::json& j)
+void Pine::Collider2D::LoadData(const ByteSpan& span)
 {
-	Component::LoadData(j);
+    Collider2DSerializer serializer;
 
-	SerializationJson::LoadValue(j, "ctype", m_ColliderType);
-	SerializationJson::LoadVector2(j, "coffset", m_ColliderOffset);
-	SerializationJson::LoadVector2(j, "csize", m_ColliderSize);
-	SerializationJson::LoadValue(j, "crot", m_ColliderRotation);
+    serializer.Read(span);
+
+    serializer.Type.Read(m_ColliderType);
+    serializer.Offset.Read(m_ColliderOffset);
+    serializer.Size.Read(m_ColliderSize);
+    serializer.Rotation.Read(m_ColliderRotation);
 }
 
-void Pine::Collider2D::SaveData(nlohmann::json& j)
+Pine::ByteSpan Pine::Collider2D::SaveData()
 {
-	Component::SaveData(j);
+    Collider2DSerializer serializer;
 
-	j["ctype"] = m_ColliderType;
-	j["coffset"] = SerializationJson::StoreVector2(m_ColliderOffset);
-	j["csize"] = SerializationJson::StoreVector2(m_ColliderSize);
-	j["crot"] = m_ColliderRotation;
+    serializer.Type.Write(m_ColliderType);
+    serializer.Offset.Write(m_ColliderOffset);
+    serializer.Size.Write(m_ColliderSize);
+    serializer.Rotation.Write(m_ColliderRotation);
+
+    return serializer.Write();
 }

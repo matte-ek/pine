@@ -138,7 +138,7 @@ void Components::Setup()
         totalSize += block->m_ComponentArraySize;
     }
 
-    Log::Verbose("[Components] Total size allocated: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
+    Log::Verbose("Total size allocated: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
 }
 
 void Components::Shutdown()
@@ -217,9 +217,8 @@ Component* Components::Copy(Component* component, bool standalone)
 {
     const auto newComponent = Create(component->GetType(), standalone);
 
-    nlohmann::json buffer;
+    auto buffer = component->SaveData();
 
-    component->SaveData(buffer);
     newComponent->LoadData(buffer);
 
     newComponent->OnCopied();

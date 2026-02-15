@@ -240,10 +240,9 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 					continue;
 				}
 
-				nlohmann::json j;
 
-				component->SaveData(j);
-				selectedEntityComponent->LoadData(j);
+				auto data = component->SaveData();
+				selectedEntityComponent->LoadData(data);
 			}
 		}
 
