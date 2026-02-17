@@ -6,6 +6,9 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
+#include "Pine/Core/Guid/Guid.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
+
 namespace Pine
 {
 
@@ -77,129 +80,104 @@ namespace Pine
         Loaded // The asset has been loaded and is ready for use.
     };
 
-    enum class AssetLoadMode
-    {
-        SingleThread, // Loads the asset in order on the main thread
-        MultiThread, // Allows the asset to be loaded in its own thread concurrently.
-        MultiThreadPrepare // Used for GPU assets, uploads data to GPU in main thread only.
-    };
-
-    enum class AssetLoadStage
-    {
-        Default,
-        Prepare,
-        Finish
-    };
-
     template<class T>
     class AssetHandle;
+
+    struct AssetSource
+    {
+        std::string FilePath;
+        std::uint64_t LastWriteTime;
+    };
 
     class Asset
     {
     protected:
-        std::string m_FileName;
+        Guid m_Guid;
 
         AssetType m_Type = AssetType::Invalid;
 
-        // The asset's fake path within the engine, does not exactly mean
-        // the path of the file on the drive.
-        std::string m_Path;
+        // Mapped engine path within the "VFS"
+        std::string m_Path{};
 
-        // Unique id for this asset for faster lookups
-        std::uint32_t m_Id;
-
-        // If this asset has a corresponding file path, and should be a file.
-        // Otherwise, it may have been generated during run-time.
-        bool m_HasFile = false;
-        std::filesystem::path m_FilePath;
-        std::filesystem::path m_FileRootPath;
-
-        // Used to determine if an asset file has been updated on the disk since we last loaded it.
-        std::filesystem::file_time_type m_DiskWriteTime;
-
-        // Used to determine if this asset has been modified, and that we'd like to save it.
-        bool m_HasBeenModified = false;
+        // Underlying ".passet" file path
+        std::filesystem::path m_FilePath{};
 
         AssetState m_State = AssetState::Unloaded;
 
-        AssetLoadMode m_LoadMode = AssetLoadMode::SingleThread;
+        // Source files that this asset was initially imported from. This is only present
+        // within the editor and such, not the final runtime.
+        std::vector<AssetSource> m_SourceFiles;
 
-        // It's up to the asset to set this to true if needed. If it's true, the user may put any data
-        // into m_Metadata and the asset manager should take care of loading/saving the data automatically.
-        bool m_HasMetadata = false;
-        nlohmann::json m_Metadata;
-
-        // Setting this to true may be required if your asset needs to do processing on other assets, i.e. the other
-        // assets are required to have been loaded before loading this. Filling m_DependencyFiles is also up to the
-        // asset itself. If just a reference to an asset is required, consider looking into AssetResolveReference.
-        // Specifying dependencies will also make the asset manager load the dependencies first,
-        // however this is not required.
-        bool m_HasDependencies = false;
-        std::vector<std::string> m_DependencyFiles;
+        // Basically refers to data dependencies, in the way that this asset cannot be loaded/processed
+        // until the specified assets are loaded beforehand.
+        std::vector<Guid> m_Dependencies;
 
         int m_ReferenceCount = 0;
         bool m_IsDeleted = false;
 
         Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
 
+        virtual bool LoadAssetData(const ByteSpan& span);
+
+        struct AssetSourceSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_STRING(FilePath);
+            PINE_SERIALIZE_PRIMITIVE(LastWriteTime, Serialization::DataType::Int64);
+        };
+
+        struct AssetSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_PRIMITIVE(Guid, Serialization::DataType::Guid);
+            PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
+            PINE_SERIALIZE_STRING(Path);
+            PINE_SERIALIZE_ARRAY(Sources);
+            PINE_SERIALIZE_ARRAY_FIXED(Dependencies, Pine::Guid);
+            PINE_SERIALIZE_DATA(Data);
+        };
+
         template<typename>
         friend class AssetHandle;
     public:
         virtual ~Asset() = default;
 
-        void SetId(std::uint32_t id);
-        std::uint32_t GetId() const;
+        // This should ideally be done through a constructor.
+        void SetupNew(const std::string& path, const std::filesystem::path& filePath);
+
+        const Guid& GetGuid() const;
+        const AssetType& GetType() const;
+
+        const std::string& GetPath() const;
+        const std::filesystem::path& GetFilePath() const;
+
+        void AddSource(const std::string& filePath);
+        void RemoveSource(const std::string& filePath);
+        const std::vector<AssetSource>& GetSources() const;
 
         void CreateScriptHandle();
         void DestroyScriptHandle();
-
         Script::ObjectHandle* GetScriptHandle();
 
-        const std::string &GetFileName() const;
-        AssetType GetType() const;
-
-        void SetPath(const std::string &path);
-        const std::string &GetPath() const;
-
-        void SetFilePath(const std::filesystem::path &path);
-        void SetFilePath(const std::filesystem::path &path, const std::filesystem::path &root);
-
-        const std::filesystem::path &GetFilePath() const;
-        const std::filesystem::path &GetFileRootPath() const;
-
-        virtual void MarkAsUpdated();
-        virtual bool HasBeenUpdated() const;
-
-        bool HasFile() const;
-        bool HasMetadata() const;
-        bool HasDependencies() const;
-
-        void MarkAsDeleted();
-        void MarkAsModified();
-
-        bool IsDeleted() const;
-        bool IsModified() const;
-
-        AssetState GetState() const;
-        AssetLoadMode GetLoadMode() const;
-
-        void LoadMetadata();
-        void SaveMetadata();
-
-        const std::vector<std::string> &GetDependencies() const;
-
-        virtual bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default);
-        virtual bool SaveToFile();
+        virtual bool Import();
+        virtual ByteSpan Save();
         virtual void Dispose() = 0;
+
+        static Asset* Load(const ByteSpan& data);
     };
 
-    template<class T>
+    template<class TAsset>
     class AssetHandle
     {
     private:
-        mutable T *m_Asset = nullptr;
+        Guid m_Guid;
+        mutable TAsset *m_Asset = nullptr;
     public:
-        T *Get() const
+        AssetHandle() = default;
+
+        explicit AssetHandle(Guid id) : m_Guid(id)
+        {
+        }
+
+        TAsset *Get() const
         {
             // Make sure to remove any pending deletion assets
             if (m_Asset)
@@ -207,7 +185,6 @@ namespace Pine
                 if (reinterpret_cast<Asset *>(m_Asset)->m_IsDeleted)
                 {
                     --reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
-
                     m_Asset = nullptr;
                 }
             }
@@ -215,7 +192,7 @@ namespace Pine
             return m_Asset;
         }
 
-        T *operator->()
+        TAsset *operator->()
         {
             return m_Asset;
         }
@@ -227,7 +204,7 @@ namespace Pine
                 --reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
 
             // Assign the new asset
-            m_Asset = static_cast<T *>(asset);
+            m_Asset = static_cast<TAsset *>(asset);
 
             // Make sure the new asset updates its reference count
             if (asset != nullptr)
@@ -240,12 +217,5 @@ namespace Pine
         {
             return m_Asset == b;
         }
-    };
-
-    struct AssetResolveReference
-    {
-        std::string m_Path;
-        AssetHandle<Asset> *m_AssetHandle;
-        AssetType m_Type = AssetType::Invalid;
     };
 }

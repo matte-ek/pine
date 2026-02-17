@@ -2,105 +2,84 @@
 #include "Pine/Graphics/Graphics.hpp"
 #include <stdexcept>
 
+#ifndef PINE_RUNTIME
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#endif
 
-Pine::Texture2D::Texture2D()
+#include "Importer/TextureImporter.hpp"
+#include "Pine/Threading/Threading.hpp"
+
+bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
 {
-    m_Type = AssetType::Texture2D;
-    m_LoadMode = AssetLoadMode::MultiThreadPrepare;
-}
+    TextureSerializer textureSerializer;
 
-void Pine::Texture2D::SetStoreTextureData(bool storeTextureData)
-{
-    m_StoreTextureData = storeTextureData;
-
-    if (!storeTextureData && m_TextureData)
+    if (!textureSerializer.Read(span))
     {
-        stbi_image_free(m_TextureData);
-        m_TextureData = nullptr;
-    }
-}
-
-bool Pine::Texture2D::GetStoreTextureData() const
-{
-    return m_StoreTextureData;
-}
-
-bool Pine::Texture2D::PrepareGpuData()
-{
-    if (m_TextureData != nullptr)
-    {
-        throw std::runtime_error("Texture2D::PrepareGpuData() called before loading was finished.");
-    }
-
-    int width, height, channels;
-
-    const auto data = stbi_load(m_FilePath.string().c_str(), &width, &height, &channels, 4);
-
-    if (data == nullptr)
-    {
-        stbi_image_free(data);
         return false;
     }
 
-    m_Width = width;
-    m_Height = height;
+    // Load general information about the texture
+    textureSerializer.Width.Read(m_Width);
+    textureSerializer.Height.Read(m_Height);
+    textureSerializer.TextureFormat.Read(m_Format);
+    textureSerializer.FilteringMode.Read(m_FilteringMode);
+    textureSerializer.CompressionFormat.Read(m_CompressionFormat);
+    textureSerializer.ImportUsageHint.Read(m_ImportConfiguration.UsageHint);
+    textureSerializer.ImportGenerateMipMaps.Read(m_ImportConfiguration.GenerateMipmaps);
 
-    // BUG: Loading a 3 channel image seems to break stuff right now, so we're just
-    // going to force RGBA for now.
-    channels = 4;
+    m_MipmapLevels = textureSerializer.Data.GetDataCount();
 
-    switch (channels)
+    struct TextureLoadData
     {
-    case 1:
-        m_Format = Graphics::TextureFormat::SingleChannel;
-        break;
-    case 3:
-        m_Format = Graphics::TextureFormat::RGB;
-        break;
-    case 4:
-        m_Format = Graphics::TextureFormat::RGBA;
-        break;
-    default:
-        break;
+        Texture2D* Texture2D;
+        ByteSpan Span;
+    };
+
+    auto pool = Threading::CreateTaskPool();
+
+    // Prepare and upload texture data to GPU.
+    for (size_t i{}; i < textureSerializer.Data.GetDataCount(); i++)
+    {
+        auto preparedData = new TextureLoadData();
+
+        preparedData->Span = textureSerializer.Data.GetData(i);
+        preparedData->Texture2D = this;
+
+        Threading::QueueTask([](TaskData taskData) -> TaskResult
+        {
+            auto data = static_cast<TextureLoadData*>(taskData);
+            auto tex2d = data->Texture2D;
+
+            // Since it's running on the main thread, this is "thread-safe".
+            if (tex2d->m_Texture == nullptr)
+            {
+                tex2d->m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
+                tex2d->m_Texture->SetFilteringMode(tex2d->m_FilteringMode);
+            }
+
+            tex2d->m_Texture->Bind();
+            tex2d->m_Texture->UploadTextureData(tex2d->m_Width, tex2d->m_Height, tex2d->m_Format, Graphics::TextureDataFormat::UnsignedByte, data->Span.data);
+
+            delete data;
+
+            return nullptr;
+        }, preparedData, TaskThreadingMode::MainThread, pool);
     }
 
-    m_TextureData = data;
-    m_State = AssetState::Preparing;
+    // Wait for the GPU upload jobs to complete.
+    Threading::AwaitTaskPool(pool);
+    Threading::DeleteTaskPool(pool);
+
+    // We're done here
+    m_State = AssetState::Loaded;
 
     return true;
 }
 
-void Pine::Texture2D::UploadGpuData()
+Pine::Texture2D::Texture2D()
 {
-    if (m_TextureData == nullptr)
-    {
-        throw std::runtime_error("Texture2D::UploadGpuData() called before Texture2D::PrepareGpuData()! Texture load failed?");
-    }
-
-    m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
-
-    m_Texture->Bind();
-    m_Texture->UploadTextureData(m_Width, m_Height, m_Format, Graphics::TextureDataFormat::UnsignedByte, m_TextureData);
-
-    if (m_GenerateMipmaps)
-    {
-        m_Texture->GenerateMipmaps();
-        m_Texture->SetMipmapFilteringMode(Graphics::TextureFilteringMode::Nearest);
-        m_Texture->SetMaxAnisotropy(8);
-    }
-
-    // TODO: Use some sort of load-preset option?
-    m_Texture->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
-
-    if (!m_StoreTextureData)
-    {
-        stbi_image_free(m_TextureData);
-        m_TextureData = nullptr;
-    }
-    
-    m_State = AssetState::Loaded;
+    m_Type = AssetType::Texture2D;
 }
 
 void Pine::Texture2D::Dispose()
@@ -129,19 +108,17 @@ int Pine::Texture2D::GetHeight() const
     return m_Height;
 }
 
-void* Pine::Texture2D::GetTextureData() const
+int Pine::Texture2D::GetMipmapLevels() const
 {
-    return m_TextureData;
+    return m_MipmapLevels;
 }
 
-void Pine::Texture2D::SetGenerateMipmaps(bool value)
+Pine::ByteSpan Pine::Texture2D::GetTextureData() const
 {
-    m_GenerateMipmaps = value;
-}
+    // Call HasTextureData() first!
+    assert(m_TextureData != nullptr);
 
-bool Pine::Texture2D::GetGenerateMipmaps() const
-{
-    return m_GenerateMipmaps;
+    return ByteSpan(static_cast<std::byte*>(m_TextureData), m_TextureDataSize);
 }
 
 Pine::Graphics::TextureFormat Pine::Texture2D::GetFormat() const
@@ -154,26 +131,50 @@ Pine::Graphics::ITexture* Pine::Texture2D::GetGraphicsTexture() const
     return m_Texture;
 }
 
-bool Pine::Texture2D::LoadFromFile(AssetLoadStage stage)
+bool Pine::Texture2D::HasTextureData() const
 {
-    switch (stage)
-    {
-    case AssetLoadStage::Prepare:
-        return PrepareGpuData();
-    case AssetLoadStage::Finish:
-        UploadGpuData();
-        return true;
-    case AssetLoadStage::Default:
-        // If default was used, the user is wants to load the
-        // texture in a single-threaded way, so just call both of
-        // the load stages manually.
+    return m_TextureData != nullptr;
+}
 
-        if (PrepareGpuData())
+bool Pine::Texture2D::Import()
+{
+    return Importer::TextureImporter::Import(this);
+}
+
+Pine::ByteSpan Pine::Texture2D::Save()
+{
+    TextureSerializer textureSerializer;
+
+    // A texture is kind of special because we have texture data that we also need to save
+    // down when saving the texture, and because this is usually not present in CPU memory
+    // we'll have to load the asset data, set the changes, and save it again. This is
+    // somewhat inefficient but saving assets is not a first-class anyway.
+    if (m_TextureData == nullptr)
+    {
+        if (!m_FilePath.empty() && std::filesystem::exists(m_FilePath))
         {
-            UploadGpuData();
-            return true;
+            textureSerializer.Read(m_FilePath);
         }
     }
+    else
+    {
+        // The special case where we're saving this texture the first time post importing.
+        textureSerializer.Data.AddData(m_TextureData, m_TextureDataSize);
 
-    return false;
+        free(m_TextureData);
+
+        m_TextureData = nullptr;
+        m_TextureDataSize = 0;
+    }
+
+    // Save general data
+    textureSerializer.Width.Write(m_Width);
+    textureSerializer.Height.Write(m_Height);
+    textureSerializer.TextureFormat.Write(m_Format);
+    textureSerializer.FilteringMode.Write(m_FilteringMode);
+    textureSerializer.CompressionFormat.Write(m_CompressionFormat);
+    textureSerializer.ImportUsageHint.Write(m_ImportConfiguration.UsageHint);
+    textureSerializer.ImportGenerateMipMaps.Write(m_ImportConfiguration.GenerateMipmaps);
+
+    return textureSerializer.Write();
 }

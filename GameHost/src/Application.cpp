@@ -12,8 +12,6 @@ int main()
         return 0;
     }
 
-    Pine::Assets::LoadDirectory("game/assets");
-
     Pine::Engine::Run();
 
     Pine::Engine::Shutdown();

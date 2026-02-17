@@ -4,6 +4,8 @@
 
 namespace Pine
 {
+    struct TaskPool;
+
     using TaskData = void*;
     using TaskResult = void*;
 
@@ -14,6 +16,12 @@ namespace Pine
         Queued,
         Running,
         Finished
+    };
+
+    enum class TaskThreadingMode
+    {
+        Default = 0,
+        MainThread,
     };
 
     struct Task
@@ -32,6 +40,20 @@ namespace Pine
 
         std::mutex Mutex;
         std::condition_variable ConditionVariable;
+
+        TaskPool* Pool = nullptr;
+
+        bool NotifyMainThreadUpdates = false;
+    };
+
+    struct TaskPool
+    {
+        bool NotifyMainThreadUpdates = false;
+
+        std::atomic<int> JobsRemaining = 0;
+
+        std::mutex Mutex;
+        std::condition_variable ConditionVariable;
     };
 
     namespace Threading
@@ -39,8 +61,15 @@ namespace Pine
         void Setup();
         void Shutdown();
 
-        std::shared_ptr<Task> AddTask(TaskFunc taskFunction, TaskData* data = nullptr);
+        TaskPool* CreateTaskPool(bool notifyMainThreadUpdates = false);
+        void DeleteTaskPool(TaskPool* taskPool);
 
-        TaskResult AwaitResult(const std::shared_ptr<Task>& task);
+        std::shared_ptr<Task> QueueTask(TaskFunc taskFunction, TaskData data = nullptr, TaskThreadingMode mode = TaskThreadingMode::Default, TaskPool* pool = nullptr);
+
+        TaskResult AwaitTaskResult(const std::shared_ptr<Task>& task);
+
+        void AwaitTaskPool(TaskPool* taskPool);
+
+        void PumpMainThreadTasks();
     }
 }

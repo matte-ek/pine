@@ -35,6 +35,24 @@ namespace Pine
 		float m_TextureScale = 1.f;
 
         bool m_IsMeshGeneratedMaterial = true;
+
+	    struct MaterialSerializer : Serialization::Serializer
+	    {
+	        PINE_SERIALIZE_PRIMITIVE(DiffuseColor, Serialization::DataType::Vec3);
+	        PINE_SERIALIZE_PRIMITIVE(SpecularColor, Serialization::DataType::Vec3);
+	        PINE_SERIALIZE_PRIMITIVE(AmbientColor, Serialization::DataType::Vec3);
+
+	        PINE_SERIALIZE_ASSET(Diffuse);
+	        PINE_SERIALIZE_ASSET(Specular);
+	        PINE_SERIALIZE_ASSET(Normal);
+	        PINE_SERIALIZE_ASSET(Shader);
+
+	        PINE_SERIALIZE_PRIMITIVE(RenderingMode, Serialization::DataType::Int32);
+	        PINE_SERIALIZE_PRIMITIVE(Shininess, Serialization::DataType::Float32);
+	        PINE_SERIALIZE_PRIMITIVE(TextureScale, Serialization::DataType::Float32);
+	    };
+
+	    bool LoadAssetData(const ByteSpan& span) override;
 	public:
 		explicit Material();
 
@@ -49,10 +67,6 @@ namespace Pine
 		void SetDiffuse(Texture2D* texture);
 		void SetSpecular(Texture2D* texture);
 		void SetNormal(Texture2D* texture);
-
-        void SetDiffuse(const std::string& fileReference);
-        void SetSpecular(const std::string& fileReference);
-        void SetNormal(const std::string& fileReference);
 
 		Texture2D* GetDiffuse() const;
 		Texture2D* GetSpecular() const;
@@ -73,8 +87,7 @@ namespace Pine
         // If this material is from a model file, instead of an engine material.
         bool IsMeshGenerated() const;
 
-		bool LoadFromFile(AssetLoadStage stage) override;
-		bool SaveToFile() override;
+	    ByteSpan Save() override;
 
 		void Dispose() override;
 	};

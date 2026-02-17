@@ -14,6 +14,8 @@
 #include <fmt/core.h>
 #include <string>
 
+#include "Pine/Threading/Threading.hpp"
+
 namespace
 {
     constexpr std::array<const char*, 4> ShaderTypesString = { "Vertex", "Fragment", "Compute", "Geometry" };
@@ -32,30 +34,6 @@ namespace
 
     std::string ProcessShaderLine(ShaderCompileContext& shaderCompileContext, const std::string& line)
     {
-        /*
-        const auto shaderTypeStr = ShaderTypesString[static_cast<int>(shaderCompileContext.Type)];
-        const auto hasParentShader = !shaderCompileContext.Shader->IsBaseShader();
-        const auto parentShader = shaderCompileContext.Shader->GetParentShader();
-
-        if (hasParentShader)
-        {
-            bool isPreHook = Pine::String::StartsWith(line, "#shader pre");
-            bool isPostHook = Pine::String::StartsWith(line, "#shader post");
-
-            if (Pine::String::StartsWith(line, "#shader hooks"))
-            {
-                return Pine::File::ReadFile(parentShader->GetShaderSourceFile(shaderCompileContext.Type).value()).value();
-            }
-
-            if (shaderCompileContext.Json.contains("hooks") && (isPreHook || isPostHook))
-            {
-                std::string hookName = line.substr(isPreHook ? 11 : 12);
-
-                // TODO: implement this crap whenever i feel like it (and it's actually needed)
-            }
-        }
-        */
-
         if (Pine::String::StartsWith(line, "#include "))
         {
             std::string fileName = Pine::String::Replace(line.substr(9), "\"", "");
@@ -91,14 +69,7 @@ namespace
         assert(ShaderTypesString.size() == static_cast<int>(Pine::Graphics::ShaderType::ShaderTypeCount));
 
         const auto shaderTypeStr = ShaderTypesString[static_cast<int>(shaderCompileContext.Type)];
-        const auto hasParentShader = !shaderCompileContext.Shader->IsBaseShader();
-        const auto parentShader = shaderCompileContext.Shader->GetParentShader();
 
-        if (!std::filesystem::exists(shaderCompileContext.FilePath) && !hasParentShader)
-        {
-            Pine::Log::Error("Failed to find shader file " + shaderCompileContext.FilePath);
-            return false;
-        }
 
         const std::string file = Pine::File::ReadFile(shaderCompileContext.FilePath).value_or("");
 
@@ -162,10 +133,6 @@ namespace
 Pine::Shader::Shader()
 {
     m_Type = AssetType::Shader;
-    m_LoadMode = AssetLoadMode::SingleThread;
-
-    // A shader will always have dependencies, as it will have source files
-    m_HasDependencies = true;
 }
 
 bool Pine::Shader::LoadFromFile(AssetLoadStage stage)
@@ -211,7 +178,6 @@ void Pine::Shader::Dispose()
 
     m_ShaderPrograms.clear();
     m_ShaderProgramsReady.clear();
-    m_ShaderFiles.clear();
 
     m_State = AssetState::Unloaded;
 }
@@ -220,34 +186,6 @@ Pine::Graphics::IShaderProgram* Pine::Shader::GetProgram(ShaderVersion version) 
 {
     // surely the user has called HasShaderVersion(...) beforehand and this won't ever crash
     return m_ShaderPrograms[m_ShaderVersionsMap.at(static_cast<std::uint32_t>(version))];
-}
-
-bool Pine::Shader::HasBeenUpdated() const
-{
-    if (Asset::HasBeenUpdated())
-    {
-        return true;
-    }
-
-    for (const auto& shaderFile : m_ShaderFiles)
-    {
-        if (shaderFile->HasBeenUpdated())
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void Pine::Shader::MarkAsUpdated()
-{
-    Asset::MarkAsUpdated();
-
-    for (const auto& shaderFile : m_ShaderFiles)
-    {
-        shaderFile->MarkAsUpdated();
-    }
 }
 
 void Pine::Shader::SetReady(bool ready, ShaderVersion version)
@@ -268,16 +206,6 @@ bool Pine::Shader::IsReady(ShaderVersion version)
     }
 
     return m_ShaderProgramsReady[m_ShaderVersionsMap[static_cast<std::uint32_t>(version)]];
-}
-
-bool Pine::Shader::IsBaseShader() const
-{
-    return m_BaseShader;
-}
-
-Pine::Shader* Pine::Shader::GetParentShader() const
-{
-    return m_ParentShader;
 }
 
 std::optional<std::string> Pine::Shader::GetShaderSourceFile(Graphics::ShaderType type) const
@@ -314,25 +242,13 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
     // Invalid shader configuration
     if (vertexPath.empty() && fragmentPath.empty() && computePath.empty() && geometryPath.empty())
     {
-        Log::Error("No shader files specified in " + m_FileName);
+        Log::Error("No shader files specified in " + m_FilePath.string());
 
         return false;
     }
 
     // Prepare a graphics shader program
     const auto shaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
-
-    if (j.contains("parent"))
-    {
-        m_ParentShader = Pine::Assets::Get<Shader>(j["parent"]);
-        m_BaseShader = false;
-
-        if (!m_ParentShader)
-        {
-            Log::Error(fmt::format("Failed to find parent shader in {}, parent shader: {}.", m_FileName, j["parent"].get<std::string>()));
-            return false;
-        }
-    }
 
     ShaderCompileContext shaderCompileContext;
 
@@ -351,11 +267,6 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
         {
             return false;
         }
-
-        if (versionMacros.empty())
-        {
-            m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, vertexPath, true)));
-        }
     }
 
     if (!fragmentPath.empty())
@@ -366,11 +277,6 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
         if (!LoadAndCompileShader(shaderCompileContext))
         {
             return false;
-        }
-
-        if (versionMacros.empty())
-        {
-            m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, fragmentPath, true)));
         }
     }
 
@@ -383,11 +289,6 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
         {
             return false;
         }
-
-        if (versionMacros.empty())
-        {
-            m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, computePath, true)));
-        }
     }
 
     if (!geometryPath.empty())
@@ -398,11 +299,6 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
         if (!LoadAndCompileShader(shaderCompileContext))
         {
             return false;
-        }
-
-        if (versionMacros.empty())
-        {
-            m_ShaderFiles.push_back(Assets::Get(GetAbsolutePath(this, geometryPath, true)));
         }
     }
 
@@ -440,7 +336,7 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
 
             if (uniformVariable == nullptr)
             {
-                Log::Warning("Failed to find texture sampler " + name + ", " + m_FileName);
+                Log::Warning("Failed to find texture sampler " + name + ", " + m_FilePath.string());
                 continue;
             }
 
@@ -451,6 +347,58 @@ bool Pine::Shader::LoadShaderPackage(const nlohmann::json &j, std::uint32_t shad
     m_ShaderPrograms.push_back(shaderProgram);
     m_ShaderProgramsReady.push_back(false);
     m_ShaderVersionsMap[shaderVersion] = m_ShaderPrograms.size() - 1;
+
+    return true;
+}
+
+bool Pine::Shader::LoadAssetData(const ByteSpan& span)
+{
+    ShaderSerializer shaderSerializer;
+
+    if (!shaderSerializer.Read(span))
+    {
+        return false;
+    }
+
+    shaderSerializer.TextureSamplers.Read(m_ShaderTextureSamplerBindings);
+    shaderSerializer.Versions.Read(m_ShaderVersions);
+
+    struct ShaderCompileData
+    {
+        Shader* Shader{};
+        std::string VertexSource;
+        std::string FragmentSource;
+        std::string GeometrySource;
+        std::string ComputeSource;
+    };
+
+    auto preparedData = new ShaderCompileData();
+
+    // Copy pointer to our object
+    preparedData->Shader = this;
+
+    // Copy shader source code
+    shaderSerializer.VertexSource.Read(preparedData->VertexSource);
+    shaderSerializer.FragmentSource.Read(preparedData->FragmentSource);
+    shaderSerializer.GeometrySource.Read(preparedData->GeometrySource);
+    shaderSerializer.ComputeSource.Read(preparedData->ComputeSource);
+
+    // Early exit for crap data
+    if (preparedData->VertexSource.empty() && preparedData->FragmentSource.empty() && preparedData->GeometrySource.empty() && preparedData->ComputeSource.empty())
+    {
+        delete preparedData;
+        return false;
+    }
+
+    Threading::QueueTask([](TaskData taskData) -> TaskResult
+    {
+        auto data = static_cast<ShaderCompileData*>(taskData);
+
+
+
+        delete data;
+        return nullptr;
+    }, preparedData, TaskThreadingMode::MainThread);
 
     return true;
 }

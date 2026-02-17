@@ -1,7 +1,6 @@
 ﻿#include "Serialization.hpp"
 
 #include <fstream>
-#include <utility>
 
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Log/Log.hpp"
@@ -10,7 +9,8 @@ namespace
 {
     constexpr std::uint32_t PINE_MAGIC = 0x7143;
     constexpr std::uint16_t PINE_VERSION = 0x1;
-    constexpr bool PINE_COMPACT_MODE = true;
+
+    constexpr bool PINE_COMPACT_MODE = false;
 
     enum class FileHeaderFlags : std::uint16_t
     {
@@ -37,6 +37,8 @@ namespace
             return sizeof(Pine::Vector4f);
         case Pine::Serialization::DataType::Quaternion:
             return sizeof(Pine::Quaternion);
+        case Pine::Serialization::DataType::Guid:
+            return sizeof(Pine::Guid);
         default:
             throw new std::logic_error("Data type not primitive or invalid.");
         }

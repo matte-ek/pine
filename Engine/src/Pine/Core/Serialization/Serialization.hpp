@@ -8,6 +8,7 @@
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/Span/Span.hpp"
+#include "Pine/Input/Input.hpp"
 
 namespace Pine::Serialization
 {
@@ -30,10 +31,10 @@ namespace Pine::Serialization
         Vec3,
         Vec4,
         Quaternion,
+        Guid,
 
         // Unknown size
         String,
-        Asset,
         Data,
         Array,
 
@@ -61,6 +62,15 @@ namespace Pine::Serialization
         virtual size_t GetDataSize() const = 0;
     };
 
+    template<typename>
+    struct IsAssetHandle : std::false_type {};
+
+    template<typename T>
+    struct IsAssetHandle<AssetHandle<T>> : std::true_type {};
+
+    template<typename T>
+    constexpr bool IsAssetHandle_v = IsAssetHandle<T>::value;
+
     // Data storage used for types smaller than 16 bytes
     class DataPrimitive final : public Data
     {
@@ -74,6 +84,16 @@ namespace Pine::Serialization
         size_t GetDataSize() const override;
     public:
         DataPrimitive(Serializer* parentSerializer, DataType type, const char* name);
+
+        template<typename TAsset>
+        bool Read(AssetHandle<TAsset>& handle)
+        {
+            assert(m_DataSize == sizeof(Guid));
+
+            handle = AssetHandle<TAsset>(*static_cast<const Guid*>(GetData()));
+
+            return true;
+        }
 
         template<typename TPrimitive>
         bool Read(TPrimitive& data)
@@ -134,8 +154,9 @@ namespace Pine::Serialization
         bool Read(ByteSpan& span) const;
         void Write(const ByteSpan& span);
 
+        /*
         template <typename TAsset>
-        bool Read(AssetHandle<TAsset>& handle, bool allowReference = true)
+        bool Read(AssetHandle<TAsset>& handle)
         {
             if (m_DataSize == 0 || GetType() != DataType::Asset)
             {
@@ -143,15 +164,6 @@ namespace Pine::Serialization
             }
 
             std::string path(static_cast<const char*>(m_Data), m_DataSize);
-
-            if (Assets::GetState() == AssetManagerState::LoadDirectory && allowReference)
-            {
-                Assets::AddAssetResolveReference({path, reinterpret_cast<AssetHandle<Asset>*>(&handle)});
-            }
-            else
-            {
-                handle = Assets::Get(path);
-            }
 
             return true;
         }
@@ -161,11 +173,12 @@ namespace Pine::Serialization
         {
             if (GetType() != DataType::Asset)
             {
-                throw new std::logic_error("Data type invalid.");
+                throw std::logic_error("Data type invalid.");
             }
 
             Write(handle.Get() == nullptr ? "null" : handle.Get()->GetPath());
         }
+        */
 
         friend class Serializer;
     };
@@ -222,6 +235,20 @@ namespace Pine::Serialization
             WriteRaw(data.data(), data.size());
         }
 
+        template<typename TElement>
+        void Read(std::vector<TElement>& vec)
+        {
+            if (m_DataStride != sizeof(TElement))
+            {
+                return;
+            }
+
+            vec.clear();
+            vec.resize(GetDataCount());
+
+            memcpy(vec.data(), GetData(), GetDataSize());
+        }
+
         std::uint32_t GetDataCount() const;
     };
 
@@ -255,7 +282,7 @@ namespace Pine::Serialization
 
 #define PINE_SERIALIZE_DATA(str) Pine::Serialization::DataFixed str = Pine::Serialization::DataFixed(this, Pine::Serialization::DataType::Data, #str)
 #define PINE_SERIALIZE_STRING(str) Pine::Serialization::DataFixed str = Pine::Serialization::DataFixed(this, Pine::Serialization::DataType::String, #str)
-#define PINE_SERIALIZE_ASSET(str) Pine::Serialization::DataFixed str = Pine::Serialization::DataFixed(this, Pine::Serialization::DataType::Asset, #str)
+#define PINE_SERIALIZE_ASSET(str) Pine::Serialization::DataPrimitive str = Pine::Serialization::DataPrimitive(this, Pine::Serialization::DataType::Guid, #str)
 
 #define PINE_SERIALIZE_ARRAY(str) Pine::Serialization::DataArray str = Pine::Serialization::DataArray(this, #str)
 #define PINE_SERIALIZE_ARRAY_FIXED(str, type) Pine::Serialization::DataArrayFixed str = Pine::Serialization::DataArrayFixed(this, #str, sizeof(type))
