@@ -1,10 +1,11 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <nlohmann/json.hpp>
 
-#include "Pine/Core/Guid/Guid.hpp"
+#include "Pine/Core/UId/UId.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
@@ -91,7 +92,7 @@ namespace Pine
     class Asset
     {
     protected:
-        Guid m_Guid;
+        UId m_UId;
 
         AssetType m_Type = AssetType::Invalid;
 
@@ -109,10 +110,12 @@ namespace Pine
 
         // Basically refers to data dependencies, in the way that this asset cannot be loaded/processed
         // until the specified assets are loaded beforehand.
-        std::vector<Guid> m_Dependencies;
+        std::vector<UId> m_Dependencies;
 
         int m_ReferenceCount = 0;
         bool m_IsDeleted = false;
+
+        bool m_HasBeenModified = false;
 
         Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
 
@@ -127,11 +130,11 @@ namespace Pine
 
         struct AssetSerializer : Serialization::Serializer
         {
-            PINE_SERIALIZE_PRIMITIVE(Guid, Serialization::DataType::Guid);
+            PINE_SERIALIZE_PRIMITIVE(UId, Serialization::DataType::UId);
             PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
             PINE_SERIALIZE_STRING(Path);
             PINE_SERIALIZE_ARRAY(Sources);
-            PINE_SERIALIZE_ARRAY_FIXED(Dependencies, Pine::Guid);
+            PINE_SERIALIZE_ARRAY_FIXED(Dependencies, Pine::UId);
             PINE_SERIALIZE_DATA(Data);
         };
 
@@ -141,9 +144,9 @@ namespace Pine
         virtual ~Asset() = default;
 
         // This should ideally be done through a constructor.
-        void SetupNew(const std::string& path, const std::filesystem::path& filePath);
+        void SetupNew(const std::string& path);
 
-        const Guid& GetGuid() const;
+        const UId& GetUId() const;
         const AssetType& GetType() const;
 
         const std::string& GetPath() const;
@@ -152,6 +155,9 @@ namespace Pine
         void AddSource(const std::string& filePath);
         void RemoveSource(const std::string& filePath);
         const std::vector<AssetSource>& GetSources() const;
+
+        void MarkAsModified();
+        bool HasBeenModified() const;
 
         void CreateScriptHandle();
         void DestroyScriptHandle();
@@ -163,20 +169,21 @@ namespace Pine
         ByteSpan Save();
         void SaveToFile();
 
-        static Asset* Load(const ByteSpan& data);
-        static Asset* Load(const ByteSpan& data, const std::string& filePath);
+        static Asset* Load(const ByteSpan& data, bool ignoreAssetData = false);
+        static Asset* Load(const ByteSpan& data, const std::string& filePath, bool ignoreAssetData = false);
+        static Asset* LoadFromFile(const std::filesystem::path& filePath, bool ignoreAssetData = false);
     };
 
     template<class TAsset>
     class AssetHandle
     {
     private:
-        Guid m_Guid;
+        UId m_UId;
         mutable TAsset *m_Asset = nullptr;
     public:
         AssetHandle() = default;
 
-        explicit AssetHandle(Guid id) : m_Guid(id)
+        explicit AssetHandle(UId id) : m_UId(id)
         {
         }
 

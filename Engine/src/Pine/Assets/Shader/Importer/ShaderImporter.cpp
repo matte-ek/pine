@@ -59,7 +59,7 @@ std::string Pine::Importer::ShaderImporter::ProcessShaderLine(Shader* shader, co
     {
         // Figure out included file path
         std::string fileName = String::Replace(line.substr(9), "\"", "");
-        std::filesystem::path filePath = shader->GetFilePath().parent_path().string() + "/" + fileName;
+        std::filesystem::path filePath = std::filesystem::path(shader->GetPath()).parent_path().string() + "/" + fileName;
 
         if (!std::filesystem::exists(filePath))
         {

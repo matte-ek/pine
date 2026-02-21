@@ -15,16 +15,16 @@ Pine::ByteSpan Pine::Asset::SaveAssetData()
     return {nullptr, 0};
 }
 
-void Pine::Asset::SetupNew(const std::string& path, const std::filesystem::path& filePath)
+void Pine::Asset::SetupNew(const std::string& path)
 {
-    m_Guid = Guid::New();
+    m_UId = UId::New();
     m_Path = File::UniversalPath(path);
-    m_FilePath = File::UniversalPath(filePath.string());
+    m_FilePath = File::UniversalPath(fmt::format("{}data/{}.passet", Assets::Internal::GetWorkingDirectory(), m_UId.ToString()));
 }
 
-const Pine::Guid& Pine::Asset::GetGuid() const
+const Pine::UId& Pine::Asset::GetUId() const
 {
-    return m_Guid;
+    return m_UId;
 }
 
 const std::string& Pine::Asset::GetPath() const
@@ -62,6 +62,16 @@ const std::vector<Pine::AssetSource>& Pine::Asset::GetSources() const
     return m_SourceFiles;
 }
 
+void Pine::Asset::MarkAsModified()
+{
+    m_HasBeenModified = true;
+}
+
+bool Pine::Asset::HasBeenModified() const
+{
+    return m_HasBeenModified;
+}
+
 void Pine::Asset::CreateScriptHandle()
 {
     m_ScriptObjectHandle = Script::ObjectFactory::CreateAsset(this);
@@ -87,12 +97,12 @@ void Pine::Asset::SaveToFile()
     File::WriteCompressed(m_FilePath, Save());
 }
 
-Pine::Asset* Pine::Asset::Load(const ByteSpan& data)
+Pine::Asset* Pine::Asset::Load(const ByteSpan& data, bool ignoreAssetData)
 {
-    return Load(data, "");
+    return Load(data, "", ignoreAssetData);
 }
 
-Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath)
+Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath, bool ignoreAssetData)
 {
     AssetSerializer aSerializer;
 
@@ -107,7 +117,7 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
         return nullptr;
     }
 
-    aSerializer.Guid.Read(asset->m_Guid);
+    aSerializer.UId.Read(asset->m_UId);
     aSerializer.Path.Read(asset->m_Path);
 
     aSerializer.Dependencies.Read(asset->m_Dependencies);
@@ -125,15 +135,30 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
         asset->m_SourceFiles.push_back(source);
     }
 
+    asset->m_FilePath = File::UniversalPath(filePath);
+
+    if (ignoreAssetData)
+    {
+        return asset;
+    }
+
     if (!asset->LoadAssetData(aSerializer.Data.Read()))
     {
         delete asset;
         return nullptr;
     }
 
-    asset->m_FilePath = File::UniversalPath(filePath);
-
     return asset;
+}
+
+Pine::Asset* Pine::Asset::LoadFromFile(const std::filesystem::path& filePath, bool ignoreAssetData)
+{
+    if (!std::filesystem::exists(filePath))
+    {
+        return nullptr;
+    }
+
+    return Load(File::ReadCompressed(filePath), filePath.string(), ignoreAssetData);
 }
 
 bool Pine::Asset::Import()
@@ -145,7 +170,7 @@ Pine::ByteSpan Pine::Asset::Save()
 {
     AssetSerializer aSerializer;
 
-    aSerializer.Guid.Write(m_Guid);
+    aSerializer.UId.Write(m_UId);
     aSerializer.Type.Write(m_Type);
     aSerializer.Path.Write(m_Path);
     aSerializer.Dependencies.Write(m_Dependencies);

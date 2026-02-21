@@ -1,25 +1,25 @@
 #include "Assets.hpp"
 
 #include "Pine/Assets/Asset/Asset.hpp"
-#include "Pine/Assets/Material/Material.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
+#include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 #include "Pine/Assets/Font/Font.hpp"
 #include "Pine/Assets/Level/Level.hpp"
+#include "Pine/Assets/Material/Material.hpp"
+#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
-#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
-#include "Pine/Assets/Texture3D/Texture3D.hpp"
-#include "Pine/Assets/AudioFile/AudioFile.hpp"
-#include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 
 #include <functional>
+#include <mutex>
 #include <thread>
 #include <unordered_map>
-#include <mutex>
 
 #include "Pine/Threading/Threading.hpp"
 
@@ -29,15 +29,14 @@ namespace
 {
     AssetManagerState m_State;
 
-    // All assets currently registered by Pine, they don't have to be
-    // valid assets, or loaded assets.
-    std::unordered_map<Guid, Asset*> m_AssetsMapGuid;
-    std::unordered_map<std::string, Asset*> m_AssetsMapPath;
-    std::unordered_map<std::string, Asset*> m_AssetsMapFilePath;
-
     std::mutex m_AssetsMutex;
 
-    std::string m_WorkingDirectory;
+    // All assets currently registered by Pine, they don't have to be
+    // valid assets, or loaded assets.
+    std::unordered_map<UId, Asset*> m_AssetsMapUId;
+    std::unordered_map<std::string, Asset*> m_AssetsMapPath;
+
+    std::string m_WorkingDirectory = "./";
 
     struct AssetImportFactory
     {
@@ -110,8 +109,7 @@ namespace
                 std::unique_lock lock(m_AssetsMutex);
 
                 m_AssetsMapPath[asset->GetPath()] = asset;
-                m_AssetsMapGuid[asset->GetGuid()] = asset;
-                m_AssetsMapFilePath[asset->GetFilePath().string()] = asset;
+                m_AssetsMapUId[asset->GetUId()] = asset;
 
                 lock.unlock();
 
@@ -135,7 +133,7 @@ void Assets::Setup()
 
 void Assets::Shutdown()
 {
-    for (auto& [path, asset] : m_AssetsMapGuid)
+    for (auto& [path, asset] : m_AssetsMapUId)
     {
         Log::Verbose(fmt::format("Disposing asset {}...", path.ToString()));
         asset->Dispose();
@@ -145,6 +143,15 @@ void Assets::Shutdown()
 void Assets::SetWorkingDirectory(std::string_view workingDirectory)
 {
     m_WorkingDirectory = workingDirectory;
+
+    if (m_WorkingDirectory.empty())
+    {
+        m_WorkingDirectory = "./";
+    }
+    else if (m_WorkingDirectory.at(m_WorkingDirectory.size() - 1) != '/')
+    {
+        m_WorkingDirectory += "/";
+    }
 }
 
 Asset* Assets::LoadAssetFromFile(const std::filesystem::path& filePath)
@@ -182,7 +189,7 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
             continue;
         }
 
-        if (m_AssetsMapFilePath.count(File::UniversalPath(iter.path().string())) != 0)
+        if (m_AssetsMapUId.count(UId(iter.path().filename().string())) != 0)
         {
             continue;
         }
@@ -212,7 +219,7 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
     return loadedAssets;
 }
 
-Asset* Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputFilePath)
+Asset* Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view mappedPath)
 {
     // Get the correct path with the possible working directory and make sure it's valid.
     std::filesystem::path finalPath = m_WorkingDirectory + sourceFilePath.string();
@@ -221,12 +228,10 @@ Asset* Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, 
         return nullptr;
     }
 
-    std::string outputFile = outputFilePath.empty() ? finalPath.replace_extension(".passet").string() : std::string(outputFilePath.data());
-
-    return ImportAssetFromFiles({sourceFilePath}, outputFile, outputFilePath);
+    return ImportAssetFromFiles({sourceFilePath}, mappedPath);
 }
 
-Asset* Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath, std::string_view outputFilePath)
+Asset* Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath)
 {
     if (sourceFilePaths.empty())
     {
@@ -242,7 +247,7 @@ Asset* Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& so
 
     auto asset = factory->m_Factory();
 
-    asset->SetupNew(mappedPath.data(), outputFilePath);
+    asset->SetupNew(mappedPath.data());
 
     for (const auto& source : sourceFilePaths)
     {
@@ -266,19 +271,19 @@ Asset* Assets::CreateAsset(AssetType type, std::string_view assetPath)
         return nullptr;
     }
 
-    asset->SetupNew(assetPath.data(), "");
+    asset->SetupNew(assetPath.data());
 
     return asset;
 }
 
-Asset* Assets::GetAssetByGuid(Guid id)
+Asset* Assets::GetAssetByGuid(UId id)
 {
-    if (m_AssetsMapGuid.count(id) == 0)
+    if (m_AssetsMapUId.count(id) == 0)
     {
         return nullptr;
     }
 
-    return m_AssetsMapGuid[id];
+    return m_AssetsMapUId[id];
 }
 
 Asset* Assets::GetAssetByPath(std::string_view path)
@@ -291,9 +296,19 @@ Asset* Assets::GetAssetByPath(std::string_view path)
     return m_AssetsMapPath[path.data()];
 }
 
+const std::unordered_map<UId, Asset*>& Assets::GetAll()
+{
+    return m_AssetsMapUId;
+}
+
 AssetManagerState Assets::Internal::GetState()
 {
     return m_State;
+}
+
+const std::string& Assets::Internal::GetWorkingDirectory()
+{
+    return m_WorkingDirectory;
 }
 
 Asset* Assets::Internal::CreateAssetByType(AssetType type)

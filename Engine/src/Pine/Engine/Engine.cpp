@@ -95,8 +95,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     Assets::Setup();
 
-    if (Assets::LoadAssetsFromDirectory("engine/shaders") <= 0 ||
-        Assets::LoadAssetsFromDirectory("engine") <= 0)
+    if (Assets::LoadAssetsFromDirectory("data") <= 0)
     {
         Log::Fatal("Failed to load engine assets.");
 

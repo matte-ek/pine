@@ -36,8 +36,8 @@ add_library(Engine ${SOURCES}
         src/Pine/Core/Serialization/Serialization.cpp
         src/Pine/Core/Serialization/Serialization.hpp
         src/Pine/Core/Span/Span.hpp
-        src/Pine/Core/Guid/Guid.cpp
-        src/Pine/Core/Guid/Guid.hpp
+        src/Pine/Core/UId/Uid.cpp
+        src/Pine/Core/UId/Uid.hpp
         src/Pine/Assets/Texture2D/Importer/TextureImporter.cpp
         src/Pine/Assets/Texture2D/Importer/TextureImporter.hpp
         src/Pine/Assets/Shader/Importer/ShaderImporter.cpp

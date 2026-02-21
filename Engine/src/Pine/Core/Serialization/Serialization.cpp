@@ -37,8 +37,8 @@ namespace
             return sizeof(Pine::Vector4f);
         case Pine::Serialization::DataType::Quaternion:
             return sizeof(Pine::Quaternion);
-        case Pine::Serialization::DataType::Guid:
-            return sizeof(Pine::Guid);
+        case Pine::Serialization::DataType::UId:
+            return sizeof(Pine::UId);
         default:
             throw new std::logic_error("Data type not primitive or invalid.");
         }

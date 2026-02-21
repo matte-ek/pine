@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "Pine/Core/Guid/Guid.hpp"
+#include "Pine/Core/UId/UId.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/Span/Span.hpp"
@@ -36,7 +36,7 @@ namespace Pine::Serialization
         Vec3,
         Vec4,
         Quaternion,
-        Guid,
+        UId,
 
         // Unknown size
         String,
@@ -93,9 +93,9 @@ namespace Pine::Serialization
         template<typename TAsset>
         bool Read(AssetHandle<TAsset>& handle)
         {
-            assert(m_DataSize == sizeof(Guid));
+            assert(m_DataSize == sizeof(UId));
 
-            handle = AssetHandle<TAsset>(*static_cast<const Guid*>(GetData()));
+            handle = AssetHandle<TAsset>(*static_cast<const UId*>(GetData()));
 
             return true;
         }
@@ -125,9 +125,9 @@ namespace Pine::Serialization
         template<typename TAsset>
         bool Write(const AssetHandle<TAsset>& handle)
         {
-            assert(m_DataSize == sizeof(Guid));
+            assert(m_DataSize == sizeof(UId));
 
-            memcpy(m_Data, &handle, sizeof(Guid));
+            memcpy(m_Data, &handle, sizeof(UId));
 
             return true;
         }
@@ -308,7 +308,7 @@ namespace Pine::Serialization
 
 #define PINE_SERIALIZE_DATA(str) Pine::Serialization::DataFixed str = Pine::Serialization::DataFixed(this, Pine::Serialization::DataType::Data, #str)
 #define PINE_SERIALIZE_STRING(str) Pine::Serialization::DataFixed str = Pine::Serialization::DataFixed(this, Pine::Serialization::DataType::String, #str)
-#define PINE_SERIALIZE_ASSET(str) Pine::Serialization::DataPrimitive str = Pine::Serialization::DataPrimitive(this, Pine::Serialization::DataType::Guid, #str)
+#define PINE_SERIALIZE_ASSET(str) Pine::Serialization::DataPrimitive str = Pine::Serialization::DataPrimitive(this, Pine::Serialization::DataType::UId, #str)
 
 #define PINE_SERIALIZE_ARRAY(str) Pine::Serialization::DataArray str = Pine::Serialization::DataArray(this, #str)
 #define PINE_SERIALIZE_ARRAY_FIXED(str, type) Pine::Serialization::DataArrayFixed str = Pine::Serialization::DataArrayFixed(this, #str, sizeof(type))

@@ -39,11 +39,11 @@ namespace Pine::Assets
     int LoadAssetsFromDirectory(const std::filesystem::path& directory);
 
     // Attempts to import a source file into a pine asset.
-    Asset* ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputFilePath = "");
+    Asset* ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view mappedPath);
 
     // Attempts to load multiple source files into a pine asset. This is used
     // for assets which contain multiple source files, e.g. shaders.
-    Asset* ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath, std::string_view outputFilePath = "");
+    Asset* ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath);
 
     /// ---------------------------------------------------------------------------------------------------
     /// Creating and saving assets
@@ -55,11 +55,11 @@ namespace Pine::Assets
     /// Accessing assets
     /// ---------------------------------------------------------------------------------------------------
 
-    Asset* GetAssetByGuid(Guid id);
+    Asset* GetAssetByGuid(UId id);
     Asset* GetAssetByPath(std::string_view path);
 
     template<typename TAsset>
-    TAsset* Get(Guid id)
+    TAsset* Get(UId id)
     {
         return GetAssetByGuid(id);
     }
@@ -70,6 +70,8 @@ namespace Pine::Assets
         return dynamic_cast<TAsset*>(GetAssetByPath(path));
     }
 
+    const std::unordered_map<UId, Asset*>& GetAll();
+
     /// ---------------------------------------------------------------------------------------------------
     /// Internal methods for engine usage.
     /// ---------------------------------------------------------------------------------------------------
@@ -79,6 +81,8 @@ namespace Pine::Assets
         // Gets what state the asset manager is in, such as if we're in the process of loading a directory.
         // Useful for parts of the engine to determine if assets can be added as an AssetResolveReference.
         AssetManagerState GetState();
+
+        const std::string& GetWorkingDirectory();
 
         Asset* CreateAssetByType(AssetType type);
     }
