@@ -127,6 +127,29 @@ namespace
         return {openglFormat, openglInternalFormat};
     }
 
+    std::uint32_t TranslateCompressionFormat(
+        Pine::Graphics::TextureFormat textureFormat,
+        Pine::Graphics::TextureCompressionFormat textureCompressionFormat)
+    {
+        switch (textureCompressionFormat)
+        {
+            case Pine::Graphics::TextureCompressionFormat::BC7:
+                return GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+            case Pine::Graphics::TextureCompressionFormat::BC4:
+                return GL_COMPRESSED_RED_RGTC1;
+            case Pine::Graphics::TextureCompressionFormat::BC5:
+                return GL_COMPRESSED_RG_RGTC2;
+            case Pine::Graphics::TextureCompressionFormat::BC1:
+                return textureFormat == Pine::Graphics::TextureFormat::RGB ?
+                    GL_COMPRESSED_RGB_S3TC_DXT1_EXT :
+                    GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+            case Pine::Graphics::TextureCompressionFormat::Raw:
+                throw std::runtime_error("RAW format used for compression.");
+            default:
+                throw std::runtime_error("Unsupported compression format.");
+        }
+    }
+
 }
 
 Pine::Graphics::GLTexture::GLTexture()
@@ -258,6 +281,38 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
     m_TextureDataFormat = dataFormat;
 }
 
+void Pine::Graphics::GLTexture::UploadTextureDataCompressed(
+    int width,
+    int height,
+    TextureFormat textureFormat,
+    TextureCompressionFormat compressionFormat,
+    void* data,
+    size_t size)
+{
+    const auto openglType = TranslateTextureType(m_Type, m_IsMultiSampled);
+
+    glCompressedTexImage2D(openglType, 0, TranslateCompressionFormat(textureFormat, compressionFormat), width, height, 0, size, data);
+
+    glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
+    glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
+
+    glTexParameteri(openglType, GL_TEXTURE_WRAP_S, TranslateWrapMode(m_WrapMode));
+    glTexParameteri(openglType, GL_TEXTURE_WRAP_T, TranslateWrapMode(m_WrapMode));
+
+    glTexParameterfv(openglType, GL_TEXTURE_BORDER_COLOR, &m_BorderColor[0]);
+
+    if (m_HasCustomSwizzleMask)
+    {
+        UpdateSwizzleMask();
+    }
+
+    m_Width = width;
+    m_Height = height;
+    m_TextureFormat = textureFormat;
+    m_TextureCompressionFormat = compressionFormat;
+    m_TextureDataFormat = TextureDataFormat::UnsignedByte;
+}
+
 Pine::Graphics::TextureType Pine::Graphics::GLTexture::GetType()
 {
     return m_Type;
@@ -354,6 +409,11 @@ Pine::Graphics::TextureFormat Pine::Graphics::GLTexture::GetTextureFormat()
 Pine::Graphics::TextureDataFormat Pine::Graphics::GLTexture::GetTextureDataFormat()
 {
     return m_TextureDataFormat;
+}
+
+Pine::Graphics::TextureCompressionFormat Pine::Graphics::GLTexture::GetTextureCompressionFormat()
+{
+    return m_TextureCompressionFormat;
 }
 
 void Pine::Graphics::GLTexture::GenerateMipmaps()

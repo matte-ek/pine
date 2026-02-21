@@ -61,7 +61,7 @@ namespace Pine::Renderer3D
 
     Camera* GetCamera();
 
-    void SetShader(Shader* shader, ShaderVersion preferredVersion = ShaderVersion::Default);
+    void SetShader(Shader* shader, ShaderVersion preferredVersion = 0);
 
     void PrepareScene(Vector3f ambientColor, Vector4f fogColor, float fogDistance, float fogIntensity);
 

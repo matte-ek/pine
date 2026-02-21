@@ -57,11 +57,11 @@ void Pine::Rendering::Skybox::Render(const Texture3D* cubeMap)
         return;
     }
 
-    if (!m_Shader->IsReady())
+    if (!m_Shader->IsRendererReady())
     {
         assert(Pine::Renderer3D::ShaderStorages::Matrix.AttachShaderProgram(m_Shader->GetProgram()));
 
-        m_Shader->SetReady(true);
+        m_Shader->SetRendererReady(true);
     }
 
     m_Shader->GetProgram()->Use();

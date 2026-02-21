@@ -271,10 +271,7 @@ void Pine::Serialization::DataArray::AddData(const ByteSpan& span)
 
 const Pine::ByteSpan& Pine::Serialization::DataArray::GetData(size_t index) const
 {
-    if (index >= m_Data.size())
-    {
-        return {nullptr, 0};
-    }
+    assert(index < m_Data.size());
 
     return m_Data[index];
 }
@@ -478,7 +475,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
             dynamicSize = true;
 
             // TODO: Remove me, used while testing.
-            if (dataSize >= 0x1000000)
+            if (dataSize >= 0x8000152)
             {
                 Log::Error("CHECK ME: Size big while reading data");
                 return false;
@@ -584,7 +581,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
                 }
 
                 // TODO: Remove me, used while testing.
-                if (arrayElementSize >= 0x1000000)
+                if (arrayElementSize >= 0x8000152)
                 {
                     Log::Error("CHECK ME: Size big while reading data");
                     return false;

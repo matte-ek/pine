@@ -66,7 +66,6 @@ Pine::TileData* Pine::Tileset::AddTile(Texture2D* texture, std::uint32_t default
     tile.m_Index = m_CurrentTileIndex++;
     tile.m_DefaultFlags = defaultFlags;
 
-    m_HasBeenModified = true;
 
     m_Tiles.push_back(tile);
 
@@ -80,7 +79,6 @@ void Pine::Tileset::RemoveTile(const TileData& tile)
         if (m_Tiles[i].m_Index == tile.m_Index)
         {
             m_Tiles.erase(m_Tiles.begin() + i);
-            m_HasBeenModified = true;
             break;
         }
     }
@@ -127,6 +125,7 @@ int Pine::Tileset::GetTileSize() const
     return m_TileSize;
 }
 
+/*
 bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
 {
     const auto jsonOpt = SerializationJson::LoadFromFile(m_FilePath);
@@ -224,3 +223,4 @@ bool Pine::Tileset::SaveToFile()
 
     return true;
 }
+*/

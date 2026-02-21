@@ -83,6 +83,9 @@ bool Pine::WindowManager::Internal::CreateWindow(Vector2i position, Vector2i req
         size = Vector2i(videoMode->width, videoMode->height);
     }
 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+
     m_Window = glfwCreateWindow(size.x, size.y, title.c_str(), type != ScreenType::Default ? targetMonitor : nullptr, nullptr);
 
     if (!m_Window)

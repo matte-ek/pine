@@ -9,13 +9,6 @@ void Pine::CSharpScript::Dispose()
 {
 }
 
-bool Pine::CSharpScript::LoadFromFile(Pine::AssetLoadStage stage)
-{
-    m_State = AssetState::Loaded;
-
-    return true;
-}
-
 Pine::ScriptData *Pine::CSharpScript::GetScriptData() const
 {
     return m_ScriptData;

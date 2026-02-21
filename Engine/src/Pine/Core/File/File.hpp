@@ -17,5 +17,8 @@ namespace Pine::File
 
     std::optional<std::string> ReadFile(std::filesystem::path path);
 
+    std::string UniversalPath(const std::string& pathString);
+    std::string UniversalPath(const std::filesystem::path& path);
+
 }
 

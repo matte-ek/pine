@@ -9,17 +9,19 @@ namespace
 {
     MonoString* GetFileName(std::uint32_t internalId)
     {
-        return mono_string_new(mono_domain_get(), Pine::Assets::GetById(internalId)->GetFileName().c_str());
+        //return mono_string_new(mono_domain_get(), Pine::Assets::GetById(internalId)->GetFileName().c_str());
+        return nullptr;
     }
 
     MonoString* GetPath(std::uint32_t internalId)
     {
-        return mono_string_new(mono_domain_get(), Pine::Assets::GetById(internalId)->GetPath().c_str());
+        //return mono_string_new(mono_domain_get(), Pine::Assets::GetById(internalId)->GetPath().c_str());
+        return nullptr;
     }
 
     MonoObject* GetByPath(MonoString* str)
     {
-        auto asset = Pine::Assets::Get(mono_string_to_utf8(str));
+        auto asset = Pine::Assets::Get<Pine::Asset>(mono_string_to_utf8(str));
 
         if (!asset || asset->GetScriptHandle()->Object == nullptr)
         {
@@ -33,33 +35,34 @@ namespace
 
     bool GetHasEntity(std::uint32_t internalId)
     {
-        return dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId))->HasEntity();
+        return false;
+        //return dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId))->HasEntity();
     }
 
     void CreateFromEntity(std::uint32_t internalId, std::uint32_t entityId)
     {
-        auto asset = dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId));
-
-        asset->CreateFromEntity(Pine::Entities::GetByInternalId(entityId));
+        //auto asset = dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId));
+        //asset->CreateFromEntity(Pine::Entities::GetByInternalId(entityId));
     }
 
     MonoObject* SpawnEntity(std::uint32_t internalId)
     {
-        return mono_gchandle_get_target(dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId))->Spawn()->GetScriptHandle()->Handle);
+        //return mono_gchandle_get_target(dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId))->Spawn()->GetScriptHandle()->Handle);
+        return nullptr;
     }
 
     void LevelCreateFromWorld(std::uint32_t internalId)
     {
-        auto asset = dynamic_cast<Pine::Level*>(Pine::Assets::GetById(internalId));
+        //auto asset = dynamic_cast<Pine::Level*>(Pine::Assets::GetById(internalId));
 
-        asset->CreateFromWorld();
+        //asset->CreateFromWorld();
     }
 
     void LevelLoad(std::uint32_t internalId)
     {
-        auto asset = dynamic_cast<Pine::Level*>(Pine::Assets::GetById(internalId));
+        //auto asset = dynamic_cast<Pine::Level*>(Pine::Assets::GetById(internalId));
 
-        asset->Load();
+        //asset->Load();
     }
 }
 

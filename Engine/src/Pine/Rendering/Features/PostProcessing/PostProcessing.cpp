@@ -16,7 +16,7 @@ namespace
 
 void Pine::Rendering::PostProcessing::Setup()
 {
-    m_PostProcessingShader = Pine::Assets::Get<Shader>("engine/shaders/post-processing/post-process.shader");
+    m_PostProcessingShader = Pine::Assets::Get<Shader>("engine/shaders/post-processing/post-process");
 }
 
 void Pine::Rendering::PostProcessing::Shutdown()

@@ -3,16 +3,17 @@
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Mesh/Mesh.hpp"
 
-class aiMesh;
-struct aiScene;
-class aiNode;
-
 namespace Pine
 {
+    namespace Importer
+    {
+        class ModelImporter;
+    }
+
     struct MeshMaterialData
     {
-        Pine::Vector3f DiffuseColor;
-        Pine::Vector3f AmbientColor;
+        Vector3f DiffuseColor;
+        Vector3f AmbientColor;
 
         float Shininess = 1.f;
 
@@ -21,42 +22,48 @@ namespace Pine
         std::string NormalMap;
     };
 
-    struct MeshLoadData
+    struct MeshData
     {
-        Vector3f* Vertices = nullptr;
-        Vector3f* Normals = nullptr;
-        Vector3f* Tangents = nullptr;
-        Vector2f* UVs = nullptr;
+        std::vector<Vector3f> Vertices;
+        std::vector<Vector3f> Normals;
+        std::vector<Vector3f> Tangents;
+        std::vector<Vector2f> UVs;
+        std::vector<std::uint32_t> Indices;
 
         Vector3f BoundingBoxMin = {};
         Vector3f BoundingBoxMax = {};
-
-        std::uint32_t* Indices = nullptr;
-
-        std::uint32_t VertexCount = 0;
-        std::uint32_t FacesCount = 0;
-        std::uint32_t IndicesCount = 0;
-
-        bool HasDefaultMaterial = false;
-        MeshMaterialData DefaultMaterial;
     };
 
     class Model : public Asset
     {
     protected:
         std::vector<Mesh*> m_Meshes;
-        std::vector<MeshLoadData> m_MeshLoadData;
+        std::vector<MeshData> m_MeshData;
 
         Vector3f m_BoundingBoxMin = {};
         Vector3f m_BoundingBoxMax = {};
 
         bool m_UsedAsCollider = false;
 
-        void ProcessMesh(aiMesh *mesh, const aiScene *scene);
-        void ProcessNode(const aiNode *node, const aiScene *scene);
+        bool LoadAssetData(const ByteSpan& span) override;
+        ByteSpan SaveAssetData() override;
 
-        bool LoadModel();
-        void UploadModel();
+        struct MeshSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ARRAY_FIXED(Vertices, Vector3f);
+            PINE_SERIALIZE_ARRAY_FIXED(Normals, Vector3f);
+            PINE_SERIALIZE_ARRAY_FIXED(Tangents, Vector3f);
+            PINE_SERIALIZE_ARRAY_FIXED(UVs, Vector2f);
+            PINE_SERIALIZE_ARRAY_FIXED(Indices, std::uint32_t);
+
+            PINE_SERIALIZE_PRIMITIVE(BoundingBoxMin, Serialization::DataType::Vec3);
+            PINE_SERIALIZE_PRIMITIVE(BoundingBoxMax, Serialization::DataType::Vec3);
+        };
+
+        struct ModelSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ARRAY(Meshes);
+        };
     public:
         Model();
 
@@ -64,14 +71,14 @@ namespace Pine
 
         const std::vector<Mesh*>& GetMeshes() const;
 
-        const Pine::Vector3f& GetBoundingBoxMin() const;
-        const Pine::Vector3f& GetBoundingBoxMax() const;
+        const Vector3f& GetBoundingBoxMin() const;
+        const Vector3f& GetBoundingBoxMax() const;
 
-        bool LoadFromFile(AssetLoadStage stage) override;
-        bool SaveToFile() override;
+        bool Import() override;
 
         void Dispose() override;
 
         friend class Collider;
+        friend class Importer::ModelImporter;
     };
 }

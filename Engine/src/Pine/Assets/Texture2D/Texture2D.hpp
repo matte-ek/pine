@@ -19,18 +19,17 @@ namespace Pine
         Uncompressed
     };
 
-    enum class TextureCompressionFormat
+    enum class TextureCompressionQuality
     {
-        Raw = 0,
-        BC1,
-        BC4,
-        BC5,
-        BC7
+        Normal,
+        Fastest,
+        Production
     };
 
     struct TextureImportConfiguration
     {
         TextureUsageHint UsageHint = TextureUsageHint::Albedo;
+        TextureCompressionQuality CompressionQuality = TextureCompressionQuality::Normal;
         bool GenerateMipmaps = false;
     };
 
@@ -44,7 +43,7 @@ namespace Pine
 
         Graphics::TextureFormat m_Format = Graphics::TextureFormat::SingleChannel;
         Graphics::TextureFilteringMode m_FilteringMode = Graphics::TextureFilteringMode::Linear;
-        TextureCompressionFormat m_CompressionFormat = TextureCompressionFormat::Raw;
+        Graphics::TextureCompressionFormat m_CompressionFormat = Graphics::TextureCompressionFormat::Raw;
 
         // Underlying graphics texture
         Graphics::ITexture* m_Texture = nullptr;
@@ -61,12 +60,16 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(TextureFormat, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(FilteringMode, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(CompressionFormat, Serialization::DataType::Int32);
+
             PINE_SERIALIZE_PRIMITIVE(ImportUsageHint, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(ImportCompressionQuality, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(ImportGenerateMipMaps, Serialization::DataType::Boolean);
+
             PINE_SERIALIZE_ARRAY(Data);
         };
 
         bool LoadAssetData(const ByteSpan& span) override;
+        ByteSpan SaveAssetData() override;
     public:
         Texture2D();
 
@@ -81,7 +84,6 @@ namespace Pine
         ByteSpan GetTextureData() const;
 
         bool Import() override;
-        ByteSpan Save() override;
 
         void Dispose() override;
 

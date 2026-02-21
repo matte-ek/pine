@@ -1,24 +1,34 @@
 ﻿#include "TextureImporter.hpp"
 
+#ifdef PINE_RUNTIME
+
+bool Pine::Importer::TextureImporter::Import(Texture2D* texture)
+{
+    // Stub.
+    return false;
+}
+
+#else
+
 #include <stb_image.h>
 
-#include "compressonator.h"
+#include "nvtt/nvtt.h"
+#include "nvtt/nvtt_wrapper.h"
 
 using namespace Pine;
 
 namespace
 {
 
-    bool LoadImageBytes(const std::string& fileName, void** data, int& width, int& height, int& channels, Graphics::TextureFormat& textureFormat)
+    void* LoadImageBytes(const std::string& fileName, int& width, int& height, int& channels, Graphics::TextureFormat& textureFormat)
     {
-        *data = stbi_load(fileName.c_str(), &width, &height, &channels, 0);
+        auto data = stbi_load(fileName.c_str(), &width, &height, &channels, 0);
 
-        if (*data == nullptr)
+        if (data == nullptr)
         {
             Log::Error(fmt::format("Failed to load texture {}", fileName));
 
-            stbi_image_free(*data);
-            return false;
+            return nullptr;
         }
 
         switch (channels)
@@ -34,18 +44,20 @@ namespace
                 break;
             default:
                 Log::Error(fmt::format("Unknown texture format, channel count: {}", channels));
-                return false;
+                stbi_image_free(data);
+                return nullptr;
         }
 
-        return true;
+        return data;
     }
 
-    CMP_FORMAT TranslateTextureFormat(Graphics::TextureFormat textureFormat)
+    /*
+    nvtt::InputFormat TranslateTextureFormat(Graphics::TextureFormat textureFormat)
     {
         switch (textureFormat)
         {
             case Graphics::TextureFormat::RGB:
-                return CMP_FORMAT_RGB_888;
+                return nvtt::InputFormat_BGRA_8UB;
             case Graphics::TextureFormat::RGBA:
                 return CMP_FORMAT_RGBA_8888;
             case Graphics::TextureFormat::SingleChannel:
@@ -54,82 +66,59 @@ namespace
                 throw std::invalid_argument("Invalid texture format");
         }
     }
+    */
 
-    TextureCompressionFormat DetermineCompressionFormat(TextureUsageHint textureUsageHint)
+    Graphics::TextureCompressionFormat DetermineCompressionFormat(TextureUsageHint textureUsageHint)
     {
         switch (textureUsageHint)
         {
             case TextureUsageHint::Uncompressed:
-                return TextureCompressionFormat::Raw;
+                return Graphics::TextureCompressionFormat::Raw;
             case TextureUsageHint::Albedo:
-                return TextureCompressionFormat::BC7;
+                return Graphics::TextureCompressionFormat::BC7;
             case TextureUsageHint::AlbedoFaster:
-                return TextureCompressionFormat::BC1;
+                return Graphics::TextureCompressionFormat::BC1;
             case TextureUsageHint::NormalMap:
-                return TextureCompressionFormat::BC5;
+                return Graphics::TextureCompressionFormat::BC5;
             case TextureUsageHint::Grayscale:
-                return TextureCompressionFormat::BC4;
+                return Graphics::TextureCompressionFormat::BC4;
             default:
                 throw std::invalid_argument("Invalid usage hint");
         }
     }
 
-    CMP_FORMAT TranslateCompressionFormat(TextureCompressionFormat textureCompressionFormat)
+    NvttFormat TranslateCompressionFormat(Graphics::TextureCompressionFormat textureCompressionFormat, int channels)
     {
         switch (textureCompressionFormat)
         {
-            case TextureCompressionFormat::BC1:
-                return CMP_FORMAT_BC1;
-            case TextureCompressionFormat::BC4:
-                return CMP_FORMAT_BC4;
-            case TextureCompressionFormat::BC5:
-                return CMP_FORMAT_BC5;
-            case TextureCompressionFormat::BC7:
-                return CMP_FORMAT_BC7;
+            case Graphics::TextureCompressionFormat::BC1:
+                return channels == 3 ? NVTT_Format_BC1 : NVTT_Format_BC1a;
+            case Graphics::TextureCompressionFormat::BC4:
+                return NVTT_Format_BC4;
+            case Graphics::TextureCompressionFormat::BC5:
+                return NVTT_Format_BC5;
+            case Graphics::TextureCompressionFormat::BC7:
+                return NVTT_Format_BC7;
             default:
                 throw std::invalid_argument("Invalid texture compression format");
         }
     }
 
-    CMP_Texture CreateCmpSourceTexture(int width, int height, int channels, void* imageDataPtr, Graphics::TextureFormat format)
+    NvttQuality TranslateQuality(TextureCompressionQuality textureCompressionQuality)
     {
-        CMP_Texture cmpTexture{};
+        switch (textureCompressionQuality)
+        {
+            case TextureCompressionQuality::Normal:
+                return NVTT_Quality_Normal;
+            case TextureCompressionQuality::Fastest:
+                return NVTT_Quality_Fastest;
+            case TextureCompressionQuality::Production:
+                return NVTT_Quality_Production;
+        }
 
-        cmpTexture.dwSize = sizeof(cmpTexture);
-        cmpTexture.dwWidth = width;
-        cmpTexture.dwHeight = height;
-        cmpTexture.dwPitch = width * channels;
-        cmpTexture.format = TranslateTextureFormat(format);
-        cmpTexture.pData = static_cast<CMP_BYTE*>(imageDataPtr);
-
-        return cmpTexture;
+        throw std::invalid_argument("Invalid texture quality.");
     }
-
-    CMP_Texture CreateCmpDestinationTexture(int width, int height, TextureCompressionFormat textureCompressionFormat, std::byte* destinationBuffer, size_t destinationBufferSize)
-    {
-        CMP_Texture cmpTexture{};
-
-        cmpTexture.dwSize = sizeof(cmpTexture);
-        cmpTexture.dwWidth = width;
-        cmpTexture.dwHeight = height;
-        cmpTexture.format = TranslateCompressionFormat(textureCompressionFormat);
-        cmpTexture.pData = reinterpret_cast<CMP_BYTE*>(destinationBuffer);
-        cmpTexture.dwDataSize = destinationBufferSize;
-
-        return cmpTexture;
-    }
-
 }
-
-#ifdef PINE_RUNTIME
-
-bool Pine::Importer::TextureImporter::Import(Texture2D* texture)
-{
-    // Stub.
-    return false;
-}
-
-#else
 
 bool Importer::TextureImporter::Import(Texture2D* texture)
 {
@@ -144,10 +133,11 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
     Log::Info(fmt::format("Importing Texture2D from source file {}...", file.FilePath));
 
     int width, height, channels;
-    void* imageDataPtr;
     Graphics::TextureFormat format;
 
-    if (!LoadImageBytes(file.FilePath, &imageDataPtr, width, height, channels, format))
+    void* imageDataPtr = LoadImageBytes(file.FilePath, width, height, channels, format);
+
+    if (imageDataPtr == nullptr)
     {
         return false;
     }
@@ -158,41 +148,86 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
 
     auto compressionFormat = DetermineCompressionFormat(texture->m_ImportConfiguration.UsageHint);
 
-    if (compressionFormat == TextureCompressionFormat::Raw)
+    if (compressionFormat == Graphics::TextureCompressionFormat::Raw)
     {
         texture->m_TextureData = imageDataPtr;
         texture->m_TextureDataSize = width * height * channels;
+        texture->m_CompressionFormat = Graphics::TextureCompressionFormat::Raw;
 
         return true;
     }
 
-    uint32_t blockSize = 16;
-    uint32_t numBlocksX = (width + 3) / 4;
-    uint32_t numBlocksY = (height + 3) / 4;
-    size_t compressedSize = numBlocksX * numBlocksY * blockSize;
+    const auto nvCompressionLevel = TranslateCompressionFormat(compressionFormat, channels);
+    const auto nvQuality = TranslateQuality(texture->m_ImportConfiguration.CompressionQuality);
 
-    // I would use new here, but to maintain compatibility with stb
-    auto compressedData = static_cast<std::byte*>(malloc(compressedSize));
+    // Prepare texture for encoding
+    NvttRefImage ref;
 
-    auto sourceTexture = CreateCmpSourceTexture(width, height, channels, imageDataPtr, format);
-    auto destTexture = CreateCmpDestinationTexture(width, height, compressionFormat, compressedData, compressedSize);
+    ref.data = imageDataPtr;
+    ref.width = width;
+    ref.height = height;
+    ref.num_channels = channels;
+    ref.depth = 1;
 
-    CMP_CompressOptions compressOptions{};
-    compressOptions.dwSize = sizeof(compressOptions);
+    ref.channel_swizzle[0] = NVTT_ChannelOrder_Red;
+    ref.channel_swizzle[1] = NVTT_ChannelOrder_Green;
+    ref.channel_swizzle[2] = NVTT_ChannelOrder_Blue;
+    ref.channel_swizzle[3] = NVTT_ChannelOrder_Alpha;
 
-    auto ret = CMP_ConvertTexture(&sourceTexture, &destTexture, nullptr, nullptr);
-    if (ret != CMP_OK)
+    ref.channel_interleave = NVTT_True;
+
+    auto cpuInputBuffer = nvttCreateCPUInputBuffer(
+        &ref,
+        NVTT_ValueType_UINT8,
+        1,
+        4, 4,
+        1.f, 1.f, 1.f, 1.f,
+        nullptr, nullptr);
+
+    // Create context and try to enable CUDA
+    auto context = nvttCreateContext();
+    nvttSetContextCudaAcceleration(context, NVTT_True);
+    if (!nvttIsCudaSupported())
     {
-        Pine::Log::Error(fmt::format("CMP_ConvertTexture failed: {}", static_cast<int>(ret)));
+        Log::Warning("CUDA unsupported during compression.");
+    }
 
-        free(imageDataPtr);
-        free(compressedData);
+    // Prepare compression options so we can estimate the buffer size
+    auto options = nvttCreateCompressionOptions();
 
+    nvttResetCompressionOptions(options);
+    nvttSetCompressionOptionsFormat(options, nvCompressionLevel);
+    nvttSetCompressionOptionsQuality(options, nvQuality);
+    nvttSetCompressionOptionsPixelType(options, NVTT_PixelType_UnsignedNorm);
+    nvttSetCompressionOptionsPixelFormat(options, 32, 0, 0, 0, 0);
+
+    auto dataSize = nvttContextEstimateSizeData(context, ref.width, ref.height, ref.depth, 1, options);
+    auto data = malloc(dataSize);
+
+    NvttEncodeSettings settings;
+
+    settings.encode_flags = 0;
+    settings.format = nvCompressionLevel;
+    settings.quality = nvQuality;
+    settings.sType = NVTT_EncodeSettings_Version_1;
+    settings.timing_context = nullptr;
+    settings.rgb_pixel_type = NVTT_PixelType_UnsignedNorm;
+    settings.encode_flags = NVTT_EncodeFlags_UseGPU;
+
+    if (nvttEncodeCPU(cpuInputBuffer, data, &settings) != NVTT_True)
+    {
         return false;
     }
 
-    texture->m_TextureData = compressedData;
-    texture->m_TextureDataSize = compressedSize;
+    texture->m_TextureData = data;
+    texture->m_TextureDataSize = dataSize;
+    texture->m_CompressionFormat = compressionFormat;
+
+    free(imageDataPtr);
+
+    nvttDestroyCompressionOptions(options);
+    nvttDestroyCPUInputBuffer(cpuInputBuffer);
+    nvttDestroyContext(context);
 
     return true;
 }

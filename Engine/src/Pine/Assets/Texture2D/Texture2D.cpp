@@ -30,46 +30,52 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
 
     m_MipmapLevels = textureSerializer.Data.GetDataCount();
 
-    struct TextureLoadData
-    {
-        Texture2D* Texture2D;
-        ByteSpan Span;
-    };
-
-    auto pool = Threading::CreateTaskPool();
+    std::vector<std::shared_ptr<Task>> tasks;
 
     // Prepare and upload texture data to GPU.
     for (size_t i{}; i < textureSerializer.Data.GetDataCount(); i++)
     {
-        auto preparedData = new TextureLoadData();
+        auto textureMipDataSpan = textureSerializer.Data.GetData(i);
 
-        preparedData->Span = textureSerializer.Data.GetData(i);
-        preparedData->Texture2D = this;
-
-        Threading::QueueTask([](TaskData taskData) -> TaskResult
+        tasks.push_back(Threading::QueueTask<void>([textureMipDataSpan, this]()
         {
-            auto data = static_cast<TextureLoadData*>(taskData);
-            auto tex2d = data->Texture2D;
-
             // Since it's running on the main thread, this is "thread-safe".
-            if (tex2d->m_Texture == nullptr)
+            if (m_Texture == nullptr)
             {
-                tex2d->m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
-                tex2d->m_Texture->SetFilteringMode(tex2d->m_FilteringMode);
+                m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
+                m_Texture->SetFilteringMode(m_FilteringMode);
             }
 
-            tex2d->m_Texture->Bind();
-            tex2d->m_Texture->UploadTextureData(tex2d->m_Width, tex2d->m_Height, tex2d->m_Format, Graphics::TextureDataFormat::UnsignedByte, data->Span.data);
+            m_Texture->Bind();
 
-            delete data;
-
-            return nullptr;
-        }, preparedData, TaskThreadingMode::MainThread, pool);
+            if (m_CompressionFormat == Graphics::TextureCompressionFormat::Raw)
+            {
+                m_Texture->UploadTextureData(
+                       m_Width,
+                       m_Height,
+                       m_Format,
+                       Graphics::TextureDataFormat::UnsignedByte,
+                       textureMipDataSpan.data);
+            }
+            else
+            {
+                m_Texture->UploadTextureDataCompressed(
+                    m_Width,
+                    m_Height,
+                    m_Format,
+                    m_CompressionFormat,
+                    textureMipDataSpan.data,
+                    textureMipDataSpan.size);
+            }
+        },
+        TaskThreadingMode::MainThread));
     }
 
     // Wait for the GPU upload jobs to complete.
-    Threading::AwaitTaskPool(pool);
-    Threading::DeleteTaskPool(pool);
+    for (const auto& task : tasks)
+    {
+        Threading::AwaitTaskResult(task);
+    }
 
     // We're done here
     m_State = AssetState::Loaded;
@@ -141,7 +147,7 @@ bool Pine::Texture2D::Import()
     return Importer::TextureImporter::Import(this);
 }
 
-Pine::ByteSpan Pine::Texture2D::Save()
+Pine::ByteSpan Pine::Texture2D::SaveAssetData()
 {
     TextureSerializer textureSerializer;
 

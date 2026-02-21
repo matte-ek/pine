@@ -5,10 +5,57 @@
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
+bool Pine::Level::LoadAssetData(const ByteSpan& span)
+{
+    LevelSerializer levelSerializer;
+
+    if (!levelSerializer.Read(span))
+    {
+        return false;
+    }
+
+    for (int i = 0; i < levelSerializer.Blueprints.GetDataCount();i++)
+    {
+        auto blueprint = new Blueprint();
+
+        blueprint->FromByteSpan(levelSerializer.Blueprints.GetData(i));
+
+        m_Blueprints.push_back(blueprint);
+    }
+
+    levelSerializer.Skybox.Read(m_LevelSettings.Skybox);
+    levelSerializer.AmbientColor.Read(m_LevelSettings.AmbientColor);
+    levelSerializer.FogColor.Read(m_LevelSettings.FogColor);
+    levelSerializer.FogIntensity.Read(m_LevelSettings.FogIntensity);
+    levelSerializer.FogDistance.Read(m_LevelSettings.FogDistance);
+    levelSerializer.Camera.Read(m_LevelSettings.CameraEntity);
+
+    return true;
+}
+
+Pine::ByteSpan Pine::Level::SaveAssetData()
+{
+    LevelSerializer levelSerializer;
+
+    for (auto bp : m_Blueprints)
+    {
+        levelSerializer.Blueprints.AddData(bp->ToByteSpan());
+    }
+
+    levelSerializer.Camera.Write(m_LevelSettings.HasCamera ? m_LevelSettings.CameraEntity : 0);
+
+    levelSerializer.Skybox.Write(m_LevelSettings.Skybox);
+    levelSerializer.AmbientColor.Write(m_LevelSettings.AmbientColor);
+    levelSerializer.FogColor.Write(m_LevelSettings.FogColor);
+    levelSerializer.FogIntensity.Write(m_LevelSettings.FogIntensity);
+    levelSerializer.FogDistance.Write(m_LevelSettings.FogDistance);
+
+    return levelSerializer.Write();
+}
+
 Pine::Level::Level()
 {
     m_Type = AssetType::Level;
-    m_LoadMode = AssetLoadMode::MultiThread;
 }
 
 void Pine::Level::CreateFromWorld()
@@ -62,8 +109,6 @@ void Pine::Level::CreateFromWorld()
     }
 
     m_LevelSettings.Skybox = primaryRenderingContext->Skybox;
-
-    m_HasBeenModified = true;
 }
 
 void Pine::Level::Load()
@@ -108,7 +153,6 @@ void Pine::Level::ClearBlueprints()
     }
 
     m_Blueprints.clear();
-    m_HasBeenModified = true;
 }
 
 std::size_t Pine::Level::GetBlueprintCount() const
@@ -120,6 +164,7 @@ Pine::LevelSettings& Pine::Level::GetLevelSettings()
 {
     return m_LevelSettings;
 }
+/*
 
 bool Pine::Level::LoadFromFile(AssetLoadStage stage)
 {
@@ -130,25 +175,6 @@ bool Pine::Level::LoadFromFile(AssetLoadStage stage)
         return false;
     }
 
-    LevelSerializer levelSerializer;
-
-    levelSerializer.Read(fileByteSpan);
-
-    for (int i = 0; i < levelSerializer.Blueprints.GetDataCount();i++)
-    {
-        auto blueprint = new Blueprint();
-
-        blueprint->FromByteSpan(levelSerializer.Blueprints.GetData(i));
-
-        m_Blueprints.push_back(blueprint);
-    }
-
-    levelSerializer.Skybox.Read(m_LevelSettings.Skybox);
-    levelSerializer.AmbientColor.Read(m_LevelSettings.AmbientColor);
-    levelSerializer.FogColor.Read(m_LevelSettings.FogColor);
-    levelSerializer.FogIntensity.Read(m_LevelSettings.FogIntensity);
-    levelSerializer.FogDistance.Read(m_LevelSettings.FogDistance);
-    levelSerializer.Camera.Read(m_LevelSettings.CameraEntity);
 
     m_State = AssetState::Loaded;
 
@@ -157,25 +183,13 @@ bool Pine::Level::LoadFromFile(AssetLoadStage stage)
 
 bool Pine::Level::SaveToFile()
 {
-    LevelSerializer levelSerializer;
 
-    for (auto bp : m_Blueprints)
-    {
-        levelSerializer.Blueprints.AddData(bp->ToByteSpan());
-    }
-
-    levelSerializer.Camera.Write(m_LevelSettings.HasCamera ? m_LevelSettings.CameraEntity : 0);
-
-    levelSerializer.Skybox.Write(m_LevelSettings.Skybox);
-    levelSerializer.AmbientColor.Write(m_LevelSettings.AmbientColor);
-    levelSerializer.FogColor.Write(m_LevelSettings.FogColor);
-    levelSerializer.FogIntensity.Write(m_LevelSettings.FogIntensity);
-    levelSerializer.FogDistance.Write(m_LevelSettings.FogDistance);
 
     File::WriteCompressed(m_FilePath, levelSerializer.Write());
 
     return true;
 }
+*/
 
 void Pine::Level::Dispose()
 {

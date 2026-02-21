@@ -1,15 +1,15 @@
 #pragma once
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <variant>
 
 namespace Pine
 {
     struct TaskPool;
 
-    using TaskData = void*;
     using TaskResult = void*;
-
-    typedef TaskResult(*TaskFunc)(TaskData);
+    using TaskFunc = std::function<TaskResult()>;
 
     enum class TaskState
     {
@@ -26,14 +26,12 @@ namespace Pine
 
     struct Task
     {
-        // The argument we'll use for the work function.
-        TaskData WorkData = nullptr;
-
         // The underlying function that the threading system will call to take care
         // of whatever user work.
-        TaskFunc WorkFunction = nullptr;
+        TaskFunc Func = nullptr;
 
-        // Whenever the task is done, the result of `WorkFunction` will be stored here.
+        bool HasReturnFunc = false;
+
         TaskResult Result = nullptr;
 
         std::atomic<TaskState> State = TaskState::Queued;
@@ -64,7 +62,26 @@ namespace Pine
         TaskPool* CreateTaskPool(bool notifyMainThreadUpdates = false);
         void DeleteTaskPool(TaskPool* taskPool);
 
-        std::shared_ptr<Task> QueueTask(TaskFunc taskFunction, TaskData data = nullptr, TaskThreadingMode mode = TaskThreadingMode::Default, TaskPool* pool = nullptr);
+        std::shared_ptr<Task> AddTaskToQueue(TaskFunc taskFunction, TaskThreadingMode mode = TaskThreadingMode::Default, TaskPool* pool = nullptr);
+
+        template <typename TResult>
+        std::shared_ptr<Task> QueueTask(const std::function<TResult()>& func, TaskThreadingMode mode = TaskThreadingMode::Default, TaskPool* pool = nullptr)
+        {
+            if constexpr (std::is_same_v<TResult, void>)
+            {
+                const auto wrapper = [func]() -> TaskResult
+                {
+                    func();
+                    return nullptr;
+                };
+
+                return AddTaskToQueue(wrapper, mode, pool);
+            }
+            else
+            {
+                return AddTaskToQueue(func, mode, pool);
+            }
+        }
 
         TaskResult AwaitTaskResult(const std::shared_ptr<Task>& task);
 

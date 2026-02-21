@@ -53,6 +53,7 @@ namespace Pine
 	    };
 
 	    bool LoadAssetData(const ByteSpan& span) override;
+	    ByteSpan SaveAssetData() override;
 	public:
 		explicit Material();
 
@@ -86,8 +87,6 @@ namespace Pine
 
         // If this material is from a model file, instead of an engine material.
         bool IsMeshGenerated() const;
-
-	    ByteSpan Save() override;
 
 		void Dispose() override;
 	};

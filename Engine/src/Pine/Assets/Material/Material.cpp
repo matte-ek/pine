@@ -140,7 +140,7 @@ bool Pine::Material::IsMeshGenerated() const
     return m_IsMeshGeneratedMaterial;
 }
 
-Pine::ByteSpan Pine::Material::Save()
+Pine::ByteSpan Pine::Material::SaveAssetData()
 {
     MaterialSerializer materialSerializer;
 

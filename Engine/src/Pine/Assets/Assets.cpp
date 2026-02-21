@@ -31,7 +31,10 @@ namespace
 
     // All assets currently registered by Pine, they don't have to be
     // valid assets, or loaded assets.
-    std::unordered_map<Guid, Asset*> m_Assets;
+    std::unordered_map<Guid, Asset*> m_AssetsMapGuid;
+    std::unordered_map<std::string, Asset*> m_AssetsMapPath;
+    std::unordered_map<std::string, Asset*> m_AssetsMapFilePath;
+
     std::mutex m_AssetsMutex;
 
     std::string m_WorkingDirectory;
@@ -54,7 +57,7 @@ namespace
         AssetImportFactory( { { "obj", "fbx", "glb", "dae", "gltf" }, AssetType::Model, [](){ return new Model(); } } ),
         AssetImportFactory( { { "mat" }, AssetType::Material, [](){ return new Material(); } } ),
         AssetImportFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
-        AssetImportFactory( { { "shader" }, AssetType::Shader, [](){ return new Shader(); } } ),
+        AssetImportFactory( { { "glsl" }, AssetType::Shader, [](){ return new Shader(); } } ),
         AssetImportFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
         AssetImportFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
         AssetImportFactory( { { "tset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
@@ -85,31 +88,44 @@ namespace
         return nullptr;
     }
 
-    std::shared_ptr<Task> RunAssetLoadFromFile(const std::filesystem::path& inputFilePath, TaskPool* taskPool = nullptr)
+    std::shared_ptr<Task> RunAssetLoadFromFile(const std::filesystem::path& filePath, TaskPool* taskPool = nullptr)
     {
-        if (inputFilePath.extension().string() != ".passet")
+        if (filePath.extension().string() != ".passet")
         {
             return nullptr;
         }
 
-        return Threading::QueueTask([](TaskData taskData) -> TaskResult
+        return Threading::QueueTask<Asset*>([filePath]() -> Asset*
         {
-            auto filePath = static_cast<std::string*>(taskData);
-
-            if (!std::filesystem::exists(*filePath))
+            if (!std::filesystem::exists(filePath))
             {
                 return nullptr;
             }
 
-            auto data = File::ReadCompressed(*filePath);
-            auto asset = Asset::Load(data);
+            auto data = File::ReadCompressed(filePath);
+            auto asset = Asset::Load(data, filePath.string());
 
-            std::unique_lock lock(m_AssetsMutex);
+            if (asset)
+            {
+                std::unique_lock lock(m_AssetsMutex);
 
-            m_Assets[asset->GetGuid()] = asset;
+                m_AssetsMapPath[asset->GetPath()] = asset;
+                m_AssetsMapGuid[asset->GetGuid()] = asset;
+                m_AssetsMapFilePath[asset->GetFilePath().string()] = asset;
+
+                lock.unlock();
+
+                Pine::Log::Verbose(fmt::format("Loaded asset {} as {} successfully.", asset->GetPath(), AssetTypeToString(asset->GetType())));
+            }
+            else
+            {
+                Pine::Log::Error(fmt::format("Failed to load asset {} as {}.", asset->GetPath(), AssetTypeToString(asset->GetType())));
+            }
 
             return asset;
-        }, new std::string(inputFilePath.string()), TaskThreadingMode::Default, taskPool);
+        },
+        TaskThreadingMode::Default,
+        taskPool);
     }
 }
 
@@ -119,7 +135,7 @@ void Assets::Setup()
 
 void Assets::Shutdown()
 {
-    for (auto& [path, asset] : m_Assets)
+    for (auto& [path, asset] : m_AssetsMapGuid)
     {
         Log::Verbose(fmt::format("Disposing asset {}...", path.ToString()));
         asset->Dispose();
@@ -161,7 +177,12 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
     for (const auto& iter : std::filesystem::recursive_directory_iterator(finalPath))
     {
         // Make sure it's a pine asset file
-        if (iter.is_directory() || iter.path().filename().string() != ".passet")
+        if (iter.is_directory() || iter.path().extension().string() != ".passet")
+        {
+            continue;
+        }
+
+        if (m_AssetsMapFilePath.count(File::UniversalPath(iter.path().string())) != 0)
         {
             continue;
         }
@@ -179,6 +200,11 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
         {
             loadedAssets++;
         }
+        else
+        {
+            loadedAssets = -1;
+            break;
+        }
     }
 
     delete pool;
@@ -186,13 +212,13 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
     return loadedAssets;
 }
 
-bool Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputFilePath)
+Asset* Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputFilePath)
 {
     // Get the correct path with the possible working directory and make sure it's valid.
     std::filesystem::path finalPath = m_WorkingDirectory + sourceFilePath.string();
     if (!std::filesystem::exists(finalPath))
     {
-        return false;
+        return nullptr;
     }
 
     std::string outputFile = outputFilePath.empty() ? finalPath.replace_extension(".passet").string() : std::string(outputFilePath.data());
@@ -200,18 +226,18 @@ bool Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, st
     return ImportAssetFromFiles({sourceFilePath}, outputFile, outputFilePath);
 }
 
-bool Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath, std::string_view outputFilePath)
+Asset* Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath, std::string_view outputFilePath)
 {
     if (sourceFilePaths.empty())
     {
-        return false;
+        return nullptr;
     }
 
     // Use at least one source file to figure out the type.
     auto factory = GetAssetFactoryFromFileName(sourceFilePaths.front());
     if (!factory)
     {
-        return false;
+        return nullptr;
     }
 
     auto asset = factory->m_Factory();
@@ -226,12 +252,10 @@ bool Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& sour
     if (!asset->Import())
     {
         delete asset;
-        return false;
+        return nullptr;
     }
 
-    File::WriteCompressed(asset->GetFilePath(), asset->Save());
-
-    return true;
+    return asset;
 }
 
 Asset* Assets::CreateAsset(AssetType type, std::string_view assetPath)
@@ -249,12 +273,22 @@ Asset* Assets::CreateAsset(AssetType type, std::string_view assetPath)
 
 Asset* Assets::GetAssetByGuid(Guid id)
 {
-    if (m_Assets.count(id) == 0)
+    if (m_AssetsMapGuid.count(id) == 0)
     {
         return nullptr;
     }
 
-    return m_Assets[id];
+    return m_AssetsMapGuid[id];
+}
+
+Asset* Assets::GetAssetByPath(std::string_view path)
+{
+    if (m_AssetsMapPath.count(path.data()) == 0)
+    {
+        return nullptr;
+    }
+
+    return m_AssetsMapPath[path.data()];
 }
 
 AssetManagerState Assets::Internal::GetState()

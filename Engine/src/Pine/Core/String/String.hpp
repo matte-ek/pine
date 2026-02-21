@@ -12,6 +12,8 @@ namespace Pine::String
     std::string ToLower(const std::string& str);
     std::string ToUpper(const std::string& str);
 
+    std::string Trim(std::string str);
+
     std::vector<std::string> Split(const std::string& str, const std::string& deli);
 
     std::string Replace(const std::string& str, const std::string& pattern, const std::string& replacement);

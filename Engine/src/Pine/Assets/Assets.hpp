@@ -2,8 +2,6 @@
 #include "Pine/Assets/Asset/Asset.hpp"
 
 #include <filesystem>
-#include <string>
-#include <unordered_map>
 
 namespace Pine
 {
@@ -41,11 +39,11 @@ namespace Pine::Assets
     int LoadAssetsFromDirectory(const std::filesystem::path& directory);
 
     // Attempts to import a source file into a pine asset.
-    bool ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputFilePath = "");
+    Asset* ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputFilePath = "");
 
     // Attempts to load multiple source files into a pine asset. This is used
     // for assets which contain multiple source files, e.g. shaders.
-    bool ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath, std::string_view outputFilePath = "");
+    Asset* ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath, std::string_view outputFilePath = "");
 
     /// ---------------------------------------------------------------------------------------------------
     /// Creating and saving assets

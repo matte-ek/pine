@@ -34,6 +34,7 @@ namespace
     {
         std::vector<Pine::CSharpScript*> scripts;
 
+        /*
         for (auto& [path, script] : Pine::Assets::GetAll())
         {
             if (script->GetType() != Pine::AssetType::CSharpScript)
@@ -48,6 +49,7 @@ namespace
 
             scripts.push_back(dynamic_cast<Pine::CSharpScript*>(script));
         }
+        */
 
         return scripts;
     }
@@ -235,7 +237,7 @@ void Pine::Script::Manager::OnStart()
         {
             auto str = mono_object_to_string(exception, nullptr);
 
-            Log::Error(fmt::format("Exception thrown in script '{}': {}", script->GetFileName(), mono_string_to_utf8(str)));
+            Log::Error(fmt::format("Exception thrown in script '{}': {}", script->GetFilePath().string(), mono_string_to_utf8(str)));
         }
     }
 }
@@ -275,7 +277,7 @@ void Pine::Script::Manager::OnUpdate(float deltaTime)
         {
             auto str = mono_object_to_string(exception, nullptr);
 
-            Log::Error(fmt::format("Exception thrown in script '{}': {}", script->GetFileName(), mono_string_to_utf8(str)));
+            Log::Error(fmt::format("Exception thrown in script '{}': {}", script->GetFilePath().string(), mono_string_to_utf8(str)));
         }
     }
 }

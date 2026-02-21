@@ -93,7 +93,6 @@ namespace
 Pine::Blueprint::Blueprint()
 {
     m_Type = AssetType::Blueprint;
-    m_LoadMode = AssetLoadMode::MultiThread;
 }
 
 void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, bool createInstance)
@@ -129,6 +128,17 @@ void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, bool createInst
     }
 }
 
+bool Pine::Blueprint::LoadAssetData(const ByteSpan& span)
+{
+    FromByteSpan(span);
+    return true;
+}
+
+Pine::ByteSpan Pine::Blueprint::SaveAssetData()
+{
+    return ToByteSpan();
+}
+
 void Pine::Blueprint::Dispose()
 {
     delete m_Entity;
@@ -144,8 +154,6 @@ void Pine::Blueprint::CreateFromEntity(const Entity* entity)
     m_Entity = new Entity(0);
 
    CopyEntity(m_Entity, entity, false);
-
-   m_HasBeenModified = true;
 }
 
 Pine::Entity* Pine::Blueprint::Spawn() const
@@ -181,29 +189,6 @@ Pine::ByteSpan Pine::Blueprint::ToByteSpan() const
     StoreEntity(span, m_Entity);
 
     return span;
-}
-
-bool Pine::Blueprint::LoadFromFile(AssetLoadStage stage)
-{
-   auto data = File::ReadCompressed(m_FilePath);
-
-   if (!data.data)
-   {
-       return false;
-   }
-
-   FromByteSpan(data);
-
-   m_State = AssetState::Loaded;
-
-   return true;
-}
-
-bool Pine::Blueprint::SaveToFile()
-{
-    File::WriteCompressed(m_FilePath, ToByteSpan());
-
-    return true;
 }
 
 Pine::Entity *Pine::Blueprint::GetEntity() const

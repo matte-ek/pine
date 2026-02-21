@@ -9,6 +9,7 @@ namespace
 {
     void UpdateAssets()
     {
+        /*
         int assetsReloaded = 0;
 
         assetsReloaded += Pine::Assets::LoadDirectory("engine/shaders", false);
@@ -18,6 +19,7 @@ namespace
         {
             Pine::Log::Verbose(fmt::format("Reloaded {} assets due to hot-reload", assetsReloaded));
         }
+        */
     }
 
     void OnWindowFocusCallback(GLFWwindow*, int focused)

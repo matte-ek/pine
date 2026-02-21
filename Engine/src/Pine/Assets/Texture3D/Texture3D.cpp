@@ -7,10 +7,10 @@
 Pine::Texture3D::Texture3D()
 {
     m_Type = AssetType::Texture3D;
-    m_LoadMode = AssetLoadMode::SingleThread;
 }
 
-bool Pine::Texture3D::LoadFromFile(AssetLoadStage stage)
+/*
+bool Pine::Texture3D::LoadFromFile()
 {
     auto j = SerializationJson::LoadFromFile(m_FilePath);
 
@@ -83,6 +83,8 @@ bool Pine::Texture3D::SaveToFile()
     return true;
 }
 
+*/
+
 void Pine::Texture3D::Dispose()
 {
     if (m_CubeMapTexture)
@@ -96,7 +98,6 @@ void Pine::Texture3D::Dispose()
 void Pine::Texture3D::SetTexture(Texture2D*texture)
 {
     m_Texture = texture;
-    m_HasBeenModified = true;
 }
 
 Pine::Texture2D *Pine::Texture3D::GetTexture() const
@@ -107,7 +108,6 @@ Pine::Texture2D *Pine::Texture3D::GetTexture() const
 void Pine::Texture3D::SetSideTexture(TextureCubeSide side, Texture2D*texture)
 {
     m_SideTextures[static_cast<int>(side)] = texture;
-    m_HasBeenModified = true;
 }
 
 Pine::Texture2D *Pine::Texture3D::GetSideTexture(TextureCubeSide side) const
@@ -160,6 +160,7 @@ bool Pine::Texture3D::Build()
         {
             auto side = m_SideTextures[i].Get();
 
+            /*
             if (side->GetState() != AssetState::Loaded)
             {
                 Log::Error("Attempted to build cube map with unloaded textures.");
@@ -168,6 +169,7 @@ bool Pine::Texture3D::Build()
 
                 return false;
             }
+            */
 
             m_CubeMapTexture->CopyTextureData(side->GetGraphicsTexture(), static_cast<Graphics::TextureUploadTarget>(i + 1));
         }

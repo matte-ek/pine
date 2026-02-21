@@ -41,9 +41,6 @@ namespace Pine
 
         const std::vector<TileInstance>& GetTiles() const;
 
-        bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default) override;
-        bool SaveToFile() override;
-
         void Dispose() override;
     };
 

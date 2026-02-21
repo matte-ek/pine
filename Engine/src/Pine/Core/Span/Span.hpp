@@ -28,7 +28,7 @@ namespace Pine
 
         ByteSpan(ByteSpan&& other) noexcept
         {
-            data = std::move(other.data);
+            data = other.data;
             size = other.size;
 
             other.data = nullptr;
@@ -57,7 +57,7 @@ namespace Pine
         {
             if (this != &other)
             {
-                data = std::move(other.data);
+                data = other.data;
                 size = other.size;
 
                 other.data = nullptr;

@@ -29,9 +29,12 @@ namespace
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
+        assert(false);
+        /*
         dynamic_cast<Pine::ModelRenderer*>(Pine::Components::GetByInternalId(Pine::ComponentType::ModelRenderer, internalId))->SetModel(
             dynamic_cast<Pine::Model*>(Pine::Assets::GetById(assetId))
         );
+        */
     }
 
     MonoObject* GetModel(std::uint32_t internalId)

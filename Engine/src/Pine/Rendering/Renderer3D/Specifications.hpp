@@ -45,6 +45,16 @@ namespace Pine::Renderer3D::Specifications
         constexpr int TANGENT_ARRAY_BUFFER = 3;
     }
 
+    namespace ShaderVersions
+    {
+        enum class Generic
+        {
+            Default = 0,
+            Discard = (1 << 0),
+            PerformanceFast = (1 << 1)
+        };
+    }
+
     namespace ShaderStorages
     {
         constexpr int MATRICES = 0;

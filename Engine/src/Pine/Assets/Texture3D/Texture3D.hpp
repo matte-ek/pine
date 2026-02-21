@@ -39,9 +39,6 @@ namespace Pine
 
         bool Build();
 
-        bool LoadFromFile(AssetLoadStage stage) override;
-        bool SaveToFile() override;
-
         void Dispose() override;
     };
 }

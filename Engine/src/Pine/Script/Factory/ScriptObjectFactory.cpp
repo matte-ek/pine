@@ -162,7 +162,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const
     auto data = script->GetScriptData();
     if (!data || !data->IsReady)
     {
-        Log::Warning(fmt::format("Failed to create script object for {}, script data is not ready.", script->GetFileName()));
+        Log::Warning(fmt::format("Failed to create script object for {}, script data is not ready.", script->GetFilePath().string()));
         return {};
     }
 
@@ -221,7 +221,8 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::
 
     mono_runtime_object_init(object);
 
-    auto internalId = asset->GetId();
+    assert(false);
+    auto internalId = 0;
     auto type = static_cast<int>(asset->GetType());
 
     mono_field_set_value(object, assetTypeData->m_AssetInternalIdField, &internalId);

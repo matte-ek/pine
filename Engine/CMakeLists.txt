@@ -39,7 +39,11 @@ add_library(Engine ${SOURCES}
         src/Pine/Core/Guid/Guid.cpp
         src/Pine/Core/Guid/Guid.hpp
         src/Pine/Assets/Texture2D/Importer/TextureImporter.cpp
-        src/Pine/Assets/Texture2D/Importer/TextureImporter.hpp)
+        src/Pine/Assets/Texture2D/Importer/TextureImporter.hpp
+        src/Pine/Assets/Shader/Importer/ShaderImporter.cpp
+        src/Pine/Assets/Shader/Importer/ShaderImporter.hpp
+        src/Pine/Assets/Model/Importer/ModelImporter.cpp
+        src/Pine/Assets/Model/Importer/ModelImporter.hpp)
 
 if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
     if(UNIX)
@@ -63,4 +67,4 @@ else()
     message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
 endif()
 
-target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL ZLIB::ZLIB Compressonator_MD_DLL)
+target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL ZLIB::ZLIB nvtt30205 Rpcrt4)

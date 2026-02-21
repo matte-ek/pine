@@ -135,10 +135,10 @@ void Rendering::AmbientOcclusion::Run(const RenderingContext& context)
     m_AmbientOcclusionShader->GetProgram()->Use();
 
     // This isn't really necessary, but will allow hot-reload.
-    if (!m_AmbientOcclusionShader->IsReady())
+    if (!m_AmbientOcclusionShader->IsRendererReady())
     {
         KernelDataStorage.AttachShaderProgram(m_AmbientOcclusionShader->GetProgram());
-        m_AmbientOcclusionShader->SetReady(true);
+        m_AmbientOcclusionShader->SetRendererReady(true);
     }
 
     m_AmbientOcclusionShader->GetProgram()->GetUniformVariable("projectionMatrix")->LoadMatrix4(
@@ -174,7 +174,9 @@ void Rendering::AmbientOcclusion::UseDepthBuffer(Graphics::IFrameBuffer *buffer)
 
 void Rendering::AmbientOcclusion::Setup()
 {
-    m_AmbientOcclusionShader = Assets::Get<Shader>("engine/shaders/post-processing/ambient-occlusion.shader");
+    m_AmbientOcclusionShader = Assets::Get<Shader>("engine/shaders/post-processing/ambient-occlusion");
+
+    assert(m_AmbientOcclusionShader != nullptr);
 
     CreateRenderBuffer();
     CreateKernel();

@@ -28,6 +28,9 @@ namespace Pine
 
         LevelSettings m_LevelSettings;
 
+        bool LoadAssetData(const ByteSpan& span) override;
+        ByteSpan SaveAssetData() override;
+
         struct LevelSerializer : Serialization::Serializer
         {
             PINE_SERIALIZE_ARRAY(Blueprints);
@@ -50,9 +53,6 @@ namespace Pine
         std::size_t GetBlueprintCount() const;
 
         LevelSettings& GetLevelSettings();
-
-        bool LoadFromFile(AssetLoadStage stage) override;
-        bool SaveToFile() override;
 
         void Dispose() override;
     };

@@ -16,6 +16,9 @@ namespace Pine
         // Copies entity and component data from the source to the destination.
         // If createInstance is set, it will create the source entities components in the world.
         static void CopyEntity(Entity* dst, const Entity* src, bool createInstance);
+
+        bool LoadAssetData(const ByteSpan& span) override;
+        ByteSpan SaveAssetData() override;
     public:
         explicit Blueprint();
 
@@ -34,9 +37,6 @@ namespace Pine
         // Serializes or de-serializes the stored entity
         void FromByteSpan(const ByteSpan& byteSpan);
         ByteSpan ToByteSpan() const;
-
-        bool LoadFromFile(AssetLoadStage stage = AssetLoadStage::Default) override;
-        bool SaveToFile() override;
 
         void Dispose() override;
     };

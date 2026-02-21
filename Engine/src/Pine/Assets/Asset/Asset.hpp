@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
-#include <cstdint>
 #include <filesystem>
-#include <nlohmann/json.hpp>
 #include <string>
+#include <nlohmann/json.hpp>
 
 #include "Pine/Core/Guid/Guid.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace Pine
 {
@@ -118,6 +117,7 @@ namespace Pine
         Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
 
         virtual bool LoadAssetData(const ByteSpan& span);
+        virtual ByteSpan SaveAssetData();
 
         struct AssetSourceSerializer : Serialization::Serializer
         {
@@ -158,10 +158,13 @@ namespace Pine
         Script::ObjectHandle* GetScriptHandle();
 
         virtual bool Import();
-        virtual ByteSpan Save();
         virtual void Dispose() = 0;
 
+        ByteSpan Save();
+        void SaveToFile();
+
         static Asset* Load(const ByteSpan& data);
+        static Asset* Load(const ByteSpan& data, const std::string& filePath);
     };
 
     template<class TAsset>

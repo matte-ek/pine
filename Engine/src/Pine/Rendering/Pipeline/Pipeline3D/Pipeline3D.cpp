@@ -258,7 +258,7 @@ void Pipeline3D::Setup()
 
 	Rendering::AmbientOcclusion::UseDepthBuffer(m_DepthBuffer);
 
-	m_DepthShader = Assets::Get<Shader>("engine/shaders/3d/depth.shader");
+	m_DepthShader = Assets::Get<Shader>("engine/shaders/3d/depth");
 }
 
 void Pipeline3D::Shutdown()

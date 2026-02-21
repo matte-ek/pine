@@ -72,6 +72,7 @@ bool Pine::Script::Runtime::Setup()
 
     if (m_IsReloading)
     {
+        /*
         for (const auto& [assetPath, asset] : Assets::GetAll())
         {
             if (asset->IsDeleted())
@@ -79,6 +80,7 @@ bool Pine::Script::Runtime::Setup()
 
             asset->CreateScriptHandle();
         }
+        */
 
         for (const auto& entity : Entities::GetList())
         {
@@ -98,6 +100,7 @@ bool Pine::Script::Runtime::Setup()
 
 void Pine::Script::Runtime::Dispose()
 {
+    /*
     for (const auto& [assetPath, asset] : Assets::GetAll())
     {
         if (asset->GetType() == AssetType::CSharpScript)
@@ -110,6 +113,7 @@ void Pine::Script::Runtime::Dispose()
 
         asset->DestroyScriptHandle();
     }
+    */
 
     for (const auto& entity : Entities::GetList())
     {

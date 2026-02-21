@@ -73,10 +73,3 @@ const Pine::FontData& Pine::Font::GetFontData(std::uint32_t index) const
 void Pine::Font::Dispose()
 {
 }
-
-bool Pine::Font::LoadFromFile(AssetLoadStage stage)
-{
-    m_State = AssetState::Loaded;
-
-    return true;
-}

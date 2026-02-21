@@ -5,13 +5,11 @@
 Pine::Tilemap::Tilemap()
 {
     m_Type = AssetType::Tilemap;
-    m_LoadMode = AssetLoadMode::MultiThread;
 }
 
 void Pine::Tilemap::SetTileset(Tileset* tileset)
 {
     m_Tileset = tileset;
-    m_HasBeenModified = true;
 }
 
 Pine::Tileset* Pine::Tilemap::GetTileset() const
@@ -81,6 +79,7 @@ const Pine::TileInstance* Pine::Tilemap::GetTileByPosition(Vector2i gridPosition
     return nullptr;
 }
 
+/*
 bool Pine::Tilemap::LoadFromFile(AssetLoadStage stage)
 {
     auto jsonOpt = SerializationJson::LoadFromFile(m_FilePath);
@@ -146,3 +145,4 @@ bool Pine::Tilemap::SaveToFile()
 
     return true;
 }
+*/

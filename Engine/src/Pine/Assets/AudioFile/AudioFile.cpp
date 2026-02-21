@@ -25,10 +25,6 @@ namespace Pine
     AudioFile::AudioFile()
     {
         m_Type = AssetType::Audio;
-
-        // Loading and parsing the actual audio files can probably be done multi-threaded,
-        // but let's do single threaded for now.
-        m_LoadMode = AssetLoadMode::MultiThread;
     }
 
     bool AudioFile::ProcessFile()
@@ -86,15 +82,6 @@ namespace Pine
         }
 
         return sourceId;
-    }
-
-    bool AudioFile::LoadFromFile(AssetLoadStage stage)
-    {
-        const bool ret = ProcessFile();
-
-        m_State = AssetState::Loaded;
-
-        return ret;
     }
 
     void AudioFile::Dispose()

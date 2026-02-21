@@ -304,9 +304,9 @@ namespace
         void PrepareFrame()
         {
             if (m_FilledRectangleRender.m_Shader == nullptr)
-                m_FilledRectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect-filled.shader");
+                m_FilledRectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect-filled");
             if (m_RectangleRender.m_Shader == nullptr)
-                m_RectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect-filled.shader");
+                m_RectangleRender.m_Shader = Assets::Get<Shader>("engine/shaders/2d/rect-filled");
 
             if (!m_FilledRectangleRender.m_Ready)
                 m_FilledRectangleRender.Create(false);

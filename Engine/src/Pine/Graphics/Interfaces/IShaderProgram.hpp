@@ -8,7 +8,7 @@ namespace Pine::Graphics
 
     enum class ShaderType
     {
-        Vertex,
+        Vertex = 0,
         Fragment,
         Compute,
         Geometry,

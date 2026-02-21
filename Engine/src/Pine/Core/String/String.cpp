@@ -59,3 +59,14 @@ std::string Pine::String::ToUpper(const std::string& str)
 
     return ret;
 }
+
+std::string Pine::String::Trim(std::string str)
+{
+    // https://stackoverflow.com/a/217605
+
+    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](unsigned char ch) {
+       return !std::isspace(ch);
+    }));
+
+    return str;
+}

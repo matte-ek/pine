@@ -188,7 +188,6 @@ namespace
 Pine::Terrain::Terrain()
 {
     m_Type = AssetType::Terrain;
-    m_LoadMode = AssetLoadMode::SingleThread;
 }
 
 void Pine::Terrain::CreateChunk(Vector2i position, Pine::Texture2D* heightMap)
@@ -199,14 +198,13 @@ void Pine::Terrain::CreateChunk(Vector2i position, Pine::Texture2D* heightMap)
     chunk.HeightmapTexture = heightMap;
 
     m_Chunks.push_back(chunk);
-    m_HasBeenModified = true;
 }
 
 void Pine::Terrain::Generate()
 {
     PINE_PF_SCOPE();
 
-    Log::Info(fmt::format("Generating terrain {}...", m_FileName));
+    Log::Info(fmt::format("Generating terrain {}...", m_FilePath.string()));
 
     for (auto& chunk : m_Chunks)
     {
@@ -222,6 +220,8 @@ std::vector<Pine::TerrainChunk>& Pine::Terrain::GetChunks()
 {
     return m_Chunks;
 }
+
+/*
 
 bool Pine::Terrain::LoadFromFile(AssetLoadStage stage)
 {
@@ -270,6 +270,7 @@ bool Pine::Terrain::SaveToFile()
 
     return true;
 }
+*/
 
 void Pine::Terrain::Dispose()
 {

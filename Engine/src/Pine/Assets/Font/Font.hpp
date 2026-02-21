@@ -27,8 +27,6 @@ namespace Pine
 
         const FontData& GetFontData(std::uint32_t index) const;
 
-        bool LoadFromFile(AssetLoadStage stage) override;
-
         void Dispose() override;
     };
 

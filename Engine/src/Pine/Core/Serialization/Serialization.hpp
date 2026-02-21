@@ -1,14 +1,19 @@
 ﻿#pragma once
+#include <filesystem>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
-#include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/Asset/Asset.hpp"
+#include "Pine/Core/Guid/Guid.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/Span/Span.hpp"
 #include "Pine/Input/Input.hpp"
+
+namespace Pine
+{
+    template<class T>
+    class AssetHandle;
+}
 
 namespace Pine::Serialization
 {
@@ -115,6 +120,16 @@ namespace Pine::Serialization
             assert(sizeof(TPrimitive) == m_DataSize);
 
             return *static_cast<const TPrimitive*>(GetData());
+        }
+
+        template<typename TAsset>
+        bool Write(const AssetHandle<TAsset>& handle)
+        {
+            assert(m_DataSize == sizeof(Guid));
+
+            memcpy(m_Data, &handle, sizeof(Guid));
+
+            return true;
         }
 
         template<typename TPrimitive>
@@ -227,12 +242,12 @@ namespace Pine::Serialization
         template<typename TElement, size_t TSize>
         void Write(const std::array<TElement, TSize>& data)
         {
-            if (GetDataCount() != TSize || m_DataStride != sizeof(TElement))
+            if (m_DataStride != sizeof(TElement))
             {
                 return;
             }
 
-            WriteRaw(data.data(), data.size());
+            WriteRaw(data.data(), data.size() * sizeof(TElement));
         }
 
         template<typename TElement>
@@ -247,6 +262,17 @@ namespace Pine::Serialization
             vec.resize(GetDataCount());
 
             memcpy(vec.data(), GetData(), GetDataSize());
+        }
+
+        template<typename TElement>
+        void Write(const std::vector<TElement>& vec)
+        {
+            if (m_DataStride != sizeof(TElement))
+            {
+                return;
+            }
+
+            WriteRaw(vec.data(), vec.size() * sizeof(TElement));
         }
 
         std::uint32_t GetDataCount() const;

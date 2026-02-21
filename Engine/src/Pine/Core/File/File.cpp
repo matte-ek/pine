@@ -5,6 +5,7 @@
 #include <zlib.h>
 
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Core/String/String.hpp"
 #include "Pine/Performance/Performance.hpp"
 
 Pine::ByteSpan Pine::File::ReadRaw(const std::filesystem::path& path)
@@ -111,4 +112,15 @@ std::optional<std::string> Pine::File::ReadFile(std::filesystem::path path)
     }
 
    return std::make_optional(std::string((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>()));
+}
+
+std::string Pine::File::UniversalPath(const std::string& pathString)
+{
+    // ugh.
+    return String::Replace(pathString, "\\", "/");
+}
+
+std::string Pine::File::UniversalPath(const std::filesystem::path& path)
+{
+    return String::Replace(path.string(), "\\", "/");
 }

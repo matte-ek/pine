@@ -106,13 +106,10 @@ void Pine::World::Setup()
     // Fallback to untitled level.
     if (level == nullptr)
     {
-        level = new Pine::Level();
-
-        level->SetPath("untitled.lvl");
-        level->SetFilePath("game/untitled.lvl", "game");
+        level = new Level();
     }
 
-    World::SetActiveLevel(level);
+    SetActiveLevel(level);
 }
 
 void Pine::World::OnStart()

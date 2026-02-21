@@ -21,7 +21,7 @@ namespace
     Graphics::ITexture* m_DefaultTexture = nullptr;
 
     Graphics::IShaderProgram* m_Shader = nullptr;
-    ShaderVersion m_ShaderVersion = ShaderVersion::Default;
+    ShaderVersion m_ShaderVersion = 0;
 
     Graphics::IUniformVariable* m_HasTangentData = nullptr;
     Graphics::IUniformVariable* m_HasDirectionalShadowMapUniform = nullptr;
@@ -105,19 +105,19 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         return;
     }
 
-    auto version = ShaderVersion::Default;
+    auto version = Specifications::ShaderVersions::Generic::Default;
 
     if (m_Material->GetRenderingMode() == MaterialRenderingMode::Discard)
     {
-        version = ShaderVersion::Discard;
+        version = Specifications::ShaderVersions::Generic::Discard;
     }
 
     const auto shader = m_RenderingConfiguration.OverrideShader ? m_RenderingConfiguration.OverrideShader : m_Material->GetShader();
     if (shader->GetProgram() != m_Shader ||
-        m_ShaderVersion != version ||
-        !shader->IsReady())
+        m_ShaderVersion != static_cast<std::uint32_t>(version) ||
+        !shader->IsRendererReady())
     {
-        SetShader(shader, version);
+        SetShader(shader, static_cast<std::uint32_t>(version));
     }
 
     if (!m_Shader)
@@ -285,19 +285,19 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
         if (!shader->HasShaderVersion(preferredVersion))
         {
             Log::Warning("Requested shader version not found, rendering may be affected.");
-            version = ShaderVersion::Default;
+            version = static_cast<std::uint32_t>(Specifications::ShaderVersions::Generic::Default);
         }
     }
     else
     {
-        version = ShaderVersion::Default;
+        version = static_cast<std::uint32_t>(Specifications::ShaderVersions::Generic::Default);
     }
 
     const auto shaderProgram = shader->GetProgram(version);
 
     // Make sure the renderer's shader storages has been set up properly.
     // TODO: Future vision, this "is ready" crap should probably be handled by the renderer or something instead.
-    if (!shader->IsReady(version))
+    if (!shader->IsRendererReady(version))
     {
         if (!ShaderStorages::Matrix.AttachShaderProgram(shaderProgram))
         {
@@ -329,7 +329,7 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
             Log::Warning("Renderer3D: Shader is missing 'World' shader storage, expect rendering issues.");
         }
 
-        shader->SetReady(true, version);
+        shader->SetRendererReady(true, version);
     }
 
     m_Shader = shaderProgram;

@@ -43,16 +43,11 @@ void Pine::Mesh::SetMaterial(Material*material)
 
     if (material && !material->IsMeshGenerated() && m_Model)
     {
-        m_Model->MarkAsModified();
     }
 }
 
 void Pine::Mesh::SetMaterial(const std::string &fileReference)
 {
-    assert(!fileReference.empty());
-    assert(Pine::Assets::GetState() == AssetManagerState::LoadDirectory);
-
-    Assets::AddAssetResolveReference({fileReference, reinterpret_cast<AssetHandle<Asset>*>(&m_Material), AssetType::Material});
 }
 
 Pine::Material *Pine::Mesh::GetMaterial() const

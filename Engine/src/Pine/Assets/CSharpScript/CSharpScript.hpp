@@ -22,8 +22,6 @@ namespace Pine
         void RegisterScriptComponent(ScriptComponent* scriptComponent);
         void UnregisterScriptComponent(ScriptComponent* scriptComponent);
 
-        bool LoadFromFile(AssetLoadStage stage) override;
-
         void Dispose() override;
     };
 }

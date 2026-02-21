@@ -1,4 +1,6 @@
 #include "Asset.hpp"
+
+#include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
@@ -8,11 +10,16 @@ bool Pine::Asset::LoadAssetData(const ByteSpan& span)
     return true;
 }
 
+Pine::ByteSpan Pine::Asset::SaveAssetData()
+{
+    return {nullptr, 0};
+}
+
 void Pine::Asset::SetupNew(const std::string& path, const std::filesystem::path& filePath)
 {
     m_Guid = Guid::New();
-    m_Path = path;
-    m_FilePath = filePath;
+    m_Path = File::UniversalPath(path);
+    m_FilePath = File::UniversalPath(filePath.string());
 }
 
 const Pine::Guid& Pine::Asset::GetGuid() const
@@ -32,6 +39,12 @@ const std::filesystem::path& Pine::Asset::GetFilePath() const
 
 void Pine::Asset::AddSource(const std::string& filePath)
 {
+    AssetSource src;
+
+    src.FilePath = filePath;
+    src.LastWriteTime = std::filesystem::last_write_time(filePath).time_since_epoch().count();
+
+    m_SourceFiles.push_back(src);
 }
 
 const Pine::AssetType& Pine::Asset::GetType() const
@@ -69,7 +82,17 @@ Pine::Script::ObjectHandle* Pine::Asset::GetScriptHandle()
     return &m_ScriptObjectHandle;
 }
 
+void Pine::Asset::SaveToFile()
+{
+    File::WriteCompressed(m_FilePath, Save());
+}
+
 Pine::Asset* Pine::Asset::Load(const ByteSpan& data)
+{
+    return Load(data, "");
+}
+
+Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath)
 {
     AssetSerializer aSerializer;
 
@@ -108,6 +131,8 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data)
         return nullptr;
     }
 
+    asset->m_FilePath = File::UniversalPath(filePath);
+
     return asset;
 }
 
@@ -118,5 +143,24 @@ bool Pine::Asset::Import()
 
 Pine::ByteSpan Pine::Asset::Save()
 {
-    return {nullptr, 0};
+    AssetSerializer aSerializer;
+
+    aSerializer.Guid.Write(m_Guid);
+    aSerializer.Type.Write(m_Type);
+    aSerializer.Path.Write(m_Path);
+    aSerializer.Dependencies.Write(m_Dependencies);
+
+    for (size_t i{};i < m_SourceFiles.size();i++)
+    {
+        AssetSourceSerializer aSourceSerializer;
+
+        aSourceSerializer.FilePath.Write(m_SourceFiles[i].FilePath);
+        aSourceSerializer.LastWriteTime.Write(m_SourceFiles[i].LastWriteTime);
+
+        aSerializer.Sources.AddData(aSourceSerializer.Write());
+    }
+
+    aSerializer.Data.Write(SaveAssetData());
+
+    return aSerializer.Write();
 }

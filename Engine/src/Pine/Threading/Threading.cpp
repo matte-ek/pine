@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <deque>
 #include <optional>
+#include <utility>
 
 #include "Pine/Engine/Engine.hpp"
 
@@ -15,14 +16,17 @@ namespace
 
     std::vector<std::thread> m_Threads;
 
+    // Task pools
     std::mutex m_TaskPoolMutex;
     std::vector<Pine::TaskPool*> m_TaskPools;
 
+    // Random thread tasks
     std::mutex m_TaskQueueMutex;
     std::condition_variable m_TaskQueueUpdated;
     std::deque<std::shared_ptr<Pine::Task>> m_TasksQueue;
     std::deque<std::shared_ptr<Pine::Task>> m_RunningTasks;
 
+    // Main thread tasks
     std::mutex m_MainThreadQueueMutex;
     std::deque<std::shared_ptr<Pine::Task>> m_MainThreadTasksQueue;
     std::atomic m_MainThreadJobs = 0;
@@ -55,24 +59,25 @@ namespace
     {
         task->State = Pine::TaskState::Running;
 
-        task->Result = task->WorkFunction(task->WorkData);
+        task->Result = task->Func();
 
-        std::unique_lock lck(task->Mutex);
+        std::unique_lock taskLock(task->Mutex);
 
         task->State = Pine::TaskState::Finished;
 
-        {
-            std::unique_lock lock(m_TaskQueueMutex);
+        // Remove the task from the "running task" list:
+        std::unique_lock taskQueueLock(m_TaskQueueMutex);
 
-            for (size_t i{}; i < m_TasksQueue.size(); ++i)
+        for (size_t i{}; i < m_TasksQueue.size(); ++i)
+        {
+            if (m_RunningTasks[i] == task)
             {
-                if (m_RunningTasks[i] == task)
-                {
-                    m_RunningTasks.erase(m_RunningTasks.begin() + i);
-                    break;
-                }
+                m_RunningTasks.erase(m_RunningTasks.begin() + i);
+                break;
             }
         }
+
+        taskQueueLock.unlock();
 
         task->ConditionVariable.notify_all();
     }
@@ -111,6 +116,7 @@ void Pine::Threading::Setup()
     const auto engineConfiguration = Engine::GetEngineConfiguration();
 
     m_IsRunning = true;
+    m_MainThreadId = std::this_thread::get_id();
 
     for (int i = 0; i < engineConfiguration.m_ThreadPoolWorkers;i++)
     {
@@ -157,12 +163,11 @@ void Pine::Threading::DeleteTaskPool(TaskPool* taskPool)
     delete taskPool;
 }
 
-std::shared_ptr<Pine::Task> Pine::Threading::QueueTask(TaskFunc taskFunction, TaskData data, TaskThreadingMode mode, TaskPool* pool)
+std::shared_ptr<Pine::Task> Pine::Threading::AddTaskToQueue(TaskFunc taskFunction, TaskThreadingMode mode, TaskPool* pool)
 {
     auto task = std::make_shared<Task>();
 
-    task->WorkFunction = taskFunction;
-    task->WorkData = data;
+    task->Func = std::move(taskFunction);
     task->Pool = pool;
 
     if (pool != nullptr)
@@ -183,8 +188,9 @@ std::shared_ptr<Pine::Task> Pine::Threading::QueueTask(TaskFunc taskFunction, Ta
     }
     else
     {
-        std::unique_lock lock(m_MainThreadQueueMutex);
-        std::unique_lock lock2(m_TaskQueueMutex);
+        std::unique_lock mainThreadLock(m_MainThreadQueueMutex);
+        std::unique_lock taskQueueLock(m_TaskQueueMutex);
+        std::unique_lock taskPoolLock(m_TaskPoolMutex);
 
         ++m_MainThreadJobs;
 
@@ -193,6 +199,11 @@ std::shared_ptr<Pine::Task> Pine::Threading::QueueTask(TaskFunc taskFunction, Ta
         for (const auto& runningTask : m_RunningTasks)
         {
             runningTask->ConditionVariable.notify_all();
+        }
+
+        for (const auto& taskPools : m_TaskPools)
+        {
+            taskPools->ConditionVariable.notify_all();
         }
     }
 
