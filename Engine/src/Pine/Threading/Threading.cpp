@@ -58,6 +58,7 @@ namespace
     void ExecuteTask(const std::shared_ptr<Pine::Task>& task)
     {
         task->State = Pine::TaskState::Running;
+        task->ThreadId = std::this_thread::get_id();
 
         task->Result = task->Func();
 
@@ -208,6 +209,23 @@ std::shared_ptr<Pine::Task> Pine::Threading::AddTaskToQueue(TaskFunc taskFunctio
     }
 
     return task;
+}
+
+std::shared_ptr<Pine::Task> Pine::Threading::GetCurrentTask()
+{
+    std::unique_lock lock(m_TaskQueueMutex);
+
+    const auto threadId = std::this_thread::get_id();
+
+    for (const auto& task : m_RunningTasks)
+    {
+        if (task->ThreadId == threadId)
+        {
+            return task;
+        }
+    }
+
+    return nullptr;
 }
 
 Pine::TaskResult Pine::Threading::AwaitTaskResult(const std::shared_ptr<Task>& task)

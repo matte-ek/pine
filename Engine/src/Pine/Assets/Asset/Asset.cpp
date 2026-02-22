@@ -4,6 +4,7 @@
 #include "Pine/Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
+#include "Pine/Threading/Threading.hpp"
 
 bool Pine::Asset::LoadAssetData(const ByteSpan& span)
 {
@@ -52,9 +53,13 @@ const Pine::AssetType& Pine::Asset::GetType() const
     return m_Type;
 }
 
+const Pine::AssetState& Pine::Asset::GetState() const
+{
+    return m_State;
+}
+
 void Pine::Asset::RemoveSource(const std::string& filePath)
 {
-
 }
 
 const std::vector<Pine::AssetSource>& Pine::Asset::GetSources() const
@@ -142,11 +147,23 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
         return asset;
     }
 
+    if (!asset->m_Dependencies.empty())
+    {
+        for (const auto& dep : asset->m_Dependencies)
+        {
+            // We don't really care about the result right now, we can get that later.
+            // Important thing is that we've loaded the asset.
+            Assets::LoadAssetFromFile(fmt::format("data/{}.passet", dep.ToString()));
+        }
+    }
+
     if (!asset->LoadAssetData(aSerializer.Data.Read()))
     {
         delete asset;
         return nullptr;
     }
+
+    asset->m_State = AssetState::Loaded;
 
     return asset;
 }

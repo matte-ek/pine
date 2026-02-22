@@ -131,11 +131,23 @@ void Pine::Serialization::DataFixed::WriteRaw(const void* data, size_t size)
         return;
     }
 
+    if (m_Data != nullptr)
+    {
+        free(m_Data);
+    }
+
     m_Data = malloc(size);
 
     memcpy(m_Data, data, size);
 
     m_DataSize = size;
+}
+
+void Pine::Serialization::DataFixed::WritePortion(const void* data, size_t size, size_t offset) const
+{
+    assert(m_DataSize >= size + offset);
+
+    memcpy(static_cast<char*>(m_Data) + offset, data, size);
 }
 
 Pine::ByteSpan Pine::Serialization::DataFixed::Read() const
@@ -227,6 +239,19 @@ bool Pine::Serialization::DataFixed::ReadRaw(void** data, size_t& size) const
     return true;
 }
 
+void Pine::Serialization::DataFixed::AllocateData(size_t size)
+{
+    if (m_Data != nullptr)
+    {
+        free(m_Data);
+    }
+
+    m_Data = malloc(size);
+    m_DataSize = size;
+
+    memset(m_Data, 0, size);
+}
+
 const void* Pine::Serialization::DataFixed::GetData() const
 {
     return m_Data;
@@ -297,6 +322,11 @@ Pine::Serialization::DataArrayFixed::DataArrayFixed(Serializer* parentSerializer
     : DataFixed(parentSerializer, DataType::Data, name),
         m_DataStride(elementSize)
 {
+}
+
+void Pine::Serialization::DataArrayFixed::SetSize(uint32_t size)
+{
+    AllocateData(m_DataStride * size);
 }
 
 std::uint32_t Pine::Serialization::DataArrayFixed::GetDataCount() const

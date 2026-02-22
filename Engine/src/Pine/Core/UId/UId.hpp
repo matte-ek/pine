@@ -26,8 +26,10 @@ namespace Pine
         std::string ToString() const;
 
         bool operator==(const UId& other) const;
+        bool operator!=(const UId& other) const;
 
         static UId New();
+        static UId Empty();
     };
 }
 

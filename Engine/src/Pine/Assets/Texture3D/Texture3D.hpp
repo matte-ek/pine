@@ -22,20 +22,24 @@ namespace Pine
 
         bool m_Valid = false;
 
-        AssetHandle<Texture2D> m_Texture;
         std::array<AssetHandle<Texture2D>, 6> m_SideTextures;
+
+        bool LoadAssetData(const ByteSpan& span) override;
+        ByteSpan SaveAssetData() override;
+
+        struct Texture3DSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ARRAY_FIXED(SideTextures, UId);
+        };
     public:
         Texture3D();
-
-        void SetTexture(Texture2D* texture);
-        Texture2D* GetTexture() const;
 
         void SetSideTexture(TextureCubeSide, Texture2D* texture);
         Texture2D* GetSideTexture(TextureCubeSide side) const;
 
-        bool IsValid() const;
-
         Graphics::ITexture* GetCubeMap() const;
+
+        bool IsValid() const;
 
         bool Build();
 

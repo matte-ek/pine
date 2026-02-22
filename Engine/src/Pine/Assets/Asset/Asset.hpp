@@ -76,7 +76,6 @@ namespace Pine
     enum class AssetState
     {
         Unloaded, // The engine knows about the asset's existence, but hasn't loaded it at all.
-        Preparing, // If the asset is in the process of being loaded, probably used with `MultiThreadPrepare`
         Loaded // The asset has been loaded and is ready for use.
     };
 
@@ -148,6 +147,7 @@ namespace Pine
 
         const UId& GetUId() const;
         const AssetType& GetType() const;
+        const AssetState& GetState() const;
 
         const std::string& GetPath() const;
         const std::filesystem::path& GetFilePath() const;
@@ -174,11 +174,18 @@ namespace Pine
         static Asset* LoadFromFile(const std::filesystem::path& filePath, bool ignoreAssetData = false);
     };
 
+    namespace Assets
+    {
+        Asset* GetAssetByUId(UId id);
+    }
+
     template<class TAsset>
     class AssetHandle
     {
     private:
         UId m_UId;
+
+        // cached pointer to the underlying asset.
         mutable TAsset *m_Asset = nullptr;
     public:
         AssetHandle() = default;
@@ -189,14 +196,26 @@ namespace Pine
 
         TAsset *Get() const
         {
-            // Make sure to remove any pending deletion assets
+            // Make sure to validate that the handle is still valid.
             if (m_Asset)
             {
-                if (reinterpret_cast<Asset *>(m_Asset)->m_IsDeleted)
+                auto assetType = reinterpret_cast<Asset *>(m_Asset);
+
+                if (assetType->m_IsDeleted)
                 {
                     --reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
                     m_Asset = nullptr;
                 }
+                else if (assetType->GetUId() != m_UId)
+                {
+                    m_Asset = nullptr;
+                }
+            }
+
+            // If not cached, attempt to get a pointer.
+            if (!m_Asset)
+            {
+                m_Asset = dynamic_cast<TAsset*>(Assets::GetAssetByUId(m_UId));
             }
 
             return m_Asset;
@@ -209,23 +228,54 @@ namespace Pine
 
         AssetHandle &operator=(Asset *asset)
         {
-            // Decrease the ref count on the asset we already have
+            // Decrease the ref count on the asset we might already have
             if (m_Asset != nullptr)
+            {
                 --reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
+            }
 
-            // Assign the new asset
-            m_Asset = static_cast<TAsset *>(asset);
-
-            // Make sure the new asset updates its reference count
             if (asset != nullptr)
+            {
+                m_UId = asset->GetUId();
+                m_Asset = static_cast<TAsset *>(asset);
+
                 ++reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
+            }
+            else
+            {
+                m_Asset = nullptr;
+                m_UId = UId::Empty();
+            }
 
             return *this;
         }
 
-        inline bool operator==(const Asset *b)
+        AssetHandle &operator=(UId id)
+        {
+            m_UId = id;
+            m_Asset = nullptr;
+
+            return *this;
+        }
+
+        bool operator==(const Asset *b) const
         {
             return m_Asset == b;
+        }
+
+        bool operator==(const AssetHandle &b) const
+        {
+            return m_UId == b.m_UId;
+        }
+
+        bool operator==(const UId &id) const
+        {
+            return m_UId == id;
+        }
+
+        bool operator!=(const UId& id) const
+        {
+            return m_UId != id;
         }
     };
 }

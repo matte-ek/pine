@@ -48,6 +48,11 @@ bool Pine::UId::operator==(const UId& other) const
     return this->m_Random == other.m_Random && this->m_Time == other.m_Time;
 }
 
+bool Pine::UId::operator!=(const UId& other) const
+{
+    return !(*this == other);
+}
+
 Pine::UId Pine::UId::New()
 {
     static std::mt19937_64 rng(std::random_device{}());
@@ -59,4 +64,9 @@ Pine::UId Pine::UId::New()
     uid.m_Random = dist(rng);
 
     return uid;
+}
+
+Pine::UId Pine::UId::Empty()
+{
+    return UId();
 }

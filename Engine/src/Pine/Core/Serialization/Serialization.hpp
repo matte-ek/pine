@@ -152,6 +152,8 @@ namespace Pine::Serialization
         void* m_Data;
         size_t m_DataSize;
     protected:
+        void AllocateData(size_t size);
+
         const void* GetData() const;
         size_t GetDataSize() const override;
     public:
@@ -160,6 +162,7 @@ namespace Pine::Serialization
 
         bool ReadRaw(void** data, size_t& size) const;
         void WriteRaw(const void* data, size_t size);
+        void WritePortion(const void* data, size_t size, size_t offset) const;
 
         ByteSpan Read() const;
 
@@ -168,32 +171,6 @@ namespace Pine::Serialization
 
         bool Read(ByteSpan& span) const;
         void Write(const ByteSpan& span);
-
-        /*
-        template <typename TAsset>
-        bool Read(AssetHandle<TAsset>& handle)
-        {
-            if (m_DataSize == 0 || GetType() != DataType::Asset)
-            {
-                return false;
-            }
-
-            std::string path(static_cast<const char*>(m_Data), m_DataSize);
-
-            return true;
-        }
-
-        template <typename TAsset>
-        void Write(AssetHandle<TAsset>& handle)
-        {
-            if (GetType() != DataType::Asset)
-            {
-                throw std::logic_error("Data type invalid.");
-            }
-
-            Write(handle.Get() == nullptr ? "null" : handle.Get()->GetPath());
-        }
-        */
 
         friend class Serializer;
     };
@@ -274,6 +251,28 @@ namespace Pine::Serialization
 
             WriteRaw(vec.data(), vec.size() * sizeof(TElement));
         }
+
+        template<typename TElement>
+        TElement ReadElement(uint32_t elementId)
+        {
+            assert(elementId < GetDataCount() && m_DataStride == sizeof(TElement));
+
+            TElement ret{};
+
+            memcpy(&ret, static_cast<const char*>(GetData()) + sizeof(TElement) * elementId, sizeof(TElement));
+
+            return ret;
+        }
+
+        template<typename TElement>
+        void WriteElement(uint32_t elementId, const TElement& data)
+        {
+            assert(elementId < GetDataCount() && m_DataStride == sizeof(TElement));
+
+            WritePortion(&data, sizeof(TElement), sizeof(TElement) * elementId);
+        }
+
+        void SetSize(uint32_t size);
 
         std::uint32_t GetDataCount() const;
     };

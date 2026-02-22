@@ -30,9 +30,9 @@ namespace Pine
         // of whatever user work.
         TaskFunc Func = nullptr;
 
-        bool HasReturnFunc = false;
-
         TaskResult Result = nullptr;
+
+        std::thread::id ThreadId;
 
         std::atomic<TaskState> State = TaskState::Queued;
 
@@ -82,6 +82,8 @@ namespace Pine
                 return AddTaskToQueue(func, mode, pool);
             }
         }
+
+        std::shared_ptr<Task> GetCurrentTask();
 
         TaskResult AwaitTaskResult(const std::shared_ptr<Task>& task);
 

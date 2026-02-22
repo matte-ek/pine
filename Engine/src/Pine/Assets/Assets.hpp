@@ -3,18 +3,6 @@
 
 #include <filesystem>
 
-namespace Pine
-{
-
-    enum class AssetManagerState
-    {
-        Idle,
-        LoadFile,
-        LoadDirectory
-    };
-
-}
-
 namespace Pine::Assets
 {
     /// ---------------------------------------------------------------------------------------------------
@@ -55,13 +43,13 @@ namespace Pine::Assets
     /// Accessing assets
     /// ---------------------------------------------------------------------------------------------------
 
-    Asset* GetAssetByGuid(UId id);
+    Asset* GetAssetByUId(UId id);
     Asset* GetAssetByPath(std::string_view path);
 
     template<typename TAsset>
     TAsset* Get(UId id)
     {
-        return GetAssetByGuid(id);
+        return GetAssetByUId(id);
     }
 
     template<typename TAsset>
@@ -78,10 +66,6 @@ namespace Pine::Assets
 
     namespace Internal
     {
-        // Gets what state the asset manager is in, such as if we're in the process of loading a directory.
-        // Useful for parts of the engine to determine if assets can be added as an AssetResolveReference.
-        AssetManagerState GetState();
-
         const std::string& GetWorkingDirectory();
 
         Asset* CreateAssetByType(AssetType type);

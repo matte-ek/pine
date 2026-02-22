@@ -3,87 +3,69 @@
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "../../Core/Serialization/Json/SerializationJson.hpp"
+#include "Pine/Threading/Threading.hpp"
+
+bool Pine::Texture3D::LoadAssetData(const ByteSpan& span)
+{
+    Texture3DSerializer textureSerializer;
+
+    if (!textureSerializer.Read(span))
+    {
+        return false;
+    }
+
+    bool hasReadyCubeMap = true;
+
+    for (size_t i = 0; i < 6; i++)
+    {
+        m_SideTextures[i] = textureSerializer.SideTextures.ReadElement<UId>(i);
+
+        if (m_SideTextures[i] == UId::Empty())
+        {
+            hasReadyCubeMap = false;
+        }
+    }
+
+    if (hasReadyCubeMap)
+    {
+        auto task = Threading::QueueTask<void>([this]()
+        {
+            Build();
+        }, TaskThreadingMode::MainThread);
+
+        Threading::AwaitTaskResult(task);
+    }
+
+    return true;
+}
+
+Pine::ByteSpan Pine::Texture3D::SaveAssetData()
+{
+    Texture3DSerializer textureSerializer;
+
+    m_Dependencies.clear();
+
+    textureSerializer.SideTextures.SetSize(m_SideTextures.size());
+
+    for (size_t i{}; i < m_SideTextures.size(); i++)
+    {
+        bool sideTextureValid = m_SideTextures[i].Get() != nullptr;
+
+        textureSerializer.SideTextures.WriteElement(i, sideTextureValid ? m_SideTextures[i]->GetUId() : UId::Empty());
+
+        if (sideTextureValid)
+        {
+            m_Dependencies.push_back(m_SideTextures[i]->GetUId());
+        }
+    }
+
+    return textureSerializer.Write();
+}
 
 Pine::Texture3D::Texture3D()
 {
     m_Type = AssetType::Texture3D;
 }
-
-/*
-bool Pine::Texture3D::LoadFromFile()
-{
-    auto j = SerializationJson::LoadFromFile(m_FilePath);
-
-    if (!j.has_value())
-    {
-        Log::Error("Error loading Texture3D, JSON is empty.");
-        return false;
-    }
-
-    const auto json = j.value();
-
-    bool readyToBuild = false;
-
-    SerializationJson::LoadAsset(json, "texture", m_Texture, false);
-
-    if (!m_Texture.Get())
-    {
-        readyToBuild = true;
-
-        for (int i = 0; i < 6;i++)
-        {
-            SerializationJson::LoadAsset(json["side"], std::to_string(i), m_SideTextures[i], false);
-
-            if (!m_SideTextures[i].Get())
-            {
-                readyToBuild = false;
-            }
-        }
-    }
-    else
-    {
-        readyToBuild = true;
-    }
-
-    if (readyToBuild)
-    {
-        Build();
-    }
-
-    m_State = AssetState::Loaded;
-
-    return true;
-}
-
-bool Pine::Texture3D::SaveToFile()
-{
-    nlohmann::json j;
-
-    j["texture"] = SerializationJson::StoreAsset(m_Texture.Get());
-
-    if (m_Texture.Get())
-    {
-        m_DependencyFiles.push_back(m_Texture->GetFilePath().string());
-    }
-
-    for (int i = 0; i < 6;i++)
-    {
-        j["side"][std::to_string(i)] = SerializationJson::StoreAsset(m_SideTextures[i].Get());
-
-        if (m_SideTextures[i].Get())
-        {
-            m_DependencyFiles.push_back(m_SideTextures[i]->GetFilePath().string());
-        }
-    }
-
-    m_HasDependencies = true;
-
-    SerializationJson::SaveToFile(m_FilePath, j);
-
-    return true;
-}
-
-*/
 
 void Pine::Texture3D::Dispose()
 {
@@ -93,16 +75,6 @@ void Pine::Texture3D::Dispose()
 
         m_CubeMapTexture = nullptr;
     }
-}
-
-void Pine::Texture3D::SetTexture(Texture2D*texture)
-{
-    m_Texture = texture;
-}
-
-Pine::Texture2D *Pine::Texture3D::GetTexture() const
-{
-    return m_Texture.Get();
 }
 
 void Pine::Texture3D::SetSideTexture(TextureCubeSide side, Texture2D*texture)
@@ -123,18 +95,15 @@ Pine::Graphics::ITexture *Pine::Texture3D::GetCubeMap() const
 bool Pine::Texture3D::Build()
 {
     // Make sure we have all textures required
-    if (m_Texture.Get() == nullptr)
+    for (int i = 0; i < 6;i++)
     {
-        for (int i = 0; i < 6;i++)
+        if (m_SideTextures[i].Get() == nullptr)
         {
-            if (m_SideTextures[i].Get() == nullptr)
-            {
-                Log::Warning("Cannot build cube map, missing textures.");
+            Log::Warning("Cannot build cube map, missing textures.");
 
-                m_Valid = false;
+            m_Valid = false;
 
-                return false;
-            }
+            return false;
         }
     }
 
@@ -149,30 +118,19 @@ bool Pine::Texture3D::Build()
     m_CubeMapTexture->SetType(Graphics::TextureType::CubeMap);
     m_CubeMapTexture->Bind();
 
-    if (m_Texture.Get() != nullptr)
+    // Build cube map via 6 individual textures
+    for (int i = 0; i < 6;i++)
     {
-        // TODO: Build cube map with the single texture
-    }
-    else
-    {
-        // Build cube map via 6 individual textures
-        for (int i = 0; i < 6;i++)
+        auto side = m_SideTextures[i].Get();
+
+        if (side->GetState() != AssetState::Loaded)
         {
-            auto side = m_SideTextures[i].Get();
-
-            /*
-            if (side->GetState() != AssetState::Loaded)
-            {
-                Log::Error("Attempted to build cube map with unloaded textures.");
-
-                m_Valid = false;
-
-                return false;
-            }
-            */
-
-            m_CubeMapTexture->CopyTextureData(side->GetGraphicsTexture(), static_cast<Graphics::TextureUploadTarget>(i + 1));
+            Log::Error("Attempted to build cube map with unloaded textures.");
+            m_Valid = false;
+            return false;
         }
+
+        m_CubeMapTexture->CopyTextureData(side->GetGraphicsTexture(), static_cast<Graphics::TextureUploadTarget>(i + 1));
     }
 
     m_CubeMapTexture->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
