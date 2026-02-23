@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Commands
+namespace Editor::Commands
 {
     void Setup();
     void Dispose();

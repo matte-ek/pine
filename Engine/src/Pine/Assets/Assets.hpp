@@ -68,6 +68,8 @@ namespace Pine::Assets
     {
         const std::string& GetWorkingDirectory();
 
+        std::string ResolveSourceFilePath(const AssetSource& assetSource);
+
         Asset* CreateAssetByType(AssetType type);
     }
 }

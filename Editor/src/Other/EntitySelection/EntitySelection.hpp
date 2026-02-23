@@ -2,7 +2,7 @@
 
 #include "Pine/Core/Math/Math.hpp"
 
-namespace EntitySelection
+namespace Editor::Gui::EntitySelection
 {
     void Setup();
     void Dispose();

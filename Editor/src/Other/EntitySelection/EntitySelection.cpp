@@ -1,17 +1,17 @@
 #include "EntitySelection.hpp"
-#include "Pine/Rendering/RenderingContext.hpp"
-#include "Pine/Rendering/RenderManager/RenderManager.hpp"
-#include "Pine/Graphics/Graphics.hpp"
+#include "Gui/Shared/Selection/Selection.hpp"
 #include "Other/EditorEntity/EditorEntity.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Graphics/Graphics.hpp"
+#include "Pine/Rendering/RenderingContext.hpp"
+#include "Pine/Rendering/Pipeline/Pipeline2D/Pipeline2D.hpp"
+#include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
+#include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
-#include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
-#include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
-#include "Pine/Rendering/Pipeline/Pipeline2D/Pipeline2D.hpp"
-#include "Pine/Assets/Assets.hpp"
 #include "Pine/World/Entities/Entities.hpp"
-#include "Pine/Core/Log/Log.hpp"
-#include "Gui/Shared/Selection/Selection.hpp"
 #include "Rendering/RenderHandler.hpp"
 
 namespace
@@ -139,7 +139,7 @@ namespace
         if (stage == Pine::RenderStage::PreRender)
         {
             m_EntitySelectionRenderingContext.Active = true;
-            m_EntitySelectionRenderingContext.Size = RenderHandler::GetLevelRenderingContext()->Size;
+            m_EntitySelectionRenderingContext.Size = Editor::RenderHandler::GetLevelRenderingContext()->Size;
 
             return;
         }
@@ -155,7 +155,7 @@ namespace
             return;
         }
 
-        if (EditorEntity::GetPerspective2D())
+        if (Editor::LevelEntity::GetPerspective2D())
         {
             HandleRendering2D(context);
         }
@@ -198,7 +198,7 @@ namespace
     }
 }
 
-void EntitySelection::Setup()
+void Editor::Gui::EntitySelection::Setup()
 {
     m_ObjectSolidShader3D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid.shader");
     m_ObjectSolidShader2D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid-2d.shader");
@@ -213,20 +213,20 @@ void EntitySelection::Setup()
     m_EntitySelectionRenderingContext.UseRenderPipeline = false;
     m_EntitySelectionRenderingContext.EnableStencilBuffer = false;
     m_EntitySelectionRenderingContext.FrameBuffer = m_FrameBuffer;
-    m_EntitySelectionRenderingContext.SceneCamera = EditorEntity::Get()->GetComponent<Pine::Camera>();
+    m_EntitySelectionRenderingContext.SceneCamera = LevelEntity::Get()->GetComponent<Pine::Camera>();
 
     Pine::RenderManager::AddRenderingContextPass(&m_EntitySelectionRenderingContext);
     Pine::RenderManager::AddRenderCallback(OnRender);
 }
 
-void EntitySelection::Dispose()
+void Editor::Gui::EntitySelection::Dispose()
 {
     Pine::Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_FrameBuffer);
 
     m_FrameBuffer = nullptr;
 }
 
-void EntitySelection::Pick(Pine::Vector2i cursorPosition, bool pickMultiple)
+void Editor::Gui::EntitySelection::Pick(Pine::Vector2i cursorPosition, bool pickMultiple)
 {
     m_PickEntity = true;
     m_CursorPosition = cursorPosition;

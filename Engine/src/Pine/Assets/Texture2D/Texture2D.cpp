@@ -24,6 +24,8 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
     textureSerializer.Height.Read(m_Height);
     textureSerializer.TextureFormat.Read(m_Format);
     textureSerializer.FilteringMode.Read(m_FilteringMode);
+    textureSerializer.MipFilteringMode.Read(m_MipFilteringMode);
+    textureSerializer.WrapMode.Read(m_WrapMode);
     textureSerializer.CompressionFormat.Read(m_CompressionFormat);
     textureSerializer.ImportUsageHint.Read(m_ImportConfiguration.UsageHint);
     textureSerializer.ImportGenerateMipMaps.Read(m_ImportConfiguration.GenerateMipmaps);
@@ -43,7 +45,10 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
             if (m_Texture == nullptr)
             {
                 m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
+
                 m_Texture->SetFilteringMode(m_FilteringMode);
+                m_Texture->SetMipmapFilteringMode(m_MipFilteringMode);
+                m_Texture->SetTextureWrapMode(m_WrapMode);
             }
 
             m_Texture->Bind();
@@ -124,12 +129,67 @@ Pine::ByteSpan Pine::Texture2D::GetTextureData() const
     // Call HasTextureData() first!
     assert(m_TextureData != nullptr);
 
-    return ByteSpan(static_cast<std::byte*>(m_TextureData), m_TextureDataSize);
+    return {static_cast<std::byte*>(m_TextureData), m_TextureDataSize};
 }
 
 Pine::Graphics::TextureFormat Pine::Texture2D::GetFormat() const
 {
     return m_Format;
+}
+
+Pine::Graphics::TextureCompressionFormat Pine::Texture2D::GetCompressionFormat() const
+{
+    return m_CompressionFormat;
+}
+
+void Pine::Texture2D::SetFilteringMode(Graphics::TextureFilteringMode textureFilteringMode)
+{
+    m_FilteringMode = textureFilteringMode;
+
+    if (m_Texture != nullptr)
+    {
+        m_Texture->SetFilteringMode(textureFilteringMode);
+    }
+}
+
+Pine::Graphics::TextureFilteringMode Pine::Texture2D::GetFilteringMode() const
+{
+    return m_FilteringMode;
+}
+
+void Pine::Texture2D::SetMipFilteringMode(Graphics::TextureFilteringMode textureFilteringMode)
+{
+    m_MipFilteringMode = textureFilteringMode;
+
+    if (m_Texture != nullptr)
+    {
+        m_Texture->SetMipmapFilteringMode(textureFilteringMode);
+    }
+}
+
+Pine::Graphics::TextureFilteringMode Pine::Texture2D::GetMipFilteringMode() const
+{
+    return m_MipFilteringMode;
+}
+
+void Pine::Texture2D::SetWrapMode(Graphics::TextureWrapMode wrapMode)
+{
+    m_WrapMode = wrapMode;
+
+    if (m_Texture != nullptr)
+    {
+        m_Texture->SetTextureWrapMode(wrapMode);
+    }
+}
+
+Pine::Graphics::TextureWrapMode Pine::Texture2D::GetWrapMode() const
+{
+    return m_WrapMode;
+}
+
+Pine::TextureImportConfiguration& Pine::Texture2D::GetImportConfiguration()
+{
+    return m_ImportConfiguration;
 }
 
 Pine::Graphics::ITexture* Pine::Texture2D::GetGraphicsTexture() const
@@ -178,6 +238,8 @@ Pine::ByteSpan Pine::Texture2D::SaveAssetData()
     textureSerializer.Height.Write(m_Height);
     textureSerializer.TextureFormat.Write(m_Format);
     textureSerializer.FilteringMode.Write(m_FilteringMode);
+    textureSerializer.MipFilteringMode.Write(m_MipFilteringMode);
+    textureSerializer.WrapMode.Write(m_WrapMode);
     textureSerializer.CompressionFormat.Write(m_CompressionFormat);
     textureSerializer.ImportUsageHint.Write(m_ImportConfiguration.UsageHint);
     textureSerializer.ImportGenerateMipMaps.Write(m_ImportConfiguration.GenerateMipmaps);

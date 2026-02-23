@@ -26,6 +26,8 @@ struct AssetPickerResult
 namespace Widgets
 {
 
+    void Text(const std::string& str, const std::string& text);
+
     bool Checkbox(const std::string& str, bool* value);
 
     bool Vector2(const std::string& str, Pine::Vector2f& vector, float speed = 0.01f);
@@ -49,6 +51,7 @@ namespace Widgets
 
     EntityPickerResult EntityPicker(const std::string& str, const std::string& id, const Pine::Entity* entity);
     EntityPickerResult EntityPicker(const std::string& str, const Pine::Entity* entity);
+
 
     bool Icon(const std::string& text, Pine::Graphics::ITexture *texture, bool showBackground, int size = 64);
     bool Icon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, int size = 64);

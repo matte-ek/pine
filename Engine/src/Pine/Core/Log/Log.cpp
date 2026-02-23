@@ -89,6 +89,8 @@ namespace
 
 void Pine::Log::LogVerbose(const char* fileName, int fileLine, std::string_view str)
 {
+    return;
+
     std::unique_lock lck(m_LogMutex);
 
     PrintMessage("verbose", fileName, fileLine, ConsoleColor::DarkGray, str);

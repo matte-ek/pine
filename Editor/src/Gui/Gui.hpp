@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Gui
+namespace Editor::Gui
 {
     void Setup();
     void Shutdown();

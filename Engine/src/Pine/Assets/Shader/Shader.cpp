@@ -153,6 +153,12 @@ bool Shader::CompileShaderVersion(ShaderVersion version)
         }
     }
 
+    if (!shaderProgram->LinkProgram())
+    {
+        Graphics::GetGraphicsAPI()->DestroyShaderProgram(shaderProgram);
+        return false;
+    }
+
     shaderProgram->Use();
 
     for (const auto& sampler : m_ShaderTextureSamplerBindings)
@@ -160,17 +166,11 @@ bool Shader::CompileShaderVersion(ShaderVersion version)
         auto uniform = shaderProgram->GetUniformVariable(sampler.VariableName);
         if (!uniform)
         {
-            Log::Warning(fmt::format("Failed to find '{}' uniform buffer when attaching samplers", sampler.VariableName));
+            Log::Warning(fmt::format("Failed to find '{}' uniform buffer when attaching samplers for shader {}", sampler.VariableName, m_Path));
             continue;
         }
 
         uniform->LoadInteger(sampler.Binding);
-    }
-
-    if (!shaderProgram->LinkProgram())
-    {
-        Graphics::GetGraphicsAPI()->DestroyShaderProgram(shaderProgram);
-        return false;
     }
 
     m_ShaderPrograms.push_back(shaderProgram);

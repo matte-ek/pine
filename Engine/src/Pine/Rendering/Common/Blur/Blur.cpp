@@ -71,7 +71,7 @@ void Rendering::Common::Blur::BlurContext::Destroy()
 
 void Rendering::Common::Blur::Setup()
 {
-    m_BlurShader = Assets::Get<Shader>("engine/shaders/post-processing/blur.shader");
+    m_BlurShader = Assets::Get<Shader>("engine/shaders/post-processing/blur");
 }
 
 void Rendering::Common::Blur::Shutdown()
@@ -82,6 +82,8 @@ void Rendering::Common::Blur::Run(const BlurContext& context)
 {
     Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Vector2i(context.Width, context.Height));
     Graphics::GetGraphicsAPI()->ClearColor(Color(0.0f, 0.0f, 0.0f, 1.0f));
+
+    assert(m_BlurShader != nullptr);
 
     m_BlurShader->GetProgram()->Use();
 

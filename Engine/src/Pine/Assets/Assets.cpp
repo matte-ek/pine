@@ -74,7 +74,7 @@ namespace
         if (!fileName.has_extension())
             return nullptr;
 
-        const auto inputFileExtension = fileName.extension().string().substr(1);
+        const auto inputFileExtension = Pine::String::ToLower(fileName.extension().string().substr(1));
 
         for (const auto& factory : m_AssetImportFactories)
         {
@@ -267,7 +267,7 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
         }
     }
 
-    delete pool;
+    Threading::DeleteTaskPool(pool);
 
     return loadedAssets;
 }
@@ -357,6 +357,11 @@ const std::unordered_map<UId, Asset*>& Assets::GetAll()
 const std::string& Assets::Internal::GetWorkingDirectory()
 {
     return m_WorkingDirectory;
+}
+
+std::string Assets::Internal::ResolveSourceFilePath(const AssetSource& assetSource)
+{
+    return m_WorkingDirectory + "/" + assetSource.FilePath;
 }
 
 Asset* Assets::Internal::CreateAssetByType(AssetType type)

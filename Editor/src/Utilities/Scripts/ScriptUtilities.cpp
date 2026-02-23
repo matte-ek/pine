@@ -1,4 +1,4 @@
-#include "ScriptingUtilities.hpp"
+#include "ScriptUtilities.hpp"
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 #include "Pine/Script/ScriptManager.hpp"
 #include "Pine/Core/Log/Log.hpp"
@@ -90,10 +90,9 @@ namespace
             Pine::Log::Error(fmt::format("Exception thrown in script '{}': {}", "EditorUtils.cs", mono_string_to_utf8(str)));
         }
     }
-
 }
 
-void ScriptingUtilities::Setup()
+void Editor::Utilities::Script::Setup()
 {
     Pine::WindowManager::AddWindowFocusCallback(OnWindowFocus);
     Pine::RenderManager::AddRenderCallback(OnRender);
@@ -101,12 +100,12 @@ void ScriptingUtilities::Setup()
     PollGameAssemblyWriteTime();
 }
 
-void ScriptingUtilities::AddScript(const std::string& filePath)
+void Editor::Utilities::Script::AddScript(const std::string& filePath)
 {
     ManageScriptFile(filePath, false);
 }
 
-void ScriptingUtilities::DeleteScript(const std::string& filePath)
+void Editor::Utilities::Script::DeleteScript(const std::string& filePath)
 {
     ManageScriptFile(filePath, true);
 }

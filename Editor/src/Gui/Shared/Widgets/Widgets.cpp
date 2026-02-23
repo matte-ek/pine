@@ -24,7 +24,7 @@ namespace
 
         ImGui::NextColumn();
 
-        ImGui::BeginChild(std::string(str + "ControlChild").c_str(), ImVec2(-1.f, 28.f), false);
+        ImGui::BeginChild(std::string(str + "ControlChild").c_str(), ImVec2(-1.f, 26.f), false);
     }
 
     void FinishWidget()
@@ -45,6 +45,15 @@ void Widgets::PopDisabled()
 {
     ImGui::PopItemFlag();
     ImGui::PopStyleVar();
+}
+
+void Widgets::Text(const std::string& str, const std::string& text)
+{
+    PrepareWidget(str);
+
+    ImGui::Text("%s", text.c_str());
+
+    FinishWidget();
 }
 
 bool Widgets::Checkbox(const std::string& str, bool* value)
@@ -246,7 +255,7 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
 
     if (asset != nullptr)
     {
-       assetFileName = asset->GetFileName();
+       assetFileName = std::filesystem::path(asset->GetPath()).filename().string();
     }
 
     if (assetFileName.size() > 128)
@@ -255,7 +264,9 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
     }
 
     if (!id.empty())
+    {
         ImGui::PushID(id.c_str());
+    }
 
     PrepareWidget(str);
 

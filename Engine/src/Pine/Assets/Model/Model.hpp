@@ -32,6 +32,8 @@ namespace Pine
 
         Vector3f BoundingBoxMin = {};
         Vector3f BoundingBoxMax = {};
+
+        UId Material;
     };
 
     class Model : public Asset
@@ -56,6 +58,8 @@ namespace Pine
             PINE_SERIALIZE_ARRAY_FIXED(UVs, Vector2f);
             PINE_SERIALIZE_ARRAY_FIXED(Indices, std::uint32_t);
 
+            PINE_SERIALIZE_PRIMITIVE(Material, Serialization::DataType::UId);
+            
             PINE_SERIALIZE_PRIMITIVE(BoundingBoxMin, Serialization::DataType::Vec3);
             PINE_SERIALIZE_PRIMITIVE(BoundingBoxMax, Serialization::DataType::Vec3);
         };

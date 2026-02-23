@@ -4,14 +4,14 @@
 
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
+#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Graphics/Graphics.hpp"
+#include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
 #include "Pine/World/Entity/Entity.hpp"
-#include "Pine/Assets/Model/Model.hpp"
-#include "Pine/Performance/Performance.hpp"
-#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
 namespace
 {
@@ -24,7 +24,7 @@ namespace
 
     struct Icon
     {
-        std::string Path;
+        Pine::UId Id;
 
         Pine::Asset *Asset = nullptr;
 
@@ -36,7 +36,7 @@ namespace
         bool m_Dirty = true;
     };
 
-    std::unordered_map<std::string, Icon> m_IconCache;
+    std::unordered_map<Pine::UId, Icon> m_IconCache;
 
     Pine::Graphics::IFrameBuffer *m_PreviewFrameBuffer = nullptr;
     Pine::Graphics::IFrameBuffer *m_IconFrameBuffer = nullptr;
@@ -50,25 +50,25 @@ namespace
             case Pine::AssetType::Texture2D:
                 return dynamic_cast<Pine::Texture2D *>(asset);
             case Pine::AssetType::Tileset:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/tile-set.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/tile-set");
             case Pine::AssetType::Tilemap:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/tile-map.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/tile-map");
             case Pine::AssetType::Model:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/model.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/model");
             case Pine::AssetType::Level:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/level.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/level");
             case Pine::AssetType::Font:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/font.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/font");
             case Pine::AssetType::Shader:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/shader.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/shader");
             case Pine::AssetType::Blueprint:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/blueprint.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/blueprint");
             case Pine::AssetType::Material:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/material.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/material");
             case Pine::AssetType::CSharpScript:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/script.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/script");
             case Pine::AssetType::Audio:
-                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/audio.png");
+                return Pine::Assets::Get<Pine::Texture2D>("editor/icons/audio");
             default:
                 return nullptr;
         }
@@ -89,7 +89,7 @@ namespace
 
     void RenderMaterial(const Icon &icon, bool isPreview)
     {
-        static auto sphereModel = Pine::Assets::Get<Pine::Model>("editor/models/sphere.fbx");
+        static auto sphereModel = Pine::Assets::Get<Pine::Model>("editor/models/sphere");
         static Pine::Entity* sphereEntity = nullptr;
 
         if (sphereEntity == nullptr)
@@ -239,8 +239,6 @@ namespace
 
         for (auto &[path, icon] : m_IconCache)
         {
-            if (icon.Asset->IsDeleted())
-                continue;
             if (!icon.m_Dirty)
                 continue;
             if (icon.Type == IconType::Static)
@@ -256,9 +254,9 @@ namespace
         {
             auto asset = assets.front();
 
-            if (ShouldGenerateDynamicIcon(asset) && m_IconCache.count(asset->GetPath()) > 0)
+            if (ShouldGenerateDynamicIcon(asset) && m_IconCache.count(asset->GetUId()) > 0)
             {
-                auto icon = m_IconCache[asset->GetPath()];
+                auto icon = m_IconCache[asset->GetUId()];
 
                 GenerateDynamicTexture(icon, true);
             }
@@ -266,7 +264,7 @@ namespace
     }
 }
 
-void IconStorage::Setup()
+void Editor::Gui::IconStorage::Setup()
 {
     m_PreviewFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
     m_PreviewFrameBuffer->Prepare();
@@ -281,18 +279,18 @@ void IconStorage::Setup()
     Pine::RenderManager::AddRenderCallback(OnRender);
 }
 
-void IconStorage::Update()
+void Editor::Gui::IconStorage::Update()
 {
     PINE_PF_SCOPE();
 
-    std::vector<std::string> removeList;
+    std::vector<Pine::UId> removeList;
 
     // Find and remove unloaded assets from the icon cache
-    for (auto &[iconAssetPath, icon]: m_IconCache)
+    for (auto& [iconAssetUId, icon] : m_IconCache)
     {
-        auto asset = Pine::Assets::Get(iconAssetPath);
+        auto asset = Pine::Assets::GetAssetByUId(iconAssetUId);
 
-        if (asset && !asset->IsDeleted())
+        if (asset)
         {
             continue;
         }
@@ -303,7 +301,7 @@ void IconStorage::Update()
             icon.DynamicTexture = nullptr;
         }
 
-        removeList.push_back(iconAssetPath);
+        removeList.push_back(iconAssetUId);
     }
 
     for (const auto &icon: removeList)
@@ -312,19 +310,16 @@ void IconStorage::Update()
     }
 
     // Generate icons
-    for (const auto &[path, asset]: Pine::Assets::GetAll())
+    for (const auto &[id, asset]: Pine::Assets::GetAll())
     {
-        if (asset->IsDeleted())
-            continue;
-
         Icon *icon = nullptr;
 
-        icon = &m_IconCache[path];
+        icon = &m_IconCache[id];
 
         // If path is empty, it has just been created.
-        if (icon->Path.empty())
+        if (icon->Id == Pine::UId::Empty())
         {
-            icon->Path = path;
+            icon->Id = id;
             icon->Asset = asset;
         }
 
@@ -348,32 +343,32 @@ void IconStorage::Update()
     }
 }
 
-Pine::Graphics::ITexture *IconStorage::GetIconTexture(const std::string &path)
+Pine::Graphics::ITexture* Editor::Gui::IconStorage::GetIconTexture(Pine::UId id)
 {
-    static auto invalidAssetIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file.png");
+    static auto invalidAssetIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file");
 
-    if (!m_IconCache.count(path) || !m_IconCache[path].StaticTexture)
+    if (!m_IconCache.count(id) || !m_IconCache[id].StaticTexture)
     {
         return invalidAssetIcon->GetGraphicsTexture();
     }
 
-    const auto& icon = m_IconCache[path];
+    const auto& icon = m_IconCache[id];
 
     if (icon.Type == IconType::Dynamic)
     {
         return icon.DynamicTexture->GetColorBuffer();
     }
 
-    return m_IconCache[path].StaticTexture->GetGraphicsTexture();
+    return m_IconCache[id].StaticTexture->GetGraphicsTexture();
 }
 
-Pine::Graphics::ITexture* IconStorage::GetPreviewTexture()
+Pine::Graphics::ITexture* Editor::Gui::IconStorage::GetPreviewTexture()
 {
     return m_PreviewFrameBuffer->GetColorBuffer();
 }
 
 // Slightly outside the scope for `IconStorage`, but this feels like an okay spot to put it.
-void IconStorage::HandlePreviewDragging()
+void Editor::Gui::IconStorage::HandlePreviewDragging()
 {
     static bool isDragging = false;
     static ImVec2 lastDragPos;
@@ -400,17 +395,17 @@ void IconStorage::HandlePreviewDragging()
     }
 }
 
-void IconStorage::MarkIconDirty(const std::string &path)
+void Editor::Gui::IconStorage::MarkIconDirty(Pine::UId id)
 {
-    if (!m_IconCache.count(path))
+    if (!m_IconCache.count(id))
     {
         return;
     }
 
-    m_IconCache[path].m_Dirty = true;
+    m_IconCache[id].m_Dirty = true;
 }
 
-void IconStorage::Dispose()
+void Editor::Gui::IconStorage::Dispose()
 {
     for (auto &[iconAssetPath, icon]: m_IconCache)
     {

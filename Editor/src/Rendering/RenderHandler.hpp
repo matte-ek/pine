@@ -3,7 +3,7 @@
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Rendering/RenderingContext.hpp"
 
-namespace RenderHandler
+namespace Editor::RenderHandler
 {
     void Setup();
     void Shutdown();

@@ -1,29 +1,29 @@
 #include "Gui.hpp"
-#include "Pine/Core/WindowManager/WindowManager.hpp"
-#include "Pine/Rendering/RenderManager/RenderManager.hpp"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include "IconsMaterialDesign.h"
 #include "imgui.h"
 #include "ImGuizmo.h"
-#include "IconsMaterialDesign.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "Pine/Core/WindowManager/WindowManager.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
-#include "Panels/Properties/PropertiesPanel.hpp"
-#include "Panels/AssetBrowser/AssetBrowserPanel.hpp"
-#include "Panels/EntityList/EntityListPanel.hpp"
-#include "Panels/GameViewport/GameViewportPanel.hpp"
-#include "Panels/LevelViewport/LevelViewportPanel.hpp"
-#include "Panels/LevelPanel/LevelPanel.hpp"
-#include "Panels/Engine/EngineAssetsPanel.hpp"
-#include "Panels/Console/ConsolePanel.hpp"
-#include "Panels/Profiler/ProfilerPanel.hpp"
 #include "Gui/MenuBar/MenuBar.hpp"
 #include "Gui/Shared/Commands/Commands.hpp"
+#include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
-#include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
+#include "Panels/AssetBrowser/AssetBrowserPanel.hpp"
+#include "Panels/Console/ConsolePanel.hpp"
 #include "Panels/DebugPanel/DebugPanel.hpp"
+#include "Panels/Engine/EngineAssetsPanel.hpp"
+#include "Panels/EntityList/EntityListPanel.hpp"
 #include "Panels/GamePanel/GamePanel.hpp"
+#include "Panels/GameViewport/GameViewportPanel.hpp"
+#include "Panels/LevelPanel/LevelPanel.hpp"
+#include "Panels/LevelViewport/LevelViewportPanel.hpp"
+#include "Panels/Profiler/ProfilerPanel.hpp"
+#include "Panels/Properties/PropertiesPanel.hpp"
 #include "Pine/Performance/Performance.hpp"
 
 namespace
@@ -33,12 +33,11 @@ namespace
         if (!Pine::WindowManager::GetWindowPointer())
             return;
 
-        ImGui_ImplGlfw_WindowFocusCallback(reinterpret_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
+        ImGui_ImplGlfw_WindowFocusCallback(static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
     }
 
     void SetTheme()
     {
-        // TODO: Do a nice green dark theme
         auto& io = ImGui::GetIO();
         auto& style = ImGui::GetStyle();
 
@@ -193,14 +192,14 @@ namespace
         Panels::Debug::Render();
         Panels::Game::Render();
 
-        Commands::Update();
+        Editor::Commands::Update();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 }
 
-void Gui::Setup()
+void Editor::Gui::Setup()
 {
     InitializeImGui();
 
@@ -219,7 +218,7 @@ void Gui::Setup()
     Pine::RenderManager::AddRenderCallback(OnPineRender);
 }
 
-void Gui::Shutdown()
+void Editor::Gui::Shutdown()
 {
     Commands::Dispose();
     EntitySelection::Dispose();

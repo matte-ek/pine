@@ -113,6 +113,12 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     }
 
     const auto shader = m_RenderingConfiguration.OverrideShader ? m_RenderingConfiguration.OverrideShader : m_Material->GetShader();
+
+    if (!shader)
+    {
+        return;
+    }
+
     if (shader->GetProgram() != m_Shader ||
         m_ShaderVersion != static_cast<std::uint32_t>(version) ||
         !shader->IsRendererReady())

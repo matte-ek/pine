@@ -1,45 +1,88 @@
-#include <fmt/format.h>
 #include "AssetPropertiesRenderer.hpp"
 
-#include <imgui_internal.h>
+#include <fmt/format.h>
 
 #include "IconsMaterialDesign.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
+#include "Gui/Panels/Properties/EntityPropertiesRenderer/EntityPropertiesRenderer.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
-#include "Gui/Shared/Widgets/Widgets.hpp"
-#include "Pine/Assets/Tilemap/Tilemap.hpp"
-#include "Pine/Assets/Tileset/Tileset.hpp"
-#include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
-#include "Pine/Assets/Material/Material.hpp"
-#include "Pine/Assets/Model/Model.hpp"
-#include "Pine/Assets/Texture3D/Texture3D.hpp"
+#include "Gui/Shared/Widgets/Widgets.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Level/Level.hpp"
-#include "Pine/Assets/AudioFile/AudioFile.hpp"
-#include "Pine/Assets/Assets.hpp"
-#include "Gui/Panels/Properties/EntityPropertiesRenderer/EntityPropertiesRenderer.hpp"
+#include "Pine/Assets/Material/Material.hpp"
+#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Assets/Terrain/Terrain.hpp"
+#include "Pine/Assets/Texture3D/Texture3D.hpp"
+#include "Pine/Assets/Tilemap/Tilemap.hpp"
+#include "Pine/Assets/Tileset/Tileset.hpp"
 #include "Pine/Rendering/Rendering.hpp"
 #include "Pine/World/World.hpp"
 
 namespace
 {
 
-    void RenderTexture2D(const Pine::Texture2D *texture2d)
+    void RenderTexture2D(Pine::Texture2D *texture2d)
     {
         const auto textureAspectRatio = static_cast<float>(texture2d->GetWidth()) / static_cast<float>(texture2d->GetHeight());
-        const auto previewWidth = ImGui::GetContentRegionAvail().x * 0.5f;
-        const auto previewHeight = previewWidth / textureAspectRatio;
+        auto& importConfiguration = texture2d->GetImportConfiguration();
+
+        auto filteringMode = static_cast<std::int32_t>(texture2d->GetFilteringMode());
+        auto mipFilteringMode = static_cast<std::int32_t>(texture2d->GetMipFilteringMode());
+        auto wrapMode = static_cast<std::int32_t>(texture2d->GetWrapMode());
+
+        Widgets::Text("Width", std::to_string(texture2d->GetWidth()));
+        Widgets::Text("Height", std::to_string(texture2d->GetHeight()));
+        Widgets::Text("Mip Maps Levels", std::to_string(texture2d->GetMipmapLevels()));
+        Widgets::Text("Texture Format", Pine::Graphics::TextureFormatToString(texture2d->GetFormat()));
+        Widgets::Text("Compression Format", Pine::Graphics::TextureCompressionFormatToString(texture2d->GetCompressionFormat()));
+
+        if (Widgets::DropDown("Filtering Mode", &filteringMode, "Nearest\0Linear\0"))
+        {
+            texture2d->SetFilteringMode(static_cast<Pine::Graphics::TextureFilteringMode>(filteringMode));
+        }
+
+        if (Widgets::DropDown("Mip Filtering Mode", &mipFilteringMode, "Nearest\0Linear\0"))
+        {
+            texture2d->SetMipFilteringMode(static_cast<Pine::Graphics::TextureFilteringMode>(mipFilteringMode));
+        }
+
+        if (Widgets::DropDown("Wrap Mode", &wrapMode, "Repeat\0Clamp to edge\0Clamp to border\0"))
+        {
+            texture2d->SetWrapMode(static_cast<Pine::Graphics::TextureWrapMode>(wrapMode));
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        Widgets::DropDown("Compression Quality", reinterpret_cast<int*>(&importConfiguration.CompressionQuality), "Normal\0Fastest\0Production\0");
+        Widgets::DropDown("Usage Hint", reinterpret_cast<int*>(&importConfiguration.UsageHint), "Albedo (BC7)\0Albedo Fast (BC1)\0Normal (BC5)\0Grayscale (BC4)\0Raw\0");
+        Widgets::Checkbox("Generate mip maps", &importConfiguration.GenerateMipmaps);
+
+        if (ImGui::Button("Re-import"))
+        {
+            texture2d->ReImport();
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        const auto previewHeight = ImGui::GetContentRegionAvail().y * 0.8f;
+        const auto previewWidth = previewHeight * textureAspectRatio;
+
+        ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x / 2.f - (previewWidth / 2.f));
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (ImGui::GetContentRegionAvail().y / 2.f) - (previewHeight / 2.f));
 
         ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(texture2d->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(previewWidth, previewHeight));
-
-        ImGui::Text("Width: %d", texture2d->GetWidth());
-        ImGui::Text("Height: %d", texture2d->GetHeight());
-        ImGui::Text("Format: %s", Pine::Graphics::TextureFormatToString(texture2d->GetFormat()));
-        ImGui::Text("Has mip-maps: %s", texture2d->GetGenerateMipmaps() ? "true" : "false");
     }
+
+    // -----------------------------------------------------------------------------------------------------------------------
 
     void RenderTexture3D(Pine::Texture3D *texture3d)
     {
@@ -82,9 +125,13 @@ namespace
         }
     }
 
+    // -----------------------------------------------------------------------------------------------------------------------
+
     void RenderShader(Pine::Shader *shader)
     {
     }
+
+    // -----------------------------------------------------------------------------------------------------------------------
 
     void RenderMaterial(Pine::Material *material)
     {
@@ -141,10 +188,12 @@ namespace
 
         ImGui::Separator();
 
-        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(IconStorage::GetPreviewTexture()->GetGraphicsIdentifier())), ImVec2(256.f, 256.f), ImVec2(1, 1), ImVec2(0, 0));
+        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(Editor::Gui::IconStorage::GetPreviewTexture()->GetGraphicsIdentifier())), ImVec2(256.f, 256.f), ImVec2(1, 1), ImVec2(0, 0));
 
-        IconStorage::HandlePreviewDragging();
+        Editor::Gui::IconStorage::HandlePreviewDragging();
     }
+
+    // -----------------------------------------------------------------------------------------------------------------------
 
     void RenderModel(Pine::Model *model)
     {
@@ -173,31 +222,18 @@ namespace
                     ImGui::TextDisabled("The material is generated by the model file, and cannot be edited. However you");
                     ImGui::TextDisabled("can generate a material based on the generated one, and edit that.");
                     ImGui::Spacing();
-
-                    if (ImGui::Button("Generate Custom Material", ImVec2(180.f, 35.f)))
-                    {
-                        auto material = mesh->GetMaterial();
-                        const auto modelDirectory = std::filesystem::path(model->GetFilePath()).parent_path().string();
-
-                        material->SetFilePath(fmt::format("{}/{}_Material{}.mat", modelDirectory, std::filesystem::path(model->GetFileName()).stem().string(), i));
-                        material->SaveToFile();
-
-                        auto loadedMat = dynamic_cast<Pine::Material *>(Pine::Assets::LoadFromFile(material->GetFilePath(), model->GetFileRootPath().string()));
-
-                        mesh->SetMaterial(loadedMat);
-
-                        Panels::AssetBrowser::RebuildAssetTree();
-                    }
                 }
             }
         }
 
         ImGui::Separator();
 
-        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(IconStorage::GetPreviewTexture()->GetGraphicsIdentifier())), ImVec2(512.f, 512.f), ImVec2(1, 1), ImVec2(0, 0));
+        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(Editor::Gui::IconStorage::GetPreviewTexture()->GetGraphicsIdentifier())), ImVec2(512.f, 512.f), ImVec2(1, 1), ImVec2(0, 0));
 
-        IconStorage::HandlePreviewDragging();
+        Editor::Gui::IconStorage::HandlePreviewDragging();
     }
+
+    // -----------------------------------------------------------------------------------------------------------------------
 
     void RenderBlueprint(Pine::Blueprint *blueprint)
     {
@@ -211,6 +247,8 @@ namespace
 
         blueprint->MarkAsModified();
     }
+
+    // -----------------------------------------------------------------------------------------------------------------------
 
     void RenderLevel(Pine::Level *level)
     {
@@ -229,6 +267,8 @@ namespace
         }
     }
 
+    // -----------------------------------------------------------------------------------------------------------------------
+
     void RenderTileset(Pine::Tileset *tileset)
     {
         static int selectedTileset = 0;
@@ -241,12 +281,10 @@ namespace
 
         if (ImGui::Combo("##Source", &selectedSource, "Atlas Texture\0Multiple Textures\0"))
         {
-                
         }
 
         if (selectedSource == 0)
         {
-                
         }
 
         ImGui::Spacing();
@@ -401,6 +439,8 @@ namespace
         ImGui::TextDisabled("Tile size: %d", tileset->GetTileSize());
     }
 
+    // -----------------------------------------------------------------------------------------------------------------------
+
     void RenderTilemap(Pine::Tilemap *tilemap)
     {
         const auto newTileset = Widgets::AssetPicker("Tile-set", tilemap->GetTileset(), Pine::AssetType::Tileset);
@@ -411,9 +451,13 @@ namespace
         }
     }
 
+    // -----------------------------------------------------------------------------------------------------------------------
+
     void RenderAudioFile(Pine::AudioFile *audiofile)
     {
     }
+
+    // -----------------------------------------------------------------------------------------------------------------------
 
     void RenderTerrain(Pine::Terrain *terrain)
     {
@@ -451,22 +495,24 @@ namespace
 
 void AssetPropertiesPanel::Render(Pine::Asset *asset)
 {
-    auto fileIcon = IconStorage::GetIconTexture(asset->GetPath());
+    auto fileIcon = Editor::Gui::IconStorage::GetIconTexture(asset->GetUId());
+
+    // Show general asset information
 
     ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(fileIcon->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
 
     ImGui::SameLine();
 
     ImGui::BeginChild("##AssetPropertiesChild", ImVec2(-1.f, 65.f), false, 0);
+    {
+        ImGui::Text("%s", std::filesystem::path(asset->GetPath()).filename().string().c_str());
+        ImGui::Text("%s", asset->GetPath().c_str());
 
-    auto formattedPath = "/" + std::filesystem::path(asset->GetPath()).string();
-
-    ImGui::Text("%s", asset->GetFileName().c_str());
-    ImGui::Text("%s", formattedPath.c_str());
-
-    ImGui::Text("%s", AssetTypeToString(asset->GetType()));
-
+        ImGui::Text("%s", AssetTypeToString(asset->GetType()));
+    }
     ImGui::EndChild();
+
+    // Show type specific information
 
     ImGui::Spacing();
     ImGui::Separator();

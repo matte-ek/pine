@@ -58,6 +58,11 @@ const Pine::AssetState& Pine::Asset::GetState() const
     return m_State;
 }
 
+void Pine::Asset::SetPath(const std::string& path)
+{
+    m_Path = File::UniversalPath(path);
+}
+
 void Pine::Asset::RemoveSource(const std::string& filePath)
 {
 }
@@ -100,6 +105,12 @@ Pine::Script::ObjectHandle* Pine::Asset::GetScriptHandle()
 void Pine::Asset::SaveToFile()
 {
     File::WriteCompressed(m_FilePath, Save());
+}
+
+void Pine::Asset::ReImport()
+{
+    Import();
+    LoadAssetData(SaveAssetData());
 }
 
 Pine::Asset* Pine::Asset::Load(const ByteSpan& data, bool ignoreAssetData)

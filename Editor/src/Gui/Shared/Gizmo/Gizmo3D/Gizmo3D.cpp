@@ -2,20 +2,18 @@
 
 #include <imgui.h>
 
-#include "IconsMaterialDesign.h"
 #include "Gui/Shared/Selection/Selection.hpp"
-#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
-#include "Pine/World/Components/Collider/Collider.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Core/Log/Log.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
-#include "Pine/Assets/Assets.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
+#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Rendering/RenderHandler.hpp"
-#include "Pine/Core/Log/Log.hpp"
 
 namespace
 {
-
     Pine::Shader* m_ObjectSolidShader3D = nullptr;
 
     void RenderIcon(Pine::Vector2f basePosition, Pine::Vector3f worldPosition, const Pine::Texture2D* texture)
@@ -27,7 +25,7 @@ namespace
 
         constexpr float size = 40.f;
 
-        const auto camera = RenderHandler::GetLevelRenderingContext()->SceneCamera;
+        const auto camera = Editor::RenderHandler::GetLevelRenderingContext()->SceneCamera;
 
         const Pine::Vector3f screenPosition = camera->WorldToScreenPoint(worldPosition);
         const Pine::Vector2f minPosition = { basePosition.x + screenPosition.x - size / 2.f, basePosition.y + screenPosition.y - size / 2.f };
@@ -105,7 +103,7 @@ namespace
 
             // Render the model
             auto oldScale = entity->GetTransform()->GetLocalScale();
-            const auto distance = glm::length(RenderHandler::GetLevelRenderingContext()->SceneCamera->GetParent()->GetTransform()->GetLocalPosition() - entity->GetTransform()->GetLocalPosition());
+            const auto distance = glm::length(Editor::RenderHandler::GetLevelRenderingContext()->SceneCamera->GetParent()->GetTransform()->GetLocalPosition() - entity->GetTransform()->GetLocalPosition());
 
             entity->GetTransform()->SetLocalScale(entity->GetTransform()->GetLocalScale() + Pine::Vector3f((distance / 9.41f) * 0.05f));
 
@@ -143,9 +141,9 @@ namespace
 
     void RenderCollider()
     {
-        static auto boxPrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/cube.glb");
-        static auto spherePrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/sphere.glb");
-        static auto capsulePrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/capsule.glb");
+        static auto boxPrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/cube");
+        static auto spherePrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/sphere");
+        static auto capsulePrimitiveModel = Pine::Assets::Get<Pine::Model>("engine/primitive/capsule");
 
         const auto& selectedEntities = Selection::GetSelectedEntities();
 
@@ -219,7 +217,7 @@ namespace
 
     void OnRender(const Pine::RenderingContext* context, const Pine::RenderStage stage, float)
     {
-        if (context != RenderHandler::GetLevelRenderingContext())
+        if (context != Editor::RenderHandler::GetLevelRenderingContext())
         {
             return;
         }
@@ -241,18 +239,18 @@ namespace
     }
 }
 
-void Gizmo::Gizmo3D::Setup()
+void Editor::Gui::Gizmo::Gizmo3D::Setup()
 {
-    m_ObjectSolidShader3D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid.shader");
+    m_ObjectSolidShader3D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid");
 
     Pine::RenderManager::AddRenderCallback(OnRender);
 }
 
-void Gizmo::Gizmo3D::Render(Pine::Vector2f position)
+void Editor::Gui::Gizmo::Gizmo3D::Render(Pine::Vector2f position)
 {
-    static auto lightGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-light.png");
-    static auto lightDirectionalGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-light-directional.png");
-    static auto cameraGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-camera.png");
+    static auto lightGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-light");
+    static auto lightDirectionalGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-light-directional");
+    static auto cameraGizmoIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/gizmo-camera");
 
     if (Pine::RenderManager::GetCurrentRenderingContext() == nullptr)
     {

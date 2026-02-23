@@ -27,7 +27,8 @@ namespace Pine
 		AssetHandle<Texture2D> m_Specular;
 		AssetHandle<Texture2D> m_Normal;
 
-		AssetHandle<Shader> m_Shader;
+	    // Generic 3D shader used as default.
+		AssetHandle<Shader> m_Shader = UId("271a649316d8-3cdeb0026f7b7317");
 
 		MaterialRenderingMode m_RenderingMode = MaterialRenderingMode::Opaque;
 

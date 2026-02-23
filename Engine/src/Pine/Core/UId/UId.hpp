@@ -17,8 +17,8 @@ namespace Pine
     public:
         UId() = default;
 
-        explicit UId(const ByteSpan& data);
-        explicit UId(std::string_view str);
+        UId(const ByteSpan& data);
+        UId(std::string_view str);
 
         std::uint64_t GetTime() const;
         std::uint64_t GetRandom() const;

@@ -1,15 +1,26 @@
-#include "Gui/Gui.hpp"
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Core/Math/Math.hpp"
-#include "Rendering/RenderHandler.hpp"
-#include <Pine/Pine.hpp>
-
-#include "Other/EditorEntity/EditorEntity.hpp"
+#include "Pine/Core/Math./Math.hpp"
+#include "Pine/Engine/Engine.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/World/World.hpp"
-#include "Scripting/ScriptingUtilities.hpp"
 
-int main()
+#include "Gui/Gui.hpp"
+#include "Other/EditorEntity/EditorEntity.hpp"
+#include "Projects/Projects.hpp"
+#include "Rendering/RenderHandler.hpp"
+#include "Utilities/Scripts/ScriptUtilities.hpp"
+
+int main(int argc, const char* argv[])
 {
+    // Get project name
+    if (argc < 2)
+    {
+        Pine::Log::Fatal("Usage: Editor <project_name>");
+        return 1;
+    }
+
+    Editor::Projects::SetProject(argv[1]);
+
     // Setup Pine
     Pine::Engine::EngineConfiguration engineConfiguration;
 
@@ -23,23 +34,30 @@ int main()
         return 0;
     }
 
-    Pine::Assets::LoadDirectory("editor", false);
-    Pine::Assets::LoadDirectory("game/assets");
+    // Load user assets
+    Pine::Assets::SetWorkingDirectory(Editor::Projects::GetProjectPath());
+
+    {
+        PINE_PF_SCOPE_MANUAL("Editor::LoadProjectAssets");
+        Pine::Assets::LoadAssetsFromDirectory("data");
+    }
+
+    // Make sure we're not starting simulation
     Pine::World::SetPaused(true);
 
     // Setup Editor
-    EditorEntity::Setup();
-    RenderHandler::Setup();
-    Gui::Setup();
-    ScriptingUtilities::Setup();
+    Editor::LevelEntity::Setup();
+    Editor::RenderHandler::Setup();
+    Editor::Gui::Setup();
+    Editor::Utilities::Script::Setup();
 
     // Enter main loop
     Pine::Engine::Run();
 
     // Editor clean up
-    Gui::Shutdown();
-    RenderHandler::Shutdown();
-    EditorEntity::Dispose();
+    Editor::Gui::Shutdown();
+    Editor::RenderHandler::Shutdown();
+    Editor::LevelEntity::Dispose();
 
     // Engine clean up
     Pine::Engine::Shutdown();

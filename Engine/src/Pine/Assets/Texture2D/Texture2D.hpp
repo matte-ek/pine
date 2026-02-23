@@ -28,7 +28,7 @@ namespace Pine
 
     struct TextureImportConfiguration
     {
-        TextureUsageHint UsageHint = TextureUsageHint::Albedo;
+        TextureUsageHint UsageHint = TextureUsageHint::AlbedoFaster;
         TextureCompressionQuality CompressionQuality = TextureCompressionQuality::Normal;
         bool GenerateMipmaps = false;
     };
@@ -42,7 +42,12 @@ namespace Pine
         int m_MipmapLevels = 0;
 
         Graphics::TextureFormat m_Format = Graphics::TextureFormat::SingleChannel;
+
         Graphics::TextureFilteringMode m_FilteringMode = Graphics::TextureFilteringMode::Linear;
+        Graphics::TextureFilteringMode m_MipFilteringMode = Graphics::TextureFilteringMode::Linear;
+
+        Graphics::TextureWrapMode m_WrapMode = Graphics::TextureWrapMode::Repeat;
+
         Graphics::TextureCompressionFormat m_CompressionFormat = Graphics::TextureCompressionFormat::Raw;
 
         // Underlying graphics texture
@@ -59,6 +64,8 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(Height, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(TextureFormat, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(FilteringMode, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(MipFilteringMode, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(WrapMode, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(CompressionFormat, Serialization::DataType::Int32);
 
             PINE_SERIALIZE_PRIMITIVE(ImportUsageHint, Serialization::DataType::Int32);
@@ -78,13 +85,25 @@ namespace Pine
         int GetMipmapLevels() const;
 
         Graphics::TextureFormat GetFormat() const;
+        Graphics::TextureCompressionFormat GetCompressionFormat() const;
+
+        void SetFilteringMode(Graphics::TextureFilteringMode textureFilteringMode);
+        Graphics::TextureFilteringMode GetFilteringMode() const;
+
+        void SetMipFilteringMode(Graphics::TextureFilteringMode textureFilteringMode);
+        Graphics::TextureFilteringMode GetMipFilteringMode() const;
+
+        void SetWrapMode(Graphics::TextureWrapMode wrapMode);
+        Graphics::TextureWrapMode GetWrapMode() const;
+
+        TextureImportConfiguration& GetImportConfiguration();
+
         Graphics::ITexture* GetGraphicsTexture() const;
 
         bool HasTextureData() const;
         ByteSpan GetTextureData() const;
 
         bool Import() override;
-
         void Dispose() override;
 
         friend class Importer::TextureImporter;

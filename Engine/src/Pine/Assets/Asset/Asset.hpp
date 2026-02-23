@@ -149,7 +149,9 @@ namespace Pine
         const AssetType& GetType() const;
         const AssetState& GetState() const;
 
+        void SetPath(const std::string& path);
         const std::string& GetPath() const;
+
         const std::filesystem::path& GetFilePath() const;
 
         void AddSource(const std::string& filePath);
@@ -163,11 +165,13 @@ namespace Pine
         void DestroyScriptHandle();
         Script::ObjectHandle* GetScriptHandle();
 
-        virtual bool Import();
-        virtual void Dispose() = 0;
-
         ByteSpan Save();
         void SaveToFile();
+
+        void ReImport();
+        
+        virtual bool Import();
+        virtual void Dispose() = 0;
 
         static Asset* Load(const ByteSpan& data, bool ignoreAssetData = false);
         static Asset* Load(const ByteSpan& data, const std::string& filePath, bool ignoreAssetData = false);
@@ -190,7 +194,7 @@ namespace Pine
     public:
         AssetHandle() = default;
 
-        explicit AssetHandle(UId id) : m_UId(id)
+        AssetHandle(UId id) : m_UId(id)
         {
         }
 

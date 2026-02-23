@@ -105,7 +105,7 @@ namespace Pine::Serialization
         {
             if (sizeof(TPrimitive) != m_DataSize)
             {
-                Pine::Log::Warning("Failed to write primitive type, size is mismatched. Is the type correct?");
+                Pine::Log::Warning("Failed to read primitive type, size is mismatched. Is the type correct?");
                 return false;
             }
 

@@ -112,7 +112,7 @@ namespace
 
 }
 
-void EditorEntity::Setup()
+void Editor::LevelEntity::Setup()
 {
 	/* Setup Inputs */
 	m_EditorInputContext = Pine::Input::CreateContext("Editor");
@@ -144,31 +144,31 @@ void EditorEntity::Setup()
     m_Entity->GetComponent<EditorComponent>()->OnSetup();
 }
 
-void EditorEntity::Dispose()
+void Editor::LevelEntity::Dispose()
 {
 }
 
-Pine::Entity* EditorEntity::Get()
+Pine::Entity* Editor::LevelEntity::Get()
 {
 	return m_Entity;
 }
 
-void EditorEntity::SetCaptureMouse(bool value)
+void Editor::LevelEntity::SetCaptureMouse(bool value)
 {
     m_CaptureMouse = value;
 }
 
-bool EditorEntity::GetCaptureMouse()
+bool Editor::LevelEntity::GetCaptureMouse()
 {
     return m_CaptureMouse;
 }
 
-bool EditorEntity::GetPerspective2D()
+bool Editor::LevelEntity::GetPerspective2D()
 {
     return m_Perspective2D;
 }
 
-void EditorEntity::SetPerspective2D(bool value)
+void Editor::LevelEntity::SetPerspective2D(bool value)
 {
     m_Perspective2D = value;
 
@@ -178,12 +178,12 @@ void EditorEntity::SetPerspective2D(bool value)
     }
 }
 
-float EditorEntity::GetSpeedMultiplier()
+float Editor::LevelEntity::GetSpeedMultiplier()
 {
 	return m_SpeedMultiplier;
 }
 
-void EditorEntity::SetSpeedMultiplier(float value)
+void Editor::LevelEntity::SetSpeedMultiplier(float value)
 {
 	m_SpeedMultiplier = value;
 }

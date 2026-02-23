@@ -10,8 +10,6 @@
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
 #include "Pine/Utilities/Entity/EntityUtilities.hpp"
-#include "Pine/World/Components/Collider/Collider.hpp"
-#include "Pine/World/Components/Collider2D/Collider2D.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
@@ -114,7 +112,7 @@ namespace
         float nearPlane = camera->GetNearPlane();
         float farPlane = camera->GetFarPlane();
         float fov = camera->GetFieldOfView();
-        bool isActiveCamera = RenderHandler::GetGameRenderingContext()->SceneCamera == camera;
+        bool isActiveCamera = Editor::RenderHandler::GetGameRenderingContext()->SceneCamera == camera;
 
         if (Widgets::DropDown("Camera Type", &cameraType, "Perspective\0Orthographic\0"))
         {
@@ -142,7 +140,7 @@ namespace
 
         if (Widgets::Checkbox("Use Camera", &isActiveCamera))
         {
-            RenderHandler::GetGameRenderingContext()->SceneCamera = isActiveCamera ? camera : nullptr;
+            Editor::RenderHandler::GetGameRenderingContext()->SceneCamera = isActiveCamera ? camera : nullptr;
         }
     }
 
@@ -609,6 +607,8 @@ namespace
             m_UpdatedComponentData = true;
         }
     }
+
+    // -----------------------------------------------------------------------------------------------------------------------
 
     void RenderComponent(Pine::Component* component, int index)
     {

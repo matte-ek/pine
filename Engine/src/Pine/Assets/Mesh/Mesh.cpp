@@ -6,11 +6,10 @@
 
 using namespace Pine::Renderer3D::Specifications;
 
-Pine::Mesh::Mesh(Model*model)
+Pine::Mesh::Mesh(Model* model)
 {
     m_Model = model;
     m_VertexArray = Graphics::GetGraphicsAPI()->CreateVertexArray();
-    m_Material = Assets::Get<Material>("engine/materials/default.mat");
 }
 
 void Pine::Mesh::Dispose()
@@ -46,8 +45,9 @@ void Pine::Mesh::SetMaterial(Material*material)
     }
 }
 
-void Pine::Mesh::SetMaterial(const std::string &fileReference)
+void Pine::Mesh::SetMaterial(UId id)
 {
+    m_Material = id;
 }
 
 Pine::Material *Pine::Mesh::GetMaterial() const

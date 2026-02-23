@@ -39,6 +39,7 @@ bool Model::LoadAssetData(const ByteSpan& span)
         meshSerializer.Tangents.Read(data.Tangents);
         meshSerializer.UVs.Read(data.UVs);
         meshSerializer.Indices.Read(data.Indices);
+        meshSerializer.Material.Read(data.Material);
         meshSerializer.BoundingBoxMin.Read(data.BoundingBoxMin);
         meshSerializer.BoundingBoxMax.Read(data.BoundingBoxMax);
 
@@ -71,6 +72,11 @@ bool Model::LoadAssetData(const ByteSpan& span)
             if (!meshData.Indices.empty())
             {
                 mesh->SetIndices(meshData.Indices.data(), meshData.Indices.size() * sizeof(std::uint32_t));
+            }
+
+            if (meshData.Material != UId::Empty())
+            {
+                mesh->SetMaterial(meshData.Material);
             }
 
             mesh->SetAABB(meshData.BoundingBoxMin, meshData.BoundingBoxMax);
@@ -111,6 +117,7 @@ ByteSpan Model::SaveAssetData()
             meshSerializer.Tangents.Write(meshData.Tangents);
             meshSerializer.UVs.Write(meshData.UVs);
             meshSerializer.Indices.Write(meshData.Indices);
+            meshSerializer.Material.Write(meshData.Material);
             meshSerializer.BoundingBoxMin.Write(meshData.BoundingBoxMin);
             meshSerializer.BoundingBoxMax.Write(meshData.BoundingBoxMax);
 

@@ -1,19 +1,18 @@
 #include "Gizmo2D.hpp"
 
+#include <Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp>
 #include "imgui.h"
-#include "IconsMaterialDesign.h"
 #include "Gui/Shared/Selection/Selection.hpp"
+#include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Rendering/RenderHandler.hpp"
-#include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
-#include <Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp>
 
 namespace
 {
 
 	void OnRender(Pine::RenderingContext* context, const Pine::RenderStage stage, float deltaTime)
 	{
-		if (context != RenderHandler::GetLevelRenderingContext())
+		if (context != Editor::RenderHandler::GetLevelRenderingContext())
 		{
 			return;
 		}
@@ -29,7 +28,7 @@ namespace
 
 	void RenderEntitySelectionBox(const Pine::Vector2f& viewportPositionOffset, const Pine::Vector2f& viewportSizeFactor)
 	{
-		auto levelRenderingContext = RenderHandler::GetLevelRenderingContext();
+		auto levelRenderingContext = Editor::RenderHandler::GetLevelRenderingContext();
 		const auto& selectedEntities = Selection::GetSelectedEntities();
 
 		if (selectedEntities.empty())
@@ -70,12 +69,12 @@ namespace
 
 }
 
-void Gizmo::Gizmo2D::Setup()
+void Editor::Gui::Gizmo::Gizmo2D::Setup()
 {
 	Pine::RenderManager::AddRenderCallback(OnRender);
 }
 
-void Gizmo::Gizmo2D::Render(const Pine::Vector2f& position, const Pine::Vector2f& size)
+void Editor::Gui::Gizmo::Gizmo2D::Render(const Pine::Vector2f& position, const Pine::Vector2f& size)
 {
 	ImGui::GetWindowDrawList()->PushClipRect(ImVec2(position.x, position.y), ImVec2(position.x + size.x, position.y + size.y));
 

@@ -1,5 +1,7 @@
 ﻿#include "TextureImporter.hpp"
 
+#include "Pine/Assets/Assets.hpp"
+
 #ifdef PINE_RUNTIME
 
 bool Pine::Importer::TextureImporter::Import(Texture2D* texture)
@@ -22,7 +24,9 @@ namespace
 
     void* LoadImageBytes(const std::string& fileName, int& width, int& height, int& channels, Graphics::TextureFormat& textureFormat)
     {
-        auto data = stbi_load(fileName.c_str(), &width, &height, &channels, 0);
+        auto data = stbi_load(fileName.c_str(), &width, &height, &channels, 4);
+
+        channels = 4;
 
         if (data == nullptr)
         {
@@ -128,14 +132,14 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
         return false;
     }
 
-    const auto& file = texture->m_SourceFiles.front();
+    const auto& file = Assets::Internal::ResolveSourceFilePath(texture->m_SourceFiles.front());
 
-    Log::Info(fmt::format("Importing Texture2D from source file {}...", file.FilePath));
+    Log::Info(fmt::format("Importing Texture2D from source file {}...", file));
 
     int width, height, channels;
     Graphics::TextureFormat format;
 
-    void* imageDataPtr = LoadImageBytes(file.FilePath, width, height, channels, format);
+    void* imageDataPtr = LoadImageBytes(file, width, height, channels, format);
 
     if (imageDataPtr == nullptr)
     {

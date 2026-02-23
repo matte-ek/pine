@@ -1,16 +1,12 @@
 #include "RenderHandler.hpp"
 
+#include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
+#include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
 #include "Other/EditorEntity/EditorEntity.hpp"
+#include "Pine/Engine/Engine.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
-
-#include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
-#include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
-#include "Pine/Core/Log/Log.hpp"
-#include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
-#include "Pine/Assets/Assets.hpp"
-#include "Pine/Engine/Engine.hpp"
 
 namespace
 {
@@ -41,12 +37,12 @@ namespace
             // a quick idea is to just wait a second after any user input then wait for further events.
             //Pine::Engine::GetEngineConfiguration().m_WaitEvents = !Panels::GameViewport::GetVisible();
 
-            EditorEntity::Get()->GetComponents()[1]->OnRender(deltaTime);
+            Editor::LevelEntity::Get()->GetComponents()[1]->OnRender(deltaTime);
         }
     }
 }
 
-void RenderHandler::Setup()
+void Editor::RenderHandler::Setup()
 {
     Pine::RenderManager::AddRenderCallback(OnPineRender);
 
@@ -72,7 +68,7 @@ void RenderHandler::Setup()
     m_LevelRenderingContext->ClearColor = Pine::Vector4f(0.f, 0.5f, 1.f, 1.f);
 
     // For the level rendering context, we'll always force the editor entity's camera
-    m_LevelRenderingContext->SceneCamera = EditorEntity::Get()->GetComponent<Pine::Camera>();
+    m_LevelRenderingContext->SceneCamera = LevelEntity::Get()->GetComponent<Pine::Camera>();
 
     // We'll want to enable the stencil buffer for the level for the selected object outline.
     m_LevelRenderingContext->EnableStencilBuffer = true;
@@ -81,7 +77,7 @@ void RenderHandler::Setup()
     Pine::RenderManager::AddRenderingContextPass(m_LevelRenderingContext);
 }
 
-void RenderHandler::Shutdown()
+void Editor::RenderHandler::Shutdown()
 {
     m_GameFrameBuffer->Dispose();
     m_LevelFrameBuffer->Dispose();
@@ -93,22 +89,22 @@ void RenderHandler::Shutdown()
     delete m_LevelRenderingContext;
 }
 
-Pine::RenderingContext *RenderHandler::GetLevelRenderingContext()
+Pine::RenderingContext* Editor::RenderHandler::GetLevelRenderingContext()
 {
     return m_LevelRenderingContext;
 }
 
-Pine::RenderingContext* RenderHandler::GetGameRenderingContext()
+Pine::RenderingContext* Editor::RenderHandler::GetGameRenderingContext()
 {
     return m_GameRenderingContext;
 }
 
-Pine::Graphics::IFrameBuffer* RenderHandler::GetGameFrameBuffer()
+Pine::Graphics::IFrameBuffer* Editor::RenderHandler::GetGameFrameBuffer()
 {
     return m_GameFrameBuffer;
 }
 
-Pine::Graphics::IFrameBuffer* RenderHandler::GetLevelFrameBuffer()
+Pine::Graphics::IFrameBuffer* Editor::RenderHandler::GetLevelFrameBuffer()
 {
     return m_LevelFrameBuffer;
 }

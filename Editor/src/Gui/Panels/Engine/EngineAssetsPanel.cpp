@@ -22,7 +22,7 @@ void Panels::EngineAssetsPanel::Render()
 
         for (const auto& [path, asset] : assets)
         {
-            ImGui::Text("%s - %s", path.c_str(), Pine::AssetTypeToString(asset->GetType()));
+            ImGui::Text("%s - %s", path.ToString().c_str(), Pine::AssetTypeToString(asset->GetType()));
         }
     }
     ImGui::End();

@@ -4,14 +4,14 @@
 #include <imgui.h>
 
 #include "IconsMaterialDesign.h"
+
 #include "Gui/Shared/Selection/Selection.hpp"
+
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
-#include "Pine/Rendering/Pipeline/Pipeline2D/Pipeline2D.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
-
-#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
+#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 
 namespace
 {

@@ -1,5 +1,7 @@
 #include "MenuBar.hpp"
+
 #include "imgui.h"
+
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Gui/Panels/Console/ConsolePanel.hpp"
 #include "Gui/Panels/DebugPanel/DebugPanel.hpp"
@@ -13,12 +15,10 @@
 
 void MenuBar::Setup()
 {
-
 }
 
 void MenuBar::Render()
 {
-
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
@@ -30,7 +30,7 @@ void MenuBar::Render()
 
             if (ImGui::MenuItem("Save", "CTRL+S"))
             {
-                Commands::Save();
+                Editor::Commands::Save();
             }
 
             ImGui::Separator();
@@ -47,42 +47,42 @@ void MenuBar::Render()
         {
             if (ImGui::MenuItem("Copy", "CTRL+C"))
             {
-                Commands::Copy();
+                Editor::Commands::Copy();
             }
 
             if (ImGui::MenuItem("Paste", "CTRL+V"))
             {
-                Commands::Paste();
+                Editor::Commands::Paste();
             }
 
             if (ImGui::MenuItem("Cut", "CTRL+X"))
             {
-                Commands::Copy();
-                Commands::Delete();
+                Editor::Commands::Copy();
+                Editor::Commands::Delete();
             }
 
             ImGui::Separator();
 
             if (ImGui::MenuItem("Delete", "DEL"))
             {
-                Commands::Delete();
+                Editor::Commands::Delete();
             }
 
             if (ImGui::MenuItem("Duplicate", "CTRL+D"))
             {
-                Commands::Duplicate();
+                Editor::Commands::Duplicate();
             }
 
             ImGui::Separator();
 
             if (ImGui::MenuItem("Undo", "CTRL+Z"))
             {
-                Commands::Undo();
+                Editor::Commands::Undo();
             }
 
             if (ImGui::MenuItem("Redo", "CTRL+Y"))
             {
-                Commands::Redo();
+                Editor::Commands::Redo();
             }
 
             ImGui::EndMenu();
@@ -92,12 +92,12 @@ void MenuBar::Render()
         {
             if (ImGui::MenuItem("Refresh", "F5"))
             {
-                Commands::Refresh();
+                Editor::Commands::Refresh();
             }
 
             if (ImGui::MenuItem("Refresh Engine Assets", "CTRL+F5"))
             {
-                Commands::Refresh(true);
+                Editor::Commands::Refresh(true);
             }
 
             ImGui::EndMenu();
@@ -165,5 +165,4 @@ void MenuBar::Render()
 
         ImGui::EndMainMenuBar();
     }
-
 }

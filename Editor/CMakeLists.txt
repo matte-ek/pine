@@ -13,6 +13,14 @@ add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_executable(Editor ${SOURCES} ${IMGUI_SOURCES}
         src/Gui/Panels/Properties/EntityPropertiesRenderer/ComponentPropertiesRenderer/ComponentPropertiesRenderer.cpp
-        src/Gui/Panels/Properties/EntityPropertiesRenderer/ComponentPropertiesRenderer/ComponentPropertiesRenderer.hpp)
+        src/Gui/Panels/Properties/EntityPropertiesRenderer/ComponentPropertiesRenderer/ComponentPropertiesRenderer.hpp
+        src/Utilities/Assets/AssetUtilities.cpp
+        src/Utilities/Assets/AssetUtilities.hpp
+        src/Projects/Projects.cpp
+        src/Projects/Projects.hpp
+        src/Gui/Panels/AssetBrowser/AssetHierarchy/AssetHierarchy.cpp
+        src/Gui/Panels/AssetBrowser/AssetHierarchy/AssetHierarchy.hpp
+        src/Gui/Dialogs/Asset/AssetDialogs.cpp
+        src/Gui/Dialogs/Asset/AssetDialogs.hpp)
 
 target_link_libraries(Editor Engine mono-2.0)

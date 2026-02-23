@@ -69,7 +69,7 @@ namespace
         // Remove the task from the "running task" list:
         std::unique_lock taskQueueLock(m_TaskQueueMutex);
 
-        for (size_t i{}; i < m_TasksQueue.size(); ++i)
+        for (size_t i{}; i < m_RunningTasks.size(); ++i)
         {
             if (m_RunningTasks[i] == task)
             {
@@ -238,7 +238,9 @@ Pine::TaskResult Pine::Threading::AwaitTaskResult(const std::shared_ptr<Task>& t
     {
         if (isMainThread)
         {
+            lck.unlock();
             PumpMainThreadTasks();
+            lck.lock();
         }
 
         task->ConditionVariable.wait(lck, [&]{ return task->State == TaskState::Finished || (isMainThread && m_MainThreadJobs > 0); });

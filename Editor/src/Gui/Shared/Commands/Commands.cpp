@@ -1,14 +1,15 @@
-#include <GLFW/glfw3.h>
 #include "Commands.hpp"
+#include <GLFW/glfw3.h>
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
-#include "Pine/Assets/Assets.hpp"
-#include "Gui/Shared/Selection/Selection.hpp"
-#include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Gui/Shared/KeybindSystem/KeybindSystem.hpp"
+#include "Gui/Shared/Selection/Selection.hpp"
 #include "Other/Actions/Actions.hpp"
-#include "Pine/World/World.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Level/Level.hpp"
-#include "Scripting/ScriptingUtilities.hpp"
+#include "Pine/World/World.hpp"
+#include "Utilities/Assets/AssetUtilities.hpp"
+#include "Utilities/Scripts/ScriptUtilities.hpp"
 
 namespace
 {
@@ -28,7 +29,7 @@ namespace
     }
 }
 
-void Commands::Setup()
+void Editor::Commands::Setup()
 {
     Keybinds::Copy = KeybindSystem::RegisterKeybind("Copy", GLFW_KEY_C, true);
     Keybinds::Paste = KeybindSystem::RegisterKeybind("Paste", GLFW_KEY_V, true);
@@ -40,17 +41,17 @@ void Commands::Setup()
     Keybinds::Save = KeybindSystem::RegisterKeybind("Save", GLFW_KEY_S, true);
 }
 
-void Commands::Dispose()
+void Editor::Commands::Dispose()
 {
 }
 
-void Commands::Copy()
+void Editor::Commands::Copy()
 {
     ClipboardEntities = Selection::GetSelectedEntities();
     ClipboardAssets = Selection::GetSelectedAssets();
 }
 
-void Commands::Paste()
+void Editor::Commands::Paste()
 {
     Selection::Clear();
 
@@ -74,13 +75,13 @@ void Commands::Paste()
     }
 }
 
-void Commands::Duplicate()
+void Editor::Commands::Duplicate()
 {
     Copy();
     Paste();
 }
 
-void Commands::Delete()
+void Editor::Commands::Delete()
 {
     if (!Selection::GetSelectedEntities().empty())
     {
@@ -95,7 +96,7 @@ void Commands::Delete()
         {
             if (asset->GetType() == Pine::AssetType::CSharpScript)
             {
-                ScriptingUtilities::DeleteScript(asset->GetFilePath().string());
+                Utilities::Script::DeleteScript(asset->GetFilePath().string());
             }
 
             std::filesystem::remove(asset->GetFilePath());
@@ -107,35 +108,28 @@ void Commands::Delete()
     Selection::Clear();
 }
 
-void Commands::Undo()
+void Editor::Commands::Undo()
 {
     Actions::Undo();
 }
 
-void Commands::Redo()
+void Editor::Commands::Redo()
 {
 }
 
-void Commands::Refresh(bool engineAssets)
+void Editor::Commands::Refresh(bool engineAssets)
 {
-    if (engineAssets)
-    {
-        Pine::Assets::LoadDirectory("engine/shaders", false);
-        Pine::Assets::LoadDirectory("engine", false);
-    }
 
-    Panels::AssetBrowser::RebuildAssetTree();
+    Panels::AssetBrowser::BuildAssetHierarchy();
 }
 
-void Commands::Save()
+void Editor::Commands::Save()
 {
     if (Pine::World::GetActiveLevel())
         Pine::World::GetActiveLevel()->CreateFromWorld();
-
-    Pine::Assets::SaveAll();
 }
 
-void Commands::Update()
+void Editor::Commands::Update()
 {
     if (KeybindSystem::IsKeybindPressed(Keybinds::Copy))
         Copy();

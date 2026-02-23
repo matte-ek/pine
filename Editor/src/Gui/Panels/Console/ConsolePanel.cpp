@@ -1,6 +1,8 @@
 #include "ConsolePanel.hpp"
-#include "imgui.h"
 #include "IconsMaterialDesign.h"
+
+#include "imgui.h"
+
 #include "Pine/Core/Log/Log.hpp"
 
 namespace

@@ -1,7 +1,7 @@
 #pragma once
 #include "Pine/World/Entity/Entity.hpp"
 
-namespace EditorEntity
+namespace Editor::LevelEntity
 {
 
 	void Setup();

@@ -99,6 +99,38 @@ namespace Pine::Graphics
         }
     }
 
+    inline const char* TextureCompressionFormatToString(TextureCompressionFormat format)
+    {
+        switch (format)
+        {
+            case TextureCompressionFormat::Raw:
+                return "Raw";
+            case TextureCompressionFormat::BC1:
+                return "BC1";
+            case TextureCompressionFormat::BC4:
+                return "BC4";
+            case TextureCompressionFormat::BC5:
+                return "BC5";
+            case TextureCompressionFormat::BC7:
+                return "BC7";
+            default:
+                return "Unknown";
+        }
+    }
+
+    inline const char* TextureFilteringModeToString(TextureFilteringMode filteringMode)
+    {
+        switch (filteringMode)
+        {
+            case TextureFilteringMode::Nearest:
+                return "Nearest";
+            case TextureFilteringMode::Linear:
+                return "Linear";
+            default:
+                return "Unknown";
+        }
+    }
+
     class ITexture
     {
     protected:

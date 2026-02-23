@@ -32,7 +32,6 @@ bool Pine::Material::LoadAssetData(const ByteSpan& span)
 Pine::Material::Material()
 {
     m_Type = AssetType::Material;
-    m_Shader = Assets::Get<Shader>("engine/shaders/3d/generic.shader");
 }
 
 void Pine::Material::SetDiffuseColor(Vector3f color)

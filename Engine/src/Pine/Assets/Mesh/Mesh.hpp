@@ -12,7 +12,9 @@ namespace Pine
     {
     private:
         Graphics::IVertexArray* m_VertexArray = nullptr;
-        AssetHandle<Material> m_Material;
+
+        // Default material
+        AssetHandle<Material> m_Material = UId("272acbdf9d24-938e65cf3a4b101d");
 
         std::uint32_t m_RenderCount = 0;
         bool m_HasElementBuffer = false;
@@ -32,7 +34,7 @@ namespace Pine
         bool HasElementBuffer() const;
 
         void SetMaterial(Material* material);
-        void SetMaterial(const std::string& fileReference);
+        void SetMaterial(UId id);
 
         Material* GetMaterial() const;
 

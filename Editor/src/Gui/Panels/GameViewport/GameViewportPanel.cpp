@@ -69,10 +69,11 @@ void Panels::GameViewport::Render()
     }
 
     const auto avSize = ImGui::GetContentRegionAvail();
-    const auto renderScale = RenderHandler::GetGameRenderingContext()->Size /
-                             static_cast<Pine::Vector2f>(RenderHandler::GetGameFrameBuffer()->GetSize());
-    const std::uint64_t id =
-        *static_cast<std::uint32_t*>(RenderHandler::GetGameFrameBuffer()->GetColorBuffer()->GetGraphicsIdentifier());
+
+    const auto renderScale = Editor::RenderHandler::GetGameRenderingContext()->Size /
+                             static_cast<Pine::Vector2f>(Editor::RenderHandler::GetGameFrameBuffer()->GetSize());
+
+    const std::uint64_t id = *static_cast<std::uint32_t*>(Editor::RenderHandler::GetGameFrameBuffer()->GetColorBuffer()->GetGraphicsIdentifier());
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
@@ -81,9 +82,7 @@ void Panels::GameViewport::Render()
 
     const bool viewportClickedLeft = ImGui::IsItemClicked(ImGuiMouseButton_Left);
 
-    const bool isPlaying = PlayHandler::GetGameState() != PlayHandler::EditorGameState::Stopped;
-
-    if (isPlaying)
+    if (PlayHandler::GetGameState() != PlayHandler::EditorGameState::Stopped)
     {
         // Start capture on first click inside the viewport, or keep it if already captured
         if (!m_CaptureMouse && viewportClickedLeft)

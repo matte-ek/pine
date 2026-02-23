@@ -21,16 +21,6 @@
 
 namespace
 {
-    bool m_Active = true;
-    bool m_Visible = false;
-    bool m_CaptureMouse = false;
-
-    Pine::Vector2i m_MouseCapturePosition = Pine::Vector2i(0);
-    Pine::Vector2i m_Size = Pine::Vector2i(0);
-
-    bool m_ShowEntitySpeed = false;
-    double m_ShowEntitySpeedTime = 0.f;
-
     enum class GizmoMode : int
     {
         Translate,
@@ -51,15 +41,25 @@ namespace
         Always
     };
 
-    GizmoMode m_GizmoMode = GizmoMode::Translate;
-    PerspectiveMode m_PerspectiveMode = PerspectiveMode::Local;
-    SnapMode m_SnapMode = SnapMode::OnKey;
+    bool m_Active = true;
+    bool m_Visible = false;
+    bool m_CaptureMouse = false;
+
+    auto m_MouseCapturePosition = Pine::Vector2i(0);
+    auto m_Size = Pine::Vector2i(0);
+
+    bool m_ShowEntitySpeed = false;
+    double m_ShowEntitySpeedTime = 0.0;
+
+    auto m_GizmoMode = GizmoMode::Translate;
+    auto m_PerspectiveMode = PerspectiveMode::Local;
+    auto m_SnapMode = SnapMode::OnKey;
 
     float m_SnapRange = 1.f;
 
     void RenderTranslationGizmo(ImVec2 viewportPosition)
     {
-        static auto camera = EditorEntity::Get()->GetComponent<Pine::Camera>();
+        static auto camera = Editor::LevelEntity::Get()->GetComponent<Pine::Camera>();
 
         if (Selection::GetSelectedEntities().empty())
             return;
@@ -199,7 +199,7 @@ void Panels::LevelViewport::Render()
 
     m_Visible = true;
 
-    const std::uint64_t id = *static_cast<std::uint32_t*>(RenderHandler::GetLevelFrameBuffer()->GetColorBuffer()->GetGraphicsIdentifier());
+    const std::uint64_t id = *static_cast<std::uint32_t*>(Editor::RenderHandler::GetLevelFrameBuffer()->GetColorBuffer()->GetGraphicsIdentifier());
 
     static auto tabButton = [](const char* text, bool selected)
     {
@@ -281,14 +281,14 @@ void Panels::LevelViewport::Render()
 
         if (ImGui::BeginMenu("Perspective"))
         {
-            if (ImGui::MenuItem("2D", nullptr, EditorEntity::GetPerspective2D()))
+            if (ImGui::MenuItem("2D", nullptr, Editor::LevelEntity::GetPerspective2D()))
             {
-                EditorEntity::SetPerspective2D(true);
+                Editor::LevelEntity::SetPerspective2D(true);
             }
 
-            if (ImGui::MenuItem("3D", nullptr, !EditorEntity::GetPerspective2D()))
+            if (ImGui::MenuItem("3D", nullptr, !Editor::LevelEntity::GetPerspective2D()))
             {
-                EditorEntity::SetPerspective2D(false);
+                Editor::LevelEntity::SetPerspective2D(false);
             }
 
             ImGui::EndMenu();
@@ -301,7 +301,7 @@ void Panels::LevelViewport::Render()
 
     const auto avSize = ImGui::GetContentRegionAvail();
     const auto position = ImGui::GetCursorScreenPos();
-    const auto renderScale = RenderHandler::GetLevelRenderingContext()->Size / static_cast<Pine::Vector2f>(RenderHandler::GetLevelFrameBuffer()->GetSize());
+    const auto renderScale = Editor::RenderHandler::GetLevelRenderingContext()->Size / static_cast<Pine::Vector2f>(Editor::RenderHandler::GetLevelFrameBuffer()->GetSize());
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
@@ -326,7 +326,7 @@ void Panels::LevelViewport::Render()
 
         if (io.MouseWheel != 0.f)
         {
-            EditorEntity::SetSpeedMultiplier(EditorEntity::GetSpeedMultiplier() + io.MouseWheel * 0.1f);
+            Editor::LevelEntity::SetSpeedMultiplier(Editor::LevelEntity::GetSpeedMultiplier() + io.MouseWheel * 0.1f);
 
             m_ShowEntitySpeed = true;
             m_ShowEntitySpeedTime = ImGui::GetTime() + 5.f;
@@ -367,16 +367,16 @@ void Panels::LevelViewport::Render()
         ImGui::EndDragDropTarget();
     }
 
-    EditorEntity::SetCaptureMouse(m_CaptureMouse);
+    Editor::LevelEntity::SetCaptureMouse(m_CaptureMouse);
 
     RenderTranslationGizmo(position);
 
-    if (EditorEntity::GetPerspective2D())
+    if (Editor::LevelEntity::GetPerspective2D())
     {
         // Handle view port zooming
         if (viewportHovered)
         {
-            const auto camera = RenderHandler::GetLevelRenderingContext()->SceneCamera;
+            const auto camera = Editor::RenderHandler::GetLevelRenderingContext()->SceneCamera;
             const float zoomFactor = camera->GetOrthographicSize();
             const float wheelDelta = ImGui::GetIO().MouseWheel * 0.1f * zoomFactor;
 
@@ -391,18 +391,18 @@ void Panels::LevelViewport::Render()
             }
         }
 
-        Gizmo::Gizmo2D::Render(Pine::Vector2f(position.x, position.y), m_Size);
+        Editor::Gui::Gizmo::Gizmo2D::Render(Pine::Vector2f(position.x, position.y), m_Size);
     }
     else
     {
-        Gizmo::Gizmo3D::Render({position.x, position.y});
+        Editor::Gui::Gizmo::Gizmo3D::Render({position.x, position.y});
     }
 
     if (m_ShowEntitySpeed && m_ShowEntitySpeedTime > ImGui::GetTime())
     {
         char buff[64];
 
-        snprintf(buff, sizeof(buff), "Speed: %.1f", EditorEntity::GetSpeedMultiplier());
+        snprintf(buff, sizeof(buff), "Speed: %.1f", Editor::LevelEntity::GetSpeedMultiplier());
 
         const auto textSize = ImGui::CalcTextSize(buff);
 
@@ -422,12 +422,12 @@ void Panels::LevelViewport::Render()
 
         // Since our underlying viewport is in 1920x1080, but we down scale that to fit the viewport, we
         // now have to up scale our cursor coordinates back to 1920x1080
-        mousePosition = Pine::Vector2f(mousePosition) * RenderHandler::GetLevelRenderingContext()->Size / Pine::Vector2f(m_Size);
+        mousePosition = Pine::Vector2f(mousePosition) * Editor::RenderHandler::GetLevelRenderingContext()->Size / Pine::Vector2f(m_Size);
 
         // Flip Y axis since the frame buffer is flipped
-        mousePosition.y = RenderHandler::GetLevelRenderingContext()->Size.y - mousePosition.y;
+        mousePosition.y = Editor::RenderHandler::GetLevelRenderingContext()->Size.y - mousePosition.y;
 
-        EntitySelection::Pick(mousePosition, ImGui::GetIO().KeyCtrl);
+        Editor::Gui::EntitySelection::Pick(mousePosition, ImGui::GetIO().KeyCtrl);
     }
 
     ImGui::End();

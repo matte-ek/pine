@@ -2,7 +2,7 @@
 
 #include "Pine/Core/Math/Math.hpp"
 
-namespace Gizmo::Gizmo3D
+namespace Editor::Gui::Gizmo::Gizmo3D
 {
     void Setup();
 
