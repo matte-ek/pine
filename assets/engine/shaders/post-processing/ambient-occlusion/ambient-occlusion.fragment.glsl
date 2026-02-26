@@ -11,7 +11,7 @@ uniform sampler2D sceneNormalBuffer;
 uniform sampler2D sceneDepthBuffer;
 uniform sampler2D kernelRandomnessTexture;
 
-layout(std140) uniform KernelData 
+layout(std140) uniform KernelData
 {
 	vec4 kernel[64];
 };

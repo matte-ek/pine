@@ -16,11 +16,16 @@ Pine::ByteSpan Pine::Asset::SaveAssetData()
     return {nullptr, 0};
 }
 
-void Pine::Asset::SetupNew(const std::string& path)
+void Pine::Asset::SetupNew(const std::filesystem::path& absoluteFilePath)
 {
     m_UId = UId::New();
-    m_Path = File::UniversalPath(path);
-    m_FilePath = File::UniversalPath(fmt::format("{}data/{}.passet", Assets::Internal::GetWorkingDirectory(), m_UId.ToString()));
+
+    const auto universalPath = File::UniversalPath(absoluteFilePath);
+
+    m_Path = String::StartsWith(universalPath, Assets::Internal::GetWorkingDirectory()) ?
+        universalPath.substr(Assets::Internal::GetWorkingDirectory().length()) : universalPath;
+
+    m_FilePath = std::filesystem::path(universalPath).replace_extension(".passet").string();
 }
 
 const Pine::UId& Pine::Asset::GetUId() const
@@ -104,13 +109,30 @@ Pine::Script::ObjectHandle* Pine::Asset::GetScriptHandle()
 
 void Pine::Asset::SaveToFile()
 {
+    m_HasBeenModified = false;
+
     File::WriteCompressed(m_FilePath, Save());
 }
 
 void Pine::Asset::ReImport()
 {
+    // Run the underlying importer to load the new source data
     Import();
-    LoadAssetData(SaveAssetData());
+
+    // Get the new ready pine asset data
+    auto newData = Save();
+
+    // Write this new data to disk, if possible.
+    if (!m_FilePath.empty())
+    {
+        File::WriteCompressed(m_FilePath, newData);
+    }
+
+    // Reload this data from memory, we do since assets will only save the newly imported data
+    // within Save(), as such, these changes might not have been applied to loaded GPU textures and such.
+    m_CreatedTime = 0;
+
+    Load(newData);
 }
 
 Pine::Asset* Pine::Asset::Load(const ByteSpan& data, bool ignoreAssetData)
@@ -127,16 +149,35 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
         return nullptr;
     }
 
-    auto asset = Assets::Internal::CreateAssetByType(aSerializer.Type.Read<AssetType>());
+    Asset* asset = nullptr;
+
+    // First try to just load the id to determine if this asset has been loaded already.
+    if (const auto prevAsset = Assets::GetAssetByUId(aSerializer.UId.Read<UId>()))
+    {
+        // If so, check if this is the same version.
+        if (prevAsset->m_CreatedTime == aSerializer.Time.Read<std::uint64_t>())
+        {
+            return prevAsset;
+        }
+
+        asset = prevAsset;
+    }
+
+    // Otherwise, create a new instance.
     if (!asset)
     {
-        return nullptr;
+        asset = Assets::Internal::CreateAssetByType(aSerializer.Type.Read<AssetType>());
+        if (!asset)
+        {
+            return nullptr;
+        }
     }
 
     aSerializer.UId.Read(asset->m_UId);
+    aSerializer.Time.Read(asset->m_CreatedTime);
     aSerializer.Path.Read(asset->m_Path);
 
-    aSerializer.Dependencies.Read(asset->m_Dependencies);
+    asset->m_SourceFiles.clear();
 
     for (size_t i{};i < aSerializer.Sources.GetDataCount();i++)
     {
@@ -156,16 +197,6 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
     if (ignoreAssetData)
     {
         return asset;
-    }
-
-    if (!asset->m_Dependencies.empty())
-    {
-        for (const auto& dep : asset->m_Dependencies)
-        {
-            // We don't really care about the result right now, we can get that later.
-            // Important thing is that we've loaded the asset.
-            Assets::LoadAssetFromFile(fmt::format("data/{}.passet", dep.ToString()));
-        }
     }
 
     if (!asset->LoadAssetData(aSerializer.Data.Read()))
@@ -198,10 +229,12 @@ Pine::ByteSpan Pine::Asset::Save()
 {
     AssetSerializer aSerializer;
 
+    m_CreatedTime = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+
     aSerializer.UId.Write(m_UId);
+    aSerializer.Time.Write(m_CreatedTime);
     aSerializer.Type.Write(m_Type);
     aSerializer.Path.Write(m_Path);
-    aSerializer.Dependencies.Write(m_Dependencies);
 
     for (size_t i{};i < m_SourceFiles.size();i++)
     {

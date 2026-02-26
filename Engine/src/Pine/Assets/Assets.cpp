@@ -15,13 +15,12 @@
 #include "Pine/Assets/Tileset/Tileset.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
+#include "Pine/Threading/Threading.hpp"
 
 #include <functional>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
-
-#include "Pine/Threading/Threading.hpp"
 
 using namespace Pine;
 
@@ -29,17 +28,11 @@ namespace
 {
     std::string m_WorkingDirectory = "./";
 
-    std::mutex m_AssetsMutex;
-
     // All assets currently registered by Pine, they don't have to be
     // valid assets, or loaded assets.
+    std::mutex m_AssetsMutex;
     std::unordered_map<UId, Asset*> m_AssetsMapUId;
     std::unordered_map<std::string, Asset*> m_AssetsMapPath;
-
-    // A list of currently loading assets, we use this to determine if
-    // an asset is currently already loading during dependencies.
-    std::mutex m_LoadingAssetsMutex;
-    std::vector<std::pair<UId, std::shared_ptr<Task>>> m_LoadingAssets;
 
     struct AssetImportFactory
     {
@@ -74,7 +67,7 @@ namespace
         if (!fileName.has_extension())
             return nullptr;
 
-        const auto inputFileExtension = Pine::String::ToLower(fileName.extension().string().substr(1));
+        const auto inputFileExtension = String::ToLower(fileName.extension().string().substr(1));
 
         for (const auto& factory : m_AssetImportFactories)
         {
@@ -105,28 +98,6 @@ namespace
                 return nullptr;
             }
 
-            // Get the id from the file name, this requires all file names to contain the UId
-            // which might not exactly be ideal. I am not sure of any problems with this currently,
-            // but it might be a thing to look into.
-            auto assetId = UId(filePath.filename().string());
-
-            // Make sure this asset is not already being imported, this could happen for example
-            // when dealing with dependencies, as the asset being imported might try to load the
-            // asset before us.
-            std::unique_lock loadingAssetsLock(m_LoadingAssetsMutex);
-            for (const auto& loadingAsset : m_LoadingAssets)
-            {
-                if (loadingAsset.first == assetId)
-                {
-                    // We're already being imported, exit out.
-                    return nullptr;
-                }
-            }
-
-            // If not, add ourselves to the list.
-            m_LoadingAssets.emplace_back(assetId, Threading::GetCurrentTask());
-            loadingAssetsLock.unlock();
-
             // Load the asset itself
             auto data = File::ReadCompressed(filePath);
             auto asset = Asset::Load(data, filePath.string());
@@ -138,18 +109,6 @@ namespace
                 m_AssetsMapPath[asset->GetPath()] = asset;
                 m_AssetsMapUId[asset->GetUId()] = asset;
                 lock.unlock();
-
-                // Remove ourselves from the "currently loading assets" list
-                loadingAssetsLock.lock();
-                for (size_t i{}; i < m_LoadingAssets.size(); i++)
-                {
-                    if (m_LoadingAssets[i].first == assetId)
-                    {
-                        m_LoadingAssets.erase(m_LoadingAssets.begin() + i);
-                        break;
-                    }
-                }
-                loadingAssetsLock.unlock();
 
                 Pine::Log::Verbose(fmt::format("Loaded asset {} as {} successfully.", asset->GetPath(), AssetTypeToString(asset->GetType())));
             }
@@ -194,16 +153,6 @@ void Assets::SetWorkingDirectory(std::string_view workingDirectory)
 
 Asset* Assets::LoadAssetFromFile(const std::filesystem::path& filePath)
 {
-    auto assetId = UId(filePath.filename().string());
-
-    // Check if we're already loaded this asset.
-    std::unique_lock assetLock(m_AssetsMutex);
-    if (m_AssetsMapUId.count(assetId))
-    {
-        return m_AssetsMapUId.at(assetId);
-    }
-    assetLock.unlock();
-
     // If not, load it.
     auto task = RunAssetLoadFromFile(m_WorkingDirectory + filePath.string());
 
@@ -238,15 +187,6 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
             continue;
         }
 
-        // Make sure it's not already been imported.
-        {
-            std::unique_lock assetLock(m_AssetsMutex);
-            if (m_AssetsMapUId.count(UId(iter.path().filename().string())) != 0)
-            {
-                continue;
-            }
-        }
-
         assetLoadTasks.push_back(RunAssetLoadFromFile(iter, pool));
     }
 
@@ -272,19 +212,12 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
     return loadedAssets;
 }
 
-Asset* Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view mappedPath)
+Asset* Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputAbsolutePath)
 {
-    // Get the correct path with the possible working directory and make sure it's valid.
-    std::filesystem::path finalPath = m_WorkingDirectory + sourceFilePath.string();
-    if (!std::filesystem::exists(finalPath))
-    {
-        return nullptr;
-    }
-
-    return ImportAssetFromFiles({sourceFilePath}, mappedPath);
+    return ImportAssetFromFiles({sourceFilePath}, outputAbsolutePath);
 }
 
-Asset* Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view mappedPath)
+Asset* Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view outputAbsolutePath)
 {
     if (sourceFilePaths.empty())
     {
@@ -300,7 +233,7 @@ Asset* Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& so
 
     auto asset = factory->m_Factory();
 
-    asset->SetupNew(mappedPath.data());
+    asset->SetupNew(outputAbsolutePath.data());
 
     for (const auto& source : sourceFilePaths)
     {
@@ -357,11 +290,6 @@ const std::unordered_map<UId, Asset*>& Assets::GetAll()
 const std::string& Assets::Internal::GetWorkingDirectory()
 {
     return m_WorkingDirectory;
-}
-
-std::string Assets::Internal::ResolveSourceFilePath(const AssetSource& assetSource)
-{
-    return m_WorkingDirectory + "/" + assetSource.FilePath;
 }
 
 Asset* Assets::Internal::CreateAssetByType(AssetType type)

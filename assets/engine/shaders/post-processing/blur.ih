@@ -1,0 +1,14 @@
+{
+	"SourceFiles": [
+		"blur/blur.vertex.glsl",
+		"blur/blur.fragment.glsl"
+	],
+	"Data": {
+		"TextureSamplers": {
+			"inputBuffer": 0
+		},
+		"Versions": {
+			"VERSION_SINGLE_CHANNEL": 1
+		}
+	}
+}

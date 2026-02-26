@@ -132,7 +132,7 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
         return false;
     }
 
-    const auto& file = Assets::Internal::ResolveSourceFilePath(texture->m_SourceFiles.front());
+    const auto& file = texture->m_SourceFiles.front().FilePath;
 
     Log::Info(fmt::format("Importing Texture2D from source file {}...", file));
 

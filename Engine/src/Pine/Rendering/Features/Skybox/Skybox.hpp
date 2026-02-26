@@ -6,5 +6,5 @@ namespace Pine::Rendering::Skybox
 	void Setup();
 	void Shutdown();
 
-    void Render(const Texture3D* cubeMap);
+    void Render(Texture3D* cubeMap);
 }

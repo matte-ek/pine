@@ -1,0 +1,6 @@
+{
+	"SourceFiles": [
+		"rect.vertex.glsl",
+		"rect.fragment.glsl"
+	]
+}

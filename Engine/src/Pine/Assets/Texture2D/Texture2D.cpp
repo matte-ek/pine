@@ -8,6 +8,7 @@
 #endif
 
 #include "Importer/TextureImporter.hpp"
+#include "Pine/Core/File/File.hpp"
 #include "Pine/Threading/Threading.hpp"
 
 bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
@@ -219,7 +220,7 @@ Pine::ByteSpan Pine::Texture2D::SaveAssetData()
     {
         if (!m_FilePath.empty() && std::filesystem::exists(m_FilePath))
         {
-            textureSerializer.Read(m_FilePath);
+            textureSerializer.Read(File::ReadCompressed(m_FilePath));
         }
     }
     else

@@ -20,7 +20,7 @@ namespace Pine
     private:
         Graphics::ITexture* m_CubeMapTexture = nullptr;
 
-        bool m_Valid = false;
+        bool m_Ready = false;
 
         std::array<AssetHandle<Texture2D>, 6> m_SideTextures;
 
@@ -39,10 +39,8 @@ namespace Pine
 
         Graphics::ITexture* GetCubeMap() const;
 
-        bool IsValid() const;
-
+        bool IsReady() const;
         bool Build();
-
         void Dispose() override;
     };
 }

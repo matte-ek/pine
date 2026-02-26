@@ -64,6 +64,7 @@ namespace Pine::WindowManager
     void InstallWindowCallbacks(); // This is normally called by the engine itself, but ImGui might steal some of them, so we need to call this again after ImGui has been initialized.
     void AddWindowResizeCallback(const std::function<void(int, int)>& callback);
     void AddWindowFocusCallback(const std::function<void()>& callback);
+    void AddWindowDropCallback(const std::function<void(std::vector<std::string>)>& callback);
 
     // Pointer to the underlying OS "handle", for example, on Windows
     // systems this will be the HWND.

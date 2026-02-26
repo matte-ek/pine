@@ -7,4 +7,6 @@ namespace Editor::Projects
 
     const std::string& GetProjectName();
     std::string GetProjectPath();
+
+    void LoadProjectAssets();
 }

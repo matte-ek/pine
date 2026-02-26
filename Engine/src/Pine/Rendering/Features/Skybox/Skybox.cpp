@@ -34,13 +34,15 @@ void Pine::Rendering::Skybox::Setup()
                                                 -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, -1.0f,
                                                 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f };
 
-    m_GraphicsAPI = Pine::Graphics::GetGraphicsAPI();
+    m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
     m_VertexArray = m_GraphicsAPI->CreateVertexArray();
     m_VertexArray->Bind();
     m_VertexArray->StoreFloatArrayBuffer(const_cast<float*>(skyboxVertices.data()), skyboxVertices.size() * sizeof(float), 0, 3, Pine::Graphics::BufferUsageHint::StaticDraw);
 
-    m_Shader = Pine::Assets::Get<Pine::Shader>("engine/shaders/3d/skybox.shader");
+    m_Shader = Pine::Assets::Get<Pine::Shader>("engine/shaders/3d/skybox");
+
+    assert(m_Shader != nullptr);
 }
 
 void Pine::Rendering::Skybox::Shutdown()
@@ -48,19 +50,19 @@ void Pine::Rendering::Skybox::Shutdown()
     m_GraphicsAPI->DestroyVertexArray(m_VertexArray);
 }
 
-void Pine::Rendering::Skybox::Render(const Texture3D* cubeMap)
+void Pine::Rendering::Skybox::Render(Texture3D* cubeMap)
 {
     PINE_PF_SCOPE();
 
-    if (!cubeMap->IsValid())
+    if (!cubeMap->IsReady())
     {
+        cubeMap->Build();
         return;
     }
 
     if (!m_Shader->IsRendererReady())
     {
         assert(Pine::Renderer3D::ShaderStorages::Matrix.AttachShaderProgram(m_Shader->GetProgram()));
-
         m_Shader->SetRendererReady(true);
     }
 
@@ -69,8 +71,6 @@ void Pine::Rendering::Skybox::Render(const Texture3D* cubeMap)
     cubeMap->GetCubeMap()->Bind();
 
     m_GraphicsAPI->SetDepthFunction(Graphics::TestFunction::LessEqual);
-
     m_GraphicsAPI->DrawArrays(Graphics::RenderMode::Triangles, 36);
-
     m_GraphicsAPI->SetDepthFunction(Graphics::TestFunction::Less);
 }

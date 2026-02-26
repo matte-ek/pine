@@ -1,0 +1,7 @@
+{
+	"SourceFiles": [
+		"shadow/shadow.vertex.glsl",
+		"shadow/shadow.fragment.glsl",
+		"shadow/shadow.geometry.glsl"
+	]
+}

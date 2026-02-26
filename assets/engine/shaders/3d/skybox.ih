@@ -1,0 +1,11 @@
+{
+	"SourceFiles": [
+		"skybox/skybox.vertex.glsl",
+		"skybox/skybox.fragment.glsl"
+	],
+	"Data": {
+		"TextureSamplers": {
+			"skyboxCubeMap": 0
+		}
+	}
+}

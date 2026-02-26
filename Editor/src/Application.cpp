@@ -1,7 +1,6 @@
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Core/Math./Math.hpp"
 #include "Pine/Engine/Engine.hpp"
-#include "Pine/Performance/Performance.hpp"
 #include "Pine/World/World.hpp"
 
 #include "Gui/Gui.hpp"
@@ -19,8 +18,6 @@ int main(int argc, const char* argv[])
         return 1;
     }
 
-    Editor::Projects::SetProject(argv[1]);
-
     // Setup Pine
     Pine::Engine::EngineConfiguration engineConfiguration;
 
@@ -34,13 +31,13 @@ int main(int argc, const char* argv[])
         return 0;
     }
 
-    // Load user assets
-    Pine::Assets::SetWorkingDirectory(Editor::Projects::GetProjectPath());
+    // Load editor assets
+    Pine::Assets::LoadAssetsFromDirectory("editor");
 
-    {
-        PINE_PF_SCOPE_MANUAL("Editor::LoadProjectAssets");
-        Pine::Assets::LoadAssetsFromDirectory("data");
-    }
+    Editor::Projects::SetProject(argv[1]);
+
+    // Load user assets
+    Editor::Projects::LoadProjectAssets();
 
     // Make sure we're not starting simulation
     Pine::World::SetPaused(true);

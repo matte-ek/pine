@@ -191,6 +191,8 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
     // Since glCopyImageSubData only copies the data, we'll need to manually allocate it first.
     // EDIT: Since I cannot get glCopyImageSubData working, we'll copy data to the CPU, then to the GPU again :S
 
+    // TODO: Fix compression support.
+
     auto srcId = *static_cast<std::uint32_t *>(texture->GetGraphicsIdentifier());
 
     size_t bufferSize = texture->GetWidth() * texture->GetHeight() * (texture->GetTextureFormat() == TextureFormat::RGBA ? 4 : 3);

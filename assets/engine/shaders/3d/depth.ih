@@ -1,0 +1,6 @@
+{
+	"SourceFiles": [
+		"depth/depth.vertex.glsl",
+		"depth/depth.fragment.glsl"
+	]
+}

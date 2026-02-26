@@ -101,15 +101,13 @@ namespace Pine
         // Underlying ".passet" file path
         std::filesystem::path m_FilePath{};
 
+        std::uint64_t m_CreatedTime{};
+
         AssetState m_State = AssetState::Unloaded;
 
         // Source files that this asset was initially imported from. This is only present
         // within the editor and such, not the final runtime.
         std::vector<AssetSource> m_SourceFiles;
-
-        // Basically refers to data dependencies, in the way that this asset cannot be loaded/processed
-        // until the specified assets are loaded beforehand.
-        std::vector<UId> m_Dependencies;
 
         int m_ReferenceCount = 0;
         bool m_IsDeleted = false;
@@ -130,10 +128,10 @@ namespace Pine
         struct AssetSerializer : Serialization::Serializer
         {
             PINE_SERIALIZE_PRIMITIVE(UId, Serialization::DataType::UId);
+            PINE_SERIALIZE_PRIMITIVE(Time, Serialization::DataType::Int64);
             PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
             PINE_SERIALIZE_STRING(Path);
             PINE_SERIALIZE_ARRAY(Sources);
-            PINE_SERIALIZE_ARRAY_FIXED(Dependencies, Pine::UId);
             PINE_SERIALIZE_DATA(Data);
         };
 
@@ -143,7 +141,7 @@ namespace Pine
         virtual ~Asset() = default;
 
         // This should ideally be done through a constructor.
-        void SetupNew(const std::string& path);
+        void SetupNew(const std::filesystem::path& absoluteFilePath);
 
         const UId& GetUId() const;
         const AssetType& GetType() const;

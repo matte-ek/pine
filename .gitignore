@@ -432,3 +432,5 @@ FodyWeavers.xsd
 Engine/include/mono
 Engine/lib/mono-2.0-sgen.lib
 Editor/lib/mono-2.0-sgen.lib
+
+projects/

@@ -1,0 +1,13 @@
+{
+	"SourceFiles": [
+		"ambient-occlusion/ambient-occlusion.vertex.glsl",
+		"ambient-occlusion/ambient-occlusion.fragment.glsl"
+	],
+	"Data": {
+		"TextureSamplers": {
+			"sceneNormalBuffer": 0,
+			"sceneDepthBuffer": 1,
+			"kernelRandomnessTexture": 2
+		}
+	}
+}

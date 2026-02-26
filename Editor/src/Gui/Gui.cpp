@@ -25,6 +25,7 @@
 #include "Panels/Profiler/ProfilerPanel.hpp"
 #include "Panels/Properties/PropertiesPanel.hpp"
 #include "Pine/Performance/Performance.hpp"
+#include "Utilities/Assets/AssetUtilities.hpp"
 
 namespace
 {
@@ -34,6 +35,12 @@ namespace
             return;
 
         ImGui_ImplGlfw_WindowFocusCallback(static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer()), true);
+    }
+
+    void OnWindowDrop(const std::vector<std::string>& paths)
+    {
+        Editor::Utilities::Asset::ImportAssets(paths);
+        Editor::Utilities::Asset::RefreshAll();
     }
 
     void SetTheme()
@@ -206,6 +213,7 @@ void Editor::Gui::Setup()
     Pine::WindowManager::InstallWindowCallbacks();
 
     Pine::WindowManager::AddWindowFocusCallback(OnWindowFocus);
+    Pine::WindowManager::AddWindowDropCallback(OnWindowDrop);
 
     Commands::Setup();
     Gizmo::Gizmo2D::Setup();

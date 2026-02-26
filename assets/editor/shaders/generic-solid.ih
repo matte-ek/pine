@@ -1,0 +1,11 @@
+{
+	"SourceFiles": [
+		"generic-solid/generic-solid.vertex.glsl",
+		"generic-solid/generic-solid.fragment.glsl"
+	],
+	"Data": {
+		"Versions": {
+			"VERSION_DISCARD": 1
+		}
+	}
+}

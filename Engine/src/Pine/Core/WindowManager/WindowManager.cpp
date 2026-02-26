@@ -22,6 +22,7 @@ namespace
 
     std::vector<std::function<void(int, int)>> m_WindowResizeCallbacks;
     std::vector<std::function<void()>> m_WindowFocusCallbacks;
+    std::vector<std::function<void(const std::vector<std::string>&)>> m_WindowDropCallbacks;
 
     void OnWindowSizeChanged(GLFWwindow* window, int width, int height)
     {
@@ -55,6 +56,26 @@ namespace
             {
                 callback();
             }
+        }
+    }
+
+    void OnWindowDrop(GLFWwindow* window, int count, const char** paths)
+    {
+        if (window != m_Window)
+            return;
+
+        std::vector<std::string> vecPaths;
+
+        vecPaths.reserve(count);
+
+        for (size_t i = 0; i < count; i++)
+        {
+            vecPaths.emplace_back(paths[i]);
+        }
+
+        for (const auto& callback : m_WindowDropCallbacks)
+        {
+            callback(vecPaths);
         }
     }
 
@@ -247,15 +268,21 @@ void* Pine::WindowManager::GetWindowPointer()
 
 void Pine::WindowManager::AddWindowFocusCallback(const std::function<void()>& callback)
 {
-    m_WindowFocusCallbacks.push_back(callback);
+    m_WindowFocusCallbacks.emplace_back(callback);
+}
+
+void Pine::WindowManager::AddWindowDropCallback(const std::function<void(std::vector<std::string>)>& callback)
+{
+    m_WindowDropCallbacks.emplace_back(callback);
 }
 
 void Pine::WindowManager::AddWindowResizeCallback(const std::function<void(int, int)> &callback)
 {
-    m_WindowResizeCallbacks.push_back(callback);
+    m_WindowResizeCallbacks.emplace_back(callback);
 }
 
 void Pine::WindowManager::InstallWindowCallbacks()
 {
     glfwSetWindowFocusCallback(m_Window, OnWindowFocusChanged);
+    glfwSetDropCallback(m_Window, OnWindowDrop);
 }

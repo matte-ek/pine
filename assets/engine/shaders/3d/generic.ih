@@ -1,0 +1,18 @@
+{
+	"SourceFiles": [
+		"generic/generic.vertex.glsl",
+		"generic/generic.fragment.glsl"
+	],
+	"Data": {
+		"TextureSamplers": {
+			"textureSamplers.diffuse": 0,
+			"textureSamplers.specular": 1,
+			"textureSamplers.normal": 2,
+			"textureSamplers.shadowMap": 3
+		},
+		"Versions": {
+			"VERSION_DISCARD": 1,
+			"VERSION_TERRAIN": 2
+		}
+	}
+}

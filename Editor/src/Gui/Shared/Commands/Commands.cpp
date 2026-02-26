@@ -119,7 +119,7 @@ void Editor::Commands::Redo()
 
 void Editor::Commands::Refresh(bool engineAssets)
 {
-
+    Utilities::Asset::RefreshAll();
     Panels::AssetBrowser::BuildAssetHierarchy();
 }
 
@@ -127,6 +127,8 @@ void Editor::Commands::Save()
 {
     if (Pine::World::GetActiveLevel())
         Pine::World::GetActiveLevel()->CreateFromWorld();
+
+    Utilities::Asset::SaveAll();
 }
 
 void Editor::Commands::Update()

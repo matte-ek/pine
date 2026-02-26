@@ -1,8 +1,8 @@
 #include "Texture3D.hpp"
 
-#include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "../../Core/Serialization/Json/SerializationJson.hpp"
+#include "Pine/Graphics/Graphics.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Threading/Threading.hpp"
 
 bool Pine::Texture3D::LoadAssetData(const ByteSpan& span)
@@ -43,20 +43,12 @@ Pine::ByteSpan Pine::Texture3D::SaveAssetData()
 {
     Texture3DSerializer textureSerializer;
 
-    m_Dependencies.clear();
-
     textureSerializer.SideTextures.SetSize(m_SideTextures.size());
 
     for (size_t i{}; i < m_SideTextures.size(); i++)
     {
         bool sideTextureValid = m_SideTextures[i].Get() != nullptr;
-
         textureSerializer.SideTextures.WriteElement(i, sideTextureValid ? m_SideTextures[i]->GetUId() : UId::Empty());
-
-        if (sideTextureValid)
-        {
-            m_Dependencies.push_back(m_SideTextures[i]->GetUId());
-        }
     }
 
     return textureSerializer.Write();
@@ -65,16 +57,6 @@ Pine::ByteSpan Pine::Texture3D::SaveAssetData()
 Pine::Texture3D::Texture3D()
 {
     m_Type = AssetType::Texture3D;
-}
-
-void Pine::Texture3D::Dispose()
-{
-    if (m_CubeMapTexture)
-    {
-        Graphics::GetGraphicsAPI()->DestroyTexture(m_CubeMapTexture);
-
-        m_CubeMapTexture = nullptr;
-    }
 }
 
 void Pine::Texture3D::SetSideTexture(TextureCubeSide side, Texture2D*texture)
@@ -92,6 +74,11 @@ Pine::Graphics::ITexture *Pine::Texture3D::GetCubeMap() const
     return m_CubeMapTexture;
 }
 
+bool Pine::Texture3D::IsReady() const
+{
+    return m_Ready;
+}
+
 bool Pine::Texture3D::Build()
 {
     // Make sure we have all textures required
@@ -99,13 +86,12 @@ bool Pine::Texture3D::Build()
     {
         if (m_SideTextures[i].Get() == nullptr)
         {
-            Log::Warning("Cannot build cube map, missing textures.");
-
-            m_Valid = false;
-
+            m_Ready = false;
             return false;
         }
     }
+
+    PINE_PF_SCOPE();
 
     // Dispose the previous cube map texture if any
     if (m_CubeMapTexture)
@@ -126,7 +112,7 @@ bool Pine::Texture3D::Build()
         if (side->GetState() != AssetState::Loaded)
         {
             Log::Error("Attempted to build cube map with unloaded textures.");
-            m_Valid = false;
+            m_Ready = false;
             return false;
         }
 
@@ -135,12 +121,17 @@ bool Pine::Texture3D::Build()
 
     m_CubeMapTexture->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
 
-    m_Valid = true;
+    m_Ready = true;
 
     return true;
 }
 
-bool Pine::Texture3D::IsValid() const
+void Pine::Texture3D::Dispose()
 {
-    return m_Valid;
+    if (m_CubeMapTexture)
+    {
+        Graphics::GetGraphicsAPI()->DestroyTexture(m_CubeMapTexture);
+
+        m_CubeMapTexture = nullptr;
+    }
 }

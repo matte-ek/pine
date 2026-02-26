@@ -1,0 +1,12 @@
+{
+	"SourceFiles": [
+		"post-process/post-process.vertex.glsl",
+		"post-process/post-process.fragment.glsl"
+	],
+	"Data": {
+		"TextureSamplers": {
+			"sceneBuffer": 0,
+			"ambientOcclusionBuffer": 1
+		}
+	}
+}

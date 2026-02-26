@@ -31,6 +31,8 @@ namespace
         const auto textureAspectRatio = static_cast<float>(texture2d->GetWidth()) / static_cast<float>(texture2d->GetHeight());
         auto& importConfiguration = texture2d->GetImportConfiguration();
 
+        auto modifiedTexture = false;
+
         auto filteringMode = static_cast<std::int32_t>(texture2d->GetFilteringMode());
         auto mipFilteringMode = static_cast<std::int32_t>(texture2d->GetMipFilteringMode());
         auto wrapMode = static_cast<std::int32_t>(texture2d->GetWrapMode());
@@ -44,29 +46,38 @@ namespace
         if (Widgets::DropDown("Filtering Mode", &filteringMode, "Nearest\0Linear\0"))
         {
             texture2d->SetFilteringMode(static_cast<Pine::Graphics::TextureFilteringMode>(filteringMode));
+            modifiedTexture = true;
         }
 
         if (Widgets::DropDown("Mip Filtering Mode", &mipFilteringMode, "Nearest\0Linear\0"))
         {
             texture2d->SetMipFilteringMode(static_cast<Pine::Graphics::TextureFilteringMode>(mipFilteringMode));
+            modifiedTexture = true;
         }
 
         if (Widgets::DropDown("Wrap Mode", &wrapMode, "Repeat\0Clamp to edge\0Clamp to border\0"))
         {
             texture2d->SetWrapMode(static_cast<Pine::Graphics::TextureWrapMode>(wrapMode));
+            modifiedTexture = true;
         }
 
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
-        Widgets::DropDown("Compression Quality", reinterpret_cast<int*>(&importConfiguration.CompressionQuality), "Normal\0Fastest\0Production\0");
-        Widgets::DropDown("Usage Hint", reinterpret_cast<int*>(&importConfiguration.UsageHint), "Albedo (BC7)\0Albedo Fast (BC1)\0Normal (BC5)\0Grayscale (BC4)\0Raw\0");
-        Widgets::Checkbox("Generate mip maps", &importConfiguration.GenerateMipmaps);
+        modifiedTexture |= Widgets::DropDown("Compression Quality", reinterpret_cast<int*>(&importConfiguration.CompressionQuality), "Normal\0Fastest\0Production\0");
+        modifiedTexture |= Widgets::DropDown("Usage Hint", reinterpret_cast<int*>(&importConfiguration.UsageHint), "Albedo (BC7)\0Albedo Fast (BC1)\0Normal (BC5)\0Grayscale (BC4)\0Raw\0");
+        modifiedTexture |= Widgets::Checkbox("Generate mip maps", &importConfiguration.GenerateMipmaps);
 
         if (ImGui::Button("Re-import"))
         {
             texture2d->ReImport();
+            modifiedTexture = true;
+        }
+
+        if (modifiedTexture)
+        {
+            texture2d->MarkAsModified();
         }
 
         ImGui::Spacing();
@@ -86,7 +97,7 @@ namespace
 
     void RenderTexture3D(Pine::Texture3D *texture3d)
     {
-        ImGui::Text("Valid: %s", texture3d->IsValid() ? "Yes" : "No");
+        ImGui::Text("Valid: %s", texture3d->IsReady() ? "Yes" : "No");
 
         const auto front = texture3d->GetSideTexture(Pine::TextureCubeSide::Front);
         const auto frontResult = Widgets::AssetPicker("Front", front, Pine::AssetType::Texture2D);
@@ -121,6 +132,7 @@ namespace
 
         if (ImGui::Button("Build"))
         {
+            texture3d->MarkAsModified();
             texture3d->Build();
         }
     }

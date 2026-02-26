@@ -13,19 +13,8 @@ namespace
 {
     using namespace Editor::Gui;
 
-    enum class CreateItemType
-    {
-        None,
-        Directory,
-        Material,
-        Level,
-        Texture3D,
-        TileSet,
-        TileMap,
-        Script
-    };
-
-    auto m_CurrentCreateItemType = CreateItemType::None;
+    auto m_CurrentCreateDirectory = false;
+    auto m_CurrentCreateAssetType = Pine::AssetType::Invalid;
 
     void DisplayAssetContextMenu()
     {
@@ -41,44 +30,45 @@ namespace
 
             if (ImGui::BeginMenu("Create"))
             {
-                m_CurrentCreateItemType = CreateItemType::None;
+                m_CurrentCreateDirectory = false;
+                m_CurrentCreateAssetType = Pine::AssetType::Invalid;
 
                 if (ImGui::MenuItem("Directory", nullptr))
                 {
-                    m_CurrentCreateItemType = CreateItemType::Directory;
+                    m_CurrentCreateDirectory = true;
                 }
 
                 if (ImGui::MenuItem("Material", nullptr))
                 {
-                    m_CurrentCreateItemType = CreateItemType::Material;
+                    m_CurrentCreateAssetType = Pine::AssetType::Material;
                 }
 
                 if (ImGui::MenuItem("Level", nullptr))
                 {
-                    m_CurrentCreateItemType = CreateItemType::Level;
+                    m_CurrentCreateAssetType = Pine::AssetType::Level;
                 }
 
                 if (ImGui::MenuItem("Texture3D", nullptr))
                 {
-                    m_CurrentCreateItemType = CreateItemType::Texture3D;
+                    m_CurrentCreateAssetType = Pine::AssetType::Texture3D;
                 }
 
                 if (ImGui::MenuItem("Tile set", nullptr))
                 {
-                    m_CurrentCreateItemType = CreateItemType::TileSet;
+                    m_CurrentCreateAssetType = Pine::AssetType::Tileset;
                 }
 
                 if (ImGui::MenuItem("Tile map", nullptr))
                 {
-                    m_CurrentCreateItemType = CreateItemType::TileMap;
+                    m_CurrentCreateAssetType = Pine::AssetType::Tilemap;
                 }
 
                 if (ImGui::MenuItem("Script", nullptr))
                 {
-                    m_CurrentCreateItemType = CreateItemType::Script;
+                    m_CurrentCreateAssetType = Pine::AssetType::CSharpScript;
                 }
 
-                if (m_CurrentCreateItemType != CreateItemType::None)
+                if (m_CurrentCreateAssetType != Pine::AssetType::Invalid || m_CurrentCreateDirectory)
                 {
                     openCreateItemDialog = true;
                 }
@@ -150,6 +140,18 @@ namespace
 
             if ((ImGui::Button("Create", ImVec2(100.f, 30.f)) || ImGui::IsKeyPressed(ImGuiKey_Enter)) && strlen(buffer) > 0)
             {
+                auto openDirectory = Panels::AssetBrowser::GetOpenDirectoryNode();
+                auto targetPath = openDirectory->Path.string() + "/" + buffer;
+
+                if (m_CurrentCreateDirectory)
+                {
+                    std::filesystem::create_directory(targetPath);
+                }
+                else
+                {
+                    Editor::Utilities::Asset::CreateEmptyAsset(targetPath, m_CurrentCreateAssetType);
+                }
+
                 ImGui::CloseCurrentPopup();
             }
 
