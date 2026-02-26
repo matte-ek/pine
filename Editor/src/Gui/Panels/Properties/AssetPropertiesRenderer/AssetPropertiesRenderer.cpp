@@ -154,9 +154,13 @@ namespace
             Widgets::PushDisabled();
         }
 
+        bool assetModified = false;
+
         const auto diffuseResult = Widgets::AssetPicker("Diffuse Map", material->GetDiffuse(), Pine::AssetType::Texture2D);
         const auto specularResult = Widgets::AssetPicker("Specular Map", material->GetSpecular(), Pine::AssetType::Texture2D);
         const auto normalResult = Widgets::AssetPicker("Normal Map", material->GetNormal(), Pine::AssetType::Texture2D);
+
+        assetModified |= diffuseResult.hasResult || specularResult.hasResult || normalResult.hasResult;
 
         if (diffuseResult.hasResult)
             material->SetDiffuse(dynamic_cast<Pine::Texture2D *>(diffuseResult.asset));
@@ -167,35 +171,61 @@ namespace
 
         auto diffuseColor = material->GetDiffuseColor();
         if (Widgets::ColorPicker3("Diffuse Color", diffuseColor))
+        {
             material->SetDiffuseColor(diffuseColor);
+            assetModified = true;
+        }
 
         auto specularColor = material->GetSpecularColor();
         if (Widgets::ColorPicker3("Specular Color", specularColor))
+        {
             material->SetSpecularColor(specularColor);
+            assetModified = true;
+        }
 
         auto ambientColor = material->GetAmbientColor();
         if (Widgets::ColorPicker3("Ambient Color", ambientColor))
+        {
             material->SetAmbientColor(ambientColor);
+            assetModified = true;
+        }
 
         const auto shaderResult = Widgets::AssetPicker("Shader", material->GetShader(), Pine::AssetType::Shader);
         if (shaderResult.hasResult)
+        {
             material->SetShader(dynamic_cast<Pine::Shader *>(shaderResult.asset));
+            assetModified = true;
+        }
 
         auto shininess = material->GetShininess();
         if (Widgets::SliderFloat("Shininess", &shininess, 0.f, 128.f))
+        {
             material->SetShininess(shininess);
+            assetModified = true;
+        }
 
         auto textureScale = material->GetTextureScale();
         if (Widgets::SliderFloat("Texture Scale", &textureScale, 0.f, 32.f))
+        {
             material->SetTextureScale(textureScale);
+            assetModified = true;
+        }
 
         auto renderMode = static_cast<int>(material->GetRenderingMode());
         if (Widgets::DropDown("Rendering Mode", &renderMode, "Opaque\0Discard\0Transparent\0"))
+        {
             material->SetRenderingMode(static_cast<Pine::MaterialRenderingMode>(renderMode));
+            assetModified = true;
+        }
 
         if (material->IsMeshGenerated())
         {
             Widgets::PopDisabled();
+        }
+
+        if (assetModified)
+        {
+            material->MarkAsModified();
         }
 
         ImGui::Separator();
@@ -207,7 +237,7 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
-    void RenderModel(Pine::Model *model)
+    void RenderModel(const Pine::Model *model)
     {
         ImGui::Text("Mesh count: %d", model->GetMeshes().size());
 
@@ -276,6 +306,7 @@ namespace
         if (ImGui::Button("Save", ImVec2(150.f, 45.f)))
         {
             level->CreateFromWorld();
+            level->MarkAsModified();
         }
     }
 

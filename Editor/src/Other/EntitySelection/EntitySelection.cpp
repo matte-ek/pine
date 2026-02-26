@@ -200,8 +200,10 @@ namespace
 
 void Editor::Gui::EntitySelection::Setup()
 {
-    m_ObjectSolidShader3D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid.shader");
-    m_ObjectSolidShader2D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid-2d.shader");
+    m_ObjectSolidShader3D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid");
+    m_ObjectSolidShader2D = Pine::Assets::Get<Pine::Shader>("editor/shaders/generic-solid-2d");
+
+    assert(m_ObjectSolidShader2D != nullptr && m_ObjectSolidShader3D != nullptr);
 
     m_FrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
     m_FrameBuffer->Prepare();

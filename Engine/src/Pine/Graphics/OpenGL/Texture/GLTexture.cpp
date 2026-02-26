@@ -188,29 +188,52 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
     auto cubeMapTextureType = m_Type == TextureType::CubeMap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<int>(textureUploadTarget) - 1 : GL_TEXTURE_2D;
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(texture->GetTextureFormat());
 
-    // Since glCopyImageSubData only copies the data, we'll need to manually allocate it first.
-    // EDIT: Since I cannot get glCopyImageSubData working, we'll copy data to the CPU, then to the GPU again :S
-
-    // TODO: Fix compression support.
-
     auto srcId = *static_cast<std::uint32_t *>(texture->GetGraphicsIdentifier());
 
-    size_t bufferSize = texture->GetWidth() * texture->GetHeight() * (texture->GetTextureFormat() == TextureFormat::RGBA ? 4 : 3);
-    void *buffer = malloc(bufferSize);
+    // Since I cannot get glCopyImageSubData working, we'll copy data to the CPU, then to the GPU again :/
+    if (texture->GetTextureCompressionFormat() == TextureCompressionFormat::Raw)
+    {
+        size_t bufferSize = texture->GetWidth() * texture->GetHeight() * (texture->GetTextureFormat() == TextureFormat::RGBA ? 4 : 3);
+        void *buffer = malloc(bufferSize);
 
-    glGetTextureImage(static_cast<int>(srcId), 0, openglFormat, GL_UNSIGNED_BYTE, bufferSize, buffer);
+        glGetTextureImage(static_cast<int>(srcId), 0, openglFormat, GL_UNSIGNED_BYTE, bufferSize, buffer);
 
-    glTexImage2D(cubeMapTextureType,
-                 0,
-                 openglInternalFormat,
-                 texture->GetWidth(),
-                 texture->GetHeight(),
-                 0,
-                 openglFormat,
-                 TranslateTextureDataFormatType(texture->GetTextureDataFormat()),
-                 buffer);
+        glTexImage2D(cubeMapTextureType,
+                     0,
+                     openglInternalFormat,
+                     texture->GetWidth(),
+                     texture->GetHeight(),
+                     0,
+                     openglFormat,
+                     TranslateTextureDataFormatType(texture->GetTextureDataFormat()),
+                     buffer);
 
-    free(buffer);
+        free(buffer);
+    }
+    else
+    {
+        size_t bufferSize = texture->GetSize();
+        void *buffer = malloc(bufferSize);
+
+        glGetCompressedTextureImage(static_cast<int>(srcId), 0, bufferSize, buffer);
+
+        if (glGetError() != GL_NO_ERROR)
+        {
+            Log::Error(std::to_string(glGetError()));
+        }
+
+        glCompressedTexImage2D(cubeMapTextureType,
+            0,
+            TranslateCompressionFormat(texture->GetTextureFormat(), texture->GetTextureCompressionFormat()),
+            texture->GetWidth(),
+            texture->GetHeight(),
+            0,
+            bufferSize,
+            buffer);
+
+        free(buffer);
+    }
+
 
     // We have to set the filtering properties before copying the data
     glTexParameteri(textureType, GL_TEXTURE_MIN_FILTER, texture->GetFilteringMode() == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
@@ -260,6 +283,8 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
 
         glTexImage3D(openglType, 0, openglInternalFormat, width, height, m_ArraySize, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
     }
+
+    m_Size = width * height * (format == TextureFormat::RGBA ? 4 : 3);
 
     if (!m_IsMultiSampled)
     {
@@ -313,6 +338,7 @@ void Pine::Graphics::GLTexture::UploadTextureDataCompressed(
     m_TextureFormat = textureFormat;
     m_TextureCompressionFormat = compressionFormat;
     m_TextureDataFormat = TextureDataFormat::UnsignedByte;
+    m_Size = size;
 }
 
 Pine::Graphics::TextureType Pine::Graphics::GLTexture::GetType()
@@ -401,6 +427,11 @@ int Pine::Graphics::GLTexture::GetWidth()
 int Pine::Graphics::GLTexture::GetHeight()
 {
     return m_Height;
+}
+
+size_t Pine::Graphics::GLTexture::GetSize()
+{
+    return m_Size;
 }
 
 Pine::Graphics::TextureFormat Pine::Graphics::GLTexture::GetTextureFormat()

@@ -115,7 +115,7 @@ bool Pine::Importer::ShaderImporter::Import(Shader* shader)
         return false;
     }
 
-    for (const auto& [sourceFilePath,_] : shader->m_SourceFiles)
+    for (auto& [sourceFilePath, writeTime] : shader->m_SourceFiles)
     {
         auto type = GetShaderType(sourceFilePath);
 
@@ -132,6 +132,8 @@ bool Pine::Importer::ShaderImporter::Import(Shader* shader)
         }
 
         shader->m_ShaderSources[static_cast<uint32_t>(type.value())] = processedSource.value();
+
+        writeTime = std::filesystem::last_write_time(sourceFilePath).time_since_epoch().count();
     }
 
     return true;

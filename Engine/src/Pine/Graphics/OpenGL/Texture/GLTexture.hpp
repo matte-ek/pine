@@ -55,6 +55,8 @@ namespace Pine::Graphics
         int GetWidth() override;
         int GetHeight() override;
 
+        size_t GetSize() override;
+
         TextureFormat GetTextureFormat() override;
         TextureDataFormat GetTextureDataFormat() override;
         TextureCompressionFormat GetTextureCompressionFormat() override;

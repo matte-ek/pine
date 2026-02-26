@@ -39,15 +39,24 @@ void Pine::Graphics::GLShaderProgram::Use()
 
 void Pine::Graphics::GLShaderProgram::Dispose()
 {
-    for (const auto &shader: m_CompiledShaders)
+    for (const auto &shader : m_CompiledShaders)
     {
         glDeleteShader(shader);
+    }
+
+    for (const auto& [uniformVariableName, uniformVariable] : m_UniformVariables)
+    {
+        delete uniformVariable;
     }
 
     if (m_Id != 0)
     {
         glDeleteProgram(m_Id);
+        m_Id = 0;
     }
+
+    m_CompiledShaders.clear();
+    m_UniformVariables.clear();
 }
 
 bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string &src, ShaderType type)

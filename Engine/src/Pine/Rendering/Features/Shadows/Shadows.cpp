@@ -206,7 +206,8 @@ void Rendering::Shadows::Setup()
     m_DirectionalShadowMapBuffer->AttachTexture(depthArrayTexture, Graphics::BufferAttachment::Depth);
     m_DirectionalShadowMapBuffer->Finish();
 
-    m_ShadowShader = Assets::Get<Shader>("engine/shaders/3d/shadow.shader");
+    m_ShadowShader = Assets::Get<Shader>("engine/shaders/3d/shadow");
+    assert(m_ShadowShader != nullptr);
 }
 
 void Rendering::Shadows::Shutdown()

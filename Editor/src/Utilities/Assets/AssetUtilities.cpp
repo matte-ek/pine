@@ -41,10 +41,13 @@ Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::p
     // Use the asset manager to load the newly created asset
     asset = Pine::Assets::LoadAssetFromFile(std::filesystem::path(EstimateMappedPath(path, Pine::Assets::Internal::GetWorkingDirectory())).replace_extension(".passet").string());
 
+    // Make sure this new asset will appear in the browser.
+    Panels::AssetBrowser::BuildAssetHierarchy();
+
     return asset;
 }
 
-void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile)
+void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile, const std::string& relativePath)
 {
     auto currentDirectory = Panels::AssetBrowser::GetOpenDirectoryNode();
 
@@ -67,10 +70,17 @@ void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile)
         return;
     }
 
-    const auto assetFilePath = currentDirectory->Path.string() + "/" + filePath.stem().string();
+    const auto assetFilePath = currentDirectory->Path.string() + "/" + relativePath + filePath.stem().string();
     const auto contentFileName = Pine::String::Replace(EstimateMappedPath(assetFilePath, Pine::Assets::Internal::GetWorkingDirectory()), "/", "-");
     const auto contentFilePath = Projects::GetProjectPath() + "/content/" + contentFileName + filePath.extension().string();
 
+    // Make sure the directory we're importing to exists.
+    if (!std::filesystem::exists(currentDirectory->Path.string() + "/" + relativePath))
+    {
+        std::filesystem::create_directories(currentDirectory->Path.string() + "/" + relativePath);
+    }
+
+    // Remove previous content file, if it exists.
     if (std::filesystem::exists(contentFilePath))
     {
         std::filesystem::remove(contentFilePath);
@@ -94,31 +104,34 @@ void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile)
     delete asset;
 }
 
-void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& paths)
+void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& paths, const std::string& relativePath)
 {
     for (const auto& path : paths)
     {
         if (std::filesystem::is_directory(path))
         {
-            for (const auto& iter : std::filesystem::recursive_directory_iterator(path))
+            for (const auto& iter : std::filesystem::directory_iterator(path))
             {
-                if (!iter.is_regular_file())
+                if (iter.is_directory())
                 {
+                    ImportAssets({iter.path().string()}, relativePath + std::filesystem::path(path).filename().string() + "/");
+
                     continue;
                 }
 
-                ImportAsset(iter.path().string());
+                ImportAsset(iter.path().string(), relativePath + std::filesystem::path(path).filename().string() + "/");
             }
         }
         else
         {
-            ImportAsset(path);
+            ImportAsset(path, "");
         }
     }
 }
 
 void Editor::Utilities::Asset::RefreshAll()
 {
+    // Load in any new assets in the project directory
     Projects::LoadProjectAssets();
     Panels::AssetBrowser::BuildAssetHierarchy();
 }

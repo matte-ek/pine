@@ -14,8 +14,8 @@ namespace Editor::Utilities::Asset
     Pine::Asset* CreateEmptyAsset(const std::filesystem::path& path, Pine::AssetType type);
 
     // Utilities to import assets into Pine
-    void ImportAsset(const std::string& contentFile);
-    void ImportAssets(const std::vector<std::string>& paths);
+    void ImportAsset(const std::string& contentFile, const std::string& relativePath = "");
+    void ImportAssets(const std::vector<std::string>& paths, const std::string& relativePath = "");
 
     // Will reload any changed assets, but also load in any new assets.
     void RefreshAll();

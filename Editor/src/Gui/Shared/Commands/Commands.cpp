@@ -126,7 +126,10 @@ void Editor::Commands::Refresh(bool engineAssets)
 void Editor::Commands::Save()
 {
     if (Pine::World::GetActiveLevel())
+    {
         Pine::World::GetActiveLevel()->CreateFromWorld();
+        Pine::World::GetActiveLevel()->MarkAsModified();
+    }
 
     Utilities::Asset::SaveAll();
 }

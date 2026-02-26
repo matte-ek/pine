@@ -89,11 +89,11 @@ bool Shader::LoadAssetData(const ByteSpan& span)
     m_ShaderSources[static_cast<std::uint32_t>(Graphics::ShaderType::Compute)] = computeSource;
 
     auto task = Threading::QueueTask<void>([this]()
-                                           {
-                                               // Make sure "main" version of the shader is compiled.
-                                               CompileShaderVersion(0);
-                                           },
-                                           TaskThreadingMode::MainThread);
+    {
+        // Make sure "main" version of the shader is compiled.
+        CompileShaderVersion(0);
+    },
+    TaskThreadingMode::MainThread);
 
     // Wait for the main one to compile
     Threading::AwaitTaskResult(task);
@@ -121,8 +121,14 @@ bool Shader::CompileShaderVersion(ShaderVersion version)
 {
     if (HasShaderVersion(version))
     {
-        Pine::Log::Error("Failed to compile shader version, version already exists.");
-        return false;
+        const auto shaderProgramIndex = m_ShaderVersionsMap[version];
+
+        auto shaderProgram = m_ShaderPrograms[shaderProgramIndex];
+        Graphics::GetGraphicsAPI()->DestroyShaderProgram(shaderProgram);
+
+        m_ShaderVersionsMap.erase(version);
+        m_ShaderPrograms.erase(m_ShaderPrograms.begin() + shaderProgramIndex);
+        m_ShaderRendererReady.erase(m_ShaderRendererReady.begin() + shaderProgramIndex);
     }
 
     // Figure out what version macros to use
@@ -136,7 +142,7 @@ bool Shader::CompileShaderVersion(ShaderVersion version)
     }
 
     // Prepare a new program
-    const auto shaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
+    auto shaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
 
     // Compile all the shaders
     for (size_t i{};i < m_ShaderSources.size();i++)

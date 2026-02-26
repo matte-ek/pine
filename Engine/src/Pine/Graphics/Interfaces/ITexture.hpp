@@ -150,6 +150,8 @@ namespace Pine::Graphics
         TextureDataFormat m_TextureDataFormat = TextureDataFormat::UnsignedByte;
         TextureCompressionFormat m_TextureCompressionFormat = TextureCompressionFormat::Raw;
 
+        size_t m_Size;
+
         bool m_HasCustomSwizzleMask = false;
         std::array<SwizzleMaskChannel, 4> m_SwizzleMask = { SwizzleMaskChannel::Red, SwizzleMaskChannel::Green, SwizzleMaskChannel::Blue, SwizzleMaskChannel::Alpha };
 
@@ -198,6 +200,8 @@ namespace Pine::Graphics
 
         virtual int GetWidth() = 0;
         virtual int GetHeight() = 0;
+
+        virtual size_t GetSize() = 0;
 
         virtual TextureFormat GetTextureFormat() = 0;
         virtual TextureDataFormat GetTextureDataFormat() = 0;
