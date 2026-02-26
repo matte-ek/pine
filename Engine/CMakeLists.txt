@@ -24,12 +24,14 @@ find_package(ZLIB REQUIRED)
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 
-# Stub to satisfy PxSetPhysXGpuProfilerCallback via linker --wrap
-file(WRITE "${CMAKE_BINARY_DIR}/physx_gpu_stub.cpp" [[
-namespace physx { class PxProfilerCallback; }
-extern "C" void __wrap_PxSetPhysXGpuProfilerCallback(physx::PxProfilerCallback*) {}
-]])
-add_library(PhysXGpuStub OBJECT "${CMAKE_BINARY_DIR}/physx_gpu_stub.cpp")
+if (UNIX)
+    # Stub to satisfy PxSetPhysXGpuProfilerCallback via linker --wrap
+    file(WRITE "${CMAKE_BINARY_DIR}/physx_gpu_stub.cpp" [[
+    namespace physx { class PxProfilerCallback; }
+    extern "C" void __wrap_PxSetPhysXGpuProfilerCallback(physx::PxProfilerCallback*) {}
+    ]])
+    add_library(PhysXGpuStub OBJECT "${CMAKE_BINARY_DIR}/physx_gpu_stub.cpp")
+endif()
 
 add_library(Engine ${SOURCES}
         src/Pine/Assets/Terrain/Terrain.cpp
@@ -74,10 +76,12 @@ else()
     message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
 endif()
 
-# Redirect all calls to PxSetPhysXGpuProfilerCallback to our no-op stub
-target_link_options(Engine PUBLIC
-        -Wl,--wrap=PxSetPhysXGpuProfilerCallback
-)
+if (UNIX)
+    # Redirect all calls to PxSetPhysXGpuProfilerCallback to our no-op stub
+    target_link_options(Engine PUBLIC
+            -Wl,--wrap=PxSetPhysXGpuProfilerCallback
+    )
+endif()
 
 target_link_libraries(Engine
         PUBLIC
