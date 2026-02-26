@@ -69,7 +69,7 @@ namespace
 
         for (const auto& [modelGroup, objectRenderInstances] : mapBatch)
         {
-            const auto model = modelGroup.Model;
+            const auto model = modelGroup.ModelPtr;
 
             int meshIndex = -1;
             for (const auto mesh : model->GetMeshes())

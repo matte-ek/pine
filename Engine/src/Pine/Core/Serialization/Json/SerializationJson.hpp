@@ -44,24 +44,6 @@ namespace Pine::SerializationJson
 
     void LoadQuaternion(const nlohmann::json& j, const std::string& name, Quaternion& quaternion);
 
-    template <typename T>
-    void LoadAsset(const nlohmann::json& j, const std::string& name, AssetHandle<T>& asset, bool allowReference = true)
-    {
-        if (!j.contains(name))
-            return;
-        if (j[name] == "null")
-            return;
-
-        if (Assets::GetState() == AssetManagerState::LoadDirectory && allowReference)
-        {
-            Assets::AddAssetResolveReference({j[name], reinterpret_cast<AssetHandle<Asset>*>(&asset)});
-        }
-        else
-        {
-            asset = Assets::Get(j[name]);
-        }
-    }
-
     // Quick and easy way to load any data, but only if it exists. Generally makes the code look cleaner
     // within the component code.
     template <typename T>

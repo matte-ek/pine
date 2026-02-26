@@ -16,7 +16,7 @@ Pine::UId::UId(const ByteSpan& data)
 
 Pine::UId::UId(std::string_view str)
 {
-    sscanf_s(str.data(), "%llx-%016llx", &m_Time, &m_Random);
+    sscanf(str.data(), "%llx-%016llx", &m_Time, &m_Random);
 }
 
 std::uint64_t Pine::UId::GetTime() const

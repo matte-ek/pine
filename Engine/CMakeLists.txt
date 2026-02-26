@@ -22,7 +22,14 @@ find_package(imgui CONFIG REQUIRED)
 find_package(imguizmo CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 
-add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
+add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
+
+# Stub to satisfy PxSetPhysXGpuProfilerCallback via linker --wrap
+file(WRITE "${CMAKE_BINARY_DIR}/physx_gpu_stub.cpp" [[
+namespace physx { class PxProfilerCallback; }
+extern "C" void __wrap_PxSetPhysXGpuProfilerCallback(physx::PxProfilerCallback*) {}
+]])
+add_library(PhysXGpuStub OBJECT "${CMAKE_BINARY_DIR}/physx_gpu_stub.cpp")
 
 add_library(Engine ${SOURCES}
         src/Pine/Assets/Terrain/Terrain.cpp
@@ -36,18 +43,18 @@ add_library(Engine ${SOURCES}
         src/Pine/Core/Serialization/Serialization.cpp
         src/Pine/Core/Serialization/Serialization.hpp
         src/Pine/Core/Span/Span.hpp
-        src/Pine/Core/UId/Uid.cpp
-        src/Pine/Core/UId/Uid.hpp
+        src/Pine/Core/UId/UId.cpp
+        src/Pine/Core/UId/UId.hpp
         src/Pine/Assets/Texture2D/Importer/TextureImporter.cpp
         src/Pine/Assets/Texture2D/Importer/TextureImporter.hpp
         src/Pine/Assets/Shader/Importer/ShaderImporter.cpp
         src/Pine/Assets/Shader/Importer/ShaderImporter.hpp
         src/Pine/Assets/Model/Importer/ModelImporter.cpp
-        src/Pine/Assets/Model/Importer/ModelImporter.hpp)
+        src/Pine/Assets/Model/Importer/ModelImporter.hpp
+)
 
 if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
     if(UNIX)
-        # Add rpath setting to find .so libraries on unix based systems
         set_target_properties(Engine PROPERTIES
                 BUILD_WITH_INSTALL_RPATH TRUE
                 INSTALL_RPATH "$ORIGIN"
@@ -67,4 +74,39 @@ else()
     message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
 endif()
 
-target_link_libraries(Engine glfw GLEW::GLEW assimp::assimp imgui::imgui imguizmo::imguizmo fmt::fmt FLAC::FLAC++ box2d::box2d nlohmann_json::nlohmann_json glm::glm mono-2.0 unofficial::omniverse-physx-sdk::sdk OpenAL::OpenAL ZLIB::ZLIB nvtt30205 Rpcrt4)
+# Redirect all calls to PxSetPhysXGpuProfilerCallback to our no-op stub
+target_link_options(Engine PUBLIC
+        -Wl,--wrap=PxSetPhysXGpuProfilerCallback
+)
+
+target_link_libraries(Engine
+        PUBLIC
+        $<TARGET_OBJECTS:PhysXGpuStub>
+        unofficial::omniverse-physx-sdk::sdk
+        glfw
+        GLEW::GLEW
+        assimp::assimp
+        imgui::imgui
+        imguizmo::imguizmo
+        fmt::fmt
+        FLAC::FLAC++
+        box2d::box2d
+        nlohmann_json::nlohmann_json
+        glm::glm
+        mono-2.0
+        OpenAL::OpenAL
+        ZLIB::ZLIB
+)
+
+if (WIN32)
+    target_link_libraries(Engine
+            PUBLIC
+            libnvtt30205
+            Rpcrt4
+    )
+elseif (UNIX)
+    target_link_libraries(Engine
+            PUBLIC
+            "${CMAKE_CURRENT_SOURCE_DIR}/lib/libnvtt.so.30205"
+    )
+endif()

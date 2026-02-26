@@ -209,7 +209,8 @@ void Shader::AddVersion(const std::string& name, std::uint32_t bit)
 
     ShaderVersionEntry entry {};
 
-    strcpy_s(entry.Name, 64, name.c_str());
+    std::snprintf(entry.Name, sizeof(entry.Name), "%s", name.c_str());
+
     entry.Bit = bit;
 
     m_ShaderVersions.push_back(entry);
@@ -224,7 +225,8 @@ void Shader::AddTextureSamplerBinding(const std::string& name, int binding)
 
     ShaderTextureSamplerEntry entry {};
 
-    strcpy_s(entry.VariableName, 64, name.c_str());
+    std::snprintf(entry.VariableName, sizeof(entry.VariableName), "%s", name.c_str());
+
     entry.Binding = binding;
 
     m_ShaderTextureSamplerBindings.push_back(entry);

@@ -40,21 +40,23 @@ void Panels::Game::Setup()
 {
     m_GameProperties = Pine::Game::GetGameProperties();
 
-    strcpy_s(m_NameBuffer, sizeof(m_NameBuffer), m_GameProperties.Name.c_str());
-    strcpy_s(m_VersionBuffer, sizeof(m_VersionBuffer), m_GameProperties.Version.c_str());
-    strcpy_s(m_AuthorBuffer, sizeof(m_AuthorBuffer), m_GameProperties.Author.c_str());
+    std::snprintf(m_NameBuffer,    sizeof(m_NameBuffer),    "%s", m_GameProperties.Name.c_str());
+    std::snprintf(m_VersionBuffer, sizeof(m_VersionBuffer), "%s", m_GameProperties.Version.c_str());
+    std::snprintf(m_AuthorBuffer,  sizeof(m_AuthorBuffer),  "%s", m_GameProperties.Author.c_str());
 
     for (int i = 0; i < 64;i++)
     {
-        strcpy_s(m_TagsBuffer[i], 128, m_GameProperties.EntityTags[i].c_str());
+        std::snprintf(m_TagsBuffer[i], sizeof(m_TagsBuffer[i]), "%s",
+                   m_GameProperties.EntityTags[i].c_str());
     }
 
     for (int i = 0; i < 31;i++)
     {
-        strcpy_s(m_LayersBuffer[i], 128, m_GameProperties.ColliderLayers[i].c_str());
+        std::snprintf(m_LayersBuffer[i], sizeof(m_LayersBuffer[i]), "%s",
+                   m_GameProperties.ColliderLayers[i].c_str());
     }
 
-    strcpy_s(m_LayersBuffer[31], 128, "Default");
+    std::snprintf(m_LayersBuffer[31], sizeof(m_LayersBuffer[31]), "%s", "Default");
 
     m_StartupLevel = Pine::Assets::Get<Pine::Level>(m_GameProperties.StartupLevel);
 }

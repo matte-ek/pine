@@ -1,5 +1,5 @@
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Core/Math./Math.hpp"
+#include "Pine/Core/Math/Math.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/World/World.hpp"
 

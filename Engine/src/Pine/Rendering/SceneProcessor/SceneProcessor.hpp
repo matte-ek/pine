@@ -16,12 +16,12 @@ namespace Pine::Rendering
 
     struct RenderObject
     {
-        Model* Model = nullptr;
+        Model* ModelPtr = nullptr;
         Material* OverrideMaterial = nullptr;
 
         bool operator==(const RenderObject& other) const
         {
-            return Model == other.Model && OverrideMaterial == other.OverrideMaterial;
+            return ModelPtr == other.ModelPtr && OverrideMaterial == other.OverrideMaterial;
         }
     };
 
@@ -29,7 +29,7 @@ namespace Pine::Rendering
     {
         size_t operator()(const RenderObject& key) const
         {
-            const std::size_t modelHash = std::hash<Model*>()(key.Model);
+            const std::size_t modelHash = std::hash<Model*>()(key.ModelPtr);
             const std::size_t materialHash = std::hash<Material*>()(key.OverrideMaterial);
 
             return modelHash ^ (materialHash << 1);
