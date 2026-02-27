@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Threading.hpp"
 
 #include <condition_variable>
