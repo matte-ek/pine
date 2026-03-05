@@ -118,7 +118,11 @@ void Pine::Asset::ReImport()
 {
     // Run the underlying importer to load the new source data
     Import();
+    ReLoad();
+}
 
+void Pine::Asset::ReLoad()
+{
     // Get the new ready pine asset data
     auto newData = Save();
 
@@ -220,7 +224,7 @@ Pine::Asset* Pine::Asset::LoadFromFile(const std::filesystem::path& filePath, bo
     return Load(File::ReadCompressed(filePath), filePath.string(), ignoreAssetData);
 }
 
-bool Pine::Asset::Import()
+bool Pine::Asset::Import(Importer::AssetImport* context)
 {
     return true;
 }

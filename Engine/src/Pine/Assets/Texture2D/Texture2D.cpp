@@ -1,6 +1,5 @@
 #include "Texture2D.hpp"
 #include "Pine/Graphics/Graphics.hpp"
-#include <stdexcept>
 
 #ifndef PINE_RUNTIME
 #define STB_IMAGE_IMPLEMENTATION
@@ -203,7 +202,7 @@ bool Pine::Texture2D::HasTextureData() const
     return m_TextureData != nullptr;
 }
 
-bool Pine::Texture2D::Import()
+bool Pine::Texture2D::Import(Importer::AssetImport* context)
 {
     return Importer::TextureImporter::Import(this);
 }

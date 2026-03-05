@@ -23,6 +23,20 @@ bool Model::LoadAssetData(const ByteSpan& span)
         return false;
     }
 
+    for (size_t i{}; i < modelSerializer.EmbeddedMaterials.GetDataCount();i++)
+    {
+        auto material = Load(modelSerializer.EmbeddedMaterials.GetData(i));
+
+        if (!material)
+        {
+            continue;
+        }
+
+        Assets::Internal::RegisterAsset(material);
+
+        m_EmbeddedMaterials.push_back(dynamic_cast<Material*>(material));
+    }
+
     for (size_t i{}; i < modelSerializer.Meshes.GetDataCount();i++)
     {
         MeshSerializer meshSerializer;
@@ -98,6 +112,11 @@ ByteSpan Model::SaveAssetData()
 {
     ModelSerializer modelSerializer;
 
+    for (const auto& embeddedMaterial : m_EmbeddedMaterials)
+    {
+        modelSerializer.EmbeddedMaterials.AddData(embeddedMaterial->Save());
+    }
+
     if (m_MeshData.empty())
     {
         // See Texture2D's SaveAssetData() for why.
@@ -152,9 +171,9 @@ const Vector3f& Model::GetBoundingBoxMax() const
     return m_BoundingBoxMax;
 }
 
-bool Model::Import()
+bool Model::Import(Importer::AssetImport* context)
 {
-    return Importer::ModelImporter::Import(this);
+    return Importer::ModelImporter::Import(context, this);
 }
 
 void Model::Dispose()

@@ -42,6 +42,8 @@ namespace Pine
         std::vector<Mesh*> m_Meshes;
         std::vector<MeshData> m_MeshData;
 
+        std::vector<Material*> m_EmbeddedMaterials;
+
         Vector3f m_BoundingBoxMin = {};
         Vector3f m_BoundingBoxMax = {};
 
@@ -58,14 +60,16 @@ namespace Pine
             PINE_SERIALIZE_ARRAY_FIXED(UVs, Vector2f);
             PINE_SERIALIZE_ARRAY_FIXED(Indices, std::uint32_t);
 
-            PINE_SERIALIZE_PRIMITIVE(Material, Serialization::DataType::UId);
-            
             PINE_SERIALIZE_PRIMITIVE(BoundingBoxMin, Serialization::DataType::Vec3);
             PINE_SERIALIZE_PRIMITIVE(BoundingBoxMax, Serialization::DataType::Vec3);
+
+            PINE_SERIALIZE_PRIMITIVE(Material, Serialization::DataType::UId);
         };
 
         struct ModelSerializer : Serialization::Serializer
         {
+            PINE_SERIALIZE_ARRAY(EmbeddedMaterials);
+
             PINE_SERIALIZE_ARRAY(Meshes);
         };
     public:
@@ -78,7 +82,7 @@ namespace Pine
         const Vector3f& GetBoundingBoxMin() const;
         const Vector3f& GetBoundingBoxMax() const;
 
-        bool Import() override;
+        bool Import(Importer::AssetImport* context) override;
 
         void Dispose() override;
 

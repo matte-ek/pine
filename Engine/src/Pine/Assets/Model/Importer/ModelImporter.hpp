@@ -3,6 +3,7 @@
 
 class aiMesh;
 struct aiScene;
+struct aiMaterial;
 class aiNode;
 
 namespace Pine::Importer
@@ -13,8 +14,10 @@ namespace Pine::Importer
     private:
         static void ProcessMesh(Model* model, const aiMesh *mesh, const aiScene *scene);
         static void ProcessNode(Model* model, const aiNode *node, const aiScene *scene);
+
+        static Texture2D* ImportTexture(AssetImport* context, aiMaterial* material, int type);
     public:
-        static bool Import(Model* model);
+        static bool Import(AssetImport* importContext, Model* model);
     };
 
 }

@@ -66,7 +66,7 @@ namespace Pine
         void AddVersion(const std::string& name, std::uint32_t bit);
         void AddTextureSamplerBinding(const std::string& name, int binding);
 
-        bool Import() override;
+        bool Import(Importer::AssetImport* context) override;
 
         void Dispose() override;
 

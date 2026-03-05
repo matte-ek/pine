@@ -238,7 +238,7 @@ void Shader::AddTextureSamplerBinding(const std::string& name, int binding)
     m_ShaderTextureSamplerBindings.push_back(entry);
 }
 
-bool Shader::Import()
+bool Shader::Import(Importer::AssetImport* context)
 {
     return Importer::ShaderImporter::Import(this);
 }

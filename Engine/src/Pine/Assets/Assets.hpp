@@ -26,13 +26,6 @@ namespace Pine::Assets
     // An empty string will load everything in the current working directory.
     int LoadAssetsFromDirectory(const std::filesystem::path& directory);
 
-    // Attempts to import a source file into a pine asset.
-    Asset* ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputAbsolutePath);
-
-    // Attempts to load multiple source files into a pine asset. This is used
-    // for assets which contain multiple source files, e.g. shaders.
-    Asset* ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view outputAbsolutePath);
-
     /// ---------------------------------------------------------------------------------------------------
     /// Creating and saving assets
     /// ---------------------------------------------------------------------------------------------------
@@ -68,6 +61,9 @@ namespace Pine::Assets
     {
         const std::string& GetWorkingDirectory();
 
+        void RegisterAsset(Asset* asset);
+
         Asset* CreateAssetByType(AssetType type);
+        Asset* CreateAssetByFile(const std::filesystem::path& path);
     }
 }

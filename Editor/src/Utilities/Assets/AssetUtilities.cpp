@@ -5,6 +5,7 @@
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Gui/Panels/AssetBrowser/AssetHierarchy/AssetHierarchy.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/Importer/AssetImporter.hpp"
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Projects/Projects.hpp"
@@ -47,6 +48,7 @@ Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::p
     return asset;
 }
 
+/*
 void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile, const std::string& relativePath)
 {
     auto currentDirectory = Panels::AssetBrowser::GetOpenDirectoryNode();
@@ -72,7 +74,7 @@ void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile, const
 
     const auto assetFilePath = currentDirectory->Path.string() + "/" + relativePath + filePath.stem().string();
     const auto contentFileName = Pine::String::Replace(EstimateMappedPath(assetFilePath, Pine::Assets::Internal::GetWorkingDirectory()), "/", "-");
-    const auto contentFilePath = Projects::GetProjectPath() + "/content/" + contentFileName + filePath.extension().string();
+    const auto contentFilePath = Projects::GetProjectPath() + "/content";
 
     // Make sure the directory we're importing to exists.
     if (!std::filesystem::exists(currentDirectory->Path.string() + "/" + relativePath))
@@ -80,18 +82,14 @@ void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile, const
         std::filesystem::create_directories(currentDirectory->Path.string() + "/" + relativePath);
     }
 
-    // Remove previous content file, if it exists.
-    if (std::filesystem::exists(contentFilePath))
-    {
-        std::filesystem::remove(contentFilePath);
-    }
+    Pine::AssetImport assetImport;
 
-    // Copy the source file into the projects content directory
-    std::filesystem::copy(filePath, contentFilePath);
+    assetImport.SourceFilePaths = {contentFile};
+    assetImport.AssetPath = assetFilePath;
+    assetImport.CopySourceFiles = true;
+    assetImport.ContentPath = contentFilePath;
 
-    auto asset = Pine::Assets::ImportAssetFromFile(
-        contentFilePath,
-        assetFilePath);
+    auto asset = Pine::Assets::ImportAsset(assetImport);
 
     if (!asset)
     {
@@ -103,30 +101,50 @@ void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile, const
 
     delete asset;
 }
+*/
 
-void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& paths, const std::string& relativePath)
+void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& paths)
 {
+    auto importContext = Pine::Importer::CreateContext();
+
+    importContext->CopySourceFiles = true;
+    importContext->ContentPath = Projects::GetProjectPath() + "/content";
+
     for (const auto& path : paths)
     {
-        if (std::filesystem::is_directory(path))
+        for (const auto& iter : std::filesystem::recursive_directory_iterator(path))
         {
-            for (const auto& iter : std::filesystem::directory_iterator(path))
+            if (iter.is_directory())
             {
-                if (iter.is_directory())
-                {
-                    ImportAssets({iter.path().string()}, relativePath + std::filesystem::path(path).filename().string() + "/");
-
-                    continue;
-                }
-
-                ImportAsset(iter.path().string(), relativePath + std::filesystem::path(path).filename().string() + "/");
+                continue;
             }
-        }
-        else
-        {
-            ImportAsset(path, "");
+
+            auto relativePath = iter.path().string().substr(std::filesystem::path(path).parent_path().string().length() + 1);
+
+            Pine::Importer::AddFile(importContext, iter.path().string(), Pine::Assets::Internal::GetWorkingDirectory() + relativePath);
         }
     }
+
+    Pine::Importer::Run(importContext);
+
+    int importedAssets = 0;
+    int failedAssets = 0;
+
+    for (const auto& iter : importContext->Imports)
+    {
+        if (iter.ImportStatus == Pine::AssetImportStatus::Imported)
+        {
+            importedAssets++;
+        }
+        else if (iter.ImportStatus == Pine::AssetImportStatus::Failed)
+        {
+            failedAssets++;
+        }
+    }
+
+    Pine::Log::Info(fmt::format("Imported {} assets", importedAssets));
+
+    Pine::Importer::DeleteContext(importContext);
 }
 
 void Editor::Utilities::Asset::RefreshAll()

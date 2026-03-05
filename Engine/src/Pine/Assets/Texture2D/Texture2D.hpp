@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pine/Assets/Asset/Asset.hpp"
+#include "Pine/Assets/Importer/AssetImporter.hpp"
 #include "Pine/Graphics/Interfaces/ITexture.hpp"
 
 namespace Pine
@@ -26,7 +27,7 @@ namespace Pine
         Production
     };
 
-    struct TextureImportConfiguration
+    struct TextureImportConfiguration : AssetImportConfiguration
     {
         TextureUsageHint UsageHint = TextureUsageHint::AlbedoFaster;
         TextureCompressionQuality CompressionQuality = TextureCompressionQuality::Normal;
@@ -103,7 +104,7 @@ namespace Pine
         bool HasTextureData() const;
         ByteSpan GetTextureData() const;
 
-        bool Import() override;
+        bool Import(Importer::AssetImport* context) override;
         void Dispose() override;
 
         friend class Importer::TextureImporter;

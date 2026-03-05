@@ -5,12 +5,16 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-#include "Pine/Core/UId/UId.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
+#include "Pine/Core/UId/UId.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace Pine
 {
+    namespace Importer
+    {
+        struct AssetImport;
+    }
 
     // All asset types in Pine, as for how you could extend this to add "custom"
     // asset types is still unclear.
@@ -167,8 +171,9 @@ namespace Pine
         void SaveToFile();
 
         void ReImport();
+        void ReLoad();
         
-        virtual bool Import();
+        virtual bool Import(Importer::AssetImport* context = nullptr);
         virtual void Dispose() = 0;
 
         static Asset* Load(const ByteSpan& data, bool ignoreAssetData = false);

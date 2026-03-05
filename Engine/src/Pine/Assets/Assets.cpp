@@ -212,43 +212,6 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
     return loadedAssets;
 }
 
-Asset* Assets::ImportAssetFromFile(const std::filesystem::path& sourceFilePath, std::string_view outputAbsolutePath)
-{
-    return ImportAssetFromFiles({sourceFilePath}, outputAbsolutePath);
-}
-
-Asset* Assets::ImportAssetFromFiles(const std::vector<std::filesystem::path>& sourceFilePaths, std::string_view outputAbsolutePath)
-{
-    if (sourceFilePaths.empty())
-    {
-        return nullptr;
-    }
-
-    // Use at least one source file to figure out the type.
-    auto factory = GetAssetFactoryFromFileName(sourceFilePaths.front());
-    if (!factory)
-    {
-        return nullptr;
-    }
-
-    auto asset = factory->m_Factory();
-
-    asset->SetupNew(outputAbsolutePath.data());
-
-    for (const auto& source : sourceFilePaths)
-    {
-        asset->AddSource(source.string());
-    }
-
-    if (!asset->Import())
-    {
-        delete asset;
-        return nullptr;
-    }
-
-    return asset;
-}
-
 Asset* Assets::CreateAsset(AssetType type, std::string_view assetPath)
 {
     auto asset = Internal::CreateAssetByType(type);
@@ -292,6 +255,27 @@ const std::string& Assets::Internal::GetWorkingDirectory()
     return m_WorkingDirectory;
 }
 
+void Assets::Internal::RegisterAsset(Asset* asset)
+{
+    std::unique_lock lock(m_AssetsMutex);
+
+    if (m_AssetsMapUId.count(asset->GetUId()) != 0)
+    {
+        if (asset != m_AssetsMapUId[asset->GetUId()])
+        {
+            auto prevAsset = m_AssetsMapUId[asset->GetUId()];
+
+            prevAsset->Dispose();
+
+            m_AssetsMapUId.erase(asset->GetUId());
+            m_AssetsMapPath.erase(asset->GetPath());
+        }
+    }
+
+    m_AssetsMapUId[asset->GetUId()] = asset;
+    m_AssetsMapPath[asset->GetPath()] = asset;
+}
+
 Asset* Assets::Internal::CreateAssetByType(AssetType type)
 {
     for (const auto& assetFactory : m_AssetImportFactories)
@@ -303,4 +287,16 @@ Asset* Assets::Internal::CreateAssetByType(AssetType type)
     }
 
     return nullptr;
+}
+
+Asset* Assets::Internal::CreateAssetByFile(const std::filesystem::path& path)
+{
+    auto factory = GetAssetFactoryFromFileName(path);
+
+    if (!factory)
+    {
+        return nullptr;
+    }
+
+    return factory->m_Factory();
 }
