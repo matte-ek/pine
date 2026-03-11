@@ -359,7 +359,7 @@ void Renderer2D::PrepareFrame()
             textureData[i] = 255;
 
         m_DefaultTexture->Bind();
-        m_DefaultTexture->UploadTextureData(1, 1, Graphics::TextureFormat::RGBA, Graphics::TextureDataFormat::UnsignedByte, textureData);
+        m_DefaultTexture->UploadTextureData(1, 1, 0, Graphics::TextureFormat::RGBA, Graphics::TextureDataFormat::UnsignedByte, textureData);
 
         free(textureData);
     }

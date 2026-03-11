@@ -22,6 +22,7 @@ namespace
         blurTargetTexture->Bind();
         blurTargetTexture->UploadTextureData(
             width, height,
+            0,
             singleChannel ? Graphics::TextureFormat::SingleChannel : Graphics::TextureFormat::RGBA,
             Graphics::TextureDataFormat::UnsignedByte,
             nullptr);

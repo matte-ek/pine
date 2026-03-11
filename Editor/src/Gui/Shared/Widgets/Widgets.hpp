@@ -31,6 +31,8 @@ namespace Widgets
     bool Checkbox(const std::string& str, bool* value);
 
     bool Vector2(const std::string& str, Pine::Vector2f& vector, float speed = 0.01f);
+    bool Vector2i(const std::string& str, Pine::Vector2i& vector, float speed = 0.01f);
+
     bool Vector3(const std::string& str, Pine::Vector3f& vector, float speed = 0.01f);
 
     bool DropDown(const std::string& str, int* value, const char* items);
@@ -40,6 +42,7 @@ namespace Widgets
     bool InputText(const std::string& str, char* buf, size_t size);
 
     bool SliderFloat(const std::string& str, float* value, float min, float max);
+    bool SliderInt(const std::string& str, int* value, int min, int max);
 
     bool ColorPicker3(const std::string& str, Pine::Vector3f& color);
     bool ColorPicker4(const std::string& str, Pine::Vector4f& color);

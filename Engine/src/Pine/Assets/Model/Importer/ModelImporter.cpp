@@ -64,9 +64,6 @@ void Pine::Importer::ModelImporter::ProcessMesh(Model* model, const aiMesh* mesh
         loadData.Material = model->m_EmbeddedMaterials[embeddedId]->GetUId();
     }
 
-    // TODO: Fixa så embedded materials sparas o laddas in till asset manager systemet
-    // TODO: samt att materialen sedan laddas som de ska här ifrån :-)
-
     model->m_MeshData.push_back(loadData);
 }
 
@@ -87,7 +84,7 @@ void Pine::Importer::ModelImporter::ProcessNode(Model* model, const aiNode* node
     }
 }
 
-Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* context, aiMaterial* material, int type)
+Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* context, const aiScene* scene, aiMaterial* material, int type)
 {
     const auto textureType = static_cast<aiTextureType>(type);
 
@@ -99,6 +96,9 @@ Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* conte
     aiString filePath;
 
     material->GetTexture(textureType, 0, &filePath);
+
+    // TODO: Allow embedded textures
+    //auto texture = scene->GetEmbeddedTexture(filePath.C_Str());
 
     return dynamic_cast<Texture2D*>(ImportRelative(context, filePath.C_Str()));
 }
@@ -156,17 +156,17 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
             engineMaterial->SetAmbientColor(Vector3f(ambient_color.r, ambient_color.g, ambient_color.b));
             engineMaterial->SetShininess(shininess);
 
-            if (auto diffuseTexture = ImportTexture(importContext, material, aiTextureType_DIFFUSE))
+            if (auto diffuseTexture = ImportTexture(importContext, scene, material, aiTextureType_DIFFUSE))
             {
                 engineMaterial->SetDiffuse(diffuseTexture);
             }
 
-            if (auto specularTexture = ImportTexture(importContext, material, aiTextureType_SPECULAR))
+            if (auto specularTexture = ImportTexture(importContext, scene, material, aiTextureType_SPECULAR))
             {
                 engineMaterial->SetSpecular(specularTexture);
             }
 
-            if (auto normalMapTexture = ImportTexture(importContext, material, aiTextureType_NORMALS))
+            if (auto normalMapTexture = ImportTexture(importContext, scene, material, aiTextureType_NORMALS))
             {
                 engineMaterial->SetNormal(normalMapTexture);
             }

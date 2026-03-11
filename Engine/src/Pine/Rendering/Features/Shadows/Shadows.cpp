@@ -199,7 +199,7 @@ void Rendering::Shadows::Setup()
     depthArrayTexture->SetArraySize(CASCADE_COUNT);
 
     depthArrayTexture->Bind();
-    depthArrayTexture->UploadTextureData(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float, nullptr);
+    depthArrayTexture->UploadTextureData(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 0, Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float, nullptr);
     depthArrayTexture->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
     depthArrayTexture->SetCompareModeLowerEqual();
 

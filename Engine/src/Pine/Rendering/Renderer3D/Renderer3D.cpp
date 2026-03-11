@@ -53,7 +53,7 @@ void Renderer3D::Setup()
         textureData[i] = 255;
 
     m_DefaultTexture->Bind();
-    m_DefaultTexture->UploadTextureData(1, 1, Graphics::TextureFormat::RGBA, Graphics::TextureDataFormat::UnsignedByte, textureData);
+    m_DefaultTexture->UploadTextureData(1, 1, 0, Graphics::TextureFormat::RGBA, Graphics::TextureDataFormat::UnsignedByte, textureData);
 
     free(textureData);
 
@@ -290,8 +290,11 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     {
         if (!shader->HasShaderVersion(preferredVersion))
         {
-            Log::Warning("Requested shader version not found, rendering may be affected.");
-            version = static_cast<std::uint32_t>(Specifications::ShaderVersions::Generic::Default);
+            if (!shader->CompileShaderVersion(preferredVersion))
+            {
+                Log::Warning("Unable to compile requested shader version, rendering may be affected..");
+                version = static_cast<std::uint32_t>(Specifications::ShaderVersions::Generic::Default);
+            }
         }
     }
     else

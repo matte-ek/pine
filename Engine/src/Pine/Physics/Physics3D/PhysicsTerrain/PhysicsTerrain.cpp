@@ -8,7 +8,7 @@ using namespace physx;
 
 namespace
 {
-    void CookTerrainData(TerrainChunkPhysicsData* data, const float* heightMap)
+    void CookTerrainData(TerrainChunkPhysicsData* data, const std::array<float, TERRAIN_SQUARE_SIZE>& heightMap)
     {
         static PxHeightFieldSample samples[TERRAIN_CHUNK_VERTEX_COUNT * TERRAIN_CHUNK_VERTEX_COUNT];
 
@@ -52,7 +52,7 @@ namespace
     }
 }
 
-void Physics3D::Terrain::Prepare(TerrainChunkPhysicsData* data, const float* heightMap)
+void Physics3D::Terrain::Prepare(TerrainChunkPhysicsData* data, const std::array<float, TERRAIN_SQUARE_SIZE>& heightMap)
 {
     CookTerrainData(data, heightMap);
     CreateHeightfield(data);
@@ -61,6 +61,5 @@ void Physics3D::Terrain::Prepare(TerrainChunkPhysicsData* data, const float* hei
 void Physics3D::Terrain::Destroy(TerrainChunkPhysicsData* data)
 {
     free(data->PhysicsHeightFieldData);
-
     data->PhysicsHeightFieldData = nullptr;
 }

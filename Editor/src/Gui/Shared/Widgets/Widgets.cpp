@@ -88,6 +88,27 @@ bool Widgets::Vector2(const std::string& str, Pine::Vector2f& vector, float spee
     return xChanged || yChanged;
 }
 
+bool Widgets::Vector2i(const std::string& str, Pine::Vector2i& vector, float speed)
+{
+    constexpr float size = 60.f;
+
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(size);
+    bool xChanged = ImGui::DragInt(std::string("X##" + str).c_str(), &vector.x, speed, -INT_MAX, INT_MAX, "%d", ImGuiSliderFlags_AlwaysClamp);
+
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(10.f, 1.f));
+    ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(size);
+    bool yChanged = ImGui::DragInt(std::string("Y##" + str).c_str(), &vector.y, speed, -INT_MAX, INT_MAX, "%d", ImGuiSliderFlags_AlwaysClamp);
+
+    FinishWidget();
+
+    return xChanged || yChanged;
+}
+
 bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector, float speed)
 {
     constexpr float size = 60.f;
@@ -183,6 +204,21 @@ bool Widgets::SliderFloat(const std::string& str, float* value, float min, float
     ImGui::SetNextItemWidth(-1.f);
 
     ret = ImGui::SliderFloat(std::string("##SliderFloat" + str).c_str(), value, min, max);
+
+    FinishWidget();
+
+    return ret;
+}
+
+bool Widgets::SliderInt(const std::string& str, int* value, int min, int max)
+{
+    bool ret = false;
+
+    PrepareWidget(str);
+
+    ImGui::SetNextItemWidth(-1.f);
+
+    ret = ImGui::SliderInt(std::string("##SliderInt" + str).c_str(), value, min, max);
 
     FinishWidget();
 

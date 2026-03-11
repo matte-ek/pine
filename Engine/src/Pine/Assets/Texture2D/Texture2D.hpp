@@ -31,7 +31,16 @@ namespace Pine
     {
         TextureUsageHint UsageHint = TextureUsageHint::AlbedoFaster;
         TextureCompressionQuality CompressionQuality = TextureCompressionQuality::Normal;
-        bool GenerateMipmaps = false;
+        bool GenerateMipmaps = true;
+    };
+
+    struct TextureImportData
+    {
+        void* m_TextureData = nullptr;
+        size_t m_TextureDataSize = 0;
+
+        uint32_t m_Width = 0;
+        uint32_t m_Height = 0;
     };
 
     class Texture2D : public Asset
@@ -55,8 +64,7 @@ namespace Pine
         Graphics::ITexture* m_Texture = nullptr;
 
         // Texture importing information
-        void* m_TextureData = nullptr;
-        size_t m_TextureDataSize = 0;
+        std::vector<TextureImportData> m_ImportData;
         TextureImportConfiguration m_ImportConfiguration;
 
         struct TextureSerializer : Serialization::Serializer
@@ -73,7 +81,14 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(ImportCompressionQuality, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(ImportGenerateMipMaps, Serialization::DataType::Boolean);
 
-            PINE_SERIALIZE_ARRAY(Data);
+            PINE_SERIALIZE_ARRAY(Mips);
+        };
+
+        struct TextureMipSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_PRIMITIVE(Width, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(Height, Serialization::DataType::Int32);
+            PINE_SERIALIZE_DATA(Data);
         };
 
         bool LoadAssetData(const ByteSpan& span) override;
@@ -102,7 +117,6 @@ namespace Pine
         Graphics::ITexture* GetGraphicsTexture() const;
 
         bool HasTextureData() const;
-        ByteSpan GetTextureData() const;
 
         bool Import(Importer::AssetImport* context) override;
         void Dispose() override;

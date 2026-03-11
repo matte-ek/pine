@@ -263,7 +263,13 @@ void Pine::Graphics::GLTexture::Dispose()
     glDeleteTextures(1, &m_Id);
 }
 
-void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, TextureFormat format, TextureDataFormat dataFormat, void *data)
+void Pine::Graphics::GLTexture::UploadTextureData(
+    int width,
+    int height,
+    int level,
+    TextureFormat format,
+    TextureDataFormat dataFormat,
+    void *data)
 {
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(format);
 
@@ -274,14 +280,14 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
         if (m_IsMultiSampled)
             glTexImage2DMultisample(openglType, m_Samples, openglInternalFormat, width, height, GL_TRUE);
         else
-            glTexImage2D(openglType, 0, openglInternalFormat, width, height, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
+            glTexImage2D(openglType, level, openglInternalFormat, width, height, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
     }
     else
     {
         // You need to set the array size beforehand using SetArraySize().
         assert(m_ArraySize != -1);
 
-        glTexImage3D(openglType, 0, openglInternalFormat, width, height, m_ArraySize, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
+        glTexImage3D(openglType, level, openglInternalFormat, width, height, m_ArraySize, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
     }
 
     m_Size = width * height * (format == TextureFormat::RGBA ? 4 : 3);
@@ -311,6 +317,7 @@ void Pine::Graphics::GLTexture::UploadTextureData(int width, int height, Texture
 void Pine::Graphics::GLTexture::UploadTextureDataCompressed(
     int width,
     int height,
+    int level,
     TextureFormat textureFormat,
     TextureCompressionFormat compressionFormat,
     void* data,
@@ -318,7 +325,7 @@ void Pine::Graphics::GLTexture::UploadTextureDataCompressed(
 {
     const auto openglType = TranslateTextureType(m_Type, m_IsMultiSampled);
 
-    glCompressedTexImage2D(openglType, 0, TranslateCompressionFormat(textureFormat, compressionFormat), width, height, 0, size, data);
+    glCompressedTexImage2D(openglType, level, TranslateCompressionFormat(textureFormat, compressionFormat), width, height, 0, size, data);
 
     glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
     glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
@@ -378,6 +385,7 @@ Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetMipmapFilteri
 void Pine::Graphics::GLTexture::SetTextureWrapMode(TextureWrapMode mode)
 {
     m_WrapMode = mode;
+    UpdateWrapMode();
 }
 
 Pine::Graphics::TextureWrapMode Pine::Graphics::GLTexture::GetTextureWrapMode()
@@ -449,11 +457,10 @@ Pine::Graphics::TextureCompressionFormat Pine::Graphics::GLTexture::GetTextureCo
     return m_TextureCompressionFormat;
 }
 
-void Pine::Graphics::GLTexture::GenerateMipmaps()
+void Pine::Graphics::GLTexture::EnableMipmaps(int levels)
 {
     m_HasMipmaps = true;
-
-    glGenerateMipmap(TranslateTextureType(m_Type, m_IsMultiSampled));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levels);
 }
 
 void Pine::Graphics::GLTexture::UpdateTextureFiltering()

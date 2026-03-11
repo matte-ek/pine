@@ -30,57 +30,70 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
     textureSerializer.ImportUsageHint.Read(m_ImportConfiguration.UsageHint);
     textureSerializer.ImportGenerateMipMaps.Read(m_ImportConfiguration.GenerateMipmaps);
 
-    m_MipmapLevels = textureSerializer.Data.GetDataCount();
+    m_MipmapLevels = textureSerializer.Mips.GetDataCount();
 
-    std::vector<std::shared_ptr<Task>> tasks;
-
-    // Prepare and upload texture data to GPU.
-    for (size_t i{}; i < textureSerializer.Data.GetDataCount(); i++)
+    auto task = Threading::QueueTask<void>([this, &textureSerializer]()
     {
-        auto textureMipDataSpan = textureSerializer.Data.GetData(i);
-
-        tasks.push_back(Threading::QueueTask<void>([textureMipDataSpan, this]()
+        // Since it's running on the main thread, this is "thread-safe".
+        if (m_Texture == nullptr)
         {
-            // Since it's running on the main thread, this is "thread-safe".
-            if (m_Texture == nullptr)
+            m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
+        }
+
+        m_Texture->Bind();
+
+        // Prepare and upload texture data to GPU.
+        for (size_t i{}; i < textureSerializer.Mips.GetDataCount(); i++)
+        {
+            TextureMipSerializer mipSerializer;
+
+            if (!mipSerializer.Read(textureSerializer.Mips.GetData(i)))
             {
-                m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
-
-                m_Texture->SetFilteringMode(m_FilteringMode);
-                m_Texture->SetMipmapFilteringMode(m_MipFilteringMode);
-                m_Texture->SetTextureWrapMode(m_WrapMode);
+                Log::Warning("Failed to read texture mip.");
+                continue;
             }
-
-            m_Texture->Bind();
 
             if (m_CompressionFormat == Graphics::TextureCompressionFormat::Raw)
             {
                 m_Texture->UploadTextureData(
-                       m_Width,
-                       m_Height,
+                       mipSerializer.Width.Read<std::uint32_t>(),
+                       mipSerializer.Height.Read<std::uint32_t>(),
+                       i,
                        m_Format,
                        Graphics::TextureDataFormat::UnsignedByte,
-                       textureMipDataSpan.data);
+                       mipSerializer.Data.Read().data);
             }
             else
             {
+                const auto& mipData = mipSerializer.Data.Read();
+
                 m_Texture->UploadTextureDataCompressed(
-                    m_Width,
-                    m_Height,
+                    mipSerializer.Width.Read<std::uint32_t>(),
+                    mipSerializer.Height.Read<std::uint32_t>(),
+                    i,
                     m_Format,
                     m_CompressionFormat,
-                    textureMipDataSpan.data,
-                    textureMipDataSpan.size);
+                    mipData.data,
+                    mipData.size);
             }
-        },
-        TaskThreadingMode::MainThread));
-    }
+        }
+
+        if (textureSerializer.Mips.GetDataCount() > 1)
+        {
+            m_Texture->EnableMipmaps(textureSerializer.Mips.GetDataCount() - 1);
+            m_Texture->SetMipmapFilteringMode(m_MipFilteringMode);
+        }
+        else
+        {
+            m_Texture->SetFilteringMode(m_FilteringMode);
+        }
+
+        m_Texture->SetTextureWrapMode(m_WrapMode);
+    },
+    TaskThreadingMode::MainThread);
 
     // Wait for the GPU upload jobs to complete.
-    for (const auto& task : tasks)
-    {
-        Threading::AwaitTaskResult(task);
-    }
+    Threading::AwaitTaskResult(task);
 
     // We're done here
     m_State = AssetState::Loaded;
@@ -95,11 +108,12 @@ Pine::Texture2D::Texture2D()
 
 void Pine::Texture2D::Dispose()
 {
-    if (m_TextureData != nullptr)
+    for (const auto& import : m_ImportData)
     {
-        stbi_image_free(m_TextureData);
-        m_TextureData = nullptr;
+        free(import.m_TextureData);
     }
+
+    m_ImportData.clear();
 
     if (m_Texture != nullptr)
     {
@@ -122,14 +136,6 @@ int Pine::Texture2D::GetHeight() const
 int Pine::Texture2D::GetMipmapLevels() const
 {
     return m_MipmapLevels;
-}
-
-Pine::ByteSpan Pine::Texture2D::GetTextureData() const
-{
-    // Call HasTextureData() first!
-    assert(m_TextureData != nullptr);
-
-    return {static_cast<std::byte*>(m_TextureData), m_TextureDataSize};
 }
 
 Pine::Graphics::TextureFormat Pine::Texture2D::GetFormat() const
@@ -199,7 +205,7 @@ Pine::Graphics::ITexture* Pine::Texture2D::GetGraphicsTexture() const
 
 bool Pine::Texture2D::HasTextureData() const
 {
-    return m_TextureData != nullptr;
+    return !m_ImportData.empty();
 }
 
 bool Pine::Texture2D::Import(Importer::AssetImport* context)
@@ -215,7 +221,7 @@ Pine::ByteSpan Pine::Texture2D::SaveAssetData()
     // down when saving the texture, and because this is usually not present in CPU memory
     // we'll have to load the asset data, set the changes, and save it again. This is
     // somewhat inefficient but saving assets is not a first-class anyway.
-    if (m_TextureData == nullptr)
+    if (m_ImportData.empty())
     {
         if (!m_FilePath.empty() && std::filesystem::exists(m_FilePath))
         {
@@ -225,12 +231,20 @@ Pine::ByteSpan Pine::Texture2D::SaveAssetData()
     else
     {
         // The special case where we're saving this texture the first time post importing.
-        textureSerializer.Data.AddData(m_TextureData, m_TextureDataSize);
+        for (const auto& importData : m_ImportData)
+        {
+            TextureMipSerializer textureMipSerializer;
 
-        free(m_TextureData);
+            textureMipSerializer.Width.Write(importData.m_Width);
+            textureMipSerializer.Height.Write(importData.m_Height);
+            textureMipSerializer.Data.WriteRaw(importData.m_TextureData, importData.m_TextureDataSize);
 
-        m_TextureData = nullptr;
-        m_TextureDataSize = 0;
+            textureSerializer.Mips.AddData(textureMipSerializer.Write());
+
+            free(importData.m_TextureData);
+        }
+
+        m_ImportData.clear();
     }
 
     // Save general data

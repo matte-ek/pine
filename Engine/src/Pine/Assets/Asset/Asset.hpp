@@ -113,8 +113,8 @@ namespace Pine
         // within the editor and such, not the final runtime.
         std::vector<AssetSource> m_SourceFiles;
 
-        int m_ReferenceCount = 0;
-        bool m_IsDeleted = false;
+        std::atomic<int> m_ReferenceCount = 0;
+        bool m_IsPendingDelete = false;
 
         bool m_HasBeenModified = false;
 
@@ -122,6 +122,9 @@ namespace Pine
 
         virtual bool LoadAssetData(const ByteSpan& span);
         virtual ByteSpan SaveAssetData();
+
+        void IncreaseReference();
+        void DecreaseReference();
 
         struct AssetSourceSerializer : Serialization::Serializer
         {
@@ -162,6 +165,11 @@ namespace Pine
 
         void MarkAsModified();
         bool HasBeenModified() const;
+
+        void MarkPendingDelete();
+        bool IsPendingDelete() const;
+
+        int GetReferenceCount() const;
 
         void CreateScriptHandle();
         void DestroyScriptHandle();
@@ -208,19 +216,17 @@ namespace Pine
             {
                 auto assetType = reinterpret_cast<Asset *>(m_Asset);
 
-                if (assetType->m_IsDeleted)
+                if (assetType->m_IsPendingDelete)
                 {
-                    --reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
+                    reinterpret_cast<Asset *>(m_Asset)->DecreaseReference();
                     m_Asset = nullptr;
                 }
-                else if (assetType->GetUId() != m_UId)
+                else if (assetType->GetUId() != m_UId) // should this ever happen?
                 {
                     m_Asset = nullptr;
                 }
             }
-
-            // If not cached, attempt to get a pointer.
-            if (!m_Asset)
+            else  // If not cached, attempt to get a pointer.
             {
                 m_Asset = dynamic_cast<TAsset*>(Assets::GetAssetByUId(m_UId));
             }
@@ -230,7 +236,7 @@ namespace Pine
 
         TAsset *operator->()
         {
-            return m_Asset;
+            return Get();
         }
 
         AssetHandle &operator=(Asset *asset)
@@ -238,7 +244,8 @@ namespace Pine
             // Decrease the ref count on the asset we might already have
             if (m_Asset != nullptr)
             {
-                --reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
+                reinterpret_cast<Asset *>(m_Asset)->DecreaseReference();
+                m_Asset = nullptr;
             }
 
             if (asset != nullptr)
@@ -246,7 +253,7 @@ namespace Pine
                 m_UId = asset->GetUId();
                 m_Asset = static_cast<TAsset *>(asset);
 
-                ++reinterpret_cast<Asset *>(m_Asset)->m_ReferenceCount;
+                reinterpret_cast<Asset *>(m_Asset)->IncreaseReference();
             }
             else
             {

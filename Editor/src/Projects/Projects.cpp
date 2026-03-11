@@ -27,10 +27,9 @@ std::string Editor::Projects::GetProjectPath()
 
 void Editor::Projects::LoadProjectAssets()
 {
-    {
-        PINE_PF_SCOPE_MANUAL("Editor::LoadProjectAssets");
-        Pine::Assets::LoadAssetsFromDirectory("");
-    }
+    PINE_PF_SCOPE();
+
+    Pine::Assets::LoadAssetsFromDirectory("");
 }
 
 

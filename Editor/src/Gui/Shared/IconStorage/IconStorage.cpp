@@ -347,6 +347,11 @@ Pine::Graphics::ITexture* Editor::Gui::IconStorage::GetIconTexture(Pine::UId id)
 {
     static auto invalidAssetIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file");
 
+    if (!invalidAssetIcon)
+    {
+        return nullptr;
+    }
+
     if (!m_IconCache.count(id) || !m_IconCache[id].StaticTexture)
     {
         return invalidAssetIcon->GetGraphicsTexture();

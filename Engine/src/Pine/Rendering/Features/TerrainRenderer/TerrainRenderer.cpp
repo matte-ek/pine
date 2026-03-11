@@ -11,36 +11,29 @@ namespace
 
     using namespace Pine;
 
-    Matrix4f ComputeChunkTransform(const Transform* parent, Vector2i localGridPosition)
+    Camera* m_SceneCamera = nullptr;
+
+    void RenderChunk(const TerrainRendererComponent* component, const TerrainChunk* terrainChunk)
     {
+        const auto transformComponent = component->GetParent()->GetTransform();
+
+        auto worldPosition = transformComponent->GetPosition();
         auto transform = Matrix4f(1.f);
 
-        auto worldPosition = parent->GetPosition();
-
         worldPosition += Vector3f(
-            localGridPosition.x * TERRAIN_CHUNK_SIZE,
+            terrainChunk->Position.x * TERRAIN_CHUNK_SIZE - 1,
             0.f,
-            localGridPosition.y * TERRAIN_CHUNK_SIZE);
-
-        /*
-        worldPosition += Vector3f(
-            TERRAIN_CHUNK_SIZE / 2.f,
-            0.f,
-            TERRAIN_CHUNK_SIZE / 2.f
-        );
-        */
+            terrainChunk->Position.y * TERRAIN_CHUNK_SIZE - 1);
 
         transform = glm::translate(transform, worldPosition);
         transform = glm::scale(transform, Vector3f(TERRAIN_SCALE));
 
-        return transform;
-    }
+        const auto useLowPoly = glm::distance2(
+            m_SceneCamera->GetParent()->GetTransform()->GetPosition(),
+            worldPosition + Vector3f(TERRAIN_CHUNK_SIZE * 0.5f, 0.f, TERRAIN_CHUNK_SIZE * 0.5f)) > 3000.f;
+        auto mesh = useLowPoly ? terrainChunk->ChunkMeshLowPoly : terrainChunk->ChunkMesh;
 
-    void RenderChunk(const TerrainRendererComponent* component, const TerrainChunk* terrainChunk)
-    {
-        const auto transform = ComputeChunkTransform(component->GetParent()->GetTransform(), terrainChunk->Position);
-
-        Renderer3D::PrepareMesh(terrainChunk->ChunkMesh, nullptr);
+        Renderer3D::PrepareMesh(mesh, terrainChunk->Material.Get());
         Renderer3D::RenderMesh(transform);
     }
 }
@@ -53,15 +46,27 @@ void Rendering::TerrainRenderer::Shutdown()
 {
 }
 
+void Rendering::TerrainRenderer::NewFrame(Camera* sceneCamera)
+{
+    m_SceneCamera = sceneCamera;
+}
+
 void Rendering::TerrainRenderer::Render(const TerrainRendererComponent* terrainRendererComponent)
 {
     auto terrain = terrainRendererComponent->GetTerrain();
+
+    assert(m_SceneCamera);
 
     for (const auto& chunk : terrain->GetChunks())
     {
         if (!chunk.IsReady)
         {
-            continue;
+            terrain->GenerateMesh();
+
+            if (!chunk.IsReady)
+            {
+                continue;
+            }
         }
 
         RenderChunk(terrainRendererComponent, &chunk);

@@ -45,6 +45,7 @@ namespace
         renderTargetTexture->UploadTextureData(
             Renderer3D::Specifications::General::INTERNAL_WIDTH / AMBIENT_OCCLUSION_RES,
             Renderer3D::Specifications::General::INTERNAL_HEIGHT / AMBIENT_OCCLUSION_RES,
+            0,
             Graphics::TextureFormat::SingleChannel,
             Graphics::TextureDataFormat::Float,
             nullptr);
@@ -76,7 +77,7 @@ namespace
         m_KernelRandomnessTexture->Bind();
         m_KernelRandomnessTexture->SetTextureWrapMode(Graphics::TextureWrapMode::Repeat);
         m_KernelRandomnessTexture->SetFilteringMode(Graphics::TextureFilteringMode::Nearest);
-        m_KernelRandomnessTexture->UploadTextureData(4, 4, Graphics::TextureFormat::RGB16F, Graphics::TextureDataFormat::Float, &kernelRandomness[0]);
+        m_KernelRandomnessTexture->UploadTextureData(4, 4, 0, Graphics::TextureFormat::RGB16F, Graphics::TextureDataFormat::Float, &kernelRandomness[0]);
     }
 
     void CreateKernel()

@@ -29,7 +29,7 @@ std::string Editor::Utilities::Asset::EstimateMappedPath(std::filesystem::path p
         }
     }
 
-    return pathStr;
+    return Pine::String::ToLower(pathStr);
 }
 
 Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::path& path, Pine::AssetType type)
@@ -48,70 +48,25 @@ Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::p
     return asset;
 }
 
-/*
-void Editor::Utilities::Asset::ImportAsset(const std::string& contentFile, const std::string& relativePath)
-{
-    auto currentDirectory = Panels::AssetBrowser::GetOpenDirectoryNode();
-
-    static std::set<std::string> defaultImporterSupportedExtensions = {
-        ".png",
-        ".jpeg",
-        ".jpg",
-        ".fbx",
-        ".glb",
-        ".dae",
-        ".ih"
-    };
-
-    auto filePath = std::filesystem::path(contentFile);
-    auto extension = Pine::String::ToLower(filePath.extension().string());
-
-    if (defaultImporterSupportedExtensions.count(extension) == 0)
-    {
-        Pine::Log::Error(fmt::format("Could not import asset '{}', file format not supported.", contentFile));
-        return;
-    }
-
-    const auto assetFilePath = currentDirectory->Path.string() + "/" + relativePath + filePath.stem().string();
-    const auto contentFileName = Pine::String::Replace(EstimateMappedPath(assetFilePath, Pine::Assets::Internal::GetWorkingDirectory()), "/", "-");
-    const auto contentFilePath = Projects::GetProjectPath() + "/content";
-
-    // Make sure the directory we're importing to exists.
-    if (!std::filesystem::exists(currentDirectory->Path.string() + "/" + relativePath))
-    {
-        std::filesystem::create_directories(currentDirectory->Path.string() + "/" + relativePath);
-    }
-
-    Pine::AssetImport assetImport;
-
-    assetImport.SourceFilePaths = {contentFile};
-    assetImport.AssetPath = assetFilePath;
-    assetImport.CopySourceFiles = true;
-    assetImport.ContentPath = contentFilePath;
-
-    auto asset = Pine::Assets::ImportAsset(assetImport);
-
-    if (!asset)
-    {
-        Pine::Log::Error(fmt::format("Could not import asset '{}', engine import failed.", contentFile));
-        return;
-    }
-
-    asset->SaveToFile();
-
-    delete asset;
-}
-*/
-
 void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& paths)
 {
     auto importContext = Pine::Importer::CreateContext();
+    auto currentDirectory = Panels::AssetBrowser::GetOpenDirectoryNode();
 
     importContext->CopySourceFiles = true;
     importContext->ContentPath = Projects::GetProjectPath() + "/content";
 
     for (const auto& path : paths)
     {
+        if (std::filesystem::is_regular_file(path))
+        {
+            auto relativePath = path.substr(std::filesystem::path(path).parent_path().string().length() + 1);
+
+            Pine::Importer::AddFile(importContext, path, currentDirectory->Path.string() + "/" + relativePath);
+
+            continue;
+        }
+
         for (const auto& iter : std::filesystem::recursive_directory_iterator(path))
         {
             if (iter.is_directory())
@@ -121,7 +76,7 @@ void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& path
 
             auto relativePath = iter.path().string().substr(std::filesystem::path(path).parent_path().string().length() + 1);
 
-            Pine::Importer::AddFile(importContext, iter.path().string(), Pine::Assets::Internal::GetWorkingDirectory() + relativePath);
+            Pine::Importer::AddFile(importContext, iter.path().string(), currentDirectory->Path.string() + "/" + relativePath);
         }
     }
 

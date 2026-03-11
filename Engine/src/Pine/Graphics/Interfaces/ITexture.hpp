@@ -211,11 +211,11 @@ namespace Pine::Graphics
         virtual void SetSwizzleMask(SwizzleMaskChannel r, SwizzleMaskChannel g, SwizzleMaskChannel b, SwizzleMaskChannel a) = 0;
         virtual void ResetSwizzleMask() = 0;
 
-        virtual void UploadTextureData(int width, int height, TextureFormat textureFormat, TextureDataFormat dataFormat, void* data) = 0;
-        virtual void UploadTextureDataCompressed(int width, int height, TextureFormat textureFormat, TextureCompressionFormat compressionFormat, void* data, size_t size) = 0;
+        virtual void UploadTextureData(int width, int height, int level, TextureFormat textureFormat, TextureDataFormat dataFormat, void* data) = 0;
+        virtual void UploadTextureDataCompressed(int width, int height, int level, TextureFormat textureFormat, TextureCompressionFormat compressionFormat, void* data, size_t size) = 0;
 
         virtual void CopyTextureData(ITexture* texture, TextureUploadTarget textureUploadTarget, Vector4i srcRect = Vector4i(-1), Vector2i dstPos = Vector2i(0)) = 0;
 
-        virtual void GenerateMipmaps() = 0;
+        virtual void EnableMipmaps(int levels) = 0;
     };
 }

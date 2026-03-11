@@ -22,6 +22,8 @@
 #include <thread>
 #include <unordered_map>
 
+#include "Terrain/Terrain.hpp"
+
 using namespace Pine;
 
 namespace
@@ -57,6 +59,7 @@ namespace
         AssetImportFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
         AssetImportFactory( { { "tset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
         AssetImportFactory( { { "tmap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
+        AssetImportFactory( { { "ter" }, AssetType::Terrain, [](){ return new Terrain(); } } ),
         AssetImportFactory( { { "wav", "wave", "flac", "ogg", "oga", "spx" }, AssetType::Audio, [](){ return new AudioFile(); } } ),
         AssetImportFactory( { { "cs" }, AssetType::CSharpScript, [](){ return new CSharpScript(); } } )
     };
@@ -266,6 +269,7 @@ void Assets::Internal::RegisterAsset(Asset* asset)
             auto prevAsset = m_AssetsMapUId[asset->GetUId()];
 
             prevAsset->Dispose();
+            prevAsset->MarkPendingDelete();
 
             m_AssetsMapUId.erase(asset->GetUId());
             m_AssetsMapPath.erase(asset->GetPath());

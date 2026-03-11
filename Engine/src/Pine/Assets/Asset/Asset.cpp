@@ -16,14 +16,27 @@ Pine::ByteSpan Pine::Asset::SaveAssetData()
     return {nullptr, 0};
 }
 
+void Pine::Asset::IncreaseReference()
+{
+    ++m_ReferenceCount;
+}
+
+void Pine::Asset::DecreaseReference()
+{
+    if (m_IsPendingDelete && --m_ReferenceCount == 0)
+    {
+        delete this;
+    }
+}
+
 void Pine::Asset::SetupNew(const std::filesystem::path& absoluteFilePath)
 {
     m_UId = UId::New();
 
     const auto universalPath = File::UniversalPath(absoluteFilePath);
 
-    m_Path = String::StartsWith(universalPath, Assets::Internal::GetWorkingDirectory()) ?
-        universalPath.substr(Assets::Internal::GetWorkingDirectory().length()) : universalPath;
+    m_Path = String::ToLower(String::StartsWith(universalPath, Assets::Internal::GetWorkingDirectory()) ?
+        universalPath.substr(Assets::Internal::GetWorkingDirectory().length()) : universalPath);
 
     m_FilePath = std::filesystem::path(universalPath).replace_extension(".passet").string();
 }
@@ -85,6 +98,26 @@ void Pine::Asset::MarkAsModified()
 bool Pine::Asset::HasBeenModified() const
 {
     return m_HasBeenModified;
+}
+
+void Pine::Asset::MarkPendingDelete()
+{
+    m_IsPendingDelete = true;
+
+    if (m_ReferenceCount == 0)
+    {
+        delete this;
+    }
+}
+
+bool Pine::Asset::IsPendingDelete() const
+{
+    return m_IsPendingDelete;
+}
+
+int Pine::Asset::GetReferenceCount() const
+{
+    return m_ReferenceCount;
 }
 
 void Pine::Asset::CreateScriptHandle()
@@ -180,6 +213,9 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
     aSerializer.UId.Read(asset->m_UId);
     aSerializer.Time.Read(asset->m_CreatedTime);
     aSerializer.Path.Read(asset->m_Path);
+
+    // This can probably get removed later.
+    asset->m_Path = String::ToLower(asset->m_Path);
 
     asset->m_SourceFiles.clear();
 

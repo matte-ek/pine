@@ -12,7 +12,12 @@ bool Pine::Importer::TextureImporter::Import(Texture2D* texture)
 
 #else
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include <stb_image.h>
+#include <stb_image_resize2.h>
+#include <stb_image_write.h>
 
 #include "nvtt/nvtt.h"
 #include "nvtt/nvtt_wrapper.h"
@@ -124,42 +129,34 @@ namespace
     }
 }
 
-bool Importer::TextureImporter::Import(Texture2D* texture)
+TextureImportData Importer::TextureImporter::CompressImage(
+    Texture2D* texture,
+    const nvtt::Context* context,
+    void* inputData,
+    unsigned int width,
+    unsigned int height,
+    unsigned int channels)
 {
-    if (texture->m_SourceFiles.empty() || texture->m_SourceFiles.size() > 1)
-    {
-        Pine::Log::Warning("Ignoring Texture2D import, too many source files.");
-        return false;
-    }
-
-    const auto& file = texture->m_SourceFiles.front().FilePath;
-
-    Log::Info(fmt::format("Importing Texture2D from source file {}...", file));
-
-    int width, height, channels;
-    Graphics::TextureFormat format;
-
-    void* imageDataPtr = LoadImageBytes(file, width, height, channels, format);
-
-    if (imageDataPtr == nullptr)
-    {
-        return false;
-    }
-
-    texture->m_Width = width;
-    texture->m_Height = height;
-    texture->m_Format = format;
-
     auto compressionFormat = DetermineCompressionFormat(texture->m_ImportConfiguration.UsageHint);
 
     if (compressionFormat == Graphics::TextureCompressionFormat::Raw)
     {
-        texture->m_TextureData = imageDataPtr;
-        texture->m_TextureDataSize = width * height * channels;
+        TextureImportData ret;
+
+        ret.m_TextureDataSize = width * height * channels;
+        ret.m_TextureData = malloc(ret.m_TextureDataSize);
+
+        memcpy(ret.m_TextureData, inputData, ret.m_TextureDataSize);
+
+        ret.m_Width = width;
+        ret.m_Height = height;
+
         texture->m_CompressionFormat = Graphics::TextureCompressionFormat::Raw;
 
-        return true;
+        return ret;
     }
+
+    texture->m_CompressionFormat = compressionFormat;
 
     const auto nvCompressionLevel = TranslateCompressionFormat(compressionFormat, channels);
     const auto nvQuality = TranslateQuality(texture->m_ImportConfiguration.CompressionQuality);
@@ -167,7 +164,7 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
     // Prepare texture for encoding
     NvttRefImage ref;
 
-    ref.data = imageDataPtr;
+    ref.data = inputData;
     ref.width = width;
     ref.height = height;
     ref.num_channels = channels;
@@ -187,14 +184,6 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
         4, 4,
         1.f, 1.f, 1.f, 1.f,
         nullptr, nullptr);
-
-    // Create context and try to enable CUDA
-    auto context = nvttCreateContext();
-    nvttSetContextCudaAcceleration(context, NVTT_True);
-    if (!nvttIsCudaSupported())
-    {
-        Log::Warning("CUDA unsupported during compression.");
-    }
 
     // Prepare compression options so we can estimate the buffer size
     auto options = nvttCreateCompressionOptions();
@@ -220,17 +209,88 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
 
     if (nvttEncodeCPU(cpuInputBuffer, data, &settings) != NVTT_True)
     {
-        return false;
+        return {nullptr, 0};
     }
-
-    texture->m_TextureData = data;
-    texture->m_TextureDataSize = dataSize;
-    texture->m_CompressionFormat = compressionFormat;
-
-    free(imageDataPtr);
 
     nvttDestroyCompressionOptions(options);
     nvttDestroyCPUInputBuffer(cpuInputBuffer);
+
+    return {data, static_cast<size_t>(dataSize), width, height};
+}
+
+bool Importer::TextureImporter::Import(Texture2D* texture)
+{
+    if (texture->m_SourceFiles.empty() || texture->m_SourceFiles.size() > 1)
+    {
+        Pine::Log::Warning("Ignoring Texture2D import, too many source files.");
+        return false;
+    }
+
+    const auto& file = texture->m_SourceFiles.front().FilePath;
+
+    int width, height, channels;
+    Graphics::TextureFormat format;
+
+    void* imageDataPtr = LoadImageBytes(file, width, height, channels, format);
+
+    if (imageDataPtr == nullptr)
+    {
+        return false;
+    }
+
+    texture->m_Width = width;
+    texture->m_Height = height;
+    texture->m_Format = format;
+
+    // Create context and try to enable CUDA
+    auto context = nvttCreateContext();
+    nvttSetContextCudaAcceleration(context, NVTT_True);
+    if (!nvttIsCudaSupported())
+    {
+        Log::Warning("CUDA unsupported during compression.");
+    }
+
+    auto mipSize = Vector2i(width, height);
+    while (mipSize.x > 1 && mipSize.y > 1)
+    {
+        void* mipImageData = nullptr;
+
+        if (mipSize.x != width)
+        {
+            mipImageData = stbir_resize_uint8_linear(
+                static_cast<unsigned char*>(imageDataPtr),
+                width, height,
+                channels * width,
+                nullptr,
+                mipSize.x, mipSize.y,
+                channels * mipSize.x,
+                STBIR_RGBA);
+        }
+        else
+        {
+            mipImageData = imageDataPtr;
+        }
+
+        auto compressedImage = CompressImage(texture, context, mipImageData, mipSize.x, mipSize.y, channels);
+        if (compressedImage.m_TextureData == nullptr)
+        {
+            free(mipImageData);
+            return false;
+        }
+
+        texture->m_ImportData.push_back(compressedImage);
+
+        if (!texture->m_ImportConfiguration.GenerateMipmaps)
+        {
+            break;
+        }
+
+        mipSize /= 2;
+
+        Log::Info(fmt::format("Generating mip with size {}x{}", mipSize.x, mipSize.y));
+    }
+
+    free(imageDataPtr);
     nvttDestroyContext(context);
 
     return true;

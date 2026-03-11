@@ -237,7 +237,7 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
-    void RenderModel(const Pine::Model *model)
+    void RenderModel(Pine::Model *model)
     {
         ImGui::Text("Mesh count: %d", model->GetMeshes().size());
 
@@ -256,6 +256,7 @@ namespace
                 if (newMaterial.hasResult)
                 {
                     mesh->SetMaterial(dynamic_cast<Pine::Material *>(newMaterial.asset));
+                    model->MarkAsModified();
                 }
 
                 if (mesh->GetMaterial() && mesh->GetMaterial()->IsMeshGenerated())
@@ -504,24 +505,63 @@ namespace
 
     void RenderTerrain(Pine::Terrain *terrain)
     {
+        static Pine::TerrainPerlinSettings perlinSettings;
+
         ImGui::Text("Chunk count: %d", terrain->GetChunks().size());
+
+        Widgets::SliderFloat("Perlin 0 Coordinate Scale", &perlinSettings.Layer0_CoordinateScale, 0, 10);
+        Widgets::SliderFloat("Perlin 0 Scale", &perlinSettings.Layer0_Scale, 0, 10);
+        Widgets::SliderInt("Perlin 0 Octaves", &perlinSettings.Layer0_Octaves, 0, 10);
+
+        Widgets::SliderFloat("Perlin 1 Coordinate Scale", &perlinSettings.Layer1_CoordinateScale, 0, 10);
+        Widgets::SliderFloat("Perlin 1 Scale", &perlinSettings.Layer1_Scale, 0, 10);
+        Widgets::SliderInt("Perlin 1 Octaves", &perlinSettings.Layer1_Octaves, 0, 10);
+
+        Widgets::SliderFloat("Perlin 2 Coordinate Scale", &perlinSettings.Layer2_CoordinateScale, 0, 10);
+        Widgets::SliderFloat("Perlin 2 Scale", &perlinSettings.Layer2_Scale, 0, 10);
+        Widgets::SliderInt("Perlin 2 Octaves", &perlinSettings.Layer2_Octaves, 0, 10);
+        Widgets::SliderFloat("Perlin 2 Cutoff", &perlinSettings.Layer2_Cutoff, 0, 10);
+
+        Widgets::SliderInt("Seed", &perlinSettings.Seed, 0, 1000000);
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        bool generateAll = false;
+
+        if (ImGui::Button(fmt::format("Generate All").c_str()))
+        {
+            generateAll = true;
+            terrain->MarkAsModified();
+        }
 
         int index = 0;
         for (auto& chunk : terrain->GetChunks())
         {
             index++;
 
+            if (generateAll)
+            {
+                Pine::Terrain::GenerateFromPerlinNoise(chunk, perlinSettings);
+            }
+
             if (ImGui::CollapsingHeader(fmt::format("Chunk #{}", index).c_str()))
             {
-                auto newHeightmap = Widgets::AssetPicker("Heightmap", chunk.HeightmapTexture.Get(), Pine::AssetType::Texture2D);
-                if (newHeightmap.hasResult)
-                {
-                    chunk.HeightmapTexture = newHeightmap.asset;
+                Widgets::Vector2i(fmt::format("Position##{}", index), chunk.Position);
 
+                const auto newMaterial = Widgets::AssetPicker("Material", std::to_string(index), chunk.Material.Get(), Pine::AssetType::Material);
+                if (newMaterial.hasResult)
+                {
+                    chunk.Material = dynamic_cast<Pine::Material*>(newMaterial.asset);
                     terrain->MarkAsModified();
                 }
             }
         }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
 
         if (ImGui::Button("Add chunk"))
         {
@@ -529,9 +569,9 @@ namespace
             terrain->MarkAsModified();
         }
 
-        if (ImGui::Button("Generate"))
+        if (ImGui::Button("Generate mesh"))
         {
-            terrain->Generate();
+            terrain->GenerateMesh();
         }
     }
 }

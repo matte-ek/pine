@@ -162,7 +162,7 @@ void Pine::Graphics::GLFrameBuffer::AttachTextures(int width, int height, int bu
         m_ColorBuffer->SetSamples(multiSample);
 
         m_ColorBuffer->Bind();
-        m_ColorBuffer->UploadTextureData(width, height, TextureFormat::RGBA, TextureDataFormat::UnsignedByte, nullptr);
+        m_ColorBuffer->UploadTextureData(width, height, 0, TextureFormat::RGBA, TextureDataFormat::UnsignedByte, nullptr);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textureType, m_ColorBuffer->GetId(), 0);
 
@@ -173,7 +173,7 @@ void Pine::Graphics::GLFrameBuffer::AttachTextures(int width, int height, int bu
     {
         m_NormalBuffer = new GLTexture();
         m_NormalBuffer->Bind();
-        m_NormalBuffer->UploadTextureData(width, height, TextureFormat::RGBA16F, TextureDataFormat::Float, nullptr);
+        m_NormalBuffer->UploadTextureData(width, height, 0, TextureFormat::RGBA16F, TextureDataFormat::Float, nullptr);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, textureType, m_NormalBuffer->GetId(), 0);
 
@@ -188,7 +188,7 @@ void Pine::Graphics::GLFrameBuffer::AttachTextures(int width, int height, int bu
         m_DepthStencilBuffer->SetSamples(multiSample);
 
         m_DepthStencilBuffer->Bind();
-        m_DepthStencilBuffer->UploadTextureData(width, height, TextureFormat::DepthStencil, TextureDataFormat::UnsignedInt24_8, nullptr);
+        m_DepthStencilBuffer->UploadTextureData(width, height, 0, TextureFormat::DepthStencil, TextureDataFormat::UnsignedInt24_8, nullptr);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, textureType, m_DepthStencilBuffer->GetId(), 0);
     }
@@ -202,7 +202,7 @@ void Pine::Graphics::GLFrameBuffer::AttachTextures(int width, int height, int bu
             m_DepthBuffer->SetSamples(multiSample);
 
             m_DepthBuffer->Bind();
-            m_DepthBuffer->UploadTextureData(width, height, TextureFormat::Depth, TextureDataFormat::Float, nullptr);
+            m_DepthBuffer->UploadTextureData(width, height, 0, TextureFormat::Depth, TextureDataFormat::Float, nullptr);
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, textureType, m_DepthBuffer->GetId(), 0);
         }

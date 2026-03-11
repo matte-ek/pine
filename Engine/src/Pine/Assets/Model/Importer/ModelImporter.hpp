@@ -15,7 +15,7 @@ namespace Pine::Importer
         static void ProcessMesh(Model* model, const aiMesh *mesh, const aiScene *scene);
         static void ProcessNode(Model* model, const aiNode *node, const aiScene *scene);
 
-        static Texture2D* ImportTexture(AssetImport* context, aiMaterial* material, int type);
+        static Texture2D* ImportTexture(AssetImport* context, const aiScene* scene, aiMaterial* material, int type);
     public:
         static bool Import(AssetImport* importContext, Model* model);
     };

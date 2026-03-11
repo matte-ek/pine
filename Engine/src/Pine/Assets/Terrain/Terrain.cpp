@@ -3,16 +3,13 @@
 #include <stb_image.h>
 #include <cooking/PxCooking.h>
 #include <extensions/PxDefaultStreams.h>
-#include <geometry/PxHeightFieldDesc.h>
 #include <geometry/PxHeightFieldSample.h>
 
+#include "PerlinNoise.hpp"
 #include "Pine/Assets/Mesh/Mesh.hpp"
 #include "Pine/Core/Log/Log.hpp"
-#include "../../Core/Serialization/Json/SerializationJson.hpp"
+#include "Pine/Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Performance/Performance.hpp"
-
-#include "PerlinNoise.hpp"
-#include "Pine/Physics/Physics3D/Physics3D.hpp"
 #include "Pine/Physics/Physics3D/PhysicsTerrain/PhysicsTerrain.hpp"
 
 namespace
@@ -55,39 +52,97 @@ namespace
         return heightMap;
     }
 
-    float* GenerateHeightmapData(int size)
+    std::array<float, TERRAIN_SQUARE_SIZE> GeneratePerlinNoiseHeightmapData(Vector2f offset, const TerrainPerlinSettings& perlinSettings)
     {
-        const siv::PerlinNoise::seed_type seed = 123456u;
-        const siv::PerlinNoise perlin{ seed };
+        const siv::PerlinNoise perlin{ static_cast<std::uint32_t>(perlinSettings.Seed) };
 
-        auto buff = new float[size * size];
+        std::array<float, TERRAIN_SQUARE_SIZE> buff = {};
 
-        for (int y = 0; y < size; y++)
+        for (int y = 0; y < TERRAIN_CHUNK_VERTEX_COUNT; y++)
         {
-            for (int x = 0; x < size;x++)
+            for (int x = 0; x < TERRAIN_CHUNK_VERTEX_COUNT;x++)
             {
-                buff[y * size + x] = perlin.octave2D_11(x * 0.004f, y * 0.004f, 8) * 5.f;
+
+                buff[y * TERRAIN_CHUNK_VERTEX_COUNT + x] =
+                    perlin.octave2D_11(
+                        (offset.x + x) * perlinSettings.Layer0_CoordinateScale,
+                        (offset.y + y) * perlinSettings.Layer0_CoordinateScale,
+                        perlinSettings.Layer0_Octaves)
+                    * perlinSettings.Layer0_Scale;
+
+                buff[y * TERRAIN_CHUNK_VERTEX_COUNT + x] +=
+                    perlin.octave2D_11(
+                        (offset.x + x) * perlinSettings.Layer1_CoordinateScale,
+                        (offset.y + y) * perlinSettings.Layer1_CoordinateScale,
+                        perlinSettings.Layer1_Octaves)
+                    * perlinSettings.Layer1_Scale;
+
+                if (buff[y * TERRAIN_CHUNK_VERTEX_COUNT + x] > perlinSettings.Layer2_Cutoff)
+                {
+                    buff[y * TERRAIN_CHUNK_VERTEX_COUNT + x] +=
+                        perlin.octave2D_11(
+                            (offset.x + x) * perlinSettings.Layer2_CoordinateScale,
+                            (offset.y + y) * perlinSettings.Layer2_CoordinateScale,
+                            perlinSettings.Layer2_Octaves)
+                        * perlinSettings.Layer2_Scale;
+                }
             }
         }
 
         return buff;
     }
 
-    float GetHeight(const float* heightMap, int x, int z)
+    float DownsampleBlock(const std::array<float, TERRAIN_SQUARE_SIZE>& src, int inputX, int inputY)
+    {
+        constexpr auto stride = TERRAIN_CHUNK_VERTEX_COUNT;
+
+        float sum = 0;
+
+        for (int y = 0;y < 4;y++)
+        {
+            for (int x = 0;x < 4;x++)
+            {
+                float height = src[(inputY + y) * stride + (inputX + x)];
+
+                sum += height;
+            }
+        }
+
+        return sum / 16.f;
+    }
+
+    std::array<float, TERRAIN_SQUARE_SIZE_LP> DownscaleHeightMap(const std::array<float, TERRAIN_SQUARE_SIZE>& heightMap)
+    {
+        std::array<float, TERRAIN_SQUARE_SIZE_LP> buff = {};
+
+        for (int y = 0; y < TERRAIN_CHUNK_VERTEX_COUNT_LP; y++)
+        {
+            for (int x = 0; x < TERRAIN_CHUNK_VERTEX_COUNT_LP; x++)
+            {
+                buff[y * TERRAIN_CHUNK_VERTEX_COUNT_LP + x] = DownsampleBlock(heightMap, x * 4, y * 4);
+            }
+        }
+
+        return buff;
+    }
+
+    template<size_t TerrainSize>
+    float GetHeight(const std::array<float, TerrainSize>& heightMap, int x, int z)
     {
         if (0 > x) x = 0;
         if (0 > z) z = 0;
 
-        int arrayIndex = z * TERRAIN_CHUNK_VERTEX_COUNT + x;
-        if (arrayIndex >= (TERRAIN_CHUNK_VERTEX_COUNT * TERRAIN_CHUNK_VERTEX_COUNT))
+        int arrayIndex = z * TerrainSize + x;
+        if (arrayIndex >= heightMap.size())
         {
-            arrayIndex = TERRAIN_CHUNK_VERTEX_COUNT * TERRAIN_CHUNK_VERTEX_COUNT - 1;
+            arrayIndex = heightMap.size() - 1;
         }
 
         return heightMap[arrayIndex];
     }
 
-    Vector3f ComputeNormal(const float* heightMap, int x, int z)
+    template<size_t TerrainSize>
+    Vector3f ComputeNormal(const std::array<float, TerrainSize>& heightMap, int x, int z)
     {
         float l = GetHeight(heightMap, x - 1, z);
         float r = GetHeight(heightMap, x + 1, z);
@@ -97,10 +152,13 @@ namespace
         return glm::normalize(Vector3f(l - r, 2.f, d - u));
     }
 
-    void GenerateMesh(Mesh* mesh, float* heightMap)
+    template<size_t TerrainSize>
+    void GenerateMeshFromHeightmap(
+        Mesh* mesh,
+        const std::array<float, (TerrainSize + 2) * (TerrainSize + 2)>& heightMap)
     {
-        std::uint32_t totalIndexCount = 6*(TERRAIN_CHUNK_VERTEX_COUNT - 1) * TERRAIN_CHUNK_VERTEX_COUNT;
-        std::uint32_t totalVertexCount = TERRAIN_CHUNK_VERTEX_COUNT * TERRAIN_CHUNK_VERTEX_COUNT;
+        std::uint32_t totalIndexCount = 6 * (TerrainSize - 1) * (TerrainSize - 1);
+        std::uint32_t totalVertexCount = TerrainSize * TerrainSize;
 
         auto vertices   = new Vector3f[totalVertexCount];
         auto normals    = new Vector3f[totalVertexCount];
@@ -109,18 +167,18 @@ namespace
 
         std::uint32_t count = 0;
 
-        for (int z = 0; z < TERRAIN_CHUNK_VERTEX_COUNT; z++)
+        for (int z = 0; z < TerrainSize; z++)
         {
-            for (int x = 0; x < TERRAIN_CHUNK_VERTEX_COUNT; x++)
+            for (int x = 0; x < TerrainSize; x++)
             {
-                vertices[count].x = (-static_cast<float>(x) / static_cast<float>(TERRAIN_CHUNK_VERTEX_COUNT - 1) * static_cast<float>(TERRAIN_CHUNK_SIZE)) + TERRAIN_CHUNK_SIZE / 2.f;
-                vertices[count].y = heightMap[z * TERRAIN_CHUNK_VERTEX_COUNT + x];
-                vertices[count].z = (-static_cast<float>(z) / static_cast<float>(TERRAIN_CHUNK_VERTEX_COUNT - 1) * static_cast<float>(TERRAIN_CHUNK_SIZE)) + TERRAIN_CHUNK_SIZE / 2.f;
+                vertices[count].x = static_cast<float>(x) / (TerrainSize - 1) * TERRAIN_CHUNK_SIZE;
+                vertices[count].y = heightMap[z * TerrainSize + x];
+                vertices[count].z = static_cast<float>(z) / (TerrainSize - 1) * TERRAIN_CHUNK_SIZE;
 
-                normals[count] = ComputeNormal(heightMap, x, z);
+                normals[count] = ComputeNormal(heightMap, x + 1, z + 1);
 
-                uvs[count].x = static_cast<float>(x) / static_cast<float>(TERRAIN_CHUNK_VERTEX_COUNT - 1);
-                uvs[count].y = static_cast<float>(z) / static_cast<float>(TERRAIN_CHUNK_VERTEX_COUNT - 1);
+                uvs[count].x = static_cast<float>(x) / static_cast<float>(TerrainSize - 1);
+                uvs[count].y = static_cast<float>(z) / static_cast<float>(TerrainSize - 1);
 
                 count++;
             }
@@ -128,13 +186,13 @@ namespace
 
         count = 0;
 
-        for (int z = 0; z < TERRAIN_CHUNK_VERTEX_COUNT - 1; z++)
+        for (int z = 0; z < TerrainSize - 1; z++)
         {
-            for (int x = 0; x < TERRAIN_CHUNK_VERTEX_COUNT - 1; x++)
+            for (int x = 0; x < TerrainSize - 1; x++)
             {
-                const auto topLeft = (z * TERRAIN_CHUNK_VERTEX_COUNT) + x;
+                const auto topLeft = (z * TerrainSize) + x;
                 const auto topRight = topLeft + 1;
-                const auto bottomLeft = ((z + 1) * TERRAIN_CHUNK_VERTEX_COUNT) + x;
+                const auto bottomLeft = ((z + 1) * TerrainSize) + x;
                 const auto bottomRight = bottomLeft + 1;
 
                 indices[count++] = topLeft;
@@ -159,48 +217,75 @@ namespace
 
     void GenerateTerrainChunk(TerrainChunk& chunk)
     {
-        /*
-        if (chunk.HeightmapTexture.Get() == nullptr)
-        {
-            Log::Warning("Unable to generate chunk, missing heightmap texture.");
-            return;
-        }
+        Physics3D::Terrain::Destroy(&chunk.PhysicsData);
+        Physics3D::Terrain::Prepare(&chunk.PhysicsData, chunk.HeightData);
 
-        auto heightMap = GetHeightmapData(TERRAIN_CHUNK_VERTEX_COUNT, chunk.HeightmapTexture.Get());
-
-        if (!heightMap)
-        {
-            Log::Warning("Unable to generate chunk, invalid heightmap texture.");
-            return;
-        }
-        */
-
-        auto heightMap = GenerateHeightmapData(TERRAIN_CHUNK_VERTEX_COUNT);
-
-        GenerateMesh(chunk.ChunkMesh, heightMap);
-
-        Physics3D::Terrain::Prepare(&chunk.PhysicsData, heightMap);
-
-        free(heightMap);
+        GenerateMeshFromHeightmap<TERRAIN_CHUNK_VERTEX_COUNT>(chunk.ChunkMesh, chunk.HeightData);
+        GenerateMeshFromHeightmap<TERRAIN_CHUNK_VERTEX_COUNT_LP>(chunk.ChunkMeshLowPoly, DownscaleHeightMap(chunk.HeightData));
     }
 }
 
-Pine::Terrain::Terrain()
+bool Terrain::LoadAssetData(const ByteSpan& span)
+{
+    TerrainSerializer terrainSerializer;
+
+    if (!terrainSerializer.Read(span))
+    {
+        return false;
+    }
+
+    for (size_t i{}; i < terrainSerializer.Chunks.GetDataCount();i++)
+    {
+        TerrainChunkSerializer chunkSerializer;
+
+        if (!chunkSerializer.Read(terrainSerializer.Chunks.GetData(i)))
+        {
+            return false;
+        }
+
+        TerrainChunk chunk;
+
+        chunkSerializer.Position.Read(chunk.Position);
+        chunkSerializer.HeightData.Read(chunk.HeightData);
+
+        m_Chunks.push_back(chunk);
+    }
+
+    return true;
+}
+
+ByteSpan Terrain::SaveAssetData()
+{
+    TerrainSerializer terrainSerializer;
+
+    for (const auto& chunk : m_Chunks)
+    {
+        TerrainChunkSerializer chunkSerializer;
+
+        chunkSerializer.Position.Write(chunk.Position);
+        chunkSerializer.HeightData.Write(chunk.HeightData);
+
+        terrainSerializer.Chunks.AddData(chunkSerializer.Write());
+    }
+
+    return terrainSerializer.Write();
+}
+
+Terrain::Terrain()
 {
     m_Type = AssetType::Terrain;
 }
 
-void Pine::Terrain::CreateChunk(Vector2i position, Pine::Texture2D* heightMap)
+void Terrain::CreateChunk(Vector2i position)
 {
     TerrainChunk chunk;
 
     chunk.Position = position;
-    chunk.HeightmapTexture = heightMap;
 
     m_Chunks.push_back(chunk);
 }
 
-void Pine::Terrain::Generate()
+void Terrain::GenerateMesh()
 {
     PINE_PF_SCOPE();
 
@@ -208,7 +293,20 @@ void Pine::Terrain::Generate()
 
     for (auto& chunk : m_Chunks)
     {
+        if (chunk.ChunkMesh)
+        {
+            chunk.ChunkMesh->Dispose();
+            delete chunk.ChunkMesh;
+        }
+
+        if (chunk.ChunkMeshLowPoly)
+        {
+            chunk.ChunkMeshLowPoly->Dispose();
+            delete chunk.ChunkMeshLowPoly;
+        }
+
         chunk.ChunkMesh = new Mesh(nullptr);
+        chunk.ChunkMeshLowPoly = new Mesh(nullptr);
 
         GenerateTerrainChunk(chunk);
 
@@ -216,69 +314,30 @@ void Pine::Terrain::Generate()
     }
 }
 
-std::vector<Pine::TerrainChunk>& Pine::Terrain::GetChunks()
+void Terrain::GenerateFromPerlinNoise(TerrainChunk& chunk, const TerrainPerlinSettings& perlinSettings)
+{
+    chunk.HeightData = GeneratePerlinNoiseHeightmapData(Vector2f(chunk.Position) * Vector2f(TERRAIN_CHUNK_VERTEX_COUNT - 1), perlinSettings);
+}
+
+std::vector<TerrainChunk>& Terrain::GetChunks()
 {
     return m_Chunks;
 }
 
-/*
-
-bool Pine::Terrain::LoadFromFile(AssetLoadStage stage)
-{
-    const auto json = SerializationJson::LoadFromFile(m_FilePath);
-
-    if (!json.has_value())
-    {
-        return false;
-    }
-
-    const auto& j = json.value();
-
-    for (const auto& chunkJson : j["chunks"])
-    {
-        Vector2f position;
-        AssetHandle<Pine::Texture2D> heightmap;
-
-        SerializationJson::LoadVector2(chunkJson, "position", position);
-      //  Serialization::LoadAsset(chunkJson, "hmt", heightmap, false);
-
-        CreateChunk(position, nullptr);
-    }
-
-    Generate();
-
-    m_State = AssetState::Loaded;
-
-    return true;
-}
-
-bool Pine::Terrain::SaveToFile()
-{
-    nlohmann::json j;
-
-    for (const auto& chunk : m_Chunks)
-    {
-        nlohmann::json chunkJson;
-
-        chunkJson["position"] = SerializationJson::StoreVector2(chunk.Position);
-        chunkJson["hmt"] = SerializationJson::StoreAsset(chunk.HeightmapTexture);
-
-        j["chunks"].push_back(chunkJson);
-    }
-
-    SerializationJson::SaveToFile(m_FilePath, j);
-
-    return true;
-}
-*/
-
-void Pine::Terrain::Dispose()
+void Terrain::Dispose()
 {
     for (auto& chunk : m_Chunks)
     {
         if (chunk.ChunkMesh)
         {
             chunk.ChunkMesh->Dispose();
+            delete chunk.ChunkMesh;
+        }
+
+        if (chunk.ChunkMeshLowPoly)
+        {
+            chunk.ChunkMeshLowPoly->Dispose();
+            delete chunk.ChunkMeshLowPoly;
         }
 
         if (chunk.PhysicsData.PhysicsHeightField != nullptr)

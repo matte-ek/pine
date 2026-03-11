@@ -46,6 +46,11 @@ namespace
     {
         static auto fileIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file");
 
+        if (!fileIcon)
+        {
+            return false;
+        }
+
         const auto isSelected = Selection::IsSelected(node->Asset.Get());
         const auto icon = node->DisplayIcon == nullptr ? fileIcon->GetGraphicsTexture() : node->DisplayIcon;
 
@@ -88,6 +93,11 @@ namespace
     AssetHierarchy::Node* DisplayDirectoryNode(AssetHierarchy::Node* node)
     {
         static auto folderIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/folder");
+
+        if (!folderIcon)
+        {
+            return nullptr;
+        }
 
         AssetHierarchy::Node* selectedNode = nullptr;
 
@@ -365,6 +375,7 @@ void Panels::AssetBrowser::BuildAssetHierarchy()
     m_Root = AssetHierarchy::CreateRootNode();
 
     AssetHierarchy::PopulateMappedNode(m_Root, "engine", "engine");
+    AssetHierarchy::PopulateMappedNode(m_Root, "editor", "editor");
     AssetHierarchy::PopulateNode(m_Root, projectAssetsDirectory, projectAssetsDirectory);
 
     // Make sure we always have a current directory.

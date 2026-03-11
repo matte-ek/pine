@@ -77,6 +77,8 @@ namespace
             asset->AddSource(sourceFile.string());
         }
 
+        Pine::Log::Info(fmt::format("Importing {} from source file {}...", AssetTypeToString(asset->GetType()), import.SourcePaths.front().string()));
+
         if (!asset->Import(&import))
         {
             import.ImportStatus = Pine::AssetImportStatus::Failed;

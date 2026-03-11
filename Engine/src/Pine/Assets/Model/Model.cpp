@@ -112,11 +112,6 @@ ByteSpan Model::SaveAssetData()
 {
     ModelSerializer modelSerializer;
 
-    for (const auto& embeddedMaterial : m_EmbeddedMaterials)
-    {
-        modelSerializer.EmbeddedMaterials.AddData(embeddedMaterial->Save());
-    }
-
     if (m_MeshData.empty())
     {
         // See Texture2D's SaveAssetData() for why.
@@ -142,6 +137,11 @@ ByteSpan Model::SaveAssetData()
 
             modelSerializer.Meshes.AddData(meshSerializer.Write());
         }
+    }
+
+    for (const auto& embeddedMaterial : m_EmbeddedMaterials)
+    {
+        modelSerializer.EmbeddedMaterials.AddData(embeddedMaterial->Save());
     }
 
     return modelSerializer.Write();

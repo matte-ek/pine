@@ -228,6 +228,7 @@ namespace
 	    normalBuffer->UploadTextureData(
             Renderer3D::Specifications::General::INTERNAL_WIDTH,
             Renderer3D::Specifications::General::INTERNAL_HEIGHT,
+            0,
             Graphics::TextureFormat::RGBA16F,
             Graphics::TextureDataFormat::Float,
             nullptr);
@@ -240,6 +241,7 @@ namespace
 	    depthBuffer->UploadTextureData(
             Renderer3D::Specifications::General::INTERNAL_WIDTH,
             Renderer3D::Specifications::General::INTERNAL_HEIGHT,
+            0,
             Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float,
             nullptr);
 
@@ -287,6 +289,7 @@ void Pipeline3D::Run(RenderingContext& context, PipelineStage stage)
 		if (m_Configuration.RenderShadows)
 		{
 			Rendering::Shadows::NewFrame(context.SceneCamera);
+		    Rendering::TerrainRenderer::NewFrame(context.SceneCamera);
 
 			for (const auto light : m_SceneContext.Lights)
 			{

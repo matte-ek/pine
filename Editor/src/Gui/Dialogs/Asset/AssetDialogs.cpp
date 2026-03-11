@@ -63,6 +63,11 @@ namespace
                     m_CurrentCreateAssetType = Pine::AssetType::Tilemap;
                 }
 
+                if (ImGui::MenuItem("Terrain", nullptr))
+                {
+                    m_CurrentCreateAssetType = Pine::AssetType::Terrain;
+                }
+
                 if (ImGui::MenuItem("Script", nullptr))
                 {
                     m_CurrentCreateAssetType = Pine::AssetType::CSharpScript;
