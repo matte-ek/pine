@@ -8,6 +8,7 @@
 #include <fmt/core.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "Gui/Gui.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
 #include "Pine/Game/Game.hpp"
@@ -33,6 +34,23 @@ namespace
         ImGui::Columns(1);
     }
 
+    void CoordinateText(const char* coordinateText, ImColor color)
+    {
+        const auto cursorPosition = ImGui::GetCursorScreenPos();
+        const auto frameSize = ImGui::GetFrameHeight();
+        const auto rounding = ImGui::GetStyle().FrameRounding;
+
+        ImGui::PushFont(Editor::Gui::GetBoldFont());
+
+        const auto textSize = ImGui::CalcTextSize(coordinateText);
+
+        ImGui::GetWindowDrawList()->AddRectFilled(cursorPosition, ImVec2(cursorPosition.x + frameSize, cursorPosition.y + frameSize), color, rounding);
+        ImGui::GetWindowDrawList()->AddText(ImVec2(cursorPosition.x + (frameSize / 2.f) - (textSize.x / 2.f), cursorPosition.y + (frameSize / 2.f) - (textSize.y / 2.f)), ImColor(0, 0, 0), coordinateText);
+        ImGui::Dummy(ImVec2(frameSize, frameSize));
+        ImGui::SameLine();
+
+        ImGui::PopFont();
+    }
 }
 
 void Widgets::PushDisabled()
@@ -94,12 +112,14 @@ bool Widgets::Vector2i(const std::string& str, Pine::Vector2i& vector, float spe
 
     PrepareWidget(str);
 
+    CoordinateText("X", ImColor(150, 34, 34));
+
     ImGui::SetNextItemWidth(size);
     bool xChanged = ImGui::DragInt(std::string("X##" + str).c_str(), &vector.x, speed, -INT_MAX, INT_MAX, "%d", ImGuiSliderFlags_AlwaysClamp);
 
-    ImGui::SameLine();
-    ImGui::Dummy(ImVec2(10.f, 1.f));
-    ImGui::SameLine();
+    ImGui::SameLine(0.f, 10.f);
+
+    CoordinateText("Y", ImColor(34, 150, 34));
 
     ImGui::SetNextItemWidth(size);
     bool yChanged = ImGui::DragInt(std::string("Y##" + str).c_str(), &vector.y, speed, -INT_MAX, INT_MAX, "%d", ImGuiSliderFlags_AlwaysClamp);
@@ -117,18 +137,24 @@ bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector, float spee
 
     ImGui::Columns(3, nullptr, false);
 
+    CoordinateText("X", ImColor(150, 34, 34));
+
     ImGui::SetNextItemWidth(size);
-    bool xChanged = ImGui::DragFloat(std::string("X##" + str).c_str(), &vector.x, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    bool xChanged = ImGui::DragFloat(std::string("##X" + str).c_str(), &vector.x, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::NextColumn();
 
+    CoordinateText("Y", ImColor(34, 150, 34));
+
     ImGui::SetNextItemWidth(size);
-    bool yChanged = ImGui::DragFloat(std::string("Y##" + str).c_str(), &vector.y, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    bool yChanged = ImGui::DragFloat(std::string("##Y" + str).c_str(), &vector.y, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::NextColumn();
 
+    CoordinateText("Z", ImColor(34, 34, 150));
+
     ImGui::SetNextItemWidth(size);
-    bool zChanged = ImGui::DragFloat(std::string("Z##" + str).c_str(), &vector.z, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    bool zChanged = ImGui::DragFloat(std::string("##Z" + str).c_str(), &vector.z, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     FinishWidget();
 

@@ -53,6 +53,8 @@ add_library(Engine ${SOURCES}
         src/Pine/Assets/Shader/Importer/ShaderImporter.hpp
         src/Pine/Assets/Model/Importer/ModelImporter.cpp
         src/Pine/Assets/Model/Importer/ModelImporter.hpp
+        src/Pine/Assets/Importer/AssetImporter.cpp
+        src/Pine/Assets/Importer/AssetImporter.hpp
 )
 
 if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
@@ -85,7 +87,6 @@ endif()
 
 target_link_libraries(Engine
         PUBLIC
-        $<TARGET_OBJECTS:PhysXGpuStub>
         unofficial::omniverse-physx-sdk::sdk
         glfw
         GLEW::GLEW
@@ -105,7 +106,7 @@ target_link_libraries(Engine
 if (WIN32)
     target_link_libraries(Engine
             PUBLIC
-            libnvtt30205
+            nvtt30205
             Rpcrt4
     )
 elseif (UNIX)

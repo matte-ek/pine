@@ -22,7 +22,7 @@ namespace Pine::Renderer3D::ShaderStorages
         }Instances[Specifications::General::MAX_INSTANCE_COUNT];
     };
 
-    struct MaterialData
+    struct MaterialProperties
     {
         Vector3f DiffuseColor;
         float Pad0;
@@ -34,6 +34,11 @@ namespace Pine::Renderer3D::ShaderStorages
         float Pad3;
         float Pad4;
         float Pad5;
+    };
+
+    struct MaterialData
+    {
+        MaterialProperties MaterialProperties[8];
     };
 
     struct LightsData

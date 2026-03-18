@@ -50,8 +50,36 @@ namespace
 
 std::string Pine::Importer::ShaderImporter::ProcessShaderLine(Shader* shader, const std::string& line)
 {
+    if (String::StartsWith(line, "#shader bind "))
+    {
+        const auto data = String::Split(line, " ");
+
+        if (data.size() != 4)
+        {
+            return "";
+        }
+
+        if (data[3].find("-") != std::string::npos)
+        {
+            const auto arrData = String::Split(data[3], "-");
+
+            for (int i = 0; i < std::stoi(arrData[1]); i++)
+            {
+                shader->AddTextureSamplerBinding(fmt::format("{}[{}]", data[2], i), std::stoi(arrData[0]) + i);
+            }
+        }
+        else
+        {
+            shader->AddTextureSamplerBinding(data[2], std::stoi(data[3]));
+        }
+
+        return "";
+    }
+
     if (String::StartsWith(line, "#shader "))
     {
+
+
         return "";
     }
 
@@ -114,6 +142,8 @@ bool Pine::Importer::ShaderImporter::Import(Shader* shader)
         Log::Error(fmt::format("Could not import shader {}, no source files.", shader->m_FilePath.string()));
         return false;
     }
+
+    shader->m_ShaderTextureSamplerBindings.clear();
 
     for (auto& [sourceFilePath, writeTime] : shader->m_SourceFiles)
     {

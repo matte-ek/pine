@@ -146,24 +146,24 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
 
     // Diffuse
     if (m_Material->GetDiffuse())
-        m_Material->GetDiffuse()->GetGraphicsTexture()->Bind(Specifications::Samplers::DIFFUSE);
+        m_Material->GetDiffuse()->GetGraphicsTexture()->Bind(Specifications::Samplers::BASE_DIFFUSE);
     else
-        m_DefaultTexture->Bind(Specifications::Samplers::DIFFUSE);
+        m_DefaultTexture->Bind(Specifications::Samplers::BASE_DIFFUSE);
 
     // Specular
     if (m_Material->GetSpecular())
-        m_Material->GetSpecular()->GetGraphicsTexture()->Bind(Specifications::Samplers::SPECULAR);
+        m_Material->GetSpecular()->GetGraphicsTexture()->Bind(Specifications::Samplers::BASE_SPECULAR);
     else
-        m_DefaultTexture->Bind(Specifications::Samplers::SPECULAR);
+        m_DefaultTexture->Bind(Specifications::Samplers::BASE_SPECULAR);
 
     // Normal
     if (m_Material->GetNormal())
-        m_Material->GetNormal()->GetGraphicsTexture()->Bind(Specifications::Samplers::NORMAL);
+        m_Material->GetNormal()->GetGraphicsTexture()->Bind(Specifications::Samplers::BASE_NORMAL);
     else
-        m_DefaultTexture->Bind(Specifications::Samplers::NORMAL);
+        m_DefaultTexture->Bind(Specifications::Samplers::BASE_NORMAL);
 
     /* Material Properties */
-    auto& materialData = ShaderStorages::Material.Data();
+    auto& materialData = ShaderStorages::Material.Data().MaterialProperties[0];
 
     materialData.DiffuseColor = m_Material->GetDiffuseColor();
     materialData.SpecularColor = m_Material->GetSpecularColor();

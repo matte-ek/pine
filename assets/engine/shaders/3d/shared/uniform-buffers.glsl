@@ -17,12 +17,8 @@ layout(std140) uniform Lights
 
 layout(std140) uniform Material
 {
-    vec3 diffuseColor;
-    vec3 specularColor;
-    vec3 ambientColor;
-    float shininess;
-    float uvScale;
-}material;
+    MaterialProperties matPropeties[8];
+};
 
 layout(std140) uniform Shadows
 {

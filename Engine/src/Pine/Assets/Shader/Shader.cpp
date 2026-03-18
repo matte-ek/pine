@@ -45,7 +45,7 @@ bool Shader::CompileShader(
 
     if (!program->CompileAndLoadShader(shaderSource, shaderType))
     {
-        Log::Error(fmt::format("Error occurred in type {}", ShaderTypesString[static_cast<std::uint32_t>(shaderType)]));
+        Log::Error(fmt::format("Error occurred in type {} in file {}", ShaderTypesString[static_cast<std::uint32_t>(shaderType)], m_FilePath.string()));
         return false;
     }
 

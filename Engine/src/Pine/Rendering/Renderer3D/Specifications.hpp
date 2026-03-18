@@ -31,10 +31,13 @@ namespace Pine::Renderer3D::Specifications
 
     namespace Samplers
     {
-        constexpr int DIFFUSE = 0;
-        constexpr int SPECULAR = 1;
-        constexpr int NORMAL = 2;
-        constexpr int DIRECTIONAL_SHADOW_MAP = 3;
+        constexpr int COUNT = 4;
+
+        constexpr int BASE_DIFFUSE = 0;
+        constexpr int BASE_SPECULAR = COUNT;
+        constexpr int BASE_NORMAL = COUNT * 2;
+
+        constexpr int DIRECTIONAL_SHADOW_MAP = 16;
     }
 
     namespace Buffers

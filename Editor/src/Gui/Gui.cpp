@@ -29,6 +29,8 @@
 
 namespace
 {
+    ImFont* m_BoldFont = nullptr;
+
     void OnWindowFocus()
     {
         if (!Pine::WindowManager::GetWindowPointer())
@@ -119,6 +121,9 @@ namespace
         icons_config.GlyphOffset = ImVec2(0, 3.f);
 
         io.Fonts->AddFontFromFileTTF("editor/fonts/MaterialIcons-Regular.ttf", 17.0f, &icons_config, icons_ranges);
+
+        m_BoldFont = io.Fonts->AddFontFromFileTTF("editor/fonts/NotoSans-Bold.ttf", 18.f);
+
     }
 
     void InitializeImGui()
@@ -204,6 +209,11 @@ namespace
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
+}
+
+ImFont* Editor::Gui::GetBoldFont()
+{
+    return m_BoldFont;
 }
 
 void Editor::Gui::Setup()
