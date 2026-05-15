@@ -107,6 +107,10 @@ bool Pine::WindowManager::Internal::CreateWindow(Vector2i position, Vector2i req
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 
+    glfwWindowHintString(GLFW_X11_CLASS_NAME, "pine");
+    glfwWindowHintString(GLFW_X11_INSTANCE_NAME, "pine");
+    glfwWindowHintString(GLFW_WAYLAND_APP_ID, "pine");
+
     m_Window = glfwCreateWindow(size.x, size.y, title.c_str(), type != ScreenType::Default ? targetMonitor : nullptr, nullptr);
 
     if (!m_Window)

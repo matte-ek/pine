@@ -1,5 +1,9 @@
 #version 420 core
 
+#shader bind sceneNormalBuffer 0
+#shader bind sceneDepthBuffer 1
+#shader bind kernelRandomnessTexture 2
+
 layout(location = 0) out float m_Output;
 
 in VertexData

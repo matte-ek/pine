@@ -152,7 +152,7 @@ bool Pine::Tileset::LoadFromFile(AssetLoadStage stage)
 
             if (!tileTexture)
             {
-                Log::Warning("Could not find tile texture " + tileData["texture"].get<std::string>());
+                PWarning("Could not find tile texture " + tileData["texture"].get<std::string>());
 
                 // We do this to avoid fucking up the indices for other future tiles that may be present.
                 m_CurrentTileIndex++;

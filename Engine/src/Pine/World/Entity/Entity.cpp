@@ -21,7 +21,7 @@ Pine::Entity::~Entity()
     {
         if (!Components::Destroy(component))
         {
-            Log::Error("~Entity(): Error destroying component.");
+            PError("~Entity(): Error destroying component.");
         }
 
         component = nullptr;

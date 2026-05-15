@@ -41,9 +41,14 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     // and a window (therefore graphics context) before initializing the rest
     // of the engine.
 
+    if (engineConfiguration.m_WindowUseX11)
+    {
+        glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+    }
+
     if (!glfwInit())
     {
-        Log::Fatal("Failed to setup core library: GLFW");
+        PFatal("Failed to setup core library: GLFW");
 
         return false;
     }
@@ -51,7 +56,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     if (!WindowManager::Internal::CreateWindow(engineConfiguration.m_WindowPosition, engineConfiguration.m_WindowSize,
                                                engineConfiguration.m_WindowTitle, WindowManager::ScreenType::Default))
     {
-        Log::Fatal("Failed to setup window");
+        PFatal("Failed to setup window");
 
         glfwTerminate();
 
@@ -61,7 +66,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     // Set up our graphics API.
     if (!Graphics::Setup(engineConfiguration.m_GraphicsAPI))
     {
-        Log::Fatal("Failed to setup graphics API");
+        PFatal("Failed to setup graphics API");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -74,7 +79,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     if (!Audio::Setup())
     {
-        Log::Fatal("Failed to setup audio API");
+        PFatal("Failed to setup audio API");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -97,7 +102,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     if (Assets::LoadAssetsFromDirectory("engine") <= 0)
     {
-        Log::Fatal("Failed to load engine assets.");
+        PFatal("Failed to load engine assets.");
 
         WindowManager::Internal::DestroyWindow();
 
@@ -122,7 +127,7 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     m_IsInitialized = true;
     m_GraphicsAPI = Graphics::GetGraphicsAPI();
 
-    Log::Info("Pine was successfully initialized.");
+    PInfo("Pine was successfully initialized.");
 
     return true;
 }

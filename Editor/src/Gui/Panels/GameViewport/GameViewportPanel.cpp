@@ -77,7 +77,7 @@ void Panels::GameViewport::Render()
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
-    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize,
+    ImGui::Image(id, avSize,
                  ImVec2(0.f, renderScale.y), ImVec2(renderScale.x, 0.f));
 
     const bool viewportClickedLeft = ImGui::IsItemClicked(ImGuiMouseButton_Left);

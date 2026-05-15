@@ -2,7 +2,7 @@
 
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Graphics/Interfaces/ITexture.hpp"
-#include <stb_truetype.h>
+#include <stb/stb_truetype.h>
 
 namespace Pine
 {

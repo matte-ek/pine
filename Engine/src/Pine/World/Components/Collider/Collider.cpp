@@ -50,7 +50,7 @@ void Pine::Collider::UpdateBody()
         const auto collisionShape = CreateCollisionShape();
         if (!collisionShape)
         {
-            Log::Error("Collider::UpdateBody(): Failed to create collision body, no shape available.");
+            PError("Collider::UpdateBody(): Failed to create collision body, no shape available.");
             return;
         }
 

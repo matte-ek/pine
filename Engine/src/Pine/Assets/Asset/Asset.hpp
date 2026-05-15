@@ -1,7 +1,7 @@
 #pragma once
 
+#include <atomic>
 #include <filesystem>
-#include <optional>
 #include <string>
 #include <nlohmann/json.hpp>
 

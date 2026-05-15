@@ -62,6 +62,7 @@ namespace Pine::Assets
         const std::string& GetWorkingDirectory();
 
         void RegisterAsset(Asset* asset);
+        void DeleteAsset(Asset* asset);
 
         Asset* CreateAssetByType(AssetType type);
         Asset* CreateAssetByFile(const std::filesystem::path& path);

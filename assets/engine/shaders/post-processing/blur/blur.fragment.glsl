@@ -1,5 +1,7 @@
 #version 420 core
 
+#shader bind inputBuffer 0
+
 #ifndef VERSION_SINGLE_CHANNEL
     #define DATA_TYPE vec4
 #else

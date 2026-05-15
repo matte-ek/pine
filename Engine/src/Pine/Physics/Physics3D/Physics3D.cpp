@@ -4,9 +4,10 @@
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 
-
-
 #include "physx/PxPhysicsAPI.h"
+#include "physx/extensions/PxDefaultAllocator.h"
+#include "physx/extensions/PxDefaultCpuDispatcher.h"
+#include "physx/extensions/PxDefaultErrorCallback.h"
 #include "Pine/Performance/Performance.hpp"
 
 namespace
@@ -25,8 +26,6 @@ namespace
     PxScene* m_Scene;
 
     PxMaterial* m_DefaultMaterial;
-
-    PxPvd* m_Pvd;
 
     PxFilterFlags PineFilterShader(
         PxFilterObjectAttributes attributes0, PxFilterData filterData0,
@@ -57,9 +56,8 @@ namespace
 void Pine::Physics3D::Setup()
 {
     m_Foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_Allocator, m_ErrorCallback);
-    m_Pvd = PxCreatePvd(*m_Foundation);
 
-    m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), true, m_Pvd);
+    m_Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_Foundation, PxTolerancesScale(), true, nullptr);
 
     m_Dispatcher = PxDefaultCpuDispatcherCreate(2);
 
@@ -84,6 +82,7 @@ void Pine::Physics3D::Shutdown()
 
 void Pine::Physics3D::ConnectVisualDebugger()
 {
+    /*
     PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
 
     m_Pvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
@@ -94,6 +93,7 @@ void Pine::Physics3D::ConnectVisualDebugger()
         pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
         pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
     }
+    */
 }
 
 void Pine::Physics3D::Update(double deltaTime)

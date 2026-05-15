@@ -50,7 +50,7 @@ namespace Pine::Audio
 
         if (!m_File.is_open())
         {
-            Log::Warning("Failed to load AudioWaveFile");
+            PWarning("Failed to load AudioWaveFile");
             return false;
         }
 
@@ -63,7 +63,7 @@ namespace Pine::Audio
 
         if (!m_File || memcmp(m_RiffHeader.chunk, "RIFF", 4) != 0 || memcmp(m_RiffHeader.format, "WAVE", 4) != 0)
         {
-            Log::Error("Faulty wave formatting");
+            PError("Faulty wave formatting");
             return false;
         }
 
@@ -74,7 +74,7 @@ namespace Pine::Audio
     {
         if (!m_File.read(reinterpret_cast<char *>(&m_TmpHeader), sizeof(m_TmpHeader)))
         {
-            Log::Error("Couldn't read sound file header");
+            PError("Couldn't read sound file header");
             return false;
         }
 
@@ -146,7 +146,7 @@ namespace Pine::Audio
                     errStr = "UNKNOWN ERROR: Unknown OpenAL error";
             }
 
-            Log::Error(errStr);
+            PError(errStr);
 
             return false;
         }

@@ -93,7 +93,7 @@ namespace
         auto monoClass = mono_class_from_name(m_GameAssembly->Image, "Game", fileName.c_str());
         if (!monoClass)
         {
-            Pine::Log::Warning(fmt::format("Failed to find class for script: {}", fileName));
+            PWarning(fmt::format("Failed to find class for script: {}", fileName));
             return;
         }
 
@@ -126,7 +126,7 @@ void Pine::Script::Manager::Setup()
     // Attempt to find the game runtime at the default location
     if (!std::filesystem::exists("game/runtime-bin/Game.dll"))
     {
-        Log::Error("Script: Failed to find game runtime, project might be missing scripts?");
+        PError("Script: Failed to find game runtime, project might be missing scripts?");
         return;
     }
 
@@ -148,7 +148,7 @@ void Pine::Script::Manager::LoadGameAssembly(const std::filesystem::path &path)
 
     if (!m_GameAssembly)
     {
-        Log::Error("Failed to load game assembly.");
+        PError("Failed to load game assembly.");
         return;
     }
 
@@ -237,7 +237,7 @@ void Pine::Script::Manager::OnStart()
         {
             auto str = mono_object_to_string(exception, nullptr);
 
-            Log::Error(fmt::format("Exception thrown in script '{}': {}", script->GetFilePath().string(), mono_string_to_utf8(str)));
+            PError(fmt::format("Exception thrown in script '{}': {}", script->GetFilePath().string(), mono_string_to_utf8(str)));
         }
     }
 }
@@ -277,7 +277,7 @@ void Pine::Script::Manager::OnUpdate(float deltaTime)
         {
             auto str = mono_object_to_string(exception, nullptr);
 
-            Log::Error(fmt::format("Exception thrown in script '{}': {}", script->GetFilePath().string(), mono_string_to_utf8(str)));
+            PError(fmt::format("Exception thrown in script '{}': {}", script->GetFilePath().string(), mono_string_to_utf8(str)));
         }
     }
 }

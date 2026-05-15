@@ -113,11 +113,11 @@ namespace
                 m_AssetsMapUId[asset->GetUId()] = asset;
                 lock.unlock();
 
-                Pine::Log::Verbose(fmt::format("Loaded asset {} as {} successfully.", asset->GetPath(), AssetTypeToString(asset->GetType())));
+                PVerbose(fmt::format("Loaded asset {} as {} successfully.", asset->GetPath(), AssetTypeToString(asset->GetType())));
             }
             else
             {
-                Pine::Log::Error(fmt::format("Failed to load asset {} as {}.", asset->GetPath(), AssetTypeToString(asset->GetType())));
+                PError(fmt::format("Failed to load asset {} as {}.", asset->GetPath(), AssetTypeToString(asset->GetType())));
             }
 
             return asset;
@@ -135,7 +135,7 @@ void Assets::Shutdown()
 {
     for (auto& [path, asset] : m_AssetsMapUId)
     {
-        Log::Verbose(fmt::format("Disposing asset {}...", path.ToString()));
+        PVerbose(fmt::format("Disposing asset {}...", path.ToString()));
         asset->Dispose();
     }
 }
@@ -278,6 +278,14 @@ void Assets::Internal::RegisterAsset(Asset* asset)
 
     m_AssetsMapUId[asset->GetUId()] = asset;
     m_AssetsMapPath[asset->GetPath()] = asset;
+}
+
+void Assets::Internal::DeleteAsset(Asset* asset)
+{
+    m_AssetsMapUId.erase(asset->GetUId());
+    m_AssetsMapPath.erase(asset->GetPath());
+
+    asset->MarkPendingDelete();
 }
 
 Asset* Assets::Internal::CreateAssetByType(AssetType type)

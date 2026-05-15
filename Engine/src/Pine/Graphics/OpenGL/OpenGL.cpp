@@ -143,7 +143,7 @@ namespace
 			return;
 		}
 
-		Pine::Log::Error(fmt::format("OpenGL 0x{:x}: {}", type, message));
+		PError(fmt::format("OpenGL 0x{:x}: {}", type, message));
 	}
 
 }
@@ -201,7 +201,9 @@ void Pine::Graphics::OpenGL::ClearColor(Color color)
 
 bool Pine::Graphics::OpenGL::Setup()
 {
-	if (glewInit() != GLEW_OK)
+    auto glewStatus = glewInit();
+
+	if (!(glewStatus == GLEW_OK || glewStatus == GLEW_ERROR_NO_GLX_DISPLAY))
 		return false;
 
 	m_VersionString = reinterpret_cast<const char*>(glGetString(GL_VERSION));

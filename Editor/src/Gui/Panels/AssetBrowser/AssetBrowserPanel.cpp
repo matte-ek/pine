@@ -70,7 +70,7 @@ namespace
         // Allow drag dropping of this asset node
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
         {
-            ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(icon->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
+            ImGui::Image(*static_cast<std::uint64_t*>(icon->GetGraphicsIdentifier()), ImVec2(64.f, 64.f));
             ImGui::SameLine();
 
             auto asset = node->Asset.Get();
@@ -113,7 +113,7 @@ namespace
         // Allow drag dropping of the directory.
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
         {
-            ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(folderIcon->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
+            ImGui::Image(*static_cast<std::uint64_t*>(folderIcon->GetGraphicsTexture()->GetGraphicsIdentifier()), ImVec2(64.f, 64.f));
             ImGui::SameLine();
             ImGui::Text("%s", node->DisplayText.c_str());
 
@@ -397,7 +397,7 @@ void Panels::AssetBrowser::Render()
         return;
     }
 
-    ImGui::BeginChild("##AssetsTreeView", ImVec2(300.f, -1), ImGuiChildFlags_Border, 0);
+    ImGui::BeginChild("##AssetsTreeView", ImVec2(300.f, -1), ImGuiChildFlags_Borders, 0);
     {
         RenderAssetTreeView();
     }
@@ -425,7 +425,7 @@ void Panels::AssetBrowser::Render()
 
         ImGui::InputTextWithHint("##AssetSearch", ICON_MD_SEARCH " Search...", m_SearchBuffer, IM_ARRAYSIZE(m_SearchBuffer));
 
-        ImGui::BeginChild("##AssetsBrowser", ImVec2(-1.f, -1.f), ImGuiChildFlags_Border, 0);
+        ImGui::BeginChild("##AssetsBrowser", ImVec2(-1.f, -1.f), ImGuiChildFlags_Borders, 0);
         {
             const bool isSearching = strlen(m_SearchBuffer) > 0;
             const int iconSizePadding = m_IconSize + 16;

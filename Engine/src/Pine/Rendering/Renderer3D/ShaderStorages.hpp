@@ -38,7 +38,7 @@ namespace Pine::Renderer3D::ShaderStorages
 
     struct MaterialData
     {
-        MaterialProperties MaterialProperties[8];
+        MaterialProperties Properties[8];
     };
 
     struct LightsData

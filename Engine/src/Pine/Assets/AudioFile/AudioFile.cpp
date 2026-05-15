@@ -46,13 +46,13 @@ namespace Pine
             case AudioFileFormat::Ogg:
                 return false;
             case AudioFileFormat::Unknown:
-                Log::Error(fmt::format("AudioFile::Setup(): Failed to get audio format from extension, {}", fileExtension));
+                PError(fmt::format("AudioFile::Setup(): Failed to get audio format from extension, {}", fileExtension));
                 return false;
         }
 
         if (!m_AudioObject->Setup())
         {
-            Log::Error("AudioFile::Setup(): Failed to setup audio object");
+            PError("AudioFile::Setup(): Failed to setup audio object");
             m_AudioObject->Dispose();
             return false;
         }

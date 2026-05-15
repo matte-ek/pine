@@ -51,7 +51,7 @@ namespace
 
         if (m_ReloadGameAssemblyRequest)
         {
-            Pine::Log::Info("Reloading updated game assembly...");
+            PInfo("Reloading updated game assembly...");
 
             Pine::Script::Manager::ReloadGameAssembly();
 
@@ -64,7 +64,7 @@ namespace
         auto editorUtilitiesClass = mono_class_from_name(Pine::Script::Runtime::GetPineImage(), "Pine.Core", "EditorUtils");
         if (!editorUtilitiesClass)
         {
-            Pine::Log::Warning(fmt::format("Could not find the EditorUtils class from the Pine runtime."));
+            PWarning(fmt::format("Could not find the EditorUtils class from the Pine runtime."));
             return;
         }
 
@@ -73,7 +73,7 @@ namespace
         auto scriptMethod = mono_class_get_method_from_name(editorUtilitiesClass, scriptMethodName, 1);
         if (!scriptMethod)
         {
-            Pine::Log::Warning(fmt::format("Could not find the {} method from the Pine runtime.", scriptMethodName));
+            PWarning(fmt::format("Could not find the {} method from the Pine runtime.", scriptMethodName));
             return;
         }
 
@@ -87,7 +87,7 @@ namespace
         if (exception != nullptr)
         {
             auto str = mono_object_to_string(exception, nullptr);
-            Pine::Log::Error(fmt::format("Exception thrown in script '{}': {}", "EditorUtils.cs", mono_string_to_utf8(str)));
+            PError(fmt::format("Exception thrown in script '{}': {}", "EditorUtils.cs", mono_string_to_utf8(str)));
         }
     }
 }

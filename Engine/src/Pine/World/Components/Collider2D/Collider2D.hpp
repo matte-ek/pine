@@ -1,7 +1,5 @@
 #pragma once
 
-#include <box2d/b2_math.h>
-
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Component/Component.hpp"

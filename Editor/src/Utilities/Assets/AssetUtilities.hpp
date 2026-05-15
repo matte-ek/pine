@@ -16,6 +16,9 @@ namespace Editor::Utilities::Asset
     // Utilities to import assets into Pine
     void ImportAssets(const std::vector<std::string>& paths);
 
+    // Utilities to delete both assets and directories
+    void DeletePath(const std::filesystem::path& path);
+
     // Will reload any changed assets, but also load in any new assets.
     void RefreshAll();
 

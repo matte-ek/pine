@@ -111,7 +111,7 @@ void Panels::Debug::Render()
         if (ImGui::Begin(ICON_MD_TROUBLESHOOT " Ambient Occlusion", &m_AmbientOcclusionTexture))
         {
             const std::uint64_t id = *static_cast<std::uint32_t*>(Pine::Rendering::AmbientOcclusion::GetOutputTexture()->GetGraphicsIdentifier());
-            ImGui::Image(reinterpret_cast<ImTextureID>(id), ImVec2(640, 360));
+            ImGui::Image(id, ImVec2(640, 360));
         }
         ImGui::End();
     }
@@ -121,7 +121,7 @@ void Panels::Debug::Render()
         if (ImGui::Begin(ICON_MD_TROUBLESHOOT " Position Texture", &m_DepthPositionTexture))
         {
             const std::uint64_t id = *static_cast<std::uint32_t*>(Pine::Pipeline3D::GetPositionTexture()->GetGraphicsIdentifier());
-            ImGui::Image(reinterpret_cast<ImTextureID>(id), ImVec2(640, 360));
+            ImGui::Image(id, ImVec2(640, 360));
         }
         ImGui::End();
     }

@@ -305,7 +305,7 @@ void Panels::LevelViewport::Render()
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
-    ImGui::Image(reinterpret_cast<ImTextureID>(id), avSize, ImVec2(0.f, renderScale.y), ImVec2(renderScale.x, 0.f));
+    ImGui::Image(id, avSize, ImVec2(0.f, renderScale.y), ImVec2(renderScale.x, 0.f));
 
     const bool viewportClicked = ImGui::IsItemClicked();
     const bool viewportHovered = ImGui::IsItemHovered();

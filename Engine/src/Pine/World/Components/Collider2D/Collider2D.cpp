@@ -2,11 +2,6 @@
 
 #include "Pine/Physics/Physics2D/Physics2D.hpp"
 
-#include <box2d/b2_body.h>
-#include <box2d/b2_world.h>
-#include <box2d/b2_fixture.h>
-#include <box2d/b2_polygon_shape.h>
-
 #include "../../../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
@@ -32,8 +27,6 @@ void Pine::Collider2D::UpdateBody()
 
 	if (shouldDestroyBody && m_Body)
 	{
-		Physics2D::GetWorld()->DestroyBody(m_Body);
-
 		m_Body = nullptr;
 		m_Fixture = nullptr; // TODO: Is this getting freed properly?
 	}
@@ -46,21 +39,9 @@ void Pine::Collider2D::UpdateBody()
 	if (!m_Body)
 	{
 		Pine::Vector2f size = ComputeSize();
-		b2BodyDef def;
-		b2PolygonShape shape;
-
-		def.position.Set(GetParent()->GetTransform()->GetPosition().x + m_ColliderOffset.x, GetParent()->GetTransform()->GetPosition().y + m_ColliderOffset.y);
-
-		shape.SetAsBox(size.x, size.y);
-
-		m_BodySize = size;
-		m_Body = Physics2D::GetWorld()->CreateBody(&def);
-		m_Fixture = m_Body->CreateFixture(&shape, 0.f);
 	}
 
 	const auto newPosition = ComputePosition();
-
-	m_Body->SetTransform(b2Vec2(newPosition.x, newPosition.y), ComputeRotation());
 }
 
 Pine::Vector2f Pine::Collider2D::ComputePosition() const
@@ -165,8 +146,6 @@ void Pine::Collider2D::OnDestroyed()
 
 	if (m_Body)
 	{
-		Physics2D::GetWorld()->DestroyBody(m_Body);
-
 		m_Body = nullptr;
 		m_Fixture = nullptr;
 	}

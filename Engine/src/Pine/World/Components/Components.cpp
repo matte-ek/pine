@@ -34,7 +34,7 @@ namespace
 
         if (!arrayData)
         {
-            Log::Error("Failure allocating data for component block");
+            PError("Failure allocating data for component block");
             return false;
         }
 
@@ -53,7 +53,7 @@ namespace
 
             if (block->m_ComponentArraySize > block->m_ComponentSize * size)
             {
-                Log::Warning("Smaller new buffer for component data block, data loss possible.");
+                PWarning("Smaller new buffer for component data block, data loss possible.");
 
                 arrayBlockCopySize = block->m_ComponentSize * size;
                 occupationArrayCopySize = sizeof(bool) * size;
@@ -138,7 +138,7 @@ void Components::Setup()
         totalSize += block->m_ComponentArraySize;
     }
 
-    Log::Verbose("Total size allocated: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
+    PVerbose("Total size allocated: " + std::to_string(totalSize / 1024) + " kB (" + std::to_string(Engine::GetEngineConfiguration().m_MaxObjectCount) + " objects per type)");
 }
 
 void Components::Shutdown()

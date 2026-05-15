@@ -163,7 +163,7 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         m_DefaultTexture->Bind(Specifications::Samplers::BASE_NORMAL);
 
     /* Material Properties */
-    auto& materialData = ShaderStorages::Material.Data().MaterialProperties[0];
+    auto& materialData = ShaderStorages::Material.Data().Properties[0];
 
     materialData.DiffuseColor = m_Material->GetDiffuseColor();
     materialData.SpecularColor = m_Material->GetSpecularColor();
@@ -292,7 +292,7 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
         {
             if (!shader->CompileShaderVersion(preferredVersion))
             {
-                Log::Warning("Unable to compile requested shader version, rendering may be affected..");
+                PWarning("Unable to compile requested shader version, rendering may be affected..");
                 version = static_cast<std::uint32_t>(Specifications::ShaderVersions::Generic::Default);
             }
         }
@@ -310,32 +310,32 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     {
         if (!ShaderStorages::Matrix.AttachShaderProgram(shaderProgram))
         {
-            Log::Warning("Renderer3D: Shader is missing 'Matrix' shader storage, expect rendering issues.");
+            PWarning("Renderer3D: Shader is missing 'Matrix' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Instance.AttachShaderProgram(shaderProgram))
         {
-            Log::Warning("Renderer3D: Shader is missing 'Transform' shader storage, expect rendering issues.");
+            PWarning("Renderer3D: Shader is missing 'Transform' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Material.AttachShaderProgram(shaderProgram))
         {
-            Log::Warning("Renderer3D: Shader is missing 'Material' shader storage, expect rendering issues.");
+            PWarning("Renderer3D: Shader is missing 'Material' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Lights.AttachShaderProgram(shaderProgram))
         {
-            Log::Warning("Renderer3D: Shader is missing 'Lights' shader storage, expect rendering issues.");
+            PWarning("Renderer3D: Shader is missing 'Lights' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::Shadows.AttachShaderProgram(shaderProgram))
         {
-            Log::Warning("Renderer3D: Shader is missing 'Shadows' shader storage, expect rendering issues.");
+            PWarning("Renderer3D: Shader is missing 'Shadows' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::World.AttachShaderProgram(shaderProgram))
         {
-            Log::Warning("Renderer3D: Shader is missing 'World' shader storage, expect rendering issues.");
+            PWarning("Renderer3D: Shader is missing 'World' shader storage, expect rendering issues.");
         }
 
         shader->SetRendererReady(true, version);
@@ -395,7 +395,7 @@ void Renderer3D::AddLight(Light *light)
 {
     if (m_CurrentLightIndex >= Specifications::General::DYNAMIC_LIGHT_COUNT)
     {
-        Log::Warning("Maximum number of dynamic lights reached.");
+        PWarning("Maximum number of dynamic lights reached.");
 
         return;
     }

@@ -21,7 +21,7 @@ namespace Pine::Audio
 
         GetAudioDevices(alcGetString(nullptr, ALC_ALL_DEVICES_SPECIFIER));
 
-        Log::Verbose(fmt::format("Found default audio device: {}", m_DeviceName));
+        PVerbose(fmt::format("Found default audio device: {}", m_DeviceName));
 
         return true;
     }

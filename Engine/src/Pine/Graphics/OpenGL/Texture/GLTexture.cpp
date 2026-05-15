@@ -159,6 +159,10 @@ Pine::Graphics::GLTexture::GLTexture()
 
 void Pine::Graphics::GLTexture::Bind(int textureIndex)
 {
+    glActiveTexture(GL_TEXTURE0 + textureIndex);
+    glBindTexture(TranslateTextureType(m_Type, m_IsMultiSampled), m_Id);
+    return;
+
     if (m_BoundTextures[textureIndex] == m_Id)
     {
         return;
@@ -219,7 +223,7 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
 
         if (glGetError() != GL_NO_ERROR)
         {
-            Log::Error(std::to_string(glGetError()));
+            PError(std::to_string(glGetError()));
         }
 
         glCompressedTexImage2D(cubeMapTextureType,

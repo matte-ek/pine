@@ -90,7 +90,7 @@ namespace
         ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x / 2.f - (previewWidth / 2.f));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (ImGui::GetContentRegionAvail().y / 2.f) - (previewHeight / 2.f));
 
-        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(texture2d->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(previewWidth, previewHeight));
+        ImGui::Image(*static_cast<std::uint64_t *>(texture2d->GetGraphicsTexture()->GetGraphicsIdentifier()), ImVec2(previewWidth, previewHeight));
     }
 
     // -----------------------------------------------------------------------------------------------------------------------
@@ -230,7 +230,7 @@ namespace
 
         ImGui::Separator();
 
-        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(Editor::Gui::IconStorage::GetPreviewTexture()->GetGraphicsIdentifier())), ImVec2(256.f, 256.f), ImVec2(1, 1), ImVec2(0, 0));
+        ImGui::Image(*static_cast<std::uint64_t*>(Editor::Gui::IconStorage::GetPreviewTexture()->GetGraphicsIdentifier()), ImVec2(256.f, 256.f), ImVec2(1, 1), ImVec2(0, 0));
 
         Editor::Gui::IconStorage::HandlePreviewDragging();
     }
@@ -271,7 +271,7 @@ namespace
 
         ImGui::Separator();
 
-        ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(Editor::Gui::IconStorage::GetPreviewTexture()->GetGraphicsIdentifier())), ImVec2(512.f, 512.f), ImVec2(1, 1), ImVec2(0, 0));
+        ImGui::Image(*static_cast<std::uint64_t *>(Editor::Gui::IconStorage::GetPreviewTexture()->GetGraphicsIdentifier()), ImVec2(512.f, 512.f), ImVec2(1, 1), ImVec2(0, 0));
 
         Editor::Gui::IconStorage::HandlePreviewDragging();
     }
@@ -460,7 +460,7 @@ namespace
 
                     ImVec2 imageCursorPos = ImGui::GetCursorScreenPos();
 
-                    ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(tile->m_Texture->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(100.f, 100.f));
+                    ImGui::Image(*static_cast<std::uint64_t*>(tile->m_Texture->GetGraphicsTexture()->GetGraphicsIdentifier()), ImVec2(100.f, 100.f));
 
                     // Render collider preview to the best of our ability here
                     Pine::Vector2f position = Pine::Vector2f(imageCursorPos.x, imageCursorPos.y) + (tile->m_ColliderOffset * static_cast<float>(Pine::Rendering::PixelsPerUnit));
@@ -550,10 +550,10 @@ namespace
             {
                 Widgets::Vector2i(fmt::format("Position##{}", index), chunk.Position);
 
-                const auto newMaterial = Widgets::AssetPicker("Material", std::to_string(index), chunk.Material.Get(), Pine::AssetType::Material);
+                const auto newMaterial = Widgets::AssetPicker("Material", std::to_string(index), chunk.ChunkMaterial.Get(), Pine::AssetType::Material);
                 if (newMaterial.hasResult)
                 {
-                    chunk.Material = dynamic_cast<Pine::Material*>(newMaterial.asset);
+                    chunk.ChunkMaterial = dynamic_cast<Pine::Material*>(newMaterial.asset);
                     terrain->MarkAsModified();
                 }
             }
@@ -582,7 +582,7 @@ void AssetPropertiesPanel::Render(Pine::Asset *asset)
 
     // Show general asset information
 
-    ImGui::Image(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t *>(fileIcon->GetGraphicsIdentifier())), ImVec2(64.f, 64.f));
+    ImGui::Image(*static_cast<std::uint64_t *>(fileIcon->GetGraphicsIdentifier()), ImVec2(64.f, 64.f));
 
     ImGui::SameLine();
 

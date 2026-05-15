@@ -20,7 +20,7 @@ std::optional<nlohmann::json> Pine::SerializationJson::LoadFromFile(const std::f
     }
     catch (...)
     {
-        Log::Error("Error loading JSON file, " + path.filename().string());
+        PError("Error loading JSON file, " + path.filename().string());
         return {};
     }
 

@@ -1,5 +1,4 @@
 #include "Physics2D.hpp"
-#include "box2d/b2_world.h"
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/World/Components/Components.hpp"
@@ -13,14 +12,10 @@ namespace
 
 void Pine::Physics2D::Setup()
 {
-    b2Vec2 gravity(0.0f, -9.81f);
-
-    m_World = new b2World(gravity);
 }
 
 void Pine::Physics2D::Shutdown()
 {
-	delete m_World;
 }
 
 void Pine::Physics2D::Update(double deltaTime)
@@ -50,8 +45,6 @@ void Pine::Physics2D::Update(double deltaTime)
         collider.OnPrePhysicsUpdate();
     for (auto& rigidBody : Pine::Components::Get<Pine::RigidBody2D>())
         rigidBody.OnPrePhysicsUpdate();
-
-    m_World->Step(physicsTimeDelta, 8, 3);
 
     for (auto& collider : Pine::Components::Get<Pine::Collider2D>())
         collider.OnPostPhysicsUpdate();

@@ -4,8 +4,6 @@
 #shader bind matSamplers.specular 4
 #shader bind matSamplers.normal 8
 
-
-
 layout(location = 0) out vec4 m_OutputColor;
 
 in VertexData

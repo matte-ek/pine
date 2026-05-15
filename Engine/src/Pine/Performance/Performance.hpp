@@ -9,7 +9,7 @@ namespace Pine
 #define CONCAT_IMPL(a, b) a##b
 #define CONCAT(a, b) CONCAT_IMPL(a, b)
 
-#define PINE_PF_SCOPE() static Pine::Performance::TrackedScope* CONCAT(scope, __LINE__) = Pine::Performance::CreateTrackedScope(__FUNCTION__); \
+#define PINE_PF_SCOPE() static Pine::Performance::TrackedScope* CONCAT(scope, __LINE__) = Pine::Performance::CreateTrackedScope(__PRETTY_FUNCTION__); \
     Pine::ScopedTimer CONCAT(timer, __LINE__)(CONCAT(scope, __LINE__))
 
 #define PINE_PF_SCOPE_MANUAL(x) static Pine::Performance::TrackedScope* CONCAT(scope, __LINE__) = Pine::Performance::CreateTrackedScope(x); \

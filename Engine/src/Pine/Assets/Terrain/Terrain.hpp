@@ -29,7 +29,7 @@ namespace Pine
 
         std::array<float, TERRAIN_SQUARE_SIZE> HeightData;
 
-        AssetHandle<Material> Material;
+        AssetHandle<Material> ChunkMaterial;
 
         Mesh* ChunkMesh = nullptr;
         Mesh* ChunkMeshLowPoly = nullptr;

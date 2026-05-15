@@ -1,5 +1,8 @@
 #version 420 core
 
+#shader bind sceneBuffer 0
+#shader bind ambientOcclusionBuffer 1
+
 layout(location = 0) out vec4 m_OutputColor;
 
 in VertexData
@@ -8,8 +11,8 @@ in VertexData
 }vIn;
 
 uniform sampler2D ambientOcclusionBuffer;
-
 uniform sampler2D sceneBuffer;
+
 uniform vec2 viewportScale;
 
 void main(void)

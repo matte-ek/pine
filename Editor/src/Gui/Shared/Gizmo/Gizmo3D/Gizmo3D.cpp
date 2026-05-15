@@ -38,7 +38,7 @@ namespace
 
         const std::uint64_t textureId = *static_cast<std::uint32_t*>(texture->GetGraphicsTexture()->GetGraphicsIdentifier());
 
-        ImGui::GetWindowDrawList()->AddImage(reinterpret_cast<ImTextureID>(textureId),
+        ImGui::GetWindowDrawList()->AddImage(textureId,
             {minPosition.x, minPosition.y},
             {maxPosition.x, maxPosition.y},
             ImVec2(0.f, 0.f),
@@ -46,7 +46,7 @@ namespace
             ImColor(0, 0, 0, 100)
             );
 
-        ImGui::GetWindowDrawList()->AddImage(reinterpret_cast<ImTextureID>(textureId),
+        ImGui::GetWindowDrawList()->AddImage(textureId,
             {minPosition.x - 1, minPosition.y - 1},
             {maxPosition.x - 1, maxPosition.y - 1},
             ImVec2(0.f, 0.f),

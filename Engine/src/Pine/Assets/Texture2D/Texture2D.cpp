@@ -1,11 +1,6 @@
 #include "Texture2D.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 
-#ifndef PINE_RUNTIME
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-#endif
-
 #include "Importer/TextureImporter.hpp"
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Threading/Threading.hpp"
@@ -49,7 +44,7 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
 
             if (!mipSerializer.Read(textureSerializer.Mips.GetData(i)))
             {
-                Log::Warning("Failed to read texture mip.");
+                PWarning("Failed to read texture mip.");
                 continue;
             }
 

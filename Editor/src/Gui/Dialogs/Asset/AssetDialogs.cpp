@@ -106,8 +106,12 @@ namespace
                 std::filesystem::remove(m_SelectedNode->Path.string());
                 */
 
-                Selection::Clear();
+                if (selectedNode)
+                {
+                    Editor::Utilities::Asset::DeletePath(selectedNode->Path);
+                }
 
+                Selection::Clear();
                 Panels::AssetBrowser::BuildAssetHierarchy();
             }
 

@@ -226,7 +226,7 @@ bool Pine::Serialization::DataFixed::ReadRaw(void** data, size_t& size) const
 
     if (m_DataSize == 0)
     {
-        Pine::Log::Error("Failed to load fixed data, size is empty.");
+        PError("Failed to load fixed data, size is empty.");
         return false;
     }
 
@@ -432,7 +432,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
         // Make sure we still have data left.
         if (sizeof(DataHeader) > dataRemaining)
         {
-            Log::Error("Ran out of data while parsing pine file, probably corrupted.");
+            PError("Ran out of data while parsing pine file, probably corrupted.");
             return false;
         }
 
@@ -440,7 +440,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
 
         if (dataHeader->Type == 0 || dataHeader->Type >= static_cast<std::uint8_t>(DataType::Count))
         {
-            Log::Error("Invalid data type while parsing file, probably corrupted.");
+            PError("Invalid data type while parsing file, probably corrupted.");
             return false;
         }
 
@@ -450,7 +450,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
         {
             if (sizeof(DataHeaderFlexible) > dataRemaining)
             {
-                Log::Error("Ran out of data while parsing pine file, probably corrupted.");
+                PError("Ran out of data while parsing pine file, probably corrupted.");
                 return false;
             }
 
@@ -459,7 +459,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
 
             if (headerTotalSize > dataRemaining)
             {
-                Log::Error("Ran out of data while parsing pine file, probably corrupted.");
+                PError("Ran out of data while parsing pine file, probably corrupted.");
                 return false;
             }
 
@@ -474,7 +474,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
         {
             if (i >= m_Data.size())
             {
-                Log::Error("Invalid data index while reading data.");
+                PError("Invalid data index while reading data.");
                 return false;
             }
 
@@ -494,7 +494,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
         {
             if (dataRemaining < sizeof(std::uint32_t))
             {
-                Log::Error("Ran out of data while reading data?");
+                PError("Ran out of data while reading data?");
                 return false;
             }
 
@@ -507,7 +507,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
             // TODO: Remove me, used while testing.
             if (dataSize >= 0x8000152)
             {
-                Log::Error("CHECK ME: Size big while reading data");
+                PError("CHECK ME: Size big while reading data");
                 return false;
             }
         }
@@ -526,7 +526,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
 
         if (dataSize > dataRemaining)
         {
-            Log::Error("Ran out of data while reading data?");
+            PError("Ran out of data while reading data?");
             return false;
         }
 
@@ -552,7 +552,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
         {
             if (useCompactMode)
             {
-                Log::Error("Could not find data structure while reading data.");
+                PError("Could not find data structure while reading data.");
                 return false;
             }
             else
@@ -573,7 +573,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
 
         if (static_cast<std::uint8_t>(dataStructure->GetType()) != dataHeader->Type)
         {
-            Log::Error("Mismatch data types while reading data.");
+            PError("Mismatch data types while reading data.");
             return false;
         }
 
@@ -582,7 +582,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
             auto arrayData = dynamic_cast<DataArray*>(dataStructure);
             if (!arrayData)
             {
-                Log::Error("Data of type array is not DataArray.");
+                PError("Data of type array is not DataArray.");
                 return false;
             }
 
@@ -595,7 +595,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
             {
                 if (dataRemaining < sizeof(std::uint32_t))
                 {
-                    Log::Error("Ran out of data while reading array data.");
+                    PError("Ran out of data while reading array data.");
                     return false;
                 }
 
@@ -606,14 +606,14 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
 
                 if (dataRemaining < arrayElementSize)
                 {
-                    Log::Error("Ran out of data while reading array data.");
+                    PError("Ran out of data while reading array data.");
                     return false;
                 }
 
                 // TODO: Remove me, used while testing.
                 if (arrayElementSize >= 0x8000152)
                 {
-                    Log::Error("CHECK ME: Size big while reading data");
+                    PError("CHECK ME: Size big while reading data");
                     return false;
                 }
 
@@ -630,7 +630,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
                 auto dataPrimitive = dynamic_cast<DataPrimitive*>(dataStructure);
                 if (!dataPrimitive)
                 {
-                    Log::Error("Mismatch with stored type and expected type.");
+                    PError("Mismatch with stored type and expected type.");
                     return false;
                 }
 
@@ -641,7 +641,7 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
                 auto dataFixed = dynamic_cast<DataFixed*>(dataStructure);
                 if (!dataFixed)
                 {
-                    Log::Error("Mismatch with stored type and expected type.");
+                    PError("Mismatch with stored type and expected type.");
                     return false;
                 }
 
@@ -725,7 +725,7 @@ std::byte* Pine::Serialization::Serializer::Write(size_t& outputSize) const
 
             if (strlen(dataProperty->GetName()) > 31) // 31 instead of 32 to account for null character.
             {
-                Log::Error("Data property name too large while writing.");
+                PError("Data property name too large while writing.");
                 free(data);
                 return nullptr;
             }

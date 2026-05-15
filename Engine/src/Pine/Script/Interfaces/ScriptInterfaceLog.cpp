@@ -8,35 +8,35 @@ namespace
     void PineVerbose(MonoString* string)
     {
         auto str = mono_string_to_utf8(string);
-        Pine::Log::Verbose(str);
+        PVerbose(str);
         mono_free(str);
     }
 
     void PineInfo(MonoString* string)
     {
         auto str = mono_string_to_utf8(string);
-        Pine::Log::Info(str);
+        PInfo(str);
         mono_free(str);
     }
 
     void PineWarning(MonoString* string)
     {
         auto str = mono_string_to_utf8(string);
-        Pine::Log::Warning(str);
+        PWarning(str);
         mono_free(str);
     }
 
     void PineError(MonoString* string)
     {
         auto str = mono_string_to_utf8(string);
-        Pine::Log::Error(str);
+        PError(str);
         mono_free(str);
     }
 
     void PineFatal(MonoString* string)
     {
         auto str = mono_string_to_utf8(string);
-        Pine::Log::Fatal(str);
+        PFatal(str);
         mono_free(str);
     }
 

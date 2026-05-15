@@ -31,7 +31,7 @@ void Pine::Game::Setup()
     {
         if (Engine::GetEngineConfiguration().m_ProductionMode)
         {
-            Log::Warning("Game file missing or corrupted, game might not start properly.");
+            PWarning("Game file missing or corrupted, game might not start properly.");
         }
 
         return;
@@ -66,7 +66,7 @@ void Pine::Game::OnStart()
     auto asset = Pine::Assets::Get<Level>(m_GameProperties.StartupLevel);
     if (!asset)
     {
-        Log::Warning(fmt::format("Referenced startup level {} could not be found.", m_GameProperties.StartupLevel));
+        PWarning(fmt::format("Referenced startup level {} could not be found.", m_GameProperties.StartupLevel));
     }
 
     World::SetActiveLevel(asset);

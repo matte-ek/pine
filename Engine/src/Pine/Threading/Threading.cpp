@@ -83,7 +83,7 @@ namespace
 
     void Worker(int workerId)
     {
-        Pine::Log::Verbose(fmt::format("Worker #{} has started.", workerId + 1));
+        PVerbose(fmt::format("Worker #{} has started.", workerId + 1));
 
         while (m_IsRunning)
         {
@@ -106,7 +106,7 @@ namespace
             }
         }
 
-        Pine::Log::Verbose(fmt::format("Worker #{} has stopped.", workerId + 1));
+        PVerbose(fmt::format("Worker #{} has stopped.", workerId + 1));
     }
 }
 

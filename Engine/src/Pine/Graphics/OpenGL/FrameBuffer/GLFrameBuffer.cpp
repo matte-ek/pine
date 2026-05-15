@@ -269,7 +269,7 @@ bool Pine::Graphics::GLFrameBuffer::Finish()
 
     if (status != GL_FRAMEBUFFER_COMPLETE)
     {
-        Log::Error("Failure in creating frame buffer: " + std::to_string(status));
+        PError("Failure in creating frame buffer: " + std::to_string(status));
         return false;
     }
 

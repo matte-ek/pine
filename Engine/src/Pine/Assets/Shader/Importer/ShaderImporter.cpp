@@ -91,7 +91,7 @@ std::string Pine::Importer::ShaderImporter::ProcessShaderLine(Shader* shader, co
 
         if (!std::filesystem::exists(filePath))
         {
-            Log::Warning(fmt::format("Could not find file in include directive: {}", fileName));
+            PWarning(fmt::format("Could not find file in include directive: {}", fileName));
             return "";
         }
 
@@ -119,7 +119,7 @@ std::optional<std::string> Pine::Importer::ShaderImporter::ProcessShaderSource(
 
     if (file.empty())
     {
-        Log::Error("Failed to read file " + filePath);
+        PError("Failed to read file " + filePath);
         return std::nullopt;
     }
 
@@ -139,7 +139,7 @@ bool Pine::Importer::ShaderImporter::Import(Shader* shader)
 {
     if (shader->m_SourceFiles.empty())
     {
-        Log::Error(fmt::format("Could not import shader {}, no source files.", shader->m_FilePath.string()));
+        PError(fmt::format("Could not import shader {}, no source files.", shader->m_FilePath.string()));
         return false;
     }
 
@@ -151,7 +151,7 @@ bool Pine::Importer::ShaderImporter::Import(Shader* shader)
 
         if (!type.has_value())
         {
-            Log::Warning(fmt::format("Ignoring file {}, could not determine shader type", sourceFilePath));
+            PWarning(fmt::format("Ignoring file {}, could not determine shader type", sourceFilePath));
             continue;
         }
 

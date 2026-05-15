@@ -14,7 +14,7 @@ int main(int argc, const char* argv[])
     // Get project name
     if (argc < 2)
     {
-        Pine::Log::Fatal("Usage: Editor <project_name>");
+        PFatal("Usage: Editor <project_name>");
         return 1;
     }
 
@@ -25,6 +25,7 @@ int main(int argc, const char* argv[])
     engineConfiguration.m_WindowPosition = Pine::Vector2i(20, 20);
     engineConfiguration.m_WindowSize = Pine::Vector2i(1920, 1080);
     engineConfiguration.m_ProductionMode = false;
+    engineConfiguration.m_WindowUseX11 = std::getenv("PINE_X11") != nullptr;
 
     if (!Pine::Engine::Setup(engineConfiguration))
     {

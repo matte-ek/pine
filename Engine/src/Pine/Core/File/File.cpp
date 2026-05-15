@@ -47,7 +47,7 @@ Pine::ByteSpan Pine::File::ReadCompressed(const std::filesystem::path& path)
     auto ret = inflateInit(&strm);
     if (ret != Z_OK)
     {
-        Pine::Log::Error(fmt::format("Failed to uncompress file to path {} with result {}", path.string(), ret));
+        PError(fmt::format("Failed to uncompress file to path {} with result {}", path.string(), ret));
         return {nullptr, 0};
     }
 
@@ -65,7 +65,7 @@ Pine::ByteSpan Pine::File::ReadCompressed(const std::filesystem::path& path)
         {
             inflateEnd(&strm);
 
-            Pine::Log::Error(fmt::format("Failed to uncompress file to path {} with result {}", path.string(), ret));
+            PError(fmt::format("Failed to uncompress file to path {} with result {}", path.string(), ret));
             return {nullptr, 0};
         }
 
@@ -88,7 +88,7 @@ void Pine::File::WriteCompressed(const std::filesystem::path& path, const ByteSp
     auto ret = compress(compressed, &compressedLength, reinterpret_cast<Bytef *>(byteSpan.data), byteSpan.size);
     if (ret != Z_OK)
     {
-        Pine::Log::Error(fmt::format("Failed to compress file to path {} with result {}", path.string()));
+        PError(fmt::format("Failed to compress file to path {} with result {}", path.string()));
         return;
     }
 

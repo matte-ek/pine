@@ -229,6 +229,8 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
         aSourceSerializer.FilePath.Read(source.FilePath);
         aSourceSerializer.LastWriteTime.Read(source.LastWriteTime);
 
+        source.FilePath = Pine::File::UniversalPath(source.FilePath);
+
         asset->m_SourceFiles.push_back(source);
     }
 

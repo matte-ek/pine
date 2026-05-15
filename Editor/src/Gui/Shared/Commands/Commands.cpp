@@ -1,5 +1,7 @@
 #include "Commands.hpp"
 #include <GLFW/glfw3.h>
+
+#include "../../../../../cmake-build-debug/vcpkg_installed/x64-linux/include/imgui_internal.h"
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Gui/Shared/KeybindSystem/KeybindSystem.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
@@ -31,14 +33,14 @@ namespace
 
 void Editor::Commands::Setup()
 {
-    Keybinds::Copy = KeybindSystem::RegisterKeybind("Copy", GLFW_KEY_C, true);
-    Keybinds::Paste = KeybindSystem::RegisterKeybind("Paste", GLFW_KEY_V, true);
-    Keybinds::Duplicate = KeybindSystem::RegisterKeybind("Duplicate", GLFW_KEY_D, true);
-    Keybinds::Delete = KeybindSystem::RegisterKeybind("Delete", GLFW_KEY_DELETE);
-    Keybinds::Undo = KeybindSystem::RegisterKeybind("Undo", GLFW_KEY_Z, true);
-    Keybinds::Redo = KeybindSystem::RegisterKeybind("Redo", GLFW_KEY_Y, true);
-    Keybinds::Refresh = KeybindSystem::RegisterKeybind("Refresh", GLFW_KEY_F5);
-    Keybinds::Save = KeybindSystem::RegisterKeybind("Save", GLFW_KEY_S, true);
+    Keybinds::Copy = KeybindSystem::RegisterKeybind("Copy", ImGuiKey_C, true);
+    Keybinds::Paste = KeybindSystem::RegisterKeybind("Paste", ImGuiKey_V, true);
+    Keybinds::Duplicate = KeybindSystem::RegisterKeybind("Duplicate", ImGuiKey_D, true);
+    Keybinds::Delete = KeybindSystem::RegisterKeybind("Delete", ImGuiKey_Delete);
+    Keybinds::Undo = KeybindSystem::RegisterKeybind("Undo", ImGuiKey_Z, true);
+    Keybinds::Redo = KeybindSystem::RegisterKeybind("Redo", ImGuiKey_Y, true);
+    Keybinds::Refresh = KeybindSystem::RegisterKeybind("Refresh", ImGuiKey_F5);
+    Keybinds::Save = KeybindSystem::RegisterKeybind("Save", ImGuiKey_S, true);
 }
 
 void Editor::Commands::Dispose()

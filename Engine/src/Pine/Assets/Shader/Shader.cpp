@@ -43,9 +43,11 @@ bool Shader::CompileShader(
         }
     }
 
+    shaderSource.erase(std::remove_if(shaderSource.begin(), shaderSource.end(), [](char c){return !(c>=0 && c <128);}), shaderSource.end());
+
     if (!program->CompileAndLoadShader(shaderSource, shaderType))
     {
-        Log::Error(fmt::format("Error occurred in type {} in file {}", ShaderTypesString[static_cast<std::uint32_t>(shaderType)], m_FilePath.string()));
+        PError(fmt::format("Error occurred in type {} in file {}", ShaderTypesString[static_cast<std::uint32_t>(shaderType)], m_FilePath.string()));
         return false;
     }
 
@@ -172,7 +174,7 @@ bool Shader::CompileShaderVersion(ShaderVersion version)
         auto uniform = shaderProgram->GetUniformVariable(sampler.VariableName);
         if (!uniform)
         {
-            Log::Warning(fmt::format("Failed to find '{}' uniform buffer when attaching samplers for shader {}", sampler.VariableName, m_Path));
+            PWarning(fmt::format("Failed to find '{}' uniform buffer when attaching samplers for shader {}", sampler.VariableName, m_Path));
             continue;
         }
 

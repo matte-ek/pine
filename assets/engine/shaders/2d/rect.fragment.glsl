@@ -1,5 +1,7 @@
 #version 420 core
 
+#shader bind m_Textures 0-15
+
 out vec4 m_OutputColor;
 
 in vec3 m_PassVertexPosition;

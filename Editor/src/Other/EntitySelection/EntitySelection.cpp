@@ -49,7 +49,7 @@ namespace
             {
                 // We cannot encode this properly since the entity index is too high, should hopefully never
                 // happen.
-                Pine::Log::Warning(fmt::format("Failed to encode entity id {}, value is too high.", id));
+                PWarning(fmt::format("Failed to encode entity id {}, value is too high.", id));
                 break;
             }
         }
@@ -185,7 +185,7 @@ namespace
             }
             else
             {
-                Pine::Log::Error(fmt::format("Picked entity with ID {} does not exist.", entityId));
+                PError(fmt::format("Picked entity with ID {} does not exist.", entityId));
             }
         }
         else

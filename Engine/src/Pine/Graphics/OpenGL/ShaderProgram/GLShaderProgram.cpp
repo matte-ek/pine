@@ -91,7 +91,7 @@ bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string &sr
         const char *errorMessage = errorMessageArray.data();
 
         // Just printing the error should be fine for now
-        Log::Error(errorMessage);
+        PError(errorMessage);
 
         // Let's not forget to remove the shader as well
         glDeleteShader(shader);
@@ -108,7 +108,7 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
 {
     if (m_CompiledShaders.empty())
     {
-        Log::Error("No compiled shaders when linking program.");
+        PError("No compiled shaders when linking program.");
         return false;
     }
 
@@ -143,7 +143,7 @@ bool Pine::Graphics::GLShaderProgram::LinkProgram()
         const char *errorMessage = errorMessageArray.data();
 
         // Just printing the error should be fine for now
-        Log::Error(errorMessage);
+        PError(errorMessage);
 
         return false;
     }
@@ -179,7 +179,7 @@ Pine::Graphics::IUniformVariable *Pine::Graphics::GLShaderProgram::GetUniformVar
             // Insert an empty pointer to indicate that we have already tried to find the variable.
             m_UniformVariables[name] = nullptr;
 
-            Log::Warning("[Renderer] Failed to find uniform variable: " + name);
+            PWarning("[Renderer] Failed to find uniform variable: " + name);
 
             return nullptr;
         }
@@ -195,7 +195,7 @@ bool Pine::Graphics::GLShaderProgram::AttachUniformBuffer(IUniformBuffer*buffer,
 
     if (0 > bufferIndex)
     {
-        Log::Error(fmt::format("Failed to find uniform buffer {}", bufferName));
+        PError(fmt::format("Failed to find uniform buffer {}", bufferName));
 
         return false;
     }

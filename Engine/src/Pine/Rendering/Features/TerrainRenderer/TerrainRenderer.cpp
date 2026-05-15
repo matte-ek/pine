@@ -33,7 +33,7 @@ namespace
             worldPosition + Vector3f(TERRAIN_CHUNK_SIZE * 0.5f, 0.f, TERRAIN_CHUNK_SIZE * 0.5f)) > 3000.f;
         auto mesh = useLowPoly ? terrainChunk->ChunkMeshLowPoly : terrainChunk->ChunkMesh;
 
-        Renderer3D::PrepareMesh(mesh, terrainChunk->Material.Get());
+        Renderer3D::PrepareMesh(mesh, terrainChunk->ChunkMaterial.Get());
         Renderer3D::RenderMesh(transform);
     }
 }

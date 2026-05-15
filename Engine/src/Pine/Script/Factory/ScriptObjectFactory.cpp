@@ -162,7 +162,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const
     auto data = script->GetScriptData();
     if (!data || !data->IsReady)
     {
-        Log::Warning(fmt::format("Failed to create script object for {}, script data is not ready.", script->GetFilePath().string()));
+        PWarning(fmt::format("Failed to create script object for {}, script data is not ready.", script->GetFilePath().string()));
         return {};
     }
 

@@ -37,7 +37,7 @@ bool Pine::Script::Runtime::Setup()
 
         if (!m_RootDomain)
         {
-            Log::Error("Script: Failed to initialize Mono runtime, scripting system inoperational.");
+            PError("Script: Failed to initialize Mono runtime, scripting system inoperational.");
             return false;
         }
     }
@@ -56,7 +56,7 @@ bool Pine::Script::Runtime::Setup()
     m_PineAssembly = mono_domain_assembly_open(m_AppDomain, "engine/script/Pine.dll");
     if (!m_PineAssembly)
     {
-        Log::Error("Script: Failed to open Pine engine assembly, scripting system inoperational.");
+        PError("Script: Failed to open Pine engine assembly, scripting system inoperational.");
         return false;
     }
 
@@ -148,7 +148,7 @@ Pine::Script::RuntimeAssembly* Pine::Script::Runtime::LoadAssembly(const std::fi
 {
     if (!m_RootDomain)
     {
-        Log::Error("Mono runtime not initialized.");
+        PError("Mono runtime not initialized.");
         return nullptr;
     }
 
@@ -156,7 +156,7 @@ Pine::Script::RuntimeAssembly* Pine::Script::Runtime::LoadAssembly(const std::fi
     {
         if (assembly.Path == path)
         {
-            Log::Error(fmt::format("Assembly already loaded: {}", path.string()));
+            PError(fmt::format("Assembly already loaded: {}", path.string()));
             return nullptr;
         }
     }
@@ -164,14 +164,14 @@ Pine::Script::RuntimeAssembly* Pine::Script::Runtime::LoadAssembly(const std::fi
     auto assembly = mono_domain_assembly_open(m_AppDomain, path.string().c_str());
     if (!assembly)
     {
-        Log::Error(fmt::format("Failed to open assembly: {}", path.string()));
+        PError(fmt::format("Failed to open assembly: {}", path.string()));
         return nullptr;
     }
 
     auto image = mono_assembly_get_image(assembly);
     if (!image)
     {
-        Log::Error(fmt::format("Failed to get image from assembly: {}", path.string()));
+        PError(fmt::format("Failed to get image from assembly: {}", path.string()));
         return nullptr;
     }
 
@@ -186,13 +186,13 @@ bool Pine::Script::Runtime::UnloadAssembly(const Pine::Script::RuntimeAssembly *
 {
     if (!m_RootDomain)
     {
-        Log::Error("Mono runtime not initialized.");
+        PError("Mono runtime not initialized.");
         return false;
     }
 
     if (!assembly)
     {
-        Log::Error("Assembly is null.");
+        PError("Assembly is null.");
         return false;
     }
 
@@ -234,11 +234,11 @@ MonoImage *Pine::Script::Runtime::GetPineImage()
 
 void Pine::Script::Runtime::RunGarbageCollector()
 {
-    Log::Verbose("Running mono garbage collector...");
+    PVerbose("Running mono garbage collector...");
 
     mono_gc_collect(mono_gc_max_generation());
 
-    Log::Verbose(fmt::format("mono_gc_get_heap_size(): {}", mono_gc_get_heap_size()));
+    PVerbose(fmt::format("mono_gc_get_heap_size(): {}", mono_gc_get_heap_size()));
 }
 
 void Pine::Script::Runtime::Reset()

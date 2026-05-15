@@ -107,7 +107,7 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
 {
     if (model->m_SourceFiles.empty() || model->m_SourceFiles.size() > 1)
     {
-        Pine::Log::Warning("Ignoring Model import, too many source files.");
+        PWarning("Ignoring Model import, too many source files.");
         return false;
     }
 
@@ -124,7 +124,7 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
-        Log::Error(fmt::format("Model importing error: {}", importer.GetErrorString()));
+        PError(fmt::format("Model importing error: {}", importer.GetErrorString()));
         return false;
     }
 

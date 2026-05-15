@@ -51,7 +51,7 @@ namespace
 
         if (reloadedAssets > 0)
         {
-            Pine::Log::Info(fmt::format("Reloaded {} assets due to hot-reload", reloadedAssets));
+            PInfo(fmt::format("Reloaded {} assets due to hot-reload", reloadedAssets));
         }
     }
 

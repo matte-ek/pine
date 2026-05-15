@@ -97,9 +97,37 @@ void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& path
         }
     }
 
-    Pine::Log::Info(fmt::format("Imported {} assets", importedAssets));
+    PInfo(fmt::format("Imported {} assets", importedAssets));
 
     Pine::Importer::DeleteContext(importContext);
+}
+
+void Editor::Utilities::Asset::DeletePath(const std::filesystem::path& path)
+{
+    if (std::filesystem::is_directory(path))
+    {
+        for (const auto& iter : std::filesystem::directory_iterator(path))
+        {
+            DeletePath(iter.path());
+        }
+    }
+    else
+    {
+        // Translate file path to an internal asset path
+        const auto intPath = Pine::String::ToLower(Pine::String::StartsWith(path, Pine::Assets::Internal::GetWorkingDirectory()) ?
+            path.string().substr(Pine::Assets::Internal::GetWorkingDirectory().length()) : path.string());
+
+        const auto asset = Pine::Assets::GetAssetByPath(std::filesystem::path(intPath).replace_extension("").string());
+        if (!asset)
+        {
+            PWarning("Editor: Could not find asset by file path during deletion.");
+            return;
+        }
+
+        Pine::Assets::Internal::DeleteAsset(asset);
+    }
+
+    std::filesystem::remove(path.string());
 }
 
 void Editor::Utilities::Asset::RefreshAll()

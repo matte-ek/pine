@@ -111,7 +111,7 @@ bool Pine::Texture3D::Build()
 
         if (side->GetState() != AssetState::Loaded)
         {
-            Log::Error("Attempted to build cube map with unloaded textures.");
+            PError("Attempted to build cube map with unloaded textures.");
             m_Ready = false;
             return false;
         }

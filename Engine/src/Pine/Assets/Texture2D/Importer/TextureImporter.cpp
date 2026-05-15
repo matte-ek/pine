@@ -1,5 +1,6 @@
 ﻿#include "TextureImporter.hpp"
 
+#include "ImageLoader/ImageLoader.hpp"
 #include "Pine/Assets/Assets.hpp"
 
 #ifdef PINE_RUNTIME
@@ -15,9 +16,9 @@ bool Pine::Importer::TextureImporter::Import(Texture2D* texture)
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
-#include <stb_image.h>
-#include <stb_image_resize2.h>
-#include <stb_image_write.h>
+#include <stb/stb_image.h>
+#include <stb/stb_image_resize2.h>
+#include <stb/stb_image_write.h>
 
 #include "nvtt/nvtt.h"
 #include "nvtt/nvtt_wrapper.h"
@@ -29,13 +30,11 @@ namespace
 
     void* LoadImageBytes(const std::string& fileName, int& width, int& height, int& channels, Graphics::TextureFormat& textureFormat)
     {
-        auto data = stbi_load(fileName.c_str(), &width, &height, &channels, 4);
-
-        channels = 4;
+        const auto data = Importer::ImageLoader::LoadImage(fileName, width,  height, channels);
 
         if (data == nullptr)
         {
-            Log::Error(fmt::format("Failed to load texture {}", fileName));
+            PError(fmt::format("Failed to load texture {}", fileName));
 
             return nullptr;
         }
@@ -52,7 +51,7 @@ namespace
                 textureFormat = Graphics::TextureFormat::RGBA;
                 break;
             default:
-                Log::Error(fmt::format("Unknown texture format, channel count: {}", channels));
+                PError(fmt::format("Unknown texture format, channel count: {}", channels));
                 stbi_image_free(data);
                 return nullptr;
         }
@@ -156,6 +155,11 @@ TextureImportData Importer::TextureImporter::CompressImage(
         return ret;
     }
 
+    if (context == nullptr)
+    {
+        return {nullptr, 0, 0, 0};
+    }
+
     texture->m_CompressionFormat = compressionFormat;
 
     const auto nvCompressionLevel = TranslateCompressionFormat(compressionFormat, channels);
@@ -222,7 +226,7 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
 {
     if (texture->m_SourceFiles.empty() || texture->m_SourceFiles.size() > 1)
     {
-        Pine::Log::Warning("Ignoring Texture2D import, too many source files.");
+        PWarning("Ignoring Texture2D import, too many source files.");
         return false;
     }
 
@@ -243,11 +247,17 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
     texture->m_Format = format;
 
     // Create context and try to enable CUDA
-    auto context = nvttCreateContext();
-    nvttSetContextCudaAcceleration(context, NVTT_True);
-    if (!nvttIsCudaSupported())
+    NvttContext* context = nullptr;
+
+    if (texture->m_ImportConfiguration.UsageHint != TextureUsageHint::Uncompressed)
     {
-        Log::Warning("CUDA unsupported during compression.");
+        context = nvttCreateContext();
+
+        nvttSetContextCudaAcceleration(context, NVTT_True);
+        if (!nvttIsCudaSupported())
+        {
+            PWarning("CUDA unsupported during compression.");
+        }
     }
 
     auto mipSize = Vector2i(width, height);
@@ -287,11 +297,15 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
 
         mipSize /= 2;
 
-        Log::Info(fmt::format("Generating mip with size {}x{}", mipSize.x, mipSize.y));
+        PInfo(fmt::format("Generating mip with size {}x{}", mipSize.x, mipSize.y));
     }
 
     free(imageDataPtr);
-    nvttDestroyContext(context);
+
+    if (context != nullptr)
+    {
+        nvttDestroyContext(context);
+    }
 
     return true;
 }

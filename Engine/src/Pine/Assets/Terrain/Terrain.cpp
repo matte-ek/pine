@@ -1,9 +1,9 @@
 ﻿#include "Terrain.hpp"
 
-#include <stb_image.h>
-#include <cooking/PxCooking.h>
-#include <extensions/PxDefaultStreams.h>
-#include <geometry/PxHeightFieldSample.h>
+#include <stb/stb_image.h>
+#include <physx/cooking/PxCooking.h>
+#include <physx/extensions/PxDefaultStreams.h>
+#include <physx/geometry/PxHeightFieldSample.h>
 
 #include "PerlinNoise.hpp"
 #include "Pine/Assets/Mesh/Mesh.hpp"
@@ -289,7 +289,7 @@ void Terrain::GenerateMesh()
 {
     PINE_PF_SCOPE();
 
-    Log::Info(fmt::format("Generating terrain {}...", m_FilePath.string()));
+    PInfo(fmt::format("Generating terrain {}...", m_FilePath.string()));
 
     for (auto& chunk : m_Chunks)
     {

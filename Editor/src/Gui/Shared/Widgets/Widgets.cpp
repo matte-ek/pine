@@ -413,8 +413,8 @@ bool Widgets::Icon(const std::string& text, Pine::Graphics::ITexture *texture, b
 
     std::uint64_t textureId = *static_cast<std::uint32_t*>(texture->GetGraphicsIdentifier());
 
-    if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(textureId), ImVec2(static_cast<float>(size), static_cast<float>(size)),
-                            ImVec2(0, 0), ImVec2(1, 1), 3))
+    if (ImGui::ImageButton(text.c_str(), textureId, ImVec2(static_cast<float>(size), static_cast<float>(size)),
+                            ImVec2(0, 0), ImVec2(1, 1)))
     {
         ret = true;
     }
@@ -456,7 +456,7 @@ void Widgets::TilesetAtlas(Pine::Tileset* tileset, int& selectedItem)
                 restoreBackground = true;
             }
 
-            if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(*static_cast<std::uint64_t*>(tile.m_Texture->GetGraphicsTexture()->GetGraphicsIdentifier())), ImVec2(tileSize, tileSize)))
+            if (ImGui::ImageButton("", *static_cast<std::uint64_t*>(tile.m_Texture->GetGraphicsTexture()->GetGraphicsIdentifier()), ImVec2(tileSize, tileSize)))
             {
                 selectedItem = index;
             }

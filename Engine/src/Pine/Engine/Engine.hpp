@@ -35,6 +35,10 @@ namespace Pine::Engine
         // Disables all the engine stuff (such as handling entities, input and physics)
         bool m_Standalone = false;
 
+        // Linux only, sets X11 platform hint to GLFW so Pine will run in XWayland while running on Wayland.
+        // This can be useful because renderdoc does not work with wayland as of writing this.
+        bool m_WindowUseX11 = false;
+
         Graphics::GraphicsAPI m_GraphicsAPI = Graphics::GraphicsAPI::OpenGL;
     };
 

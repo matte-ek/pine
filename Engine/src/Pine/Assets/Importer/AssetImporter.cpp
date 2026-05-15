@@ -32,7 +32,7 @@ namespace
 
         import.ImportStatus = Pine::AssetImportStatus::Importing;
 
-        auto asset = Pine::Assets::Internal::CreateAssetByFile(import.SourcePaths.front());
+        const auto asset = Pine::Assets::Internal::CreateAssetByFile(import.SourcePaths.front());
         if (!asset)
         {
             import.ImportStatus = Pine::AssetImportStatus::Failed;
@@ -77,7 +77,7 @@ namespace
             asset->AddSource(sourceFile.string());
         }
 
-        Pine::Log::Info(fmt::format("Importing {} from source file {}...", AssetTypeToString(asset->GetType()), import.SourcePaths.front().string()));
+        PInfo(fmt::format("Importing {} from source file {}...", AssetTypeToString(asset->GetType()), import.SourcePaths.front().string()));
 
         if (!asset->Import(&import))
         {
