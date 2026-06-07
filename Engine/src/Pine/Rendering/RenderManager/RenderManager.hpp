@@ -52,4 +52,6 @@ namespace Pine::RenderManager
     // TODO: I don't like having to expose this.
     Graphics::IFrameBuffer* GetInternalFrameBuffer();
 
+    double GetGlobalDeltaTime();
+
 }

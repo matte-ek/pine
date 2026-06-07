@@ -30,6 +30,7 @@ namespace
 
     // Used to track delta time between frames
     double m_LastFrameTime = 0;
+    double m_DeltaTime = 0;
 
     std::vector<std::function<void(Pine::RenderingContext*, Pine::RenderStage, float)>> m_RenderCallbackFunctions;
 
@@ -94,6 +95,7 @@ void Pine::RenderManager::Run()
     double deltaTime = currentFrameTime - m_LastFrameTime;
     auto fDeltaTime = static_cast<float>(deltaTime);
 
+    m_DeltaTime = deltaTime;
     m_LastFrameTime = currentFrameTime;
 
     CallRenderCallback(nullptr, RenderStage::PreRender, fDeltaTime);
@@ -232,6 +234,11 @@ Pine::RenderingContext *Pine::RenderManager::GetDefaultRenderingContext()
 Pine::Graphics::IFrameBuffer * Pine::RenderManager::GetInternalFrameBuffer()
 {
     return m_InternalFrameBuffer;
+}
+
+double Pine::RenderManager::GetGlobalDeltaTime()
+{
+    return m_DeltaTime;
 }
 
 void Pine::RenderManager::AddRenderingContextPass(RenderingContext* context)

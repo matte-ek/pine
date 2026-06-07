@@ -2,10 +2,6 @@
 
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Level/Level.hpp"
-#include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
-#include "Pine/World/Entity/Entity.hpp"
-#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
-#include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
@@ -13,10 +9,14 @@
 #include "Pine/Rendering/Features/Shadows/Shadows.hpp"
 #include "Pine/Rendering/Features/Skybox/Skybox.hpp"
 #include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
+#include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
 #include "Pine/World/World.hpp"
+#include "Pine/World/Components/Light/Light.hpp"
+#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
+#include "Pine/World/Entity/Entity.hpp"
 
 namespace
 {

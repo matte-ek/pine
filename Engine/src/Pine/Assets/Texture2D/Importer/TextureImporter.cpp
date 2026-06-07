@@ -131,7 +131,7 @@ namespace
 TextureImportData Importer::TextureImporter::CompressImage(
     Texture2D* texture,
     const nvtt::Context* context,
-    void* inputData,
+    const void* inputData,
     unsigned int width,
     unsigned int height,
     unsigned int channels)

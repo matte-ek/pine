@@ -1,12 +1,24 @@
 #include "ProfilerPanel.hpp"
 #include "imgui.h"
 #include "IconsMaterialDesign.h"
+#include "Gui/Gui.hpp"
 #include "Pine/Performance/Performance.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
 namespace
 {
     bool m_Active = true;
     int m_SelectedScope = -1;
+
+    bool m_HasCachedScopes = false;
+    Pine::Performance::TrackedScope* m_RenderManagerScope = nullptr;
+
+    void CacheTimedScopes()
+    {
+        // FindTrackedScopeByName is not ideal due to it being prone to break during refactoring.
+
+        m_RenderManagerScope = Pine::Performance::FindTrackedScopeByName("void Pine::RenderManager::Run()");
+    }
 
     void RenderTimedScopes()
     {
@@ -31,8 +43,6 @@ namespace
 
             ImGui::EndTable();
         }
-
-
     }
 }
 
@@ -53,16 +63,48 @@ void Panels::Profiler::Render()
 
     if (ImGui::Begin(ICON_MD_SPEED " Profiler", &m_Active))
     {
+        if (!m_HasCachedScopes)
+        {
+            m_HasCachedScopes = true;
+            CacheTimedScopes();
+        }
+
         ImGui::Columns(2);
 
         RenderTimedScopes();
 
         ImGui::NextColumn();
 
-        if (m_SelectedScope != -1)
-        {
+        ImGui::PushFont(Editor::Gui::GetBoldFont());
+        ImGui::Text("Renderer");
+        ImGui::PopFont();
 
+        // Frame time
+        // Dynamic light count
+        const auto deltaTime = Pine::RenderManager::GetGlobalDeltaTime();
+
+        ImGui::Text("Frame time: %.5f (%d FPS)", deltaTime, static_cast<int>(1.0 / deltaTime));
+
+        if (m_RenderManagerScope != nullptr)
+        {
+            ImGui::Text("Render time: %.5f", m_RenderManagerScope->Time);
         }
+
+        ImGui::PushFont(Editor::Gui::GetBoldFont());
+        ImGui::Text("Resources");
+        ImGui::PopFont();
+
+        // Entity Count
+        // Component Count
+        // Asset Count
+
+        ImGui::PushFont(Editor::Gui::GetBoldFont());
+        ImGui::Text("GPU Resources");
+        ImGui::PopFont();
+
+        // Texture Count
+        // Mesh Count
+        // Shader Count
 
         ImGui::Columns(1);
     }

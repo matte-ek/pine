@@ -166,7 +166,7 @@ namespace
 
     void GenerateDynamicTexture(const Icon &icon, bool isPreview)
     {
-        if (icon.Type != IconType::Dynamic)
+        if (icon.Type != IconType::Dynamic || icon.DynamicTexture == nullptr)
         {
             return;
         }
@@ -326,17 +326,6 @@ void Editor::Gui::IconStorage::Update()
         if (ShouldGenerateDynamicIcon(asset))
         {
             icon->Type = IconType::Dynamic;
-
-            if (icon->DynamicTexture == nullptr)
-            {
-                icon->DynamicTexture = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-
-                icon->DynamicTexture->Prepare();
-                icon->DynamicTexture->AttachTextures(64, 64, Pine::Graphics::ColorBuffer, 0);
-                icon->DynamicTexture->Finish();
-            }
-
-            icon->m_Dirty = true;
         }
 
         icon->StaticTexture = GetStaticIconFromAsset(asset);
@@ -357,10 +346,20 @@ Pine::Graphics::ITexture* Editor::Gui::IconStorage::GetIconTexture(Pine::UId id)
         return invalidAssetIcon->GetGraphicsTexture();
     }
 
-    const auto& icon = m_IconCache[id];
+    auto& icon = m_IconCache[id];
 
     if (icon.Type == IconType::Dynamic)
     {
+        if (icon.DynamicTexture == nullptr)
+        {
+            icon.DynamicTexture = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
+            icon.DynamicTexture->Prepare();
+            icon.DynamicTexture->AttachTextures(64, 64, Pine::Graphics::ColorBuffer, 0);
+            icon.DynamicTexture->Finish();
+
+            icon.m_Dirty = true;
+        }
+
         return icon.DynamicTexture->GetColorBuffer();
     }
 

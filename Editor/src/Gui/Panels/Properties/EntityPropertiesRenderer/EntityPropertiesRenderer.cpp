@@ -11,7 +11,6 @@
 #include "Pine/Game/Game.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
-#include "Pine/World/Components/RigidBody/RigidBody.hpp"
 
 namespace
 {
@@ -208,7 +207,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 
     ImGui::SameLine();
 
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 60.f);
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 65.f);
 
     if (ImGui::Button("Tags " ICON_MD_KEYBOARD_ARROW_DOWN))
         ImGui::OpenPopup("EntityTagPopup");

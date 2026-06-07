@@ -26,6 +26,7 @@ namespace Pine::Performance
     };
 
     TrackedScope* CreateTrackedScope(const char* name);
+    TrackedScope* FindTrackedScopeByName(const char* name);
 
     const std::vector<TrackedScope*>& GetTrackedScopes();
 }
