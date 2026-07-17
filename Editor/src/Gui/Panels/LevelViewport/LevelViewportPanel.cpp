@@ -19,6 +19,12 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
+#include "Other/Actions/Actions.hpp"
+#include "Pine/Assets/Model/Model.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
+#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
+#include "Pine/World/Components/RigidBody/RigidBody.hpp"
+
 namespace
 {
     enum class GizmoMode : int
@@ -108,6 +114,7 @@ namespace
                                  glm::value_ptr(deltaMatrix),
                                  shouldSnap ? glm::value_ptr(snapRange) : nullptr))
         {
+            Editor::Actions::CreateComponentCommand command(transform, Editor::Actions::CommandType::Update, true);
 
             Pine::Vector3f position, scale, skew;
             Pine::Vector4f perspective;
@@ -188,7 +195,7 @@ Pine::Vector2i Panels::LevelViewport::GetSize()
 
 void Panels::LevelViewport::Render()
 {
-    if (!ImGui::Begin(ICON_MD_PUBLIC " Level", &m_Active))
+    if (!ImGui::Begin(ICON_MD_PUBLIC "  Level", &m_Active))
     {
         m_Visible = false;
 
@@ -210,7 +217,7 @@ void Panels::LevelViewport::Render()
         else
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.11f, 0.27f, 0.24f, 1.00f));
 
-        if (ImGui::Button(text, ImVec2(45.f, 24.f)))
+        if (ImGui::Button(text, ImVec2(50.f, 0.f)))
             ret = true;
 
         ImGui::PopStyleColor();
@@ -244,12 +251,12 @@ void Panels::LevelViewport::Render()
 
     if (PlayHandler::GetGameState() == PlayHandler::EditorGameState::Stopped)
     {
-        if (ImGui::Button(ICON_MD_PLAY_ARROW, ImVec2(45.f, 24.f)))
+        if (ImGui::Button(ICON_MD_PLAY_ARROW, ImVec2(45.f, 0.f)))
             PlayHandler::Play();
     }
     else
     {
-        if (ImGui::Button(ICON_MD_STOP, ImVec2(45.f, 24.f)))
+        if (ImGui::Button(ICON_MD_STOP, ImVec2(45.f, 0.f)))
             PlayHandler::Stop();
     }
 
@@ -312,7 +319,7 @@ void Panels::LevelViewport::Render()
 
     if (!m_CaptureMouse)
     {
-        if (ImGui::IsItemClicked(ImGuiMouseButton_::ImGuiMouseButton_Right))
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
         {
             m_CaptureMouse = true;
             m_MouseCapturePosition = Pine::Input::GetCursorPosition();
@@ -348,19 +355,46 @@ void Panels::LevelViewport::Render()
 
             if (asset->GetType() == Pine::AssetType::Texture3D)
             {
-                auto currentLevel = Pine::World::GetActiveLevel();
-                auto skybox = dynamic_cast<Pine::Texture3D*>(asset);
+                const auto currentLevel = Pine::World::GetActiveLevel();
+                const auto skybox = dynamic_cast<Pine::Texture3D*>(asset);
 
                 if (currentLevel && skybox)
+                {
                     currentLevel->GetLevelSettings().Skybox = skybox;
+                }
             }
 
             if (asset->GetType() == Pine::AssetType::Level)
             {
-                auto level = dynamic_cast<Pine::Level*>(asset);
-
-                if (level)
+                if (const auto level = dynamic_cast<Pine::Level*>(asset))
+                {
                     Pine::World::SetActiveLevel(level);
+                }
+            }
+
+            if (asset->GetType() == Pine::AssetType::Model)
+            {
+                if (const auto model = dynamic_cast<Pine::Model*>(asset))
+                {
+                    static auto camera = Editor::LevelEntity::Get()->GetComponent<Pine::Camera>();
+
+                    const auto newPosition = camera->GetTransform()->GetPosition() + camera->GetTransform()->GetForward() * 1.25f;
+                    const auto newEntity = Pine::Entity::Create(model->GetFileName());
+
+                    newEntity->GetTransform()->SetLocalPosition(newPosition);
+
+                    newEntity->AddComponent<Pine::ModelRenderer>()->SetModel(model);
+
+                    const auto center = (model->GetBoundingBoxMin() + model->GetBoundingBoxMax()) * 0.5f;
+                    const auto halfSize = (model->GetBoundingBoxMax() - model->GetBoundingBoxMin()) * 0.5f;
+
+                    newEntity->AddComponent<Pine::RigidBody>()->SetRigidBodyType(Pine::RigidBodyType::Static);
+
+                    const auto collider = newEntity->AddComponent<Pine::Collider>();
+
+                    collider->SetPosition(center);
+                    collider->SetSize(halfSize);
+                }
             }
         }
 

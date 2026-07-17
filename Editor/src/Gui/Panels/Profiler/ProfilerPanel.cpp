@@ -61,7 +61,7 @@ void Panels::Profiler::Render()
     if (!m_Active)
         return;
 
-    if (ImGui::Begin(ICON_MD_SPEED " Profiler", &m_Active))
+    if (ImGui::Begin(ICON_MD_SPEED "  Profiler", &m_Active))
     {
         if (!m_HasCachedScopes)
         {

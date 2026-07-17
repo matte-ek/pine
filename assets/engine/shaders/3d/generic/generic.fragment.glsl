@@ -26,13 +26,14 @@ uniform bool hasTangentData;
 
 #shader hooks
 
+
 Surface CreateSurface()
 {
     Surface surface;
 
     MaterialProperties material = matPropeties[0];
 
-    surface.diffuseColor = texture(matSamplers.diffuse, vIn.uv * material.uvScale).xyz * material.diffuseColor;
+    surface.diffuseColor = texture(matSamplers.diffuse, vIn.uv * material.uvScale).xyz * material.diffuseColor + vec3(0.f, 0.f, 0.f);
     surface.specularColor = texture(matSamplers.specular, vIn.uv * material.uvScale).xyz * material.specularColor;
     surface.ambientColor = material.ambientColor;
     surface.shininess = material.shininess;
@@ -66,6 +67,7 @@ vec3 CalculatePointLights(Surface surface)
         ret = CalculatePointLight(surface, vIn.lightIndices[5], 6);
     }
 
+
     return ret;
 }
 
@@ -88,7 +90,7 @@ void main(void)
     vec4 spotLights = vec4(CalculateSpotLights(surface), 1.0);
     vec4 pointLights = vec4(CalculatePointLights(surface), 1.0);
 
-    m_OutputColor = directionalLight + spotLights + pointLights;
+    m_OutputColor = directionalLight;
 
     #shader postFragment
 }

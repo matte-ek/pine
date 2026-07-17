@@ -29,7 +29,7 @@ void Panels::LevelPanel::Render()
     if (!currentLevel)
         return;
 
-    if (ImGui::Begin(ICON_MD_PUBLIC " Level Properties", &m_Active))
+    if (ImGui::Begin(ICON_MD_PUBLIC "  Level Properties", &m_Active))
     {
         const auto camera = Pine::RenderManager::GetPrimaryRenderingContext()->SceneCamera;
         const auto cameraParent = camera != nullptr ? camera->GetParent() : nullptr;

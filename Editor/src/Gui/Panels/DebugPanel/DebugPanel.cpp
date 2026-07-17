@@ -36,7 +36,7 @@ void Panels::Debug::Render()
     if (!m_Active)
         return;
 
-    if (ImGui::Begin(ICON_MD_TROUBLESHOOT " Debug", &m_Active))
+    if (ImGui::Begin(ICON_MD_TROUBLESHOOT "  Debug", &m_Active))
     {
         if (ImGui::CollapsingHeader("Lightning"))
         {

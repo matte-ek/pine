@@ -5,6 +5,7 @@
 #include "IconsMaterialDesign.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "Gui/Panels/AssetBrowser/AssetHierarchy/AssetHierarchy.hpp"
 
 #include "Gui/Panels/Properties/EntityPropertiesRenderer/EntityPropertiesRenderer.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
@@ -578,11 +579,11 @@ namespace
 
 void AssetPropertiesPanel::Render(Pine::Asset *asset)
 {
-    auto fileIcon = Editor::Gui::IconStorage::GetIconTexture(asset->GetUId());
+    const auto& fileIcon = Editor::Gui::IconStorage::GetIconTexture(asset->GetUId());
 
     // Show general asset information
 
-    ImGui::Image(*static_cast<std::uint64_t *>(fileIcon->GetGraphicsIdentifier()), ImVec2(64.f, 64.f));
+    ImGui::Image(*static_cast<std::uint64_t *>(fileIcon.DisplayIcon->GetGraphicsIdentifier()), ImVec2(64.f, 64.f));
 
     ImGui::SameLine();
 

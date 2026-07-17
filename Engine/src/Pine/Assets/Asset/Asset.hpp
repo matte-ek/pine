@@ -158,6 +158,7 @@ namespace Pine
         const std::string& GetPath() const;
 
         const std::filesystem::path& GetFilePath() const;
+        std::string GetFileName() const;
 
         void AddSource(const std::string& filePath);
         void RemoveSource(const std::string& filePath);

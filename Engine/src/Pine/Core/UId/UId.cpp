@@ -29,6 +29,11 @@ std::uint64_t Pine::UId::GetRandom() const
     return m_Random;
 }
 
+bool Pine::UId::IsValid() const
+{
+    return m_Time != 0;
+}
+
 std::string Pine::UId::ToString() const
 {
     char buffer[34];
@@ -68,5 +73,5 @@ Pine::UId Pine::UId::New()
 
 Pine::UId Pine::UId::Empty()
 {
-    return UId();
+    return {};
 }

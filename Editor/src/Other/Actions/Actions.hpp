@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Pine/World/Components/Component/Component.hpp"
 
-namespace Actions
+namespace Editor::Actions
 {
     enum ActionType
     {
@@ -11,56 +11,92 @@ namespace Actions
         Asset
     };
 
-    enum ActionEvent
+    enum class CommandType
     {
         Create,
-        Delete,
-        Modify
+        Update,
+        Delete
     };
 
-    class Action
+    enum class CommandState
     {
-    protected:
-        ActionType m_Type = Invalid;
-        ActionEvent m_Event = Create;
-    public:
-        virtual ~Action() = default;
-
-        ActionType GetActionType() const;
-
-        void SetEvent(ActionEvent event);
-        ActionEvent GetEvent() const;
-
-        virtual void Apply() = 0;
+        PreCommand,
+        PostCommand
     };
 
-    class ActionEntity : public Action
+    class EditorCommand
     {
+    private:
     public:
-        ActionEntity();
+        virtual ~EditorCommand() = default;
 
-        void Apply() override;
+        virtual void SaveState(CommandState commandState);
+        virtual void Apply(CommandState commandState) = 0;
     };
 
-    class ActionComponent : public Action
+    // Handles the updating of a component state forwards/backwards
+    class UpdateComponentCommand : public EditorCommand
     {
     private:
         Pine::ComponentType m_ComponentType;
-        std::uint32_t m_Index;
-        nlohmann::json m_Data;
+        Pine::UId m_ComponentId;
+
+        Pine::ByteSpan m_PreCommand;
+        Pine::ByteSpan m_PostCommand;
     public:
-        ActionComponent();
+        explicit UpdateComponentCommand(const Pine::Component* component, bool savePreState = true);
 
-        void Store(Pine::Component* component);
-
-        void Apply() override;
+        void SaveState(CommandState commandState) override;
+        void Apply(CommandState commandState) override;
     };
 
-    void RegisterComponentAction(ActionEvent event, Pine::Component* component);
+    // Handles the creation and deletion of a component
+    class CreateDeleteComponentCommand : public EditorCommand
+    {
+    private:
+        CommandType m_CommandType;
 
-    void Undo();
-    void Redo();
+        Pine::ComponentType m_ComponentType;
+
+        Pine::UId m_ParentId;
+        Pine::UId m_ComponentId;
+
+        Pine::ByteSpan m_ComponentData;
+    public:
+        explicit CreateDeleteComponentCommand(Pine::Component* component, CommandType type);
+        void Apply(CommandState commandState) override;
+    };
+
+    class UpdateEntityCommand : public EditorCommand
+    {
+    private:
+    public:
+    };
+
+    class CreateDeleteEntityCommand : public EditorCommand
+    {
+    private:
+        Pine::UId m_EntityId;
+    public:
+    };
+
+    // RAII wrappers to ease command creation
+
+    class CreateComponentCommand
+    {
+    private:
+        EditorCommand* m_Command = nullptr;
+    public:
+        explicit CreateComponentCommand(Pine::Component* component, CommandType type, bool isDragEvent = false);
+        ~CreateComponentCommand();
+    };
+
+    bool HasItemUpdated();
+
+    void ExecuteUndo();
+    void ExecuteRedo();
 
     void Setup();
+    void Update();
     void Shutdown();
 }

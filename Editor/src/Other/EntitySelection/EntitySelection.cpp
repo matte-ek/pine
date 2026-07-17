@@ -114,16 +114,16 @@ namespace
         
         for (auto& spriteRenderer : Pine::Components::Get<Pine::SpriteRenderer>())
         {
-            backupColors[spriteRenderer.GetParent()->GetId()] = spriteRenderer.GetColor();
+            backupColors[spriteRenderer.GetParent()->GetInternalId()] = spriteRenderer.GetColor();
 
-            spriteRenderer.SetColor(Pine::Vector4f(ComputeColorIndex(static_cast<int>(spriteRenderer.GetParent()->GetId())), 1.f));
+            spriteRenderer.SetColor(Pine::Vector4f(ComputeColorIndex(static_cast<int>(spriteRenderer.GetParent()->GetInternalId())), 1.f));
         }
 
         Pine::Pipeline2D::Run(*context);
 
         for (auto& spriteRenderer : Pine::Components::Get<Pine::SpriteRenderer>())
         {
-            spriteRenderer.SetColor(backupColors[spriteRenderer.GetParent()->GetId()]);
+            spriteRenderer.SetColor(backupColors[spriteRenderer.GetParent()->GetInternalId()]);
         }
 
         Pine::Renderer2D::SetOverrideShader(nullptr);

@@ -228,6 +228,8 @@ namespace Pine::Components
 
     Component* GetByInternalId(Pine::ComponentType type, std::uint32_t internalId);
 
+    Component* FindById(ComponentType type, UId id);
+
     // Internal hints that may be set by the engine to optimize component iteration
     void SetIgnoreHighestEntityIndexFlag(bool ignore);
 
@@ -244,7 +246,8 @@ namespace Pine
         mutable bool m_Valid = false;
 
         ComponentType m_Type = ComponentType::Transform;
-        std::uint64_t m_UniqueId {};
+        UId m_UniqueId{};
+
         std::uint32_t m_InternalId {};
     public:
 
@@ -256,7 +259,7 @@ namespace Pine
             }
 
             const auto component = Components::GetByInternalId(m_Type, m_InternalId);
-            if (!component || component->GetUniqueId() != m_UniqueId)
+            if (!component || component->GetId() != m_UniqueId)
             {
                 m_Valid = false;
                 return nullptr;
@@ -279,7 +282,7 @@ namespace Pine
             }
 
             m_Type = component->GetType();
-            m_UniqueId = component->GetUniqueId();
+            m_UniqueId = component->GetId();
             m_InternalId = component->GetInternalId();
             m_Valid = true;
 
@@ -288,7 +291,7 @@ namespace Pine
 
         bool operator==(const Component *b) const
         {
-            return m_UniqueId == b->GetUniqueId();
+            return m_UniqueId == b->GetId();
         }
     };
 

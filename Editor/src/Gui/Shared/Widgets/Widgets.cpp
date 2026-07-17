@@ -25,7 +25,7 @@ namespace
 
         ImGui::NextColumn();
 
-        ImGui::BeginChild(std::string(str + "ControlChild").c_str(), ImVec2(-1.f, 26.f), false);
+        ImGui::BeginChild(std::string(str + "ControlChild").c_str(), ImVec2(-1.f, 30.f), false);
     }
 
     void FinishWidget()
@@ -34,22 +34,22 @@ namespace
         ImGui::Columns(1);
     }
 
-    void CoordinateText(const char* coordinateText, ImColor color)
+    void CoordinateText(const char* coordinateText, ImColor color, ImColor textColor)
     {
         const auto cursorPosition = ImGui::GetCursorScreenPos();
         const auto frameSize = ImGui::GetFrameHeight();
         const auto rounding = ImGui::GetStyle().FrameRounding;
 
-        ImGui::PushFont(Editor::Gui::GetBoldFont());
+        //ImGui::PushFont(Editor::Gui::GetBoldFont());
 
         const auto textSize = ImGui::CalcTextSize(coordinateText);
 
         ImGui::GetWindowDrawList()->AddRectFilled(cursorPosition, ImVec2(cursorPosition.x + frameSize, cursorPosition.y + frameSize), color, rounding);
-        ImGui::GetWindowDrawList()->AddText(ImVec2(cursorPosition.x + (frameSize / 2.f) - (textSize.x / 2.f), cursorPosition.y + (frameSize / 2.f) - (textSize.y / 2.f)), ImColor(0, 0, 0), coordinateText);
+        ImGui::GetWindowDrawList()->AddText(ImVec2(cursorPosition.x + (frameSize / 2.f) - (textSize.x / 2.f), cursorPosition.y + (frameSize / 2.f) - (textSize.y / 2.f) - 1), textColor, coordinateText);
         ImGui::Dummy(ImVec2(frameSize, frameSize));
         ImGui::SameLine();
 
-        ImGui::PopFont();
+        //ImGui::PopFont();
     }
 }
 
@@ -112,14 +112,14 @@ bool Widgets::Vector2i(const std::string& str, Pine::Vector2i& vector, float spe
 
     PrepareWidget(str);
 
-    CoordinateText("X", ImColor(150, 34, 34));
+    CoordinateText("X", ImColor(150, 34, 34), ImColor(150, 34, 34));
 
     ImGui::SetNextItemWidth(size);
     bool xChanged = ImGui::DragInt(std::string("X##" + str).c_str(), &vector.x, speed, -INT_MAX, INT_MAX, "%d", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::SameLine(0.f, 10.f);
 
-    CoordinateText("Y", ImColor(34, 150, 34));
+    CoordinateText("Y", ImColor(30, 62, 30, 100), ImColor(11, 255, 11));
 
     ImGui::SetNextItemWidth(size);
     bool yChanged = ImGui::DragInt(std::string("Y##" + str).c_str(), &vector.y, speed, -INT_MAX, INT_MAX, "%d", ImGuiSliderFlags_AlwaysClamp);
@@ -131,27 +131,27 @@ bool Widgets::Vector2i(const std::string& str, Pine::Vector2i& vector, float spe
 
 bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector, float speed)
 {
-    constexpr float size = 60.f;
+    constexpr float size = 55.f;
 
     PrepareWidget(str);
 
     ImGui::Columns(3, nullptr, false);
 
-    CoordinateText("X", ImColor(150, 34, 34));
+    CoordinateText("X", ImColor(62, 30, 30, 100), ImColor(255, 11, 11));
 
     ImGui::SetNextItemWidth(size);
     bool xChanged = ImGui::DragFloat(std::string("##X" + str).c_str(), &vector.x, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::NextColumn();
 
-    CoordinateText("Y", ImColor(34, 150, 34));
+    CoordinateText("Y", ImColor(30, 62, 30, 100), ImColor(11, 255, 11));
 
     ImGui::SetNextItemWidth(size);
     bool yChanged = ImGui::DragFloat(std::string("##Y" + str).c_str(), &vector.y, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::NextColumn();
 
-    CoordinateText("Z", ImColor(34, 34, 150));
+    CoordinateText("Z", ImColor(30, 30, 62, 100), ImColor(11, 150, 255));
 
     ImGui::SetNextItemWidth(size);
     bool zChanged = ImGui::DragFloat(std::string("##Z" + str).c_str(), &vector.z, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
@@ -336,7 +336,7 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
 
     strcpy(buff, assetFileName.c_str());
 
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 100.f);
 
     ImGui::InputText(std::string("##AssetPath" + str).c_str(), buff, 128, ImGuiInputTextFlags_ReadOnly);
 
@@ -372,7 +372,7 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
 
     if (asset == nullptr)
     {
-        Widgets::PushDisabled();
+        PushDisabled();
     }
 
     if (ImGui::Button(ICON_MD_DELETE))
@@ -394,41 +394,80 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
     return ret;
 }
 
-bool Widgets::Icon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, int size)
+int Widgets::AssetIcon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, const char* bottomText, int size)
 {
-    return Icon(text, texture->GetGraphicsTexture(), showBackground, size);
+    return AssetIcon(text, texture->GetGraphicsTexture(), showBackground, bottomText, size);
 }
 
-bool Widgets::Icon(const std::string& text, Pine::Graphics::ITexture *texture, bool showBackground, int size)
+int Widgets::AssetIcon(const std::string& text, Pine::Graphics::ITexture *texture, bool showBackground, const char* bottomText, int size)
 {
-    bool ret = false;
+    int ret = 0;
 
-    ImGui::PushID(text.c_str());
-    ImGui::BeginGroup();
+    const auto beginScreenPos = ImGui::GetCursorPos();
+    const auto beginCursorScreenPos = ImGui::GetCursorScreenPos();
+
+    const bool isHovering = ImGui::IsMouseHoveringRect(
+        beginCursorScreenPos,
+        ImVec2(beginCursorScreenPos.x + 128, beginCursorScreenPos.y + 140));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 6.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);
+
+    ImGui::PushStyleColor(ImGuiCol_Border, showBackground ? ImVec4(0.26f, 0.75f, 0.45f, 1.00f) : ImVec4(0.081f, 0.132f, 0.075f, 1.000f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, isHovering || showBackground ? ImVec4(0.11f, 0.15f, 0.14f, 1.00f) : ImVec4(0.054f, 0.068f, 0.061f, 1.000f));
+
+    ImGui::SetNextItemAllowOverlap();
+
+    ImGui::BeginChild(text.c_str(), ImVec2(128, 140), ImGuiChildFlags_Borders | ImGuiChildFlags_FrameStyle);
+    ImGui::Spacing();
+    ImGui::Spacing();
 
     if (!showBackground)
     {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
     }
 
-    std::uint64_t textureId = *static_cast<std::uint32_t*>(texture->GetGraphicsIdentifier());
+    const std::uint64_t textureId = *static_cast<std::uint32_t*>(texture->GetGraphicsIdentifier());
 
-    if (ImGui::ImageButton(text.c_str(), textureId, ImVec2(static_cast<float>(size), static_cast<float>(size)),
-                            ImVec2(0, 0), ImVec2(1, 1)))
-    {
-        ret = true;
-    }
+    ImGui::SetCursorPosX(32.f);
+
+    ImGui::Image(textureId, ImVec2(static_cast<float>(size), static_cast<float>(size)), ImVec2(0, 0), ImVec2(1, 1));
 
     if (!showBackground)
     {
         ImGui::PopStyleColor();
     }
 
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (static_cast<float>(size) / 2.f - (std::min(ImGui::CalcTextSize(text.c_str()).x, static_cast<float>(size)) / 2.f)) + 2.f);
-    ImGui::TextWrapped("%s", text.c_str());
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (static_cast<float>(128) / 2.f - (std::min(ImGui::CalcTextSize(text.c_str()).x, static_cast<float>(128)) / 2.f)) + 2.f);
+    ImGui::Text("%s", text.c_str());
 
-    ImGui::EndGroup();
-    ImGui::PopID();
+    if (bottomText != nullptr)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (static_cast<float>(128) / 2.f - (std::min(ImGui::CalcTextSize(bottomText).x, static_cast<float>(128)) / 2.f)) + 2.f);
+        ImGui::Text("%s", bottomText);
+        ImGui::PopStyleColor();
+    }
+
+    ImGui::SetNextItemAllowOverlap();
+
+    ImGui::EndChild();
+
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
+
+    ImGui::SetCursorPos(beginScreenPos);
+
+    if (ImGui::InvisibleButton(std::string(text + "Btn").c_str(), ImVec2(128.f, 140.f), ImGuiButtonFlags_FlattenChildren))
+    {
+        ret = 1;
+    }
+
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Right) && isHovering)
+    {
+        ret = 2;
+    }
 
     return ret;
 }

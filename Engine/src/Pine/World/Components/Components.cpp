@@ -163,7 +163,6 @@ Component* Components::Create(ComponentType type, bool standalone)
 
     Component* component;
     std::uint32_t componentLookupId = 0;
-    std::uint64_t uniqueId = 0;
 
     // Get a pointer to some free memory for the new component, depending on if we want a standalone
     // or in the data block
@@ -187,9 +186,7 @@ Component* Components::Create(ComponentType type, bool standalone)
         }
 
         component = componentDataBlock->GetComponent(newTargetSlot);
-
         componentLookupId = newTargetSlot;
-        uniqueId = componentDataBlock->m_UniqueIdCount++;
 
         // Mark the index as occupied
         componentDataBlock->m_ComponentOccupationArray[newTargetSlot] = true;
@@ -208,7 +205,7 @@ Component* Components::Create(ComponentType type, bool standalone)
 
     component->SetStandalone(standalone);
     component->SetInternalId(componentLookupId);
-    component->SetUniqueId(uniqueId);
+    component->SetId(UId::New());
 
     return component;
 }
@@ -217,10 +214,9 @@ Component* Components::Copy(Component* component, bool standalone)
 {
     const auto newComponent = Create(component->GetType(), standalone);
 
-    auto buffer = component->SaveData();
+    const auto buffer = component->SaveData();
 
     newComponent->LoadData(buffer);
-
     newComponent->OnCopied();
 
     return newComponent;
@@ -274,6 +270,25 @@ Component* Components::GetByInternalId(ComponentType type, std::uint32_t interna
     auto& block = GetData(type);
 
     return block.GetComponent(internalId);
+}
+
+Component* Components::FindById(const ComponentType type, const UId id)
+{
+    auto& block = GetData(type);
+
+    block.m_IterateDisabledObjects = true;
+
+    for (auto& iter : GetData(type))
+    {
+        if (iter.GetId() == id)
+        {
+            return &iter;
+        }
+    }
+
+    block.m_IterateDisabledObjects = false;
+
+    return nullptr;
 }
 
 void Components::SetIgnoreHighestEntityIndexFlag(bool ignore)

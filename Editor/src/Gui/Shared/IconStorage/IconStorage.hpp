@@ -1,6 +1,11 @@
 #pragma once
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 
+namespace Editor::Gui::AssetHierarchy
+{
+    struct AssetIcon;
+}
+
 namespace Editor::Gui::IconStorage
 {
     void Setup();
@@ -9,7 +14,7 @@ namespace Editor::Gui::IconStorage
 
     void MarkIconDirty(Pine::UId id);
 
-	Pine::Graphics::ITexture* GetIconTexture(Pine::UId id);
+	AssetHierarchy::AssetIcon GetIconTexture(Pine::UId id);
 
     Pine::Graphics::ITexture* GetPreviewTexture();
     void HandlePreviewDragging();

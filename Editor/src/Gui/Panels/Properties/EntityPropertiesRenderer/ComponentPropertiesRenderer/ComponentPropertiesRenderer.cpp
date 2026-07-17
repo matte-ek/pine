@@ -6,6 +6,7 @@
 #include "IconsMaterialDesign.h"
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "mono/metadata/object.h"
+#include "Other/Actions/Actions.hpp"
 #include "Pine/Game/Game.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
@@ -26,9 +27,7 @@
 
 namespace
 {
-    // Keeping this as a "global" variable since I'm too lazy to pass it around
-    // to each RenderBlahBlah function.
-    bool m_UpdatedComponentData = false;
+    using namespace Editor::Actions;
 
     void RenderTransform(Pine::Transform* transform)
     {
@@ -43,12 +42,15 @@ namespace
 
         if (Widgets::Vector3("Position", position))
         {
+            CreateComponentCommand updateCmd(transform, CommandType::Update);
+
             transform->SetLocalPosition(position);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::Vector3("Rotation", rotation, 0.5f))
         {
+            CreateComponentCommand updateCmd(transform, CommandType::Update);
+
             if (!isApplyingRotation)
             {
                 isApplyingRotation = true;
@@ -57,17 +59,16 @@ namespace
             eulerAngles = rotation;
 
             transform->SetEulerAngles(rotation);
-
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::Vector3("Scale", scale))
         {
+            CreateComponentCommand updateCmd(transform, CommandType::Update);
+
             transform->SetLocalScale(scale);
-            m_UpdatedComponentData = true;
         }
 
-        if (isApplyingRotation && !ImGui::IsMouseDown(ImGuiMouseButton_::ImGuiMouseButton_Left))
+        if (isApplyingRotation && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
         {
             isApplyingRotation = false;
         }
@@ -81,16 +82,18 @@ namespace
 
         if (newModelSet)
         {
+            CreateComponentCommand updateCmd(modelRenderer, CommandType::Update);
+
             modelRenderer->SetModel(dynamic_cast<Pine::Model *>(newModel));
-            m_UpdatedComponentData = true;
         }
 
         auto [newOverrideMaterialSet, newOverrideMaterial] = Widgets::AssetPicker("Override Material", modelRenderer->GetOverrideMaterial(), Pine::AssetType::Material);
 
         if (newOverrideMaterialSet)
         {
+            CreateComponentCommand updateCmd(modelRenderer, CommandType::Update);
+
             modelRenderer->SetOverrideMaterial(dynamic_cast<Pine::Material *>(newOverrideMaterial));
-            m_UpdatedComponentData = true;
         }
 
         if (modelRenderer->GetParent() != nullptr &&
@@ -116,26 +119,30 @@ namespace
 
         if (Widgets::DropDown("Camera Type", &cameraType, "Perspective\0Orthographic\0"))
         {
+            CreateComponentCommand updateCmd(camera, CommandType::Update);
+
             camera->SetCameraType(static_cast<Pine::CameraType>(cameraType));
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::SliderFloat("Near Plane", &nearPlane, 0.01f, 10.f))
         {
+            CreateComponentCommand updateCmd(camera, CommandType::Update);
+
             camera->SetNearPlane(nearPlane);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::SliderFloat("Far Plane", &farPlane, 100.0f, 10000.f))
         {
+            CreateComponentCommand updateCmd(camera, CommandType::Update);
+
             camera->SetFarPlane(farPlane);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::SliderFloat("Field of View", &fov, 10.0f, 180.f))
         {
+            CreateComponentCommand updateCmd(camera, CommandType::Update);
+
             camera->SetFieldOfView(fov);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::Checkbox("Use Camera", &isActiveCamera))
@@ -156,34 +163,39 @@ namespace
 
         if (Widgets::DropDown("Light Type", &lightType, "Directional\0Point Light\0Spot Light\0"))
         {
+            CreateComponentCommand updateCmd(light, CommandType::Update);
+
             light->SetLightType(static_cast<Pine::LightType>(lightType));
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::ColorPicker3("Color", lightColor))
         {
+            CreateComponentCommand updateCmd(light, CommandType::Update);
+
             light->SetLightColor(lightColor);
-            m_UpdatedComponentData = true;
         }
 
         if (light->GetLightType() != Pine::LightType::Directional)
         {
             if (Widgets::SliderFloat("Attenuation Constant Factor", &lightAttenuation.x, 0.f, 1.f))
             {
+                CreateComponentCommand updateCmd(light, CommandType::Update);
+
                 light->SetLightAttenuation(lightAttenuation);
-                m_UpdatedComponentData = true;
             }
 
             if (Widgets::SliderFloat("Attenuation Linear Factor", &lightAttenuation.y, 0.f, 1.f))
             {
+                CreateComponentCommand updateCmd(light, CommandType::Update);
+
                 light->SetLightAttenuation(lightAttenuation);
-                m_UpdatedComponentData = true;
             }
 
             if (Widgets::SliderFloat("Attenuation Quadratic Factor", &lightAttenuation.z, 0.f, 1.f))
             {
+                CreateComponentCommand updateCmd(light, CommandType::Update);
+
                 light->SetLightAttenuation(lightAttenuation);
-                m_UpdatedComponentData = true;
             }
         }
 
@@ -191,14 +203,16 @@ namespace
         {
             if (Widgets::SliderFloat("Spotlight Radius", &spotlightRadius, 0.f, 1.f))
             {
+                CreateComponentCommand updateCmd(light, CommandType::Update);
+
                 light->SetSpotlightRadius(spotlightRadius);
-                m_UpdatedComponentData = true;
             }
 
             if (Widgets::SliderFloat("Spotlight Cutoff", &spotlightCutOff, 0.f, 1.f))
             {
+                CreateComponentCommand updateCmd(light, CommandType::Update);
+
                 light->SetSpotlightCutoff(spotlightCutOff);
-                m_UpdatedComponentData = true;
             }
         }
     }
@@ -245,41 +259,48 @@ namespace
 
         if (Widgets::DropDown("Collider Type", &colliderType, "Box\0Sphere\0Capsule\0Convex Mesh\0Concave Mesh\0Height Field\0"))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             collider->SetColliderType(static_cast<Pine::ColliderType>(colliderType));
-            m_UpdatedComponentData = true;
         }
 
         if (colliderType == static_cast<int>(Pine::ColliderType::Box))
         {
             if (Widgets::Vector3("Collider Position", position))
             {
+                CreateComponentCommand updateCmd(collider, CommandType::Update);
+
                 collider->SetPosition(position);
-                m_UpdatedComponentData = true;
             }
 
             if (Widgets::Vector3("Collider Size", size))
             {
+                CreateComponentCommand updateCmd(collider, CommandType::Update);
+
                 collider->SetSize(size);
-                m_UpdatedComponentData = true;
             }
         }
         else
         {
             if (Widgets::InputFloat("Collider Radius", &size.x))
             {
+                CreateComponentCommand updateCmd(collider, CommandType::Update);
+
                 collider->SetRadius(size.x);
-                m_UpdatedComponentData = true;
             }
 
             if (Widgets::InputFloat("Collider Height", &size.y))
             {
+                CreateComponentCommand updateCmd(collider, CommandType::Update);
+
                 collider->SetHeight(size.y);
-                m_UpdatedComponentData = true;
             }
         }
 
         if (Widgets::DropDown("Layer", &layerIndex, layerSelectionBuffer.data()))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             if (layerIndex == 0)
             {
                 collider->SetLayer(Pine::ColliderLayerDefault);
@@ -306,26 +327,27 @@ namespace
                     }
                 }
             }
-
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::LayerSelection("Layer Mask", layerMask))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             collider->SetLayerMask(layerMask);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::Checkbox("Is Trigger", &isTrigger))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             collider->SetIsTrigger(isTrigger);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::LayerSelection("Trigger Mask", triggerMask))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             collider->SetTriggerMask(triggerMask);
-            m_UpdatedComponentData = true;
         }
     }
 
@@ -345,44 +367,51 @@ namespace
 
         if (Widgets::DropDown("Rigid Body Type", &type, "Static\0Kinematic\0Dynamic\0"))
         {
+            CreateComponentCommand updateCmd(rigidBody, CommandType::Update);
+
             rigidBody->SetRigidBodyType(static_cast<Pine::RigidBodyType>(type));
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::SliderFloat("Mass", &mass, 0, 1000))
         {
+            CreateComponentCommand updateCmd(rigidBody, CommandType::Update);
+
             rigidBody->SetMass(mass);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::CheckboxVector3("Position Lock", positionLock))
         {
+            CreateComponentCommand updateCmd(rigidBody, CommandType::Update);
+
             rigidBody->SetPositionLock(positionLock);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::CheckboxVector3("Rotation Lock", rotationLock))
         {
+            CreateComponentCommand updateCmd(rigidBody, CommandType::Update);
+
             rigidBody->SetRotationLock(rotationLock);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::Checkbox("Gravity Enabled", &gravityEnabled))
         {
+            CreateComponentCommand updateCmd(rigidBody, CommandType::Update);
+
             rigidBody->SetGravityEnabled(gravityEnabled);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::SliderFloat("Max Linear Velocity", &maxLinearVelocity, 0, 1000))
         {
+            CreateComponentCommand updateCmd(rigidBody, CommandType::Update);
+
             rigidBody->SetMaxLinearVelocity(maxLinearVelocity);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::SliderFloat("Max Angular Velocity", &maxAngularVelocity, 0, 1000))
         {
+            CreateComponentCommand updateCmd(rigidBody, CommandType::Update);
+
             rigidBody->SetMaxAngularVelocity(maxAngularVelocity);
-            m_UpdatedComponentData = true;
         }
     }
 
@@ -397,20 +426,23 @@ namespace
 
         if (newStaticTextureSet)
         {
+            CreateComponentCommand updateCmd(spriteRenderer, CommandType::Update);
+
             spriteRenderer->SetTexture(dynamic_cast<Pine::Texture2D *>(newStaticTexture));
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::DropDown("Scaling Mode", &scalingMode, "Stretch\0Repeat\0"))
         {
+            CreateComponentCommand updateCmd(spriteRenderer, CommandType::Update);
+
             spriteRenderer->SetScalingMode(static_cast<Pine::SpriteScalingMode>(scalingMode));
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::InputInt("Order", &order))
         {
+            CreateComponentCommand updateCmd(spriteRenderer, CommandType::Update);
+
             spriteRenderer->SetOrder(order);
-            m_UpdatedComponentData = true;
         }
     }
 
@@ -424,14 +456,16 @@ namespace
 
         if (newTilemapSet)
         {
+            CreateComponentCommand updateCmd(tilemapRenderer, CommandType::Update);
+
             tilemapRenderer->SetTilemap(dynamic_cast<Pine::Tilemap *>(newTilemap));
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::InputInt("Order", &order))
         {
+            CreateComponentCommand updateCmd(tilemapRenderer, CommandType::Update);
+
             tilemapRenderer->SetOrder(order);
-            m_UpdatedComponentData = true;
         }
 
         if (tilemapRenderer->GetTilemap() != nullptr && tilemapRenderer->GetTilemap()->GetTileset() != nullptr)
@@ -557,26 +591,30 @@ namespace
 
         if (Widgets::DropDown("Collider Type", &colliderType, "Box\0Sprite\0Tilemap"))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             collider->SetColliderType(static_cast<Pine::Collider2DType>(colliderType));
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::Vector2("Collider Offset", offset))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             collider->SetOffset(offset);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::Vector2("Collider Size", size))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             collider->SetSize(size);
-            m_UpdatedComponentData = true;
         }
 
         if (Widgets::InputFloat("Collider Rotation", &rotation))
         {
+            CreateComponentCommand updateCmd(collider, CommandType::Update);
+
             collider->SetRotation(rotation);
-            m_UpdatedComponentData = true;
         }
     }
 
@@ -588,8 +626,9 @@ namespace
 
         if (Widgets::DropDown("Rigid Body Type", &type, "Static\0Kinematic\0Dynamic\0"))
         {
+            CreateComponentCommand updateCmd(rigidBody2D, CommandType::Update);
+
             rigidBody2D->SetRigidBodyType(static_cast<Pine::RigidBody2DType>(type));
-            m_UpdatedComponentData = true;
         }
     }
 
@@ -603,8 +642,9 @@ namespace
 
         if (newTerrain.hasResult)
         {
+            CreateComponentCommand updateCmd(terrainRendererComponent, CommandType::Update);
+
             terrainRendererComponent->SetTerrain(dynamic_cast<Pine::Terrain*>(newTerrain.asset));
-            m_UpdatedComponentData = true;
         }
     }
 
@@ -626,14 +666,19 @@ namespace
 
             if (ImGui::Checkbox(std::string("Active##" + std::to_string(index)).c_str(), &isActive))
             {
+                CreateComponentCommand createCmd(component, CommandType::Update);
+
                 component->SetActive(isActive);
             }
 
-            ImGui::SameLine(ImGui::GetContentRegionAvail().x - 24.f);
+            ImGui::SameLine(ImGui::GetContentRegionAvail().x - 38.f);
 
             if (ImGui::Button(std::string(ICON_MD_DELETE "##" + std::to_string(index)).c_str()))
             {
+                CreateComponentCommand command(component, CommandType::Delete);
+
                 component->GetParent()->RemoveComponent(component);
+
                 return;
             }
 
@@ -644,8 +689,6 @@ namespace
             }
 
             ImGui::Spacing();
-
-            m_UpdatedComponentData = false;
 
             switch (component->GetType())
             {
@@ -695,5 +738,6 @@ namespace
 bool ComponentPropertiesRenderer::Render(Pine::Component* component, int index)
 {
     RenderComponent(component, index);
-    return m_UpdatedComponentData;
+
+    return HasItemUpdated();
 }

@@ -47,7 +47,7 @@ namespace
 
                 if (newNode->Asset.Get())
                 {
-                    newNode->DisplayIcon = Editor::Gui::IconStorage::GetIconTexture(newNode->Asset->GetUId());
+                    newNode->Icon = Editor::Gui::IconStorage::GetIconTexture(newNode->Asset->GetUId());
                 }
             }
             else

@@ -55,9 +55,8 @@ namespace Widgets
     EntityPickerResult EntityPicker(const std::string& str, const std::string& id, const Pine::Entity* entity);
     EntityPickerResult EntityPicker(const std::string& str, const Pine::Entity* entity);
 
-
-    bool Icon(const std::string& text, Pine::Graphics::ITexture *texture, bool showBackground, int size = 64);
-    bool Icon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, int size = 64);
+    int AssetIcon(const std::string& text, Pine::Graphics::ITexture *texture, bool showBackground, const char* bottomText, int size = 64);
+    int AssetIcon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, const char* bottomText, int size = 64);
 
     void TilesetAtlas(Pine::Tileset* tileset, int& selectedItem);
 

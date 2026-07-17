@@ -7,14 +7,14 @@ Pine::Component::Component(ComponentType type)
 {
 }
 
-void Pine::Component::SetUniqueId(std::uint64_t id)
+void Pine::Component::SetId(UId id)
 {
-    m_UniqueId = id;
+    m_Id = id;
 }
 
-std::uint64_t Pine::Component::GetUniqueId() const
+Pine::UId Pine::Component::GetId() const
 {
-    return m_UniqueId;
+    return m_Id;
 }
 
 void Pine::Component::SetActive(bool value)
@@ -50,6 +50,11 @@ void Pine::Component::SetParent(Entity* entity)
 Pine::Entity* Pine::Component::GetParent() const
 {
     return m_Parent;
+}
+
+Pine::Transform* Pine::Component::GetTransform() const
+{
+    return m_Parent->GetTransform();
 }
 
 void Pine::Component::OnCreated()

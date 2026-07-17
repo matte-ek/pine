@@ -47,7 +47,7 @@ Pine::Vector2i Panels::GameViewport::GetSize()
 
 void Panels::GameViewport::Render()
 {
-    if (!ImGui::Begin(ICON_MD_SPORTS_ESPORTS " Game", &m_Active))
+    if (!ImGui::Begin(ICON_MD_SPORTS_ESPORTS "  Game", &m_Active))
     {
         m_Visible = false;
         ReleaseCapture();
@@ -59,12 +59,12 @@ void Panels::GameViewport::Render()
 
     if (PlayHandler::GetGameState() == PlayHandler::EditorGameState::Stopped)
     {
-        if (ImGui::Button(ICON_MD_PLAY_ARROW, ImVec2(45.f, 24.f)))
+        if (ImGui::Button(ICON_MD_PLAY_ARROW, ImVec2(45.f, 0.f)))
             PlayHandler::Play();
     }
     else
     {
-        if (ImGui::Button(ICON_MD_STOP, ImVec2(45.f, 24.f)))
+        if (ImGui::Button(ICON_MD_STOP, ImVec2(45.f, 0.f)))
             PlayHandler::Stop();
     }
 
@@ -77,8 +77,7 @@ void Panels::GameViewport::Render()
 
     m_Size = Pine::Vector2i(avSize.x, avSize.y);
 
-    ImGui::Image(id, avSize,
-                 ImVec2(0.f, renderScale.y), ImVec2(renderScale.x, 0.f));
+    ImGui::Image(id, avSize, ImVec2(0.f, renderScale.y), ImVec2(renderScale.x, 0.f));
 
     const bool viewportClickedLeft = ImGui::IsItemClicked(ImGuiMouseButton_Left);
 

@@ -24,6 +24,8 @@ namespace Pine
         std::uint64_t GetTime() const;
         std::uint64_t GetRandom() const;
 
+        bool IsValid() const;
+
         std::string ToString() const;
 
         bool operator==(const UId& other) const;

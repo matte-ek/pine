@@ -112,11 +112,12 @@ void Editor::Commands::Delete()
 
 void Editor::Commands::Undo()
 {
-    Actions::Undo();
+    Actions::ExecuteUndo();
 }
 
 void Editor::Commands::Redo()
 {
+    Actions::ExecuteRedo();
 }
 
 void Editor::Commands::Refresh(bool engineAssets)

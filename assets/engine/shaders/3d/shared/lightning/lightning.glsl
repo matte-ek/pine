@@ -17,13 +17,13 @@ BaseLightResult CalculateBaseLightning(Surface surface)
     vec3 halfwayDirection = normalize(surface.lightDirection + vIn.cameraDir);
     float specularFactor = pow(max(dot(surface.normal, halfwayDirection), 0.0), surface.shininess);
 
-    vec3 ambient    = (surface.ambientColor + (world.ambientColor.rgb * diffuseColor)) * surface.diffuseColor;
-    vec3 diffuse    = surface.lightColor * diffuseColor * surface.diffuseColor * diffuseFactor;
+    vec3 ambient    = (surface.ambientColor + (world.ambientColor.rgb * diffuseColor));
+    vec3 diffuse    = surface.lightColor * diffuseColor * diffuseFactor;
     vec3 specular   = surface.lightColor * surface.specularColor * specularFactor;
 
     result.diffuse = diffuse;
     result.specular = specular;
-    //result.ambient = max(0.5 - diffuseFactor, 0) * ambient;
+    //result.ambient = max(0.5 -PP diffuseFactor, 0) * ambient;
     result.ambient = ambient;
 
     return result;
@@ -36,7 +36,7 @@ vec3 CalculateDirectionalLight(Surface surface)
 
     BaseLightResult result = CalculateBaseLightning(surface);
 
-    result.diffuse *= ComputeShadowFactor();
+    result.diffuse *= min(ComputeShadowFactor(), 1);
 
     return result.diffuse + result.specular + result.ambient;
 }

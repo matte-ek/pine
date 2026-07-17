@@ -101,7 +101,7 @@ Entity* Entities::Create()
     const auto entityPtr = &m_Entities[availableEntityIndex];
 
     // Call constructor on the entity
-    new(entityPtr) Entity(m_EntityId++, availableEntityIndex);
+    new(entityPtr) Entity(UId::New(), availableEntityIndex);
 
     // Mark the slot as occupied
     m_EntityOccupationArray[availableEntityIndex] = true;
@@ -131,7 +131,7 @@ Entity* Entities::Find(const std::string& name)
     return nullptr;
 }
 
-Entity* Entities::Find(std::uint32_t id)
+Entity* Entities::Find(UId id)
 {
     for (const auto entity : m_EntityPointerList)
     {
@@ -264,12 +264,9 @@ void Entities::MoveEntity(const Entity* entity, std::size_t newIndex)
     MoveElementInVector(m_EntityPointerList, oldIndex, newIndex);
 }
 
-Entity *Entities::GetByInternalId(std::uint32_t internalId)
+Entity *Entities::GetByInternalId(const std::uint32_t internalId)
 {
-    if (internalId >= m_MaxEntityCount)
-    {
-        return nullptr;
-    }
+    assert(internalId < m_MaxEntityCount);
 
     if (!m_EntityOccupationArray[internalId])
     {

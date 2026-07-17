@@ -46,7 +46,7 @@ void Panels::Console::Render()
     if (!m_Active)
         return;
 
-    if (ImGui::Begin(ICON_MD_TERMINAL " Console", &m_Active))
+    if (ImGui::Begin(ICON_MD_TERMINAL "  Console", &m_Active))
     {
         const auto& messages = Pine::Log::GetLogMessages();
 

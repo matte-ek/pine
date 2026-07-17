@@ -52,16 +52,17 @@ namespace
         }
 
         const auto isSelected = Selection::IsSelected(node->Asset.Get());
-        const auto icon = node->DisplayIcon == nullptr ? fileIcon->GetGraphicsTexture() : node->DisplayIcon;
-
+        const auto icon = node->Icon.DisplayIcon == nullptr ? fileIcon->GetGraphicsTexture() : node->Icon.DisplayIcon;
+        const auto bottomText = node->Asset.Get() != nullptr ? Pine::AssetTypeToString(node->Asset->GetType()) : nullptr;
         bool isClicked = false;
 
-        if (Widgets::Icon(node->DisplayText, icon, isSelected, m_IconSize))
+        const auto iconRes = Widgets::AssetIcon(node->DisplayText, icon, isSelected, bottomText, m_IconSize);
+
+        if (iconRes == 1)
         {
             isClicked = true;
         }
-
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+        else if (iconRes == 2)
         {
             isClicked = true;
             ImGui::OpenPopup("AssetContextMenu");
@@ -101,7 +102,9 @@ namespace
 
         AssetHierarchy::Node* selectedNode = nullptr;
 
-        if (Widgets::Icon(node->DisplayText, folderIcon, m_SelectedNode == node, m_IconSize))
+        const std::string bottomText = node->IsBackwardsDirectory ? "Previous" : std::to_string(node->Children.size() - 1) + " item(s)";
+
+        if (Widgets::AssetIcon(node->DisplayText, folderIcon, m_SelectedNode == node, bottomText.c_str(), m_IconSize))
         {
             // Somewhat special hack for the "..." backwards directory.
             if (node->IsBackwardsDirectory)
@@ -111,7 +114,7 @@ namespace
         }
 
         // Allow drag dropping of the directory.
-        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+        if (ImGui::BeginDragDropSource())
         {
             ImGui::Image(*static_cast<std::uint64_t*>(folderIcon->GetGraphicsTexture()->GetGraphicsIdentifier()), ImVec2(64.f, 64.f));
             ImGui::SameLine();
@@ -174,6 +177,8 @@ namespace
             {
                 clickedNode = file;
             }
+
+            ImGui::Dummy(ImVec2(1.f, 6.f));
 
             ImGui::NextColumn();
         }
@@ -248,7 +253,7 @@ namespace
         }
         else
         {
-            renderText = ICON_MD_FOLDER " " + node->DisplayText + "##" + node->Path.string();
+            renderText = ICON_MD_FOLDER "   " + node->DisplayText + "##" + node->Path.string();
         }
 
         if (!hasDirectoryChildren)
@@ -258,7 +263,7 @@ namespace
             // Oh yes, this is stupid as fuck.
             // Just hacky workaround since I do not
             // know how to deal with imgui properly.
-            renderText = "         " + renderText;
+            renderText = "                " + renderText;
         }
 
         bool restoreFrameColor = false;
@@ -390,7 +395,7 @@ void Panels::AssetBrowser::BuildAssetHierarchy()
 
 void Panels::AssetBrowser::Render()
 {
-    if (!ImGui::Begin(ICON_MD_FOLDER_OPEN " Asset Browser", &m_Active))
+    if (!ImGui::Begin(ICON_MD_FOLDER "  Asset Browser", &m_Active))
     {
         ImGui::End();
 
@@ -428,7 +433,7 @@ void Panels::AssetBrowser::Render()
         ImGui::BeginChild("##AssetsBrowser", ImVec2(-1.f, -1.f), ImGuiChildFlags_Borders, 0);
         {
             const bool isSearching = strlen(m_SearchBuffer) > 0;
-            const int iconSizePadding = m_IconSize + 16;
+            const int iconSizePadding = 120;
             const float spaceAvailable = ImGui::GetContentRegionAvail().x - static_cast<float>(iconSizePadding * 2);
             const int nrColumns = static_cast<int>(spaceAvailable) / iconSizePadding;
 

@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include "Pine/Core/Span/Span.hpp"
+#include "Pine/Core/UId/UId.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace Pine
@@ -107,6 +108,7 @@ namespace Pine
     }
 
     class Entity;
+    class Transform;
 
     class Component
     {
@@ -120,7 +122,7 @@ namespace Pine
 
         ComponentType m_Type = ComponentType::Transform;
 
-        std::uint64_t m_UniqueId = 0;
+        UId m_Id{};
         std::uint32_t m_InternalId = 0;
 
         Entity *m_Parent = nullptr;
@@ -129,8 +131,8 @@ namespace Pine
 
         virtual ~Component() = default;
 
-        void SetUniqueId(std::uint64_t id);
-        std::uint64_t GetUniqueId() const;
+        void SetId(UId id); // Please do not use unless you have to :-)
+        UId GetId() const;
 
         void SetInternalId(std::uint32_t id);
         std::uint32_t GetInternalId() const;
@@ -143,6 +145,8 @@ namespace Pine
 
         void SetParent(Entity *entity);
         Entity *GetParent() const;
+
+        Transform* GetTransform() const;
 
         bool IsWorldEnabled() const;
 

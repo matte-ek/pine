@@ -11,7 +11,7 @@ namespace Pine::Entities
     Entity* Create(const std::string& name);
 
     Entity* Find(const std::string& name);
-    Entity* Find(std::uint32_t id);
+    Entity* Find(UId id);
 
     Entity* GetByInternalId(std::uint32_t internalId);
 

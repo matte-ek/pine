@@ -30,7 +30,7 @@ namespace
     {
         // Add the id to the name after '##' (which ImGui won't render) to avoid duplicate id issues,
         // since ImGui builds an id from the widget name.
-        const std::string renderText = entity->GetName() + "##" + std::to_string(entity->GetId());
+        const std::string renderText = entity->GetName() + "##" + std::to_string(entity->GetInternalId());
 
         auto flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen |
                      ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed;
@@ -206,7 +206,7 @@ bool Panels::EntityList::GetActive()
 
 void Panels::EntityList::Render()
 {
-    if (!ImGui::Begin(ICON_MD_SORT " Entity List", &m_Active))
+    if (!ImGui::Begin(ICON_MD_SORT "  Entity List", &m_Active))
     {
         ImGui::End();
 

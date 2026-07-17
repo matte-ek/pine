@@ -34,28 +34,26 @@ float ComputeShadowFactor()
         for (int y = -1;y <= 1;y++)
         {
             shadow += texture(ShadowMap, 
-                vec4(samplePoint.x + x * texelSize, samplePoint.y + y * texelSize, cascadeIndex, currentDepth)).x;
-
-            // Manual PCF:
-            // shadow += mix(0.45, 1.0, step(currentDepth - depth, 0.002));
+                              vec4(samplePoint.x + x * texelSize, samplePoint.y + y * texelSize, cascadeIndex, currentDepth)).x;
         }
     }
 
     shadow /= 9.0;
+    shadow += 0.95;
     shadow = min(shadow, 1);
-    shadow = max(shadow, 0.4);
+    shadow = max(shadow, 0.9);
 
     return shadow;
 
     // For debugging of CSM
     /*
-            if (cascadeIndex == 0) 
-                result.diffuse *= vec3(0, 1, 0);
-            else if (cascadeIndex == 1)
-                result.diffuse *= vec3(1, 1, 0);
-            else if (cascadeIndex == 2)
-                result.diffuse *= vec3(1, 0, 0);
-            else if (cascadeIndex == 3)
-                result.diffuse *= vec3(0, 0, 1);
+    if (cascadeIndex == 0) 
+        result.diffuse *= vec3(0, 1, 0);
+    else if (cascadeIndex == 1)
+        result.diffuse *= vec3(1, 1, 0);
+    else if (cascadeIndex == 2)
+        result.diffuse *= vec3(1, 0, 0);
+    else if (cascadeIndex == 3)
+        result.diffuse *= vec3(0, 0, 1);
     */
 }

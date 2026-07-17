@@ -12,7 +12,7 @@ namespace Pine
     class Entity
     {
     private:
-        std::uint32_t m_Id = 0;
+        UId m_Id;
         std::uint32_t m_InternalId = 0;
 
         bool m_Active = true;
@@ -38,13 +38,12 @@ namespace Pine
 
         Entity* m_Parent = nullptr;
 
-        //AssetHandle<Blueprint> m_AssetBlueprint;
     public:
-        explicit Entity(std::uint32_t id);
-        Entity(std::uint32_t id, std::uint32_t internalId);
+        explicit Entity(UId id);
+        Entity(UId id, std::uint32_t internalId);
         ~Entity();
 
-        std::uint32_t GetId() const;
+        UId GetId() const;
         std::uint32_t GetInternalId() const;
 
         void SetActive(bool value);
@@ -67,9 +66,6 @@ namespace Pine
 
         void SetParent(Entity* entity);
         Entity* GetParent() const;
-
-        //void SetBlueprint(Blueprint* blueprint);
-        //Blueprint* GetBlueprint() const;
 
         void CreateScriptHandle();
         void DestroyScriptHandle();
@@ -170,6 +166,21 @@ namespace Pine
 
         static Entity* Create();
         static Entity* Create(const std::string& name);
+    };
+
+    struct EntityHandle
+    {
+    private:
+        UId m_Id{};
+        std::uint32_t m_InternalId{};
+    public:
+        EntityHandle();
+        explicit EntityHandle(const Entity* entity);
+
+        Entity* Get();
+
+        Entity* operator->();
+        EntityHandle& operator=(const Entity* entity);
     };
 
 }

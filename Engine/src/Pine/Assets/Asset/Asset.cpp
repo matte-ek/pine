@@ -56,6 +56,11 @@ const std::filesystem::path& Pine::Asset::GetFilePath() const
     return m_FilePath;
 }
 
+std::string Pine::Asset::GetFileName() const
+{
+    return std::filesystem::path(GetFilePath()).replace_extension("").filename().string();
+}
+
 void Pine::Asset::AddSource(const std::string& filePath)
 {
     AssetSource src;

@@ -119,6 +119,11 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         return;
     }
 
+    if (!shader->HasShaderVersion(0))
+    {
+        return;
+    }
+
     if (shader->GetProgram() != m_Shader ||
         m_ShaderVersion != static_cast<std::uint32_t>(version) ||
         !shader->IsRendererReady())

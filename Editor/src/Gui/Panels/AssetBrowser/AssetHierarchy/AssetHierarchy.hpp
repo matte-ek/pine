@@ -21,6 +21,13 @@ namespace Editor::Gui::AssetHierarchy
         File
     };
 
+    struct AssetIcon
+    {
+        bool IsDynamic = false;
+        Pine::Graphics::ITexture* DisplayIcon = nullptr;
+        Pine::Graphics::ITexture* DisplayIconStatic = nullptr;
+    };
+
     struct Node
     {
         // The underlying full path of the pine asset file or directory.
@@ -37,7 +44,7 @@ namespace Editor::Gui::AssetHierarchy
 
         // How the node will be displayed in the asset browser.
         std::string DisplayText;
-        Pine::Graphics::ITexture* DisplayIcon = nullptr;
+        AssetIcon Icon;
 
         // Special case, this node does not really exist on disk but is used to provide the
         //  "..." folder functionally in the asset browser, to go back to the parent directory.

@@ -136,7 +136,7 @@ void Pine::InputBind::Update()
 
 void Pine::Input::Setup()
 {
-    m_InputContexts.push_back(new Pine::InputContext("Default"));
+    m_InputContexts.push_back(new InputContext("Default"));
     m_Context = m_InputContexts[0];
 }
 
@@ -148,7 +148,7 @@ void Pine::Input::Update()
 {
     PINE_PF_SCOPE();
 
-    auto window = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto window = static_cast<GLFWwindow*>(WindowManager::GetWindowPointer());
     m_Window = window;
 
     // Update keys

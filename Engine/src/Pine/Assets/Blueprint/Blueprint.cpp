@@ -81,7 +81,7 @@ namespace
 
         for (int i = 0; i < entitySerializer.Children.GetDataCount();i++)
         {
-            auto child = new Pine::Entity(0);
+            auto child = new Pine::Entity(Pine::UId::Empty());
 
             entity->AddChild(child);
 
@@ -118,7 +118,7 @@ void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, bool createInst
         if (createInstance)
             newChild = Entity::Create();
         else
-            newChild = new Entity(0);
+            newChild = new Entity(UId::Empty());
 
         dst->AddChild(newChild);
 
@@ -151,7 +151,7 @@ bool Pine::Blueprint::HasEntity() const
 
 void Pine::Blueprint::CreateFromEntity(const Entity* entity)
 {
-    m_Entity = new Entity(0);
+    m_Entity = new Entity(UId::Empty());
 
    CopyEntity(m_Entity, entity, false);
 }
@@ -172,7 +172,7 @@ Pine::Entity* Pine::Blueprint::Spawn() const
 
 void Pine::Blueprint::FromByteSpan(const ByteSpan& byteSpan)
 {
-    m_Entity = new Entity(0);
+    m_Entity = new Entity(UId::Empty());
 
     LoadEntity(byteSpan, m_Entity);
 }

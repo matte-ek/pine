@@ -2,12 +2,12 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
-Pine::Entity::Entity(std::uint32_t id)
+Pine::Entity::Entity(const UId id)
     : m_Id(id)
 {
 }
 
-Pine::Entity::Entity(std::uint32_t id, std::uint32_t internalId)
+Pine::Entity::Entity(const UId id, const std::uint32_t internalId)
         : m_Id(id), m_InternalId(internalId)
 {
     CreateScriptHandle();
@@ -31,11 +31,11 @@ Pine::Entity::~Entity()
 
     // If the id is zero, this entity is not part of the world, therefore we'll have to do things
     // a bit more manually.
-    if (m_Id == 0)
+    if (m_Id == UId::Empty())
     {
-        auto children = m_Children;
+        const auto children = m_Children;
 
-        for (auto child : children)
+        for (const auto child : children)
         {
             delete child;
         }
@@ -58,7 +58,7 @@ Pine::Entity::~Entity()
     DestroyScriptHandle();
 }
 
-std::uint32_t Pine::Entity::GetId() const
+Pine::UId Pine::Entity::GetId() const
 {
     return m_Id;
 }
@@ -137,18 +137,6 @@ Pine::Entity* Pine::Entity::GetParent() const
 {
     return m_Parent;
 }
-
-/*
-void Pine::Entity::SetBlueprint(Blueprint *blueprint)
-{
-    m_AssetBlueprint = blueprint;
-}
-
-Pine::Blueprint * Pine::Entity::GetBlueprint() const
-{
-    return m_AssetBlueprint.Get();
-}
-*/
 
 Pine::Component* Pine::Entity::AddComponent(ComponentType type)
 {
@@ -285,6 +273,47 @@ Pine::Entity* Pine::Entity::Create(const std::string& name)
     return Entities::Create(name);
 }
 
+Pine::EntityHandle::EntityHandle() = default;
+
+Pine::EntityHandle::EntityHandle(const Entity* entity)
+{
+    m_Id = entity->GetId();
+    m_InternalId = entity->GetInternalId();
+}
+
+Pine::Entity* Pine::EntityHandle::Get()
+{
+    if (!m_Id.IsValid())
+    {
+        return nullptr;
+    }
+
+    const auto entity = Entities::GetByInternalId(m_InternalId);
+
+    if (entity->GetId() != m_Id)
+    {
+        // As of right now, pine internal entities does not move
+        // therefore we won't bother finding the new internal id, as it does not exist.
+        m_Id = UId::Empty();
+        return nullptr;
+    }
+
+    return entity;
+}
+
+Pine::Entity* Pine::EntityHandle::operator->()
+{
+    return Get();
+}
+
+Pine::EntityHandle& Pine::EntityHandle::operator=(const Entity* entity)
+{
+    m_Id = entity->GetId();
+    m_InternalId = entity->GetInternalId();
+
+    return *this;
+}
+
 Pine::Script::ObjectHandle *Pine::Entity::GetScriptHandle()
 {
     return &m_EntityScriptHandle;
@@ -292,7 +321,8 @@ Pine::Script::ObjectHandle *Pine::Entity::GetScriptHandle()
 
 void Pine::Entity::CreateScriptHandle()
 {
-    m_EntityScriptHandle = Script::ObjectFactory::CreateEntity(m_Id, m_InternalId);
+    // TODO: Fix me with new ID.
+    m_EntityScriptHandle = Script::ObjectFactory::CreateEntity(0, m_InternalId);
 }
 
 void Pine::Entity::DestroyScriptHandle()

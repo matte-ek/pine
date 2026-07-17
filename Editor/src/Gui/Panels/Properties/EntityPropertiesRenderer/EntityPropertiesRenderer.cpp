@@ -6,6 +6,7 @@
 #include "imgui.h"
 #include "ComponentPropertiesRenderer/ComponentPropertiesRenderer.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
+#include "Other/Actions/Actions.hpp"
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Game/Game.hpp"
@@ -169,7 +170,9 @@ namespace
                         throw std::runtime_error("Failed to create component through gui, invalid component type.");
                     }
 
-                    entity->AddComponent(selectedComponentType);
+                    const auto component = entity->AddComponent(selectedComponentType);
+
+                    Editor::Actions::CreateComponentCommand(component, Editor::Actions::CommandType::Create);
                 }
 
                 ImGui::CloseCurrentPopup();
@@ -225,49 +228,27 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 		    // Copy component data directly to the other selected entities,
 			// this is not ideal in all scenarios, but something is better than nothing
 			// when dealing with a lot of entities.
-			for (auto selectedEntity : Selection::GetSelectedEntities())
+			for (const auto selectedEntity : Selection::GetSelectedEntities())
 			{
 			    if (entity == selectedEntity)
 			    {
 					continue;
 			    }
 
-				auto selectedEntityComponent = selectedEntity->GetComponent(component->GetType());
+				const auto selectedEntityComponent = selectedEntity->GetComponent(component->GetType());
 
 				if (!selectedEntityComponent)
 				{
 					continue;
 				}
 
-
 				auto data = component->SaveData();
+				selectedEntityComponent->LoadData(data);
 				selectedEntityComponent->LoadData(data);
 			}
 		}
 
-	    // Store actions for undo/redo
-	    static bool saveComponentAction = false;
-
-	    if (updatedComponentData)
-	    {
-	        if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-	        {
-	            saveComponentAction = true;
-	        }
-	        else
-	        {
-	            //Actions::RegisterComponentAction(Actions::Modify, component);
-	        }
-	    }
-
-	    if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && saveComponentAction)
-	    {
-	        saveComponentAction = false;
-
-	        entity->SetDirty(true);
-
-	        //Actions::RegisterComponentAction(Actions::Modify, component);
-	    }
+	    ImGui::Spacing();
 
 		index++;
 	}

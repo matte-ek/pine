@@ -66,7 +66,7 @@ void Panels::Game::Render()
     if (!m_Active)
         return;
 
-    if (ImGui::Begin(ICON_MD_SPORTS_ESPORTS " Game Properties", &m_Active))
+    if (ImGui::Begin(ICON_MD_SPORTS_ESPORTS "  Game Properties", &m_Active))
     {
         if (ImGui::CollapsingHeader("Meta"))
         {

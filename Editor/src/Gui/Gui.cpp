@@ -12,6 +12,7 @@
 #include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
 #include "Gui/Shared/Gizmo/Gizmo3D/Gizmo3D.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
+#include "Other/Actions/Actions.hpp"
 #include "Other/EntitySelection/EntitySelection.hpp"
 #include "Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Panels/Console/ConsolePanel.hpp"
@@ -51,11 +52,12 @@ namespace
         auto& style = ImGui::GetStyle();
 
         style.WindowPadding = ImVec2(8, 8);
-        style.FramePadding = ImVec2(8, 4);
+        style.FramePadding = ImVec2(14, 6);
         style.CellPadding = ImVec2(5, 5);
-        style.ItemSpacing = ImVec2(4, 4);
+        style.ItemSpacing = ImVec2(6, 6);
         style.GrabMinSize = 8.f;
         style.FrameRounding = 4.f;
+        style.ChildRounding = 4.f;
         style.GrabRounding = 4.f;
         style.ScrollbarSize = 10.f;
         style.PopupRounding = 4.f;
@@ -69,7 +71,7 @@ namespace
         colors[ImGuiCol_WindowBg] = ImVec4(0.04f, 0.05f, 0.05f, 1.00f);
         colors[ImGuiCol_PopupBg] = ImVec4(0.05f, 0.07f, 0.08f, 1.00f);
         colors[ImGuiCol_Border] = ImVec4(0.05f, 0.08f, 0.07f, 1.00f);
-        colors[ImGuiCol_FrameBg] = ImVec4(0.09f, 0.13f, 0.12f, 1.00f);
+        colors[ImGuiCol_FrameBg] = ImVec4(0.068f, 0.093f, 0.086f, 1.00f);
         colors[ImGuiCol_FrameBgHovered] = ImVec4(0.11f, 0.15f, 0.14f, 1.00f);
         colors[ImGuiCol_FrameBgActive] = ImVec4(0.07f, 0.10f, 0.09f, 1.00f);
         colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.05f, 0.05f, 1.00f);
@@ -205,6 +207,7 @@ namespace
         Panels::Game::Render();
 
         Editor::Commands::Update();
+        Editor::Actions::Update();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include "Gui/Panels/AssetBrowser/AssetHierarchy/AssetHierarchy.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Model/Model.hpp"
@@ -94,7 +95,7 @@ namespace
 
         if (sphereEntity == nullptr)
         {
-            sphereEntity = new Pine::Entity(0);
+            sphereEntity = new Pine::Entity(Pine::UId::Empty());
             sphereEntity->AddComponent(new Pine::Transform());
             sphereEntity->GetTransform()->SetLocalPosition(Pine::Vector3f(0, 0, -0.2f));
             sphereEntity->GetTransform()->SetLocalScale(Pine::Vector3f(10.f));
@@ -127,7 +128,7 @@ namespace
 
         if (modelEntity == nullptr)
         {
-            modelEntity = new Pine::Entity(0);
+            modelEntity = new Pine::Entity(Pine::UId::Empty());
             modelEntity->AddComponent(new Pine::Transform());
         }
 
@@ -176,7 +177,7 @@ namespace
 
         if (lightEntity == nullptr)
         {
-            lightEntity = new Pine::Entity(0);
+            lightEntity = new Pine::Entity(Pine::UId::Empty());
 
             lightEntity->AddComponent(new Pine::Transform());
             lightEntity->AddComponent(new Pine::Light());
@@ -186,7 +187,7 @@ namespace
 
         if (cameraEntity == nullptr)
         {
-            cameraEntity = new Pine::Entity(0);
+            cameraEntity = new Pine::Entity(Pine::UId::Empty());
 
             cameraEntity->AddComponent(new Pine::Transform());
             cameraEntity->AddComponent(new Pine::Camera());
@@ -332,18 +333,23 @@ void Editor::Gui::IconStorage::Update()
     }
 }
 
-Pine::Graphics::ITexture* Editor::Gui::IconStorage::GetIconTexture(Pine::UId id)
+Editor::Gui::AssetHierarchy::AssetIcon Editor::Gui::IconStorage::GetIconTexture(Pine::UId id)
 {
     static auto invalidAssetIcon = Pine::Assets::Get<Pine::Texture2D>("editor/icons/file");
 
     if (!invalidAssetIcon)
     {
-        return nullptr;
+        return {};
     }
 
     if (!m_IconCache.count(id) || !m_IconCache[id].StaticTexture)
     {
-        return invalidAssetIcon->GetGraphicsTexture();
+        return
+        {
+            .IsDynamic = false,
+            .DisplayIcon = invalidAssetIcon->GetGraphicsTexture(),
+            .DisplayIconStatic = invalidAssetIcon->GetGraphicsTexture()
+        };
     }
 
     auto& icon = m_IconCache[id];
@@ -360,10 +366,20 @@ Pine::Graphics::ITexture* Editor::Gui::IconStorage::GetIconTexture(Pine::UId id)
             icon.m_Dirty = true;
         }
 
-        return icon.DynamicTexture->GetColorBuffer();
+        return
+        {
+            .IsDynamic = true,
+            .DisplayIcon = icon.DynamicTexture->GetColorBuffer(),
+            .DisplayIconStatic = icon.StaticTexture->GetGraphicsTexture()
+        };
     }
 
-    return m_IconCache[id].StaticTexture->GetGraphicsTexture();
+    return
+    {
+        .IsDynamic = false,
+        .DisplayIcon = icon.StaticTexture->GetGraphicsTexture(),
+        .DisplayIconStatic = icon.StaticTexture->GetGraphicsTexture()
+    };
 }
 
 Pine::Graphics::ITexture* Editor::Gui::IconStorage::GetPreviewTexture()
