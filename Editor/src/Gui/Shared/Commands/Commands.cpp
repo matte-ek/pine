@@ -1,7 +1,6 @@
 #include "Commands.hpp"
-#include <GLFW/glfw3.h>
 
-#include "../../../../../cmake-build-debug/vcpkg_installed/x64-linux/include/imgui_internal.h"
+#include "imgui.h"
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Gui/Shared/KeybindSystem/KeybindSystem.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
