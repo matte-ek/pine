@@ -17,7 +17,10 @@ sudo pacman -S --needed \
     libpng \
     zlib \
     wget \
-    7zip
+    7zip \
+    glm \
+    freetype2 \
+    nlohmann-json \
 
 echo Building PhysX 5.9.0
 
