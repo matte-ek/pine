@@ -18,7 +18,8 @@ namespace Pine::Importer
             const void* inputData,
             unsigned int width,
             unsigned int height,
-            unsigned int channels);
+            unsigned int channels,
+            bool hasGpuAcceleration);
     public:
         static bool Import(Texture2D* texture);
     };

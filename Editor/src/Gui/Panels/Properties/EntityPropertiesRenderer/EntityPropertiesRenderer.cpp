@@ -210,7 +210,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 
     ImGui::SameLine();
 
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 65.f);
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 80.f);
 
     if (ImGui::Button("Tags " ICON_MD_KEYBOARD_ARROW_DOWN))
         ImGui::OpenPopup("EntityTagPopup");
@@ -243,7 +243,7 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 				}
 
 				auto data = component->SaveData();
-				selectedEntityComponent->LoadData(data);
+
 				selectedEntityComponent->LoadData(data);
 			}
 		}

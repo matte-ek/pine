@@ -42,6 +42,7 @@ namespace Pine
         std::vector<Mesh*> m_Meshes;
         std::vector<MeshData> m_MeshData;
 
+        std::vector<Texture2D*> m_EmbeddedTextures;
         std::vector<Material*> m_EmbeddedMaterials;
 
         Vector3f m_BoundingBoxMin = {};
@@ -69,6 +70,7 @@ namespace Pine
         struct ModelSerializer : Serialization::Serializer
         {
             PINE_SERIALIZE_ARRAY(EmbeddedMaterials);
+            PINE_SERIALIZE_ARRAY(EmbeddedTextures);
 
             PINE_SERIALIZE_ARRAY(Meshes);
         };

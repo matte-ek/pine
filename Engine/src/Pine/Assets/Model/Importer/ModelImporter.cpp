@@ -6,6 +6,20 @@
 
 #include "Pine/Assets/Assets.hpp"
 
+namespace
+{
+    void RemoveNonASCII(std::string& str)
+    {
+        str.erase(
+            std::remove_if(str.begin(), str.end(),
+                [](const unsigned char c)
+                {
+                    return c > 127;
+                }),
+                str.end());
+    }
+}
+
 void Pine::Importer::ModelImporter::ProcessMesh(Model* model, const aiMesh* mesh, const aiScene* scene)
 {
     MeshData loadData;
@@ -94,11 +108,13 @@ Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* conte
     }
 
     aiString filePath;
-
     material->GetTexture(textureType, 0, &filePath);
 
-    // TODO: Allow embedded textures
-    //auto texture = scene->GetEmbeddedTexture(filePath.C_Str());
+    auto embeddedTexture = scene->GetEmbeddedTexture(filePath.C_Str());
+    if (embeddedTexture != nullptr)
+    {
+
+    }
 
     return dynamic_cast<Texture2D*>(ImportRelative(context, filePath.C_Str()));
 }
@@ -140,6 +156,10 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
             {
                 continue;
             }
+
+            auto materialName = std::string(material->GetName().C_Str());
+
+            RemoveNonASCII(materialName);
 
             auto engineMaterial = dynamic_cast<Material*>(Assets::CreateAsset(AssetType::Material, model->GetPath() + "#mat" + std::to_string(i)));
 

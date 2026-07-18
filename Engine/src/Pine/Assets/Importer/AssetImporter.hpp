@@ -55,6 +55,10 @@ namespace Pine::Importer
         // to later easily reimport the asset with other settings.
         bool CopySourceFiles = false;
         std::filesystem::path ContentPath;
+
+        // Used for standalone importers, does not try to load the asset afterwards
+        // into memory.
+        bool DontLoad = false;
     };
 
     ImportContext* CreateContext();

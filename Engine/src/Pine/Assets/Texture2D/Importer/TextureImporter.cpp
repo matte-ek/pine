@@ -134,7 +134,8 @@ TextureImportData Importer::TextureImporter::CompressImage(
     const void* inputData,
     unsigned int width,
     unsigned int height,
-    unsigned int channels)
+    unsigned int channels,
+    bool hasGpuAcceleration)
 {
     auto compressionFormat = DetermineCompressionFormat(texture->m_ImportConfiguration.UsageHint);
 
@@ -209,7 +210,7 @@ TextureImportData Importer::TextureImporter::CompressImage(
     settings.sType = NVTT_EncodeSettings_Version_1;
     settings.timing_context = nullptr;
     settings.rgb_pixel_type = NVTT_PixelType_UnsignedNorm;
-    settings.encode_flags = NVTT_EncodeFlags_UseGPU;
+    settings.encode_flags = hasGpuAcceleration ? NVTT_EncodeFlags_UseGPU : NVTT_EncodeFlags_None;
 
     if (nvttEncodeCPU(cpuInputBuffer, data, &settings) != NVTT_True)
     {
@@ -230,6 +231,8 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
         return false;
     }
 
+    //texture->m_ImportConfiguration.UsageHint = TextureUsageHint::Uncompressed;
+
     const auto& file = texture->m_SourceFiles.front().FilePath;
 
     int width, height, channels;
@@ -248,15 +251,20 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
 
     // Create context and try to enable CUDA
     NvttContext* context = nullptr;
+    bool hasGpuAcceleration = false;
 
     if (texture->m_ImportConfiguration.UsageHint != TextureUsageHint::Uncompressed)
     {
         context = nvttCreateContext();
 
-        nvttSetContextCudaAcceleration(context, NVTT_True);
         if (!nvttIsCudaSupported())
         {
             PWarning("CUDA unsupported during compression.");
+        }
+        else
+        {
+            nvttSetContextCudaAcceleration(context, NVTT_True);
+            hasGpuAcceleration = true;
         }
     }
 
@@ -281,7 +289,7 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
             mipImageData = imageDataPtr;
         }
 
-        auto compressedImage = CompressImage(texture, context, mipImageData, mipSize.x, mipSize.y, channels);
+        auto compressedImage = CompressImage(texture, context, mipImageData, mipSize.x, mipSize.y, channels, hasGpuAcceleration);
         if (compressedImage.m_TextureData == nullptr)
         {
             free(mipImageData);

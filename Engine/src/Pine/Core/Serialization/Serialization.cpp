@@ -40,7 +40,7 @@ namespace
         case Pine::Serialization::DataType::UId:
             return sizeof(Pine::UId);
         default:
-            throw new std::logic_error("Data type not primitive or invalid.");
+            throw std::logic_error("Data type not primitive or invalid.");
         }
     }
 
@@ -68,7 +68,6 @@ namespace
     struct DataHeaderFlexible : DataHeader
     {
         std::uint8_t DataNameLength;
-        char* DataName;
     };
 #pragma pack(pop)
 }
@@ -99,7 +98,7 @@ void Pine::Serialization::DataPrimitive::Write(const void* data, size_t size)
     if (size > sizeof(m_Data))
     {
         // Something has gone very wrong, just bail.
-        throw new std::logic_error("Data for primitive size too big.");
+        throw std::logic_error("Data for primitive size too big.");
     }
 
     memcpy(m_Data, data, size);
@@ -463,7 +462,15 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
                 return false;
             }
 
-            memcpy(dataName, &flexibleHeader->DataName, flexibleHeader->DataNameLength);
+            if (flexibleHeader->DataNameLength >= sizeof(dataName))
+            {
+                PError("Ran out of data while parsing pine file, probably corrupted.");
+                return false;
+            }
+
+            const auto dataNamePtr = dataPtr + sizeof(DataHeader) + sizeof(std::uint8_t);
+
+            memcpy(dataName, dataNamePtr, flexibleHeader->DataNameLength);
 
             dataName[flexibleHeader->DataNameLength] = '\0';
 
@@ -517,6 +524,12 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
             // To not break alignment, manually add the "count" bytes and move on.
             if (dataHeader->Type == static_cast<int>(DataType::Array))
             {
+                if (dataRemaining < sizeof(std::uint32_t))
+                {
+                    PError("Ran out of data while reading data?");
+                    return false;
+                }
+
                 dataPtr += sizeof(std::uint32_t);
                 dataRemaining -= sizeof(std::uint32_t);
             }
@@ -557,11 +570,24 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
             }
             else
             {
-                size_t requiredPadding = dataSize;
+                const size_t requiredPadding = dataSize;
 
                 if (dataHeader->Type == static_cast<int>(DataType::Array))
                 {
+                    if (dataRemaining < sizeof(std::uint32_t))
+                    {
+                        PError("Ran out of data while reading data?");
+                        return false;
+                    }
+
                     dataPtr += sizeof(std::uint32_t);
+                    dataRemaining -= sizeof(std::uint32_t);
+                }
+
+                if (dataRemaining < requiredPadding)
+                {
+                    PError("Ran out of data while reading data?");
+                    return false;
                 }
 
                 dataPtr += requiredPadding;
@@ -583,6 +609,12 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
             if (!arrayData)
             {
                 PError("Data of type array is not DataArray.");
+                return false;
+            }
+
+            if (dataRemaining < sizeof(std::uint32_t))
+            {
+                PError("Ran out of data while reading data?");
                 return false;
             }
 
@@ -625,6 +657,12 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
         }
         else
         {
+            if (dataRemaining < dataSize)
+            {
+                PError("Ran out of data while reading data?");
+                return false;
+            }
+
             if (!dynamicSize)
             {
                 auto dataPrimitive = dynamic_cast<DataPrimitive*>(dataStructure);
@@ -651,6 +689,11 @@ bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
             dataPtr += dataSize;
             dataRemaining -= dataSize;
         }
+    }
+
+    if (dataRemaining != 0)
+    {
+        PWarning(fmt::format("Unexpected extra data while loading buffer, data remaining: {}", dataRemaining));
     }
 
     return true;
@@ -726,13 +769,17 @@ std::byte* Pine::Serialization::Serializer::Write(size_t& outputSize) const
             if (strlen(dataProperty->GetName()) > 31) // 31 instead of 32 to account for null character.
             {
                 PError("Data property name too large while writing.");
-                free(data);
+
+                delete[] data;
+
                 return nullptr;
             }
 
             flexibleHeader->DataNameLength = strlen(dataProperty->GetName());
 
-            memcpy(&flexibleHeader->DataName, dataProperty->GetName(), flexibleHeader->DataNameLength);
+            const auto dataNamePtr = dataPtr + sizeof(DataHeaderFlexible);
+
+            memcpy(dataNamePtr, dataProperty->GetName(), flexibleHeader->DataNameLength);
 
             dataPtr += headerTotalSize;
             dataRemaining -= headerTotalSize;

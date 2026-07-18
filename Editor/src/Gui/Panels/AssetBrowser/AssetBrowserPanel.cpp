@@ -8,6 +8,7 @@
 #include "imgui.h"
 #include "AssetHierarchy/AssetHierarchy.hpp"
 #include "Gui/Dialogs/Asset/AssetDialogs.hpp"
+#include "Gui/Shared/Commands/Commands.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
 
 #include "Gui/Shared/Selection/Selection.hpp"
@@ -421,7 +422,7 @@ void Panels::AssetBrowser::Render()
 
         if (ImGui::Button(ICON_MD_REFRESH " Refresh") || m_Root == nullptr)
         {
-            BuildAssetHierarchy();
+            Editor::Commands::Refresh();
         }
 
         ImGui::SameLine();

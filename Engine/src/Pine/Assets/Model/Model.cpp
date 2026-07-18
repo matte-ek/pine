@@ -9,11 +9,6 @@ namespace
     using namespace Pine;
 }
 
-Model::Model()
-{
-    m_Type = AssetType::Model;
-}
-
 bool Model::LoadAssetData(const ByteSpan& span)
 {
     ModelSerializer modelSerializer;
@@ -23,6 +18,22 @@ bool Model::LoadAssetData(const ByteSpan& span)
         return false;
     }
 
+    // Load embedded textures
+    for (size_t i{}; i < modelSerializer.EmbeddedTextures.GetDataCount();i++)
+    {
+        auto texture = Load(modelSerializer.EmbeddedTextures.GetData(i));
+
+        if (!texture)
+        {
+            continue;
+        }
+
+        Assets::Internal::RegisterAsset(texture);
+
+        m_EmbeddedTextures.push_back(dynamic_cast<Texture2D*>(texture));
+    }
+
+    // Load embedded materials
     for (size_t i{}; i < modelSerializer.EmbeddedMaterials.GetDataCount();i++)
     {
         auto material = Load(modelSerializer.EmbeddedMaterials.GetData(i));
@@ -144,7 +155,17 @@ ByteSpan Model::SaveAssetData()
         modelSerializer.EmbeddedMaterials.AddData(embeddedMaterial->Save());
     }
 
+    for (const auto& embeddedTexture : m_EmbeddedTextures)
+    {
+        modelSerializer.EmbeddedTextures.AddData(embeddedTexture->Save());
+    }
+
     return modelSerializer.Write();
+}
+
+Model::Model()
+{
+    m_Type = AssetType::Model;
 }
 
 Mesh* Model::CreateMesh()

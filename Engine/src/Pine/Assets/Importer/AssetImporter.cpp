@@ -40,9 +40,12 @@ namespace
         }
 
         // Make sure the directories containing the new asset exists
-        if (!std::filesystem::exists(std::filesystem::path(import.EnginePath).parent_path()))
+        if (!context->DontLoad)
         {
-            std::filesystem::create_directories(std::filesystem::path(import.EnginePath).parent_path());
+            if (!std::filesystem::exists(std::filesystem::path(import.EnginePath).parent_path()))
+            {
+                std::filesystem::create_directories(std::filesystem::path(import.EnginePath).parent_path());
+            }
         }
 
         auto suggestedEnginePath = std::filesystem::path(import.EnginePath).replace_extension("").string();
@@ -81,14 +84,23 @@ namespace
 
         if (!asset->Import(&import))
         {
+            PError(fmt::format("Failed to import asset {}", import.SourcePaths.front().string()));
+
             import.ImportStatus = Pine::AssetImportStatus::Failed;
             delete asset;
             return;
         }
 
-        asset->ReLoad();
-
-        Pine::Assets::Internal::RegisterAsset(asset);
+        if (!context->DontLoad)
+        {
+            asset->ReLoad();
+            Pine::Assets::Internal::RegisterAsset(asset);
+        }
+        else
+        {
+            PInfo(fmt::format("Writing to {}", asset->GetFilePath().string()));
+            asset->SaveToFile();
+        }
 
         import.ImportStatus = Pine::AssetImportStatus::Imported;
         import.AssetPtr = asset;
@@ -152,6 +164,7 @@ Pine::Asset* Pine::Importer::ImportRelative(
 
     if (!std::filesystem::is_regular_file(relativeFilePath + "/" + filePath))
     {
+        PWarning(fmt::format("Ignoring relative file: {}, could not find it.", filePath));
         return nullptr;
     }
 
@@ -181,6 +194,7 @@ Pine::Asset* Pine::Importer::ImportRelative(
     }
 
     // TODO: Import as a new file?
+
 
     return nullptr;
 }
