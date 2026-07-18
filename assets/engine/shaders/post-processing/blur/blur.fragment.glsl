@@ -32,12 +32,12 @@ DATA_TYPE sampleInputBuffer(vec2 uv)
 
 void main(void)
 {
-    DATA_TYPE output;
+    DATA_TYPE outputVar;
 
-    output += sampleInputBuffer(vIn.uv + vec2(-offset, -offset) * texelSize);
-    output += sampleInputBuffer(vIn.uv + vec2(-offset, offset) * texelSize);
-    output += sampleInputBuffer(vIn.uv + vec2(offset, -offset) * texelSize);
-    output += sampleInputBuffer(vIn.uv + vec2(offset, offset) * texelSize);
+    outputVar += sampleInputBuffer(vIn.uv + vec2(-offset, -offset) * texelSize);
+    outputVar += sampleInputBuffer(vIn.uv + vec2(-offset, offset) * texelSize);
+    outputVar += sampleInputBuffer(vIn.uv + vec2(offset, -offset) * texelSize);
+    outputVar += sampleInputBuffer(vIn.uv + vec2(offset, offset) * texelSize);
 
-    m_Output = DATA_TYPE(output * 0.25);
+    m_Output = DATA_TYPE(outputVar * 0.25);
 }
