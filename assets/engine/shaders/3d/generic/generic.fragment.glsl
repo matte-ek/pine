@@ -90,7 +90,7 @@ void main(void)
     vec4 spotLights = vec4(CalculateSpotLights(surface), 1.0);
     vec4 pointLights = vec4(CalculatePointLights(surface), 1.0);
 
-    m_OutputColor = directionalLight;
+    m_OutputColor = directionalLight + spotLights + pointLights;
 
     #shader postFragment
 }

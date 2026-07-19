@@ -179,8 +179,8 @@ void Pine::Collider::Reset()
 physx::PxShape * Pine::Collider::CreateCollisionShape() const
 {
     auto size = m_Size * GetParent()->GetTransform()->GetScale();
-    physx::PxShape* shape = nullptr;
 
+    physx::PxShape* shape = nullptr;
 
     switch (m_ColliderType)
     {

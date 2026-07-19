@@ -23,8 +23,7 @@ BaseLightResult CalculateBaseLightning(Surface surface)
 
     result.diffuse = diffuse;
     result.specular = specular;
-    //result.ambient = max(0.5 -PP diffuseFactor, 0) * ambient;
-    result.ambient = ambient;
+    result.ambient = max(1 - diffuseFactor, 0) * ambient;
 
     return result;
 }

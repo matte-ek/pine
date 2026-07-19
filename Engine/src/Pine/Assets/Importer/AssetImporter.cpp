@@ -150,22 +150,27 @@ void Pine::Importer::AddFile(
 
 void Pine::Importer::Run(ImportContext* context)
 {
-    for (auto& import : context->Imports)
+    // Intentionally running .size() based loop here
+    for (int i = 0; i < context->Imports.size(); i++)
     {
-        Import(context, import);
+        Import(context, context->Imports[i]);
     }
 }
 
 Pine::Asset* Pine::Importer::ImportRelative(
     const AssetImport* assetImport,
-    const std::string& filePath)
+    const std::string& filePath,
+    const std::string& overrideFileName)
 {
     const auto relativeFilePath = assetImport->SourcePaths.front().parent_path().string();
 
-    if (!std::filesystem::is_regular_file(relativeFilePath + "/" + filePath))
+    if (overrideFileName.empty())
     {
-        PWarning(fmt::format("Ignoring relative file: {}, could not find it.", filePath));
-        return nullptr;
+        if (!std::filesystem::is_regular_file(relativeFilePath + "/" + filePath))
+        {
+            PWarning(fmt::format("Ignoring relative file: {}, could not find it.", filePath));
+            return nullptr;
+        }
     }
 
     // Check if this asset is already in the context queue
@@ -193,8 +198,27 @@ Pine::Asset* Pine::Importer::ImportRelative(
         return nullptr;
     }
 
-    // TODO: Import as a new file?
+    AssetImport import;
 
+    import.Configuration = nullptr;
+    import.SourcePaths = {filePath};
+    import.Context = assetImport->Context;
+
+    import.EnginePath = std::filesystem::path(assetImport->EnginePath).parent_path().string() + "/Textures/" +
+        std::filesystem::path(overrideFileName.empty() ? filePath : overrideFileName).filename().string();
+
+    const bool prevCopySourceFiles = assetImport->Context->CopySourceFiles;
+
+    assetImport->Context->CopySourceFiles = false;
+
+    Import(assetImport->Context, import);
+
+    assetImport->Context->CopySourceFiles = prevCopySourceFiles;
+
+    if (import.ImportStatus == AssetImportStatus::Imported)
+    {
+        return import.AssetPtr;
+    }
 
     return nullptr;
 }

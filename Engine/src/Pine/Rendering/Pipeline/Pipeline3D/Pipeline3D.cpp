@@ -185,7 +185,7 @@ namespace
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 		Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
 
-		Graphics::GetGraphicsAPI()->SetBlendingEnabled(true);
+		Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
 		Graphics::GetGraphicsAPI()->SetBlendingFunction(Graphics::BlendingFunction::SourceAlpha, Graphics::BlendingFunction::OneMinusSourceAlpha);
 
 		for (const auto light : lights)

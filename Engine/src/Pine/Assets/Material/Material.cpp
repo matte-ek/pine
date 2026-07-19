@@ -116,6 +116,11 @@ Pine::MaterialRenderingMode Pine::Material::GetRenderingMode() const
 
 void Pine::Material::SetShininess(float value)
 {
+    if (value < 0.01f)
+    {
+        value = 0.01f;
+    }
+
     m_Shininess = value;
 }
 

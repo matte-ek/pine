@@ -90,7 +90,7 @@ void main(void)
         occlusion += (sampleDepth >= samplePos.z ? 1.0 : 0.0) * rangeCheck;
     }
 
-    occlusion /= 64.0;
+    occlusion /= 512.0;
 
     m_Output = 1.0 - pow(occlusion, 0.5); 
 }

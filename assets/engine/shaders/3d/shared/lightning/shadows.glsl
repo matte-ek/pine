@@ -39,9 +39,8 @@ float ComputeShadowFactor()
     }
 
     shadow /= 9.0;
-    shadow += 0.95;
     shadow = min(shadow, 1);
-    shadow = max(shadow, 0.9);
+    shadow = max(shadow, 0.1);
 
     return shadow;
 

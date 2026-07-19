@@ -40,7 +40,7 @@ namespace
         if (m_CommandHistory.size() > 128)
         {
             delete m_CommandHistory[m_CommandHistory.size() - 1];
-            m_CommandHistory.erase(m_CommandHistory.end());
+            m_CommandHistory.pop_back();
         }
 
         PInfo(fmt::format("Writing history, ptr: {}, size: {}", m_CommandPointer, m_CommandHistory.size()));

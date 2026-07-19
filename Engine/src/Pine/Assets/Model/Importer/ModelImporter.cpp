@@ -5,6 +5,7 @@
 #include <assimp/scene.h>
 
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Core/File/File.hpp"
 
 namespace
 {
@@ -17,6 +18,17 @@ namespace
                     return c > 127;
                 }),
                 str.end());
+    }
+
+    bool IsSupportedImageExtension(const std::string& ext)
+    {
+        static const std::unordered_set<std::string> allowedExtensions = {
+            "png",
+            "jpg",
+            "jpeg"
+        };
+
+        return allowedExtensions.count(ext) != 0;
     }
 }
 
@@ -36,7 +48,7 @@ void Pine::Importer::ModelImporter::ProcessMesh(Model* model, const aiMesh* mesh
     if (mesh->HasTangentsAndBitangents())
     {
         loadData.Tangents.resize(mesh->mNumVertices);
-        memcpy(loadData.Tangents.data(), mesh->mVertices, mesh->mNumVertices * sizeof(Vector3f));
+        memcpy(loadData.Tangents.data(), mesh->mTangents, mesh->mNumVertices * sizeof(Vector3f));
     }
 
     if (mesh->HasTextureCoords(0))
@@ -113,7 +125,37 @@ Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* conte
     auto embeddedTexture = scene->GetEmbeddedTexture(filePath.C_Str());
     if (embeddedTexture != nullptr)
     {
+        if (!std::filesystem::exists("import-cache"))
+        {
+            std::filesystem::create_directory("import-cache");
+        }
 
+        // If the image height is 0, then the texture is embedded as a image file
+        // e.g. PNG or JPEG. Otherwise, it's stored as a raw texture.
+        if (embeddedTexture->mHeight == 0)
+        {
+            if (!IsSupportedImageExtension(embeddedTexture->achFormatHint))
+            {
+                PWarning(fmt::format("Unsupported image format in model: {}", embeddedTexture->achFormatHint));
+                return nullptr;
+            }
+
+            // No way we're even touching arbitrary data to a new path with a arbitrary string,
+            // temporarily use a UID instead so I can sleep better at night.
+            const auto temporaryFilePath = fmt::format("import-cache/{}.{}", UId::New().ToString(), embeddedTexture->achFormatHint);
+
+            const auto imageBytes = ByteSpan(reinterpret_cast<const std::byte*>(embeddedTexture->pcData), embeddedTexture->mWidth);
+
+            File::WriteRaw(temporaryFilePath, imageBytes);
+
+            const auto texture = dynamic_cast<Texture2D*>(ImportRelative(context, temporaryFilePath, embeddedTexture->mFilename.C_Str()));
+
+            std::filesystem::remove(temporaryFilePath);
+
+            return texture;
+        }
+
+        return nullptr;
     }
 
     return dynamic_cast<Texture2D*>(ImportRelative(context, filePath.C_Str()));
@@ -135,8 +177,9 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
         file.FilePath.c_str(),
         aiProcess_Triangulate           | aiProcess_FlipUVs |
         aiProcess_GenSmoothNormals      | aiProcess_GenBoundingBoxes |
-        aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
-        aiProcess_GlobalScale);
+        aiProcess_CalcTangentSpace      | aiProcess_ForceGenNormals |
+        aiProcess_GlobalScale           | aiProcess_PreTransformVertices |
+        aiProcess_FindInvalidData);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
@@ -161,10 +204,10 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
 
             RemoveNonASCII(materialName);
 
-            auto engineMaterial = dynamic_cast<Material*>(Assets::CreateAsset(AssetType::Material, model->GetPath() + "#mat" + std::to_string(i)));
+            auto engineMaterial = dynamic_cast<Material*>(Assets::CreateAsset(AssetType::Material, model->GetPath() + "-" + materialName));
 
             aiColor3D diffuse_color(1.f, 1.f, 1.f);
-            aiColor3D ambient_color(1.f, 1.f, 1.f);
+            aiColor3D ambient_color(0.f, 0.f, 0.f);
 
             float shininess = 1.f;
 

@@ -162,7 +162,7 @@ void Pine::Asset::ReImport()
 void Pine::Asset::ReLoad()
 {
     // Get the new ready pine asset data
-    auto newData = Save();
+    const auto newData = Save();
 
     // Write this new data to disk, if possible.
     if (!m_FilePath.empty())
@@ -170,11 +170,11 @@ void Pine::Asset::ReLoad()
         File::WriteCompressed(m_FilePath, newData);
     }
 
-    // Reload this data from memory, we do since assets will only save the newly imported data
-    // within Save(), as such, these changes might not have been applied to loaded GPU textures and such.
-    m_CreatedTime = 0;
+    const AssetSerializer assetSerializer;
 
-    Load(newData);
+    assetSerializer.Read(newData);
+
+    LoadAssetData(assetSerializer.Data.Read());
 }
 
 Pine::Asset* Pine::Asset::Load(const ByteSpan& data, bool ignoreAssetData)

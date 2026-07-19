@@ -70,8 +70,6 @@ namespace Pine
         struct ModelSerializer : Serialization::Serializer
         {
             PINE_SERIALIZE_ARRAY(EmbeddedMaterials);
-            PINE_SERIALIZE_ARRAY(EmbeddedTextures);
-
             PINE_SERIALIZE_ARRAY(Meshes);
         };
     public:

@@ -73,5 +73,5 @@ namespace Pine::Importer
     void Run(ImportContext* context);
 
     // Can be used by other importers when dealing with dependencies.
-    Asset* ImportRelative(const AssetImport* assetImport, const std::string& filePath);
+    Asset* ImportRelative(const AssetImport* assetImport, const std::string& filePath, const std::string& overrideFileName = "");
 }

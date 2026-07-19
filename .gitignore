@@ -436,3 +436,4 @@ Engine/lib/mono-2.0-sgen.lib
 Editor/lib/mono-2.0-sgen.lib
 
 projects/
+/assets/import-cache
