@@ -14,21 +14,13 @@
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Gui/Shared/Widgets/Widgets.hpp"
 
-#include "Other/OsNative/OsNative.hpp"
-
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Asset/Asset.hpp"
-#include "Pine/Assets/Level/Level.hpp"
-#include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
-#include "Pine/Assets/Texture3D/Texture3D.hpp"
-#include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Script/ScriptManager.hpp"
 #include "Projects/Projects.hpp"
-#include "Utilities/Assets/AssetUtilities.hpp"
-#include "Utilities/Scripts/ScriptUtilities.hpp"
 
 namespace
 {
@@ -162,6 +154,8 @@ namespace
             {
                 clickedNode = newNode;
             }
+
+            ImGui::Dummy(ImVec2(1.f, 6.f));
 
             ImGui::NextColumn();
         }

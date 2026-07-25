@@ -164,6 +164,10 @@ Pine::Asset* Pine::Importer::ImportRelative(
 {
     const auto relativeFilePath = assetImport->SourcePaths.front().parent_path().string();
 
+    // TODO: This needs to be dynamic depending on what's being imported,
+    // currently we only do this for textures so it isn't a problem, yet.
+    static constexpr auto subDirectory = "Textures/";
+
     if (overrideFileName.empty())
     {
         if (!std::filesystem::is_regular_file(relativeFilePath + "/" + filePath))
@@ -176,9 +180,19 @@ Pine::Asset* Pine::Importer::ImportRelative(
     // Check if this asset is already in the context queue
     for (auto& iter : assetImport->Context->Imports)
     {
-        if (!String::EndsWith(File::UniversalPath(iter.SourcePaths.front().string()), File::UniversalPath(relativeFilePath + "/" + filePath)))
+        if (overrideFileName.empty())
         {
-            continue;
+            if (!String::EndsWith(File::UniversalPath(iter.SourcePaths.front().string()), File::UniversalPath(relativeFilePath + "/" + filePath)))
+            {
+                continue;
+            }
+        }
+        else
+        {
+            if (iter.AssetPtr == nullptr || !String::EndsWith(subDirectory + iter.AssetPtr->GetPath(), overrideFileName))
+            {
+                continue;
+            }
         }
 
         // Might have already been imported previously, we can just return the imported asset
@@ -204,7 +218,7 @@ Pine::Asset* Pine::Importer::ImportRelative(
     import.SourcePaths = {filePath};
     import.Context = assetImport->Context;
 
-    import.EnginePath = std::filesystem::path(assetImport->EnginePath).parent_path().string() + "/Textures/" +
+    import.EnginePath = std::filesystem::path(assetImport->EnginePath).parent_path().string() + "/" + subDirectory +
         std::filesystem::path(overrideFileName.empty() ? filePath : overrideFileName).filename().string();
 
     const bool prevCopySourceFiles = assetImport->Context->CopySourceFiles;
@@ -217,6 +231,8 @@ Pine::Asset* Pine::Importer::ImportRelative(
 
     if (import.ImportStatus == AssetImportStatus::Imported)
     {
+        assetImport->Context->Imports.push_back(import);
+
         return import.AssetPtr;
     }
 
