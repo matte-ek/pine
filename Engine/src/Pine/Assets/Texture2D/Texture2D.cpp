@@ -48,6 +48,16 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
                 continue;
             }
 
+            const auto& mipData = mipSerializer.Data.Read();
+
+            if (m_ImportConfiguration.UsageHint == TextureUsageHint::DataMap)
+            {
+                m_TextureData = malloc(mipData.size);
+                m_TextureDataSize = mipData.size;
+
+                memcpy(m_TextureData, mipData.data, mipData.size);
+            }
+
             if (m_CompressionFormat == Graphics::TextureCompressionFormat::Raw)
             {
                 m_Texture->UploadTextureData(
@@ -56,12 +66,10 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
                        i,
                        m_Format,
                        Graphics::TextureDataFormat::UnsignedByte,
-                       mipSerializer.Data.Read().data);
+                       mipData.data);
             }
             else
             {
-                const auto& mipData = mipSerializer.Data.Read();
-
                 m_Texture->UploadTextureDataCompressed(
                     mipSerializer.Width.Read<std::uint32_t>(),
                     mipSerializer.Height.Read<std::uint32_t>(),
@@ -200,7 +208,17 @@ Pine::Graphics::ITexture* Pine::Texture2D::GetGraphicsTexture() const
 
 bool Pine::Texture2D::HasTextureData() const
 {
-    return !m_ImportData.empty();
+    return m_TextureData != nullptr;
+}
+
+void* Pine::Texture2D::GetTextureData() const
+{
+    return m_TextureData;
+}
+
+size_t Pine::Texture2D::GetTextureDataSize() const
+{
+    return m_TextureDataSize;
 }
 
 bool Pine::Texture2D::Import(Importer::AssetImport* context)

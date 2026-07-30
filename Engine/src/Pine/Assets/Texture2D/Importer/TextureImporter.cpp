@@ -81,6 +81,7 @@ namespace
         switch (textureUsageHint)
         {
             case TextureUsageHint::Uncompressed:
+            case TextureUsageHint::DataMap:
                 return Graphics::TextureCompressionFormat::Raw;
             case TextureUsageHint::Albedo:
                 return Graphics::TextureCompressionFormat::BC7;
@@ -253,7 +254,7 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
     NvttContext* context = nullptr;
     bool hasGpuAcceleration = false;
 
-    if (texture->m_ImportConfiguration.UsageHint != TextureUsageHint::Uncompressed)
+    if (!(texture->m_ImportConfiguration.UsageHint == TextureUsageHint::Uncompressed || texture->m_ImportConfiguration.UsageHint == TextureUsageHint::DataMap))
     {
         context = nvttCreateContext();
 
@@ -298,7 +299,7 @@ bool Importer::TextureImporter::Import(Texture2D* texture)
 
         texture->m_ImportData.push_back(compressedImage);
 
-        if (!texture->m_ImportConfiguration.GenerateMipmaps)
+        if (!texture->m_ImportConfiguration.GenerateMipmaps || texture->GetImportConfiguration().UsageHint == TextureUsageHint::DataMap)
         {
             break;
         }

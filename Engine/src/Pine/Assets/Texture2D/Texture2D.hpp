@@ -17,6 +17,7 @@ namespace Pine
         AlbedoFaster,
         NormalMap,
         Grayscale,
+        DataMap,
         Uncompressed
     };
 
@@ -62,6 +63,10 @@ namespace Pine
 
         // Underlying graphics texture
         Graphics::ITexture* m_Texture = nullptr;
+
+        // RAW texture data, if the asset is a DataMap
+        void* m_TextureData = nullptr;
+        size_t m_TextureDataSize = 0;
 
         // Texture importing information
         std::vector<TextureImportData> m_ImportData;
@@ -117,6 +122,9 @@ namespace Pine
         Graphics::ITexture* GetGraphicsTexture() const;
 
         bool HasTextureData() const;
+
+        void* GetTextureData() const;
+        size_t GetTextureDataSize() const;
 
         bool Import(Importer::AssetImport* context) override;
         void Dispose() override;
