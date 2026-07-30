@@ -67,7 +67,7 @@ namespace
         ImGui::Spacing();
 
         modifiedTexture |= Widgets::DropDown("Compression Quality", reinterpret_cast<int*>(&importConfiguration.CompressionQuality), "Normal\0Fastest\0Production\0");
-        modifiedTexture |= Widgets::DropDown("Usage Hint", reinterpret_cast<int*>(&importConfiguration.UsageHint), "Albedo (BC7)\0Albedo Fast (BC1)\0Normal (BC5)\0Grayscale (BC4)\0Raw\0");
+        modifiedTexture |= Widgets::DropDown("Usage Hint", reinterpret_cast<int*>(&importConfiguration.UsageHint), "Albedo (BC7)\0Albedo Fast (BC1)\0Normal (BC5)\0Grayscale (BC4)\0Data Map\0Raw\0");
         modifiedTexture |= Widgets::Checkbox("Generate mip maps", &importConfiguration.GenerateMipmaps);
 
         if (ImGui::Button("Re-import"))
@@ -509,19 +509,6 @@ namespace
         static Pine::TerrainPerlinSettings perlinSettings;
 
         ImGui::Text("Chunk count: %d", terrain->GetChunks().size());
-
-        Widgets::SliderFloat("Perlin 0 Coordinate Scale", &perlinSettings.Layer0_CoordinateScale, 0, 10);
-        Widgets::SliderFloat("Perlin 0 Scale", &perlinSettings.Layer0_Scale, 0, 10);
-        Widgets::SliderInt("Perlin 0 Octaves", &perlinSettings.Layer0_Octaves, 0, 10);
-
-        Widgets::SliderFloat("Perlin 1 Coordinate Scale", &perlinSettings.Layer1_CoordinateScale, 0, 10);
-        Widgets::SliderFloat("Perlin 1 Scale", &perlinSettings.Layer1_Scale, 0, 10);
-        Widgets::SliderInt("Perlin 1 Octaves", &perlinSettings.Layer1_Octaves, 0, 10);
-
-        Widgets::SliderFloat("Perlin 2 Coordinate Scale", &perlinSettings.Layer2_CoordinateScale, 0, 10);
-        Widgets::SliderFloat("Perlin 2 Scale", &perlinSettings.Layer2_Scale, 0, 10);
-        Widgets::SliderInt("Perlin 2 Octaves", &perlinSettings.Layer2_Octaves, 0, 10);
-        Widgets::SliderFloat("Perlin 2 Cutoff", &perlinSettings.Layer2_Cutoff, 0, 10);
 
         Widgets::SliderInt("Seed", &perlinSettings.Seed, 0, 1000000);
 
