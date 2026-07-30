@@ -304,13 +304,13 @@ Pine::ByteSpan Pine::Collider::SaveData()
 {
     ColliderSerializer serializer;
 
-    serializer.Type.Read(m_ColliderType);
-    serializer.Position.Read(m_Position);
-    serializer.Size.Read(m_Size);
-    serializer.Layer.Read(m_Layer);
-    serializer.LayerMask.Read(m_LayerMask);
-    serializer.IsTrigger.Read(m_IsTrigger);
-    serializer.TriggerMask.Read(m_TriggerMask);
+    serializer.Type.Write(m_ColliderType);
+    serializer.Position.Write(m_Position);
+    serializer.Size.Write(m_Size);
+    serializer.Layer.Write(m_Layer);
+    serializer.LayerMask.Write(m_LayerMask);
+    serializer.IsTrigger.Write(m_IsTrigger);
+    serializer.TriggerMask.Write(m_TriggerMask);
 
     return serializer.Write();
 }
