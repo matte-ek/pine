@@ -201,6 +201,8 @@ namespace
             {
                 clickedNode = file;
             }
+
+            ImGui::NextColumn();
         }
 
         for (auto& directory : root->Children)
