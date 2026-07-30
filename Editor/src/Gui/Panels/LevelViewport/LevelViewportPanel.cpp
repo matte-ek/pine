@@ -386,11 +386,18 @@ void Panels::LevelViewport::Render()
                     newEntity->AddComponent<Pine::ModelRenderer>()->SetModel(model);
 
                     const auto center = (model->GetBoundingBoxMin() + model->GetBoundingBoxMax()) * 0.5f;
-                    const auto halfSize = (model->GetBoundingBoxMax() - model->GetBoundingBoxMin()) * 0.5f;
+                    auto halfSize = (model->GetBoundingBoxMax() - model->GetBoundingBoxMin()) * 0.5f;
 
                     newEntity->AddComponent<Pine::RigidBody>()->SetRigidBodyType(Pine::RigidBodyType::Static);
 
                     const auto collider = newEntity->AddComponent<Pine::Collider>();
+
+                    if (halfSize.x < 0.001f)
+                        halfSize.x = 0.1f;
+                    if (halfSize.y < 0.001f)
+                        halfSize.y = 0.1f;
+                    if (halfSize.z < 0.001f)
+                        halfSize.z = 0.1f;
 
                     collider->SetPosition(center);
                     collider->SetSize(halfSize);
