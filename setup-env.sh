@@ -15,7 +15,6 @@ sudo pacman -S --needed \
     glfw \
     libjpeg-turbo \
     libpng \
-    zlib \
     wget \
     7zip \
     glm \
@@ -36,7 +35,6 @@ echo "$PHYSX_HASH  110.1-omni-and-physx-5.9.0.zip" | sha256sum -c
 cd PhysX-110.1-omni-and-physx-5.9.0
 cd physx/source/compiler/cmake/linux
 
-# Nice and clean paths
 patch --merge -i ../../../../../../../.external-required/cmake-patch.diff
 cd ../../../../
 
@@ -46,7 +44,6 @@ cp ../../../.external-required/linux-gcc-cpu-only-no-snippets.xml buildtools/pre
 
 cd compiler/linux-gcc-cpu-only-no-snippets-checked
 
-# hardcoded nr of threads
 make -j8
 
 cd ../../bin/linux.x86_64
