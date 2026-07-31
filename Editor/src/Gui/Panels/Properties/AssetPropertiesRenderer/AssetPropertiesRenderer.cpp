@@ -506,11 +506,11 @@ namespace
 
     void RenderTerrain(Pine::Terrain *terrain)
     {
-        static Pine::TerrainPerlinSettings perlinSettings;
-
         ImGui::Text("Chunk count: %d", terrain->GetChunks().size());
 
-        Widgets::SliderInt("Seed", &perlinSettings.Seed, 0, 1000000);
+        const auto HeightMap =
+            Widgets::AssetPicker("Height Map", terrain->m_HeightMap.Get(),
+                                 Pine::AssetType::Texture2D);
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -531,7 +531,7 @@ namespace
 
             if (generateAll)
             {
-                Pine::Terrain::GenerateFromPerlinNoise(chunk, perlinSettings);
+                terrain->LoadHeightMapData();
             }
 
             if (ImGui::CollapsingHeader(fmt::format("Chunk #{}", index).c_str()))

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(Engine)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 
 include_directories(src include include/physx /usr/include/mono-2.0)
 link_directories(lib)

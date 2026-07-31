@@ -1,5 +1,7 @@
 #include "File.hpp"
+
 #include <filesystem>
+#include <format>
 #include <optional>
 #include <fstream>
 #include <zlib.h>
@@ -88,7 +90,7 @@ void Pine::File::WriteCompressed(const std::filesystem::path& path, const ByteSp
     auto ret = compress(compressed, &compressedLength, reinterpret_cast<Bytef *>(byteSpan.data), byteSpan.size);
     if (ret != Z_OK)
     {
-        PError(fmt::format("Failed to compress file to path {} with result {}", path.string()));
+        PError(fmt::format("Failed to compress file to path {} with result {}", path.string(), ret));
         return;
     }
 
