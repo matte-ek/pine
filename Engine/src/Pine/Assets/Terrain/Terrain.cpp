@@ -319,6 +319,12 @@ void Terrain::GenerateFromPerlinNoise(TerrainChunk& chunk, const TerrainPerlinSe
     chunk.HeightData = GeneratePerlinNoiseHeightmapData(Vector2f(chunk.Position) * Vector2f(TERRAIN_CHUNK_VERTEX_COUNT - 1), perlinSettings);
 }
 
+std::expected<void, std::string> Terrain::LoadHeightMapData()
+    {
+
+
+}  
+
 std::vector<TerrainChunk>& Terrain::GetChunks()
 {
     return m_Chunks;

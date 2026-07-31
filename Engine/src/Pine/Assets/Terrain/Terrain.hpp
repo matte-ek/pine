@@ -3,6 +3,8 @@
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 
+#include <expected>
+
 namespace Pine
 {
     class Material;
@@ -77,12 +79,18 @@ namespace Pine
             PINE_SERIALIZE_ARRAY_FIXED(HeightData, float);
         };
     public:
-        explicit Terrain();
+      explicit Terrain();
+
+        AssetHandle<Texture2D> m_HeightMap;      
 
         void CreateChunk(Vector2i position);
         void GenerateMesh();
 
-        static void GenerateFromPerlinNoise(TerrainChunk& chunk, const TerrainPerlinSettings& perlinSettings);
+        static void
+        GenerateFromPerlinNoise(TerrainChunk &chunk,
+                                const TerrainPerlinSettings &perlinSettings);
+
+        std::expected<void, std::string> LoadHeightMapData();
 
         std::vector<TerrainChunk>& GetChunks();
 
