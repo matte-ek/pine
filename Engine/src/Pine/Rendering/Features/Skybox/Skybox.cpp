@@ -38,9 +38,9 @@ void Pine::Rendering::Skybox::Setup()
 
     m_VertexArray = m_GraphicsAPI->CreateVertexArray();
     m_VertexArray->Bind();
-    m_VertexArray->StoreFloatArrayBuffer(const_cast<float*>(skyboxVertices.data()), skyboxVertices.size() * sizeof(float), 0, 3, Pine::Graphics::BufferUsageHint::StaticDraw);
+    m_VertexArray->StoreFloatArrayBuffer(const_cast<float*>(skyboxVertices.data()), skyboxVertices.size() * sizeof(float), 0, 3, Graphics::BufferUsageHint::StaticDraw);
 
-    m_Shader = Pine::Assets::Get<Pine::Shader>("engine/shaders/3d/skybox");
+    m_Shader = Pine::Assets::Get<Shader>("engine/shaders/3d/skybox");
 
     assert(m_Shader != nullptr);
 }

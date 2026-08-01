@@ -36,14 +36,14 @@ namespace
         return (min + max) / 2.f;
     }
 
-    Matrix4f BuildViewMatrix(const std::array<Vector3f, 8>& corners, Vector3f lightDirection)
+    Matrix4f BuildViewMatrix(const std::array<Vector3f, 8>& corners, const Vector3f lightDirection)
     {
         const auto center = ComputeBoxCenter(corners);
 
         return glm::lookAt(center - lightDirection, center, Vector3f(0.f, 1.f, 0.f));
     }
 
-    Matrix4f BuildProjectionMatrix(std::array<Vector3f, 8> corners, const Matrix4f &viewMatrix, float farPlaneMargin)
+    Matrix4f BuildProjectionMatrix(std::array<Vector3f, 8> corners, const Matrix4f &viewMatrix, const float farPlaneMargin)
     {
         for (auto& corner : corners)
         {
@@ -109,7 +109,7 @@ namespace
         }
     }
 
-    void BuildLightSpaceMatrices(Vector3f lightDirection)
+    void BuildLightSpaceMatrices(const Vector3f lightDirection)
     {
         const float oldNearPane = m_SceneCamera->GetNearPlane();
         const float oldFarPlane = m_SceneCamera->GetFarPlane();

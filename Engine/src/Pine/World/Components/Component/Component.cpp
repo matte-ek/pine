@@ -2,12 +2,12 @@
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
-Pine::Component::Component(ComponentType type)
+Pine::Component::Component(const ComponentType type)
     : m_Type(type)
 {
 }
 
-void Pine::Component::SetId(UId id)
+void Pine::Component::SetId(const UId id)
 {
     m_Id = id;
 }
@@ -17,7 +17,7 @@ Pine::UId Pine::Component::GetId() const
     return m_Id;
 }
 
-void Pine::Component::SetActive(bool value)
+void Pine::Component::SetActive(const bool value)
 {
     m_Active = value;
 }
@@ -32,7 +32,7 @@ Pine::ComponentType Pine::Component::GetType() const
     return m_Type;
 }
 
-void Pine::Component::SetStandalone(bool value)
+void Pine::Component::SetStandalone(const bool value)
 {
     m_Standalone = value;
 }
@@ -132,7 +132,7 @@ void Pine::Component::DestroyScriptInstance()
     Script::ObjectFactory::DisposeComponent(this, &m_ScriptObjectHandle);
 }
 
-void Pine::Component::SetInternalId(std::uint32_t id)
+void Pine::Component::SetInternalId(const std::uint32_t id)
 {
     m_InternalId = id;
 }

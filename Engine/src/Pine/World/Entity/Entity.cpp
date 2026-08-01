@@ -68,7 +68,7 @@ std::uint32_t Pine::Entity::GetInternalId() const
     return m_InternalId;
 }
 
-void Pine::Entity::SetActive(bool value)
+void Pine::Entity::SetActive(const bool value)
 {
     m_Active = value;
 }
@@ -78,7 +78,7 @@ bool Pine::Entity::GetActive() const
     return m_Active;
 }
 
-void Pine::Entity::SetStatic(bool value)
+void Pine::Entity::SetStatic(const bool value)
 {
     m_Static = value;
 }
@@ -88,7 +88,7 @@ bool Pine::Entity::GetStatic() const
     return m_Static;
 }
 
-void Pine::Entity::SetTags(std::uint64_t tags)
+void Pine::Entity::SetTags(const std::uint64_t tags)
 {
     m_Tags = tags;
 }
@@ -98,7 +98,7 @@ std::uint64_t Pine::Entity::GetTags() const
     return m_Tags;
 }
 
-void Pine::Entity::SetDirty(bool value)
+void Pine::Entity::SetDirty(const bool value)
 {
     m_Dirty = value;
 }
@@ -108,7 +108,7 @@ bool Pine::Entity::IsDirty() const
     return m_Dirty;
 }
 
-void Pine::Entity::SetTemporary(bool value)
+void Pine::Entity::SetTemporary(const bool value)
 {
     m_Temporary = value;
 }
@@ -138,7 +138,7 @@ Pine::Entity* Pine::Entity::GetParent() const
     return m_Parent;
 }
 
-Pine::Component* Pine::Entity::AddComponent(ComponentType type)
+Pine::Component* Pine::Entity::AddComponent(const ComponentType type)
 {
     const auto component = Components::Create(type);
 
@@ -188,7 +188,7 @@ void Pine::Entity::ClearComponents()
     m_Components.clear();
 }
 
-Pine::Component * Pine::Entity::GetComponent(ComponentType type) const
+Pine::Component * Pine::Entity::GetComponent(const ComponentType type) const
 {
     for (auto component : m_Components)
     {
@@ -201,7 +201,7 @@ Pine::Component * Pine::Entity::GetComponent(ComponentType type) const
     return nullptr;
 }
 
-bool Pine::Entity::HasComponent(ComponentType type) const
+bool Pine::Entity::HasComponent(const ComponentType type) const
 {
     return GetComponent(type) != nullptr;
 }

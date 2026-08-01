@@ -151,7 +151,7 @@ Pine::Graphics::TextureCompressionFormat Pine::Texture2D::GetCompressionFormat()
     return m_CompressionFormat;
 }
 
-void Pine::Texture2D::SetFilteringMode(Graphics::TextureFilteringMode textureFilteringMode)
+void Pine::Texture2D::SetFilteringMode(const Graphics::TextureFilteringMode textureFilteringMode)
 {
     m_FilteringMode = textureFilteringMode;
 
@@ -166,7 +166,7 @@ Pine::Graphics::TextureFilteringMode Pine::Texture2D::GetFilteringMode() const
     return m_FilteringMode;
 }
 
-void Pine::Texture2D::SetMipFilteringMode(Graphics::TextureFilteringMode textureFilteringMode)
+void Pine::Texture2D::SetMipFilteringMode(const Graphics::TextureFilteringMode textureFilteringMode)
 {
     m_MipFilteringMode = textureFilteringMode;
 
@@ -181,7 +181,7 @@ Pine::Graphics::TextureFilteringMode Pine::Texture2D::GetMipFilteringMode() cons
     return m_MipFilteringMode;
 }
 
-void Pine::Texture2D::SetWrapMode(Graphics::TextureWrapMode wrapMode)
+void Pine::Texture2D::SetWrapMode(const Graphics::TextureWrapMode wrapMode)
 {
     m_WrapMode = wrapMode;
 

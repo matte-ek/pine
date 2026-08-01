@@ -38,7 +38,7 @@ namespace Pine
         Count
     };
 
-    inline const char *AssetTypeToString(AssetType type)
+    inline const char *AssetTypeToString(const AssetType type)
     {
         switch (type)
         {
@@ -206,7 +206,7 @@ namespace Pine
     public:
         AssetHandle() = default;
 
-        AssetHandle(UId id) : m_UId(id)
+        AssetHandle(const UId id) : m_UId(id)
         {
         }
 
@@ -265,7 +265,7 @@ namespace Pine
             return *this;
         }
 
-        AssetHandle &operator=(UId id)
+        AssetHandle &operator=(const UId id)
         {
             m_UId = id;
             m_Asset = nullptr;

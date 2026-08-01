@@ -39,7 +39,7 @@ Pine::RigidBody2D::RigidBody2D()
 {
 }
 
-void Pine::RigidBody2D::SetRigidBodyType(RigidBody2DType type)
+void Pine::RigidBody2D::SetRigidBodyType(const RigidBody2DType type)
 {
 	m_RigidBodyType = type;
 }
@@ -87,7 +87,7 @@ void Pine::RigidBody2D::OnCopied()
 	m_Fixture = nullptr;
 }
 
-void Pine::RigidBody2D::OnRender(float deltaTime)
+void Pine::RigidBody2D::OnRender(const float deltaTime)
 {
 	Component::OnRender(deltaTime);
 }

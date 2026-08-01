@@ -55,7 +55,7 @@ namespace
         }
     }
 
-    void OnWindowFocusCallback(GLFWwindow*, int focused)
+    void OnWindowFocusCallback(GLFWwindow*, const int focused)
     {
         if (!focused)
         {

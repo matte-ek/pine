@@ -65,7 +65,7 @@ std::uint32_t Pine::Font::Create(float fontSize)
     return 0;
 }
 
-const Pine::FontData& Pine::Font::GetFontData(std::uint32_t index) const
+const Pine::FontData& Pine::Font::GetFontData(const std::uint32_t index) const
 {
     return m_FontAtlas[index];
 }

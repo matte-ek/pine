@@ -11,13 +11,13 @@
 
 namespace
 {
-    bool GetActive(std::uint32_t internalId, int type)
+    bool GetActive(const std::uint32_t internalId, int type)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
         return Pine::Components::GetByInternalId(static_cast<Pine::ComponentType>(type), internalId)->GetActive();
     }
 
-    void SetActive(std::uint32_t internalId, int type, bool active)
+    void SetActive(const std::uint32_t internalId, int type, const bool active)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Components::GetByInternalId(static_cast<Pine::ComponentType>(type), internalId)->SetActive(active);
@@ -25,7 +25,7 @@ namespace
 
     // -----------------------------------------------------
 
-    void SetModel(std::uint32_t internalId, std::uint32_t assetId)
+    void SetModel(const std::uint32_t internalId, std::uint32_t assetId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
@@ -37,7 +37,7 @@ namespace
         */
     }
 
-    MonoObject* GetModel(std::uint32_t internalId)
+    MonoObject* GetModel(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
 
@@ -53,98 +53,98 @@ namespace
 
     // -----------------------------------------------------
 
-    void TransformGetPosition(std::uint32_t internalId, Pine::Vector3f *position)
+    void TransformGetPosition(const std::uint32_t internalId, Pine::Vector3f *position)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *position = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetPosition();
     }
 
-    void TransformGetRotation(std::uint32_t internalId, Pine::Quaternion *rotation)
+    void TransformGetRotation(const std::uint32_t internalId, Pine::Quaternion *rotation)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *rotation = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetRotation();
     }
 
-    void TransformGetScale(std::uint32_t internalId, Pine::Vector3f *scale)
+    void TransformGetScale(const std::uint32_t internalId, Pine::Vector3f *scale)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *scale = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetScale();
     }
 
-    void TransformGetLocalPosition(std::uint32_t internalId, Pine::Vector3f *position)
+    void TransformGetLocalPosition(const std::uint32_t internalId, Pine::Vector3f *position)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *position = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetLocalPosition();
     }
 
-    void TransformSetLocalPosition(std::uint32_t internalId, Pine::Vector3f *position)
+    void TransformSetLocalPosition(const std::uint32_t internalId, Pine::Vector3f *position)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         Pine::Components::GetByInternalId<Pine::Transform>(internalId)->SetLocalPosition(*position);
     }
 
-    void TransformGetLocalRotation(std::uint32_t internalId, Pine::Quaternion *rotation)
+    void TransformGetLocalRotation(const std::uint32_t internalId, Pine::Quaternion *rotation)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *rotation = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetLocalRotation();
     }
 
-    void TransformSetLocalRotation(std::uint32_t internalId, Pine::Quaternion *rotation)
+    void TransformSetLocalRotation(const std::uint32_t internalId, Pine::Quaternion *rotation)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         Pine::Components::GetByInternalId<Pine::Transform>(internalId)->SetLocalRotation(*rotation);
     }
 
-    void TransformGetLocalEulerAngles(std::uint32_t internalId, Pine::Vector3f *rotation)
+    void TransformGetLocalEulerAngles(const std::uint32_t internalId, Pine::Vector3f *rotation)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *rotation = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetEulerAngles();
     }
 
-    void TransformSetLocalEulerAngles(std::uint32_t internalId, Pine::Vector3f *rotation)
+    void TransformSetLocalEulerAngles(const std::uint32_t internalId, Pine::Vector3f *rotation)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         Pine::Components::GetByInternalId<Pine::Transform>(internalId)->SetEulerAngles(*rotation);
     }
 
-    void TransformGetLocalScale(std::uint32_t internalId, Pine::Vector3f *scale)
+    void TransformGetLocalScale(const std::uint32_t internalId, Pine::Vector3f *scale)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *scale = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetLocalScale();
     }
 
-    void TransformSetLocalScale(std::uint32_t internalId, Pine::Vector3f *scale)
+    void TransformSetLocalScale(const std::uint32_t internalId, Pine::Vector3f *scale)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         Pine::Components::GetByInternalId<Pine::Transform>(internalId)->SetLocalScale(*scale);
     }
 
-    void TransformGetUp(std::uint32_t internalId, Pine::Vector3f *up)
+    void TransformGetUp(const std::uint32_t internalId, Pine::Vector3f *up)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *up = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetUp();
     }
 
-    void TransformGetRight(std::uint32_t internalId, Pine::Vector3f *right)
+    void TransformGetRight(const std::uint32_t internalId, Pine::Vector3f *right)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         *right = Pine::Components::GetByInternalId<Pine::Transform>(internalId)->GetRight();
     }
 
-    void TransformGetForward(std::uint32_t internalId, Pine::Vector3f *forward)
+    void TransformGetForward(const std::uint32_t internalId, Pine::Vector3f *forward)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
@@ -153,7 +153,7 @@ namespace
 
     // -----------------------------------------------------
 
-    void RigidBodyApplyForce(std::uint32_t internalId, const Pine::Vector3f *force, physx::PxForceMode::Enum mode)
+    void RigidBodyApplyForce(const std::uint32_t internalId, const Pine::Vector3f *force, const physx::PxForceMode::Enum mode)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
@@ -162,7 +162,7 @@ namespace
 
     // -----------------------------------------------------
 
-    MonoObject* ScriptGetCSharpScript(std::uint32_t internalId)
+    MonoObject* ScriptGetCSharpScript(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
 
@@ -172,7 +172,7 @@ namespace
         return mono_gchandle_get_target(script->GetScriptHandle()->Handle);
     }
 
-    MonoObject* ScriptGetInstance(std::uint32_t internalId)
+    MonoObject* ScriptGetInstance(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
 

@@ -13,19 +13,19 @@ namespace
 {
     // Begin InputBind functions
 
-    void AddKeyboardBinding(int bindingIndex, int key, float value = 1.f)
+    void AddKeyboardBinding(const int bindingIndex, const int key, const float value = 1.f)
     {
         Pine::Input::GetDefaultContext()->InputBindings[bindingIndex]->AddKeyboardBinding(key, value);
     }
 
-    void AddAxisBinding(int bindingIndex, int axis, float sensitivity = 1.f)
+    void AddAxisBinding(const int bindingIndex, int axis, const float sensitivity = 1.f)
     {
         Pine::Input::GetDefaultContext()->InputBindings[bindingIndex]->AddAxisBinding(static_cast<Pine::Axis>(axis), sensitivity);
     }
 
     // End InputBind functions
 
-    int CreateInputBinding(MonoString* name, Pine::InputType type = Pine::InputType::Axis)
+    int CreateInputBinding(MonoString* name, const Pine::InputType type = Pine::InputType::Axis)
     {
         std::string n = mono_string_to_utf8(name);
         Pine::Input::GetDefaultContext()->CreateInputBinding(n, type);
@@ -78,22 +78,22 @@ namespace
         return -1;
     }
 
-    int GetInputBindType(int handle)
+    int GetInputBindType(const int handle)
     {
         return static_cast<int>(Pine::Input::GetDefaultContext()->InputBindings[handle]->GetType());
     }
 
-    MonoString* GetInputBindName(int handle)
+    MonoString* GetInputBindName(const int handle)
     {
         return mono_string_new(mono_domain_get(), Pine::Input::GetDefaultContext()->InputBindings[handle]->GetName().c_str());
     }
 
-    float GetInputBindAxisValue(int handle)
+    float GetInputBindAxisValue(const int handle)
     {
         return Pine::Input::GetDefaultContext()->InputBindings[handle]->GetAxisValue();
     }
 
-    bool PollInputBindActionState(int handle)
+    bool PollInputBindActionState(const int handle)
     {
         return Pine::Input::GetDefaultContext()->InputBindings[handle]->PollActionState();
     }

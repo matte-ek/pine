@@ -45,7 +45,7 @@ void Pine::Mesh::SetMaterial(Material*material)
     }
 }
 
-void Pine::Mesh::SetMaterial(UId id)
+void Pine::Mesh::SetMaterial(const UId id)
 {
     m_Material = id;
 }
@@ -70,14 +70,14 @@ const Pine::Vector3f& Pine::Mesh::GetBoundingBoxMax() const
     return m_BoundingBoxMax;
 }
 
-void Pine::Mesh::SetVertices(float* vertices, std::size_t size)
+void Pine::Mesh::SetVertices(float* vertices, const std::size_t size)
 {
     m_VertexArray->Bind();
     m_VertexArray->StoreFloatArrayBuffer(vertices, size, Buffers::VERTEX_ARRAY_BUFFER, 3, Graphics::BufferUsageHint::StaticDraw);
     m_RenderCount = static_cast<std::uint32_t>(size / sizeof(Vector3f));
 }
 
-void Pine::Mesh::SetIndices(std::uint32_t *indices, std::size_t size)
+void Pine::Mesh::SetIndices(std::uint32_t *indices, const std::size_t size)
 {
     m_VertexArray->Bind();
     m_VertexArray->StoreElementArrayBuffer(indices, size);
@@ -85,26 +85,26 @@ void Pine::Mesh::SetIndices(std::uint32_t *indices, std::size_t size)
     m_RenderCount = static_cast<std::uint32_t>(size / sizeof(std::uint32_t));
 }
 
-void Pine::Mesh::SetNormals(float* normals, std::size_t size)
+void Pine::Mesh::SetNormals(float* normals, const std::size_t size)
 {
     m_VertexArray->Bind();
     m_VertexArray->StoreFloatArrayBuffer(normals, size, Buffers::NORMAL_ARRAY_BUFFER, 3, Graphics::BufferUsageHint::StaticDraw);
 }
 
-void Pine::Mesh::SetTangents(float* tangents, std::size_t size)
+void Pine::Mesh::SetTangents(float* tangents, const std::size_t size)
 {
     m_VertexArray->Bind();
     m_VertexArray->StoreFloatArrayBuffer(tangents, size, Buffers::TANGENT_ARRAY_BUFFER, 3, Graphics::BufferUsageHint::StaticDraw);
     m_HasTangentData = true;
 }
 
-void Pine::Mesh::SetUvs(float* uvs, std::size_t size)
+void Pine::Mesh::SetUvs(float* uvs, const std::size_t size)
 {
     m_VertexArray->Bind();
     m_VertexArray->StoreFloatArrayBuffer(uvs, size, Buffers::UV_ARRAY_BUFFER, 2, Graphics::BufferUsageHint::StaticDraw);
 }
 
-void Pine::Mesh::SetAABB(Vector3f min, Vector3f max)
+void Pine::Mesh::SetAABB(const Vector3f min, const Vector3f max)
 {
     m_BoundingBoxMin = min;
     m_BoundingBoxMax = max;

@@ -7,7 +7,7 @@ namespace
 {
     std::uint32_t m_ActiveShader = 0;
 
-    std::uint32_t TranslateShaderType(Pine::Graphics::ShaderType type)
+    std::uint32_t TranslateShaderType(const Pine::Graphics::ShaderType type)
     {
         switch (type)
         {
@@ -59,7 +59,7 @@ void Pine::Graphics::GLShaderProgram::Dispose()
     m_UniformVariables.clear();
 }
 
-bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string &src, ShaderType type)
+bool Pine::Graphics::GLShaderProgram::CompileAndLoadShader(const std::string &src, const ShaderType type)
 {
     const auto openglShaderType = TranslateShaderType(type);
 

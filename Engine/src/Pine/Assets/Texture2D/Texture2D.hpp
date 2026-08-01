@@ -96,6 +96,7 @@ namespace Pine
             PINE_SERIALIZE_DATA(Data);
         };
 
+    protected:
         bool LoadAssetData(const ByteSpan& span) override;
         ByteSpan SaveAssetData() override;
     public:

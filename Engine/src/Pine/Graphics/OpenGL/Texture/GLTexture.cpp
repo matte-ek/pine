@@ -16,7 +16,7 @@ namespace
         int openglInternalFormat = 0;
     };
 
-    std::uint32_t TranslateTextureType(Pine::Graphics::TextureType type, bool multiSample)
+    std::uint32_t TranslateTextureType(const Pine::Graphics::TextureType type, const bool multiSample)
     {
         switch (type)
         {
@@ -31,7 +31,7 @@ namespace
         }
     }
 
-    std::uint32_t TranslateWrapMode(Pine::Graphics::TextureWrapMode mode)
+    std::uint32_t TranslateWrapMode(const Pine::Graphics::TextureWrapMode mode)
     {
         switch (mode)
         {
@@ -46,7 +46,7 @@ namespace
         }
     }
 
-    std::uint32_t TranslateTextureDataFormatType(Pine::Graphics::TextureDataFormat type)
+    std::uint32_t TranslateTextureDataFormatType(const Pine::Graphics::TextureDataFormat type)
     {
         switch (type)
         {
@@ -61,7 +61,7 @@ namespace
         }
     }
 
-    std::int32_t TranslateSwizzleMaskChannel(Pine::Graphics::SwizzleMaskChannel channel)
+    std::int32_t TranslateSwizzleMaskChannel(const Pine::Graphics::SwizzleMaskChannel channel)
     {
         switch (channel)
         {
@@ -82,7 +82,7 @@ namespace
         }
     }
 
-    GLTextureFormat TranslateOpenGLTextureFormat(Pine::Graphics::TextureFormat format)
+    GLTextureFormat TranslateOpenGLTextureFormat(const Pine::Graphics::TextureFormat format)
     {
         int openglFormat;
         int openglInternalFormat = 0;
@@ -128,8 +128,8 @@ namespace
     }
 
     std::uint32_t TranslateCompressionFormat(
-        Pine::Graphics::TextureFormat textureFormat,
-        Pine::Graphics::TextureCompressionFormat textureCompressionFormat)
+        const Pine::Graphics::TextureFormat textureFormat,
+        const Pine::Graphics::TextureCompressionFormat textureCompressionFormat)
     {
         switch (textureCompressionFormat)
         {
@@ -157,7 +157,7 @@ Pine::Graphics::GLTexture::GLTexture()
     glGenTextures(1, &m_Id);
 }
 
-void Pine::Graphics::GLTexture::Bind(int textureIndex)
+void Pine::Graphics::GLTexture::Bind(const int textureIndex)
 {
     glActiveTexture(GL_TEXTURE0 + textureIndex);
     glBindTexture(TranslateTextureType(m_Type, m_IsMultiSampled), m_Id);
@@ -268,11 +268,11 @@ void Pine::Graphics::GLTexture::Dispose()
 }
 
 void Pine::Graphics::GLTexture::UploadTextureData(
-    int width,
-    int height,
-    int level,
-    TextureFormat format,
-    TextureDataFormat dataFormat,
+    const int width,
+    const int height,
+    const int level,
+    const TextureFormat format,
+    const TextureDataFormat dataFormat,
     void *data)
 {
     auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(format);
@@ -319,13 +319,13 @@ void Pine::Graphics::GLTexture::UploadTextureData(
 }
 
 void Pine::Graphics::GLTexture::UploadTextureDataCompressed(
-    int width,
-    int height,
-    int level,
-    TextureFormat textureFormat,
-    TextureCompressionFormat compressionFormat,
+    const int width,
+    const int height,
+    const int level,
+    const TextureFormat textureFormat,
+    const TextureCompressionFormat compressionFormat,
     void* data,
-    size_t size)
+    const size_t size)
 {
     const auto openglType = TranslateTextureType(m_Type, m_IsMultiSampled);
 
@@ -357,12 +357,12 @@ Pine::Graphics::TextureType Pine::Graphics::GLTexture::GetType()
     return m_Type;
 }
 
-void Pine::Graphics::GLTexture::SetType(TextureType type)
+void Pine::Graphics::GLTexture::SetType(const TextureType type)
 {
     m_Type = type;
 }
 
-void Pine::Graphics::GLTexture::SetFilteringMode(TextureFilteringMode mode)
+void Pine::Graphics::GLTexture::SetFilteringMode(const TextureFilteringMode mode)
 {
     m_FilteringMode = mode;
 
@@ -374,7 +374,7 @@ Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetFilteringMode
     return m_FilteringMode;
 }
 
-void Pine::Graphics::GLTexture::SetMipmapFilteringMode(TextureFilteringMode mode)
+void Pine::Graphics::GLTexture::SetMipmapFilteringMode(const TextureFilteringMode mode)
 {
     m_MipmapFilteringMode = mode;
 
@@ -386,7 +386,7 @@ Pine::Graphics::TextureFilteringMode Pine::Graphics::GLTexture::GetMipmapFilteri
     return m_MipmapFilteringMode;
 }
 
-void Pine::Graphics::GLTexture::SetTextureWrapMode(TextureWrapMode mode)
+void Pine::Graphics::GLTexture::SetTextureWrapMode(const TextureWrapMode mode)
 {
     m_WrapMode = mode;
     UpdateWrapMode();
@@ -397,7 +397,7 @@ Pine::Graphics::TextureWrapMode Pine::Graphics::GLTexture::GetTextureWrapMode()
     return m_WrapMode;
 }
 
-void Pine::Graphics::GLTexture::SetBorderColor(Vector4f color)
+void Pine::Graphics::GLTexture::SetBorderColor(const Vector4f color)
 {
     m_BorderColor = color;
 
@@ -461,7 +461,7 @@ Pine::Graphics::TextureCompressionFormat Pine::Graphics::GLTexture::GetTextureCo
     return m_TextureCompressionFormat;
 }
 
-void Pine::Graphics::GLTexture::EnableMipmaps(int levels)
+void Pine::Graphics::GLTexture::EnableMipmaps(const int levels)
 {
     m_HasMipmaps = true;
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levels);
@@ -493,7 +493,7 @@ void Pine::Graphics::GLTexture::UpdateTextureFiltering()
     glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, magFilter);
 }
 
-void Pine::Graphics::GLTexture::SetMultiSampled(bool multiSampled)
+void Pine::Graphics::GLTexture::SetMultiSampled(const bool multiSampled)
 {
     m_IsMultiSampled = multiSampled;
 }
@@ -503,7 +503,7 @@ bool Pine::Graphics::GLTexture::IsMultiSampled()
     return m_IsMultiSampled;
 }
 
-void Pine::Graphics::GLTexture::SetSamples(int samples)
+void Pine::Graphics::GLTexture::SetSamples(const int samples)
 {
     m_Samples = samples;
 }
@@ -513,7 +513,7 @@ int Pine::Graphics::GLTexture::GetSamples()
     return m_Samples;
 }
 
-void Pine::Graphics::GLTexture::SetArraySize(int arraySize)
+void Pine::Graphics::GLTexture::SetArraySize(const int arraySize)
 {
     m_ArraySize = arraySize;
 }
@@ -528,7 +528,7 @@ bool Pine::Graphics::GLTexture::HasCustomSwizzleMask()
     return m_HasCustomSwizzleMask;
 }
 
-void Pine::Graphics::GLTexture::SetSwizzleMask(Pine::Graphics::SwizzleMaskChannel r, Pine::Graphics::SwizzleMaskChannel g, Pine::Graphics::SwizzleMaskChannel b, Pine::Graphics::SwizzleMaskChannel a)
+void Pine::Graphics::GLTexture::SetSwizzleMask(const SwizzleMaskChannel r, const SwizzleMaskChannel g, const SwizzleMaskChannel b, const SwizzleMaskChannel a)
 {
     m_SwizzleMask = { r, g, b, a };
     m_HasCustomSwizzleMask = true;

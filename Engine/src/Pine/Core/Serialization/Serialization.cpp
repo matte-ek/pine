@@ -17,7 +17,7 @@ namespace
         FlexibleMode = (1 << 0) // File was encoded with flexible mode enabled.
     };
 
-    size_t PrimitiveDataTypeToSize(Pine::Serialization::DataType type)
+    size_t PrimitiveDataTypeToSize(const Pine::Serialization::DataType type)
     {
         switch (type)
         {
@@ -74,7 +74,7 @@ namespace
 
 Pine::Serialization::Data::Data(
     Serializer* parentSerializer,
-    DataType type,
+    const DataType type,
     const char* name)
     :
     m_Name(name),
@@ -93,7 +93,7 @@ Pine::Serialization::DataType Pine::Serialization::Data::GetType() const
     return m_Type;
 }
 
-void Pine::Serialization::DataPrimitive::Write(const void* data, size_t size)
+void Pine::Serialization::DataPrimitive::Write(const void* data, const size_t size)
 {
     if (size > sizeof(m_Data))
     {
@@ -106,7 +106,7 @@ void Pine::Serialization::DataPrimitive::Write(const void* data, size_t size)
     m_DataSize = size;
 }
 
-Pine::Serialization::DataPrimitive::DataPrimitive(Serializer* parentSerializer, DataType type, const char* name)
+Pine::Serialization::DataPrimitive::DataPrimitive(Serializer* parentSerializer, const DataType type, const char* name)
 : Data(parentSerializer, type, name),
   m_Data{}
 {
@@ -123,7 +123,7 @@ size_t Pine::Serialization::DataPrimitive::GetDataSize() const
     return m_DataSize;
 }
 
-void Pine::Serialization::DataFixed::WriteRaw(const void* data, size_t size)
+void Pine::Serialization::DataFixed::WriteRaw(const void* data, const size_t size)
 {
     if (size == 0)
     {
@@ -142,7 +142,7 @@ void Pine::Serialization::DataFixed::WriteRaw(const void* data, size_t size)
     m_DataSize = size;
 }
 
-void Pine::Serialization::DataFixed::WritePortion(const void* data, size_t size, size_t offset) const
+void Pine::Serialization::DataFixed::WritePortion(const void* data, const size_t size, const size_t offset) const
 {
     assert(m_DataSize >= size + offset);
 
@@ -203,7 +203,7 @@ void Pine::Serialization::DataFixed::Write(const ByteSpan& span)
     WriteRaw(span.data, span.size);
 }
 
-Pine::Serialization::DataFixed::DataFixed(Serializer* parentSerializer, DataType type, const char* name)
+Pine::Serialization::DataFixed::DataFixed(Serializer* parentSerializer, const DataType type, const char* name)
 : Data(parentSerializer, type, name),
   m_Data{}, m_DataSize{}
 {
@@ -238,7 +238,7 @@ bool Pine::Serialization::DataFixed::ReadRaw(void** data, size_t& size) const
     return true;
 }
 
-void Pine::Serialization::DataFixed::AllocateData(size_t size)
+void Pine::Serialization::DataFixed::AllocateData(const size_t size)
 {
     if (m_Data != nullptr)
     {
@@ -276,7 +276,7 @@ void Pine::Serialization::DataArray::Reset()
     m_Data.clear();
 }
 
-void Pine::Serialization::DataArray::AddData(const void* data, size_t size)
+void Pine::Serialization::DataArray::AddData(const void* data, const size_t size)
 {
     ByteSpan span;
 
@@ -293,7 +293,7 @@ void Pine::Serialization::DataArray::AddData(const ByteSpan& span)
     AddData(span.data, span.size);
 }
 
-const Pine::ByteSpan& Pine::Serialization::DataArray::GetData(size_t index) const
+const Pine::ByteSpan& Pine::Serialization::DataArray::GetData(const size_t index) const
 {
     assert(index < m_Data.size());
 
@@ -317,13 +317,13 @@ size_t Pine::Serialization::DataArray::GetDataSize() const
     return ret;
 }
 
-Pine::Serialization::DataArrayFixed::DataArrayFixed(Serializer* parentSerializer, const char* name, size_t elementSize)
+Pine::Serialization::DataArrayFixed::DataArrayFixed(Serializer* parentSerializer, const char* name, const size_t elementSize)
     : DataFixed(parentSerializer, DataType::Data, name),
         m_DataStride(elementSize)
 {
 }
 
-void Pine::Serialization::DataArrayFixed::SetSize(uint32_t size)
+void Pine::Serialization::DataArrayFixed::SetSize(const uint32_t size)
 {
     AllocateData(m_DataStride * size);
 }
@@ -383,7 +383,7 @@ Pine::ByteSpan Pine::Serialization::Serializer::Write() const
     return {data, size};
 }
 
-bool Pine::Serialization::Serializer::Read(const void* data, size_t size) const
+bool Pine::Serialization::Serializer::Read(const void* data, const size_t size) const
 {
     if (!data || size < sizeof(FileHeader))
     {

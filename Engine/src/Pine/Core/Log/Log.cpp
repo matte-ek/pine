@@ -59,9 +59,9 @@ namespace
         const char* prefix,
         const char* fileName,
         int fileLine,
-        ConsoleColor color,
-        std::string_view str,
-        ConsoleColor msgColor = ConsoleColor::None)
+        const ConsoleColor color,
+        const std::string_view str,
+        const ConsoleColor msgColor = ConsoleColor::None)
     {
         SetConsoleColor(color);
 
@@ -92,39 +92,39 @@ void Pine::Log::LogVerbose(const char* fileName, int fileLine, std::string_view 
     return;
     std::unique_lock lck(m_LogMutex);
     PrintMessage("verbose", fileName, fileLine, ConsoleColor::DarkGray, str);
-    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Verbose});
+    AddLogMessage({fileName, fileLine, std::string(str), LogSeverity::Verbose});
 }
 
-void Pine::Log::LogInfo(const char* fileName, int fileLine, std::string_view str)
+void Pine::Log::LogInfo(const char* fileName, const int fileLine, const std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
     PrintMessage("info", fileName, fileLine, ConsoleColor::White, str);
-    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Info});
+    AddLogMessage({fileName, fileLine, std::string(str), LogSeverity::Info});
 }
 
-void Pine::Log::LogWarning(const char* fileName, int fileLine, std::string_view str)
+void Pine::Log::LogWarning(const char* fileName, const int fileLine, const std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
     PrintMessage("warning", fileName, fileLine,  ConsoleColor::Yellow, str);
-    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Warning});
+    AddLogMessage({fileName, fileLine, std::string(str), LogSeverity::Warning});
 }
 
-void Pine::Log::LogError(const char* fileName, int fileLine, std::string_view str)
+void Pine::Log::LogError(const char* fileName, const int fileLine, const std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
     PrintMessage("error", fileName, fileLine, ConsoleColor::Red, str);
-    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Error});
+    AddLogMessage({fileName, fileLine, std::string(str), LogSeverity::Error});
 }
 
-void Pine::Log::LogFatal(const char* fileName, int fileLine, std::string_view str)
+void Pine::Log::LogFatal(const char* fileName, const int fileLine, const std::string_view str)
 {
     std::unique_lock lck(m_LogMutex);
 
     PrintMessage("fatal", fileName, fileLine, ConsoleColor::Red, str, ConsoleColor::Red);
-    AddLogMessage({fileName, fileLine, std::string(str), Pine::LogSeverity::Fatal});
+    AddLogMessage({fileName, fileLine, std::string(str), LogSeverity::Fatal});
 }
 
 const std::deque<Pine::LogMessage> &Pine::Log::GetLogMessages()

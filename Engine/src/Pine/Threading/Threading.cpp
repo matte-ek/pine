@@ -81,7 +81,7 @@ namespace
         task->ConditionVariable.notify_all();
     }
 
-    void Worker(int workerId)
+    void Worker(const int workerId)
     {
         PVerbose(fmt::format("Worker #{} has started.", workerId + 1));
 
@@ -139,7 +139,7 @@ void Pine::Threading::Shutdown()
     }
 }
 
-Pine::TaskPool* Pine::Threading::CreateTaskPool(bool notifyMainThreadUpdates)
+Pine::TaskPool* Pine::Threading::CreateTaskPool(const bool notifyMainThreadUpdates)
 {
     std::unique_lock lck(m_TaskPoolMutex);
 
@@ -162,7 +162,7 @@ void Pine::Threading::DeleteTaskPool(TaskPool* taskPool)
     delete taskPool;
 }
 
-std::shared_ptr<Pine::Task> Pine::Threading::AddTaskToQueue(TaskFunc taskFunction, TaskThreadingMode mode, TaskPool* pool)
+std::shared_ptr<Pine::Task> Pine::Threading::AddTaskToQueue(TaskFunc taskFunction, const TaskThreadingMode mode, TaskPool* pool)
 {
     auto task = std::make_shared<Task>();
 

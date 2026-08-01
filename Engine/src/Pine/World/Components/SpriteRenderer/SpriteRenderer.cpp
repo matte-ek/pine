@@ -16,7 +16,7 @@ Pine::Texture2D* Pine::SpriteRenderer::GetTexture() const
     return m_StaticTexture.Get();
 }
 
-void Pine::SpriteRenderer::SetOrder(int order)
+void Pine::SpriteRenderer::SetOrder(const int order)
 {
     m_Order = order;
 }
@@ -26,7 +26,7 @@ int Pine::SpriteRenderer::GetOrder() const
     return m_Order;
 }
 
-void Pine::SpriteRenderer::SetColor(const Pine::Vector4f& color)
+void Pine::SpriteRenderer::SetColor(const Vector4f& color)
 {
     m_Color = color;
 }
@@ -60,7 +60,7 @@ Pine::ByteSpan Pine::SpriteRenderer::SaveData()
     return serializer.Write();
 }
 
-void Pine::SpriteRenderer::SetScalingMode(SpriteScalingMode scalingMode)
+void Pine::SpriteRenderer::SetScalingMode(const SpriteScalingMode scalingMode)
 {
     m_ScalingMode = scalingMode;
 }

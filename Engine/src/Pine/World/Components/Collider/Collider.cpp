@@ -83,7 +83,7 @@ Pine::ColliderType Pine::Collider::GetColliderType() const
     return m_ColliderType;
 }
 
-void Pine::Collider::SetPosition(Vector3f position)
+void Pine::Collider::SetPosition(const Vector3f position)
 {
     m_Position = position;
 }
@@ -93,7 +93,7 @@ const Pine::Vector3f &Pine::Collider::GetPosition() const
     return m_Position;
 }
 
-void Pine::Collider::SetSize(Vector3f size)
+void Pine::Collider::SetSize(const Vector3f size)
 {
     m_Size = size;
 }
@@ -103,7 +103,7 @@ const Pine::Vector3f &Pine::Collider::GetSize() const
     return m_Size;
 }
 
-void Pine::Collider::SetRadius(float radius)
+void Pine::Collider::SetRadius(const float radius)
 {
     m_Size.x = radius;
 }
@@ -113,7 +113,7 @@ float Pine::Collider::GetRadius() const
     return m_Size.x;
 }
 
-void Pine::Collider::SetHeight(float height)
+void Pine::Collider::SetHeight(const float height)
 {
     m_Size.y = height;
 }
@@ -123,7 +123,7 @@ float Pine::Collider::GetHeight() const
     return m_Size.y;
 }
 
-void Pine::Collider::SetLayer(std::uint32_t layer)
+void Pine::Collider::SetLayer(const std::uint32_t layer)
 {
     m_Layer = layer;
 }
@@ -133,7 +133,7 @@ std::uint32_t Pine::Collider::GetLayer() const
     return m_Layer;
 }
 
-void Pine::Collider::SetLayerMask(std::uint32_t includeLayers)
+void Pine::Collider::SetLayerMask(const std::uint32_t includeLayers)
 {
     m_LayerMask = includeLayers;
 }
@@ -143,7 +143,7 @@ std::uint32_t Pine::Collider::GetLayerMask() const
     return m_LayerMask;
 }
 
-void Pine::Collider::SetIsTrigger(bool isTrigger)
+void Pine::Collider::SetIsTrigger(const bool isTrigger)
 {
     m_IsTrigger = isTrigger;
 }
@@ -153,7 +153,7 @@ bool Pine::Collider::IsTrigger() const
     return m_IsTrigger;
 }
 
-void Pine::Collider::SetTriggerMask(std::uint32_t mask)
+void Pine::Collider::SetTriggerMask(const std::uint32_t mask)
 {
     m_TriggerMask = mask;
 }

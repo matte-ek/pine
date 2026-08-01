@@ -14,7 +14,7 @@ Pine::UId::UId(const ByteSpan& data)
     m_Random = *reinterpret_cast<const std::uint64_t*>(data.data + 8);
 }
 
-Pine::UId::UId(std::string_view str)
+Pine::UId::UId(const std::string_view str)
 {
     sscanf(str.data(), "%llx-%016llx", &m_Time, &m_Random);
 }

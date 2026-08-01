@@ -6,7 +6,7 @@ Pine::ScriptComponent::ScriptComponent()
 {
 }
 
-void Pine::ScriptComponent::SetScript(Pine::CSharpScript *script)
+void Pine::ScriptComponent::SetScript(CSharpScript *script)
 {
     bool createInstance = false;
 

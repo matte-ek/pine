@@ -182,7 +182,7 @@ Pine::Script::RuntimeAssembly* Pine::Script::Runtime::LoadAssembly(const std::fi
     return &m_Assemblies.back();
 }
 
-bool Pine::Script::Runtime::UnloadAssembly(const Pine::Script::RuntimeAssembly *assembly)
+bool Pine::Script::Runtime::UnloadAssembly(const RuntimeAssembly *assembly)
 {
     if (!m_RootDomain)
     {

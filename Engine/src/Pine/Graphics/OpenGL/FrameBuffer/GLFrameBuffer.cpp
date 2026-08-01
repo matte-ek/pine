@@ -7,7 +7,7 @@
 namespace
 {
 
-    inline std::uint32_t TranslateReadFormat(Pine::Graphics::ReadFormat format)
+    inline std::uint32_t TranslateReadFormat(const Pine::Graphics::ReadFormat format)
     {
         switch (format)
         {
@@ -28,7 +28,7 @@ namespace
         }
     }
 
-    inline std::uint32_t TranslateTextureDataFormatType(Pine::Graphics::TextureDataFormat type)
+    inline std::uint32_t TranslateTextureDataFormatType(const Pine::Graphics::TextureDataFormat type)
     {
         switch (type)
         {
@@ -43,7 +43,7 @@ namespace
         }
     }
 
-    inline std::uint32_t TranslateBufferType(Pine::Graphics::Buffers buffer)
+    inline std::uint32_t TranslateBufferType(const Pine::Graphics::Buffers buffer)
     {
         switch (buffer)
         {
@@ -58,7 +58,7 @@ namespace
         }
     }
 
-    inline std::uint32_t TranslateAttachmentType(Pine::Graphics::BufferAttachment attachment)
+    inline std::uint32_t TranslateAttachmentType(const Pine::Graphics::BufferAttachment attachment)
     {
         switch (attachment)
         {
@@ -143,7 +143,7 @@ void Pine::Graphics::GLFrameBuffer::Prepare()
     glBindFramebuffer(GL_FRAMEBUFFER, m_Id);
 }
 
-void Pine::Graphics::GLFrameBuffer::AttachTextures(int width, int height, int buffers, int multiSample)
+void Pine::Graphics::GLFrameBuffer::AttachTextures(const int width, const int height, const int buffers, const int multiSample)
 {
     if (buffers & StencilBuffer)
     {
@@ -211,7 +211,7 @@ void Pine::Graphics::GLFrameBuffer::AttachTextures(int width, int height, int bu
     m_Size = Vector2i(width, height);
 }
 
-void Pine::Graphics::GLFrameBuffer::AttachTexture(ITexture *texture, BufferAttachment attachment, int attachmentOffset)
+void Pine::Graphics::GLFrameBuffer::AttachTexture(ITexture *texture, const BufferAttachment attachment, const int attachmentOffset)
 {
     const auto glTexture = dynamic_cast<GLTexture*>(texture);
     const bool isArrayTexture = texture->GetArraySize() > 0;
@@ -278,7 +278,7 @@ bool Pine::Graphics::GLFrameBuffer::Finish()
     return true;
 }
 
-void Pine::Graphics::GLFrameBuffer::Blit(IFrameBuffer *source, Buffers buffer, Vector4i srcRect, Vector4i dstRect)
+void Pine::Graphics::GLFrameBuffer::Blit(IFrameBuffer *source, const Buffers buffer, Vector4i srcRect, Vector4i dstRect)
 {
     if (srcRect == Vector4i(-1))
         srcRect = Vector4i(0, 0, source->GetSize().x, source->GetSize().y);
@@ -294,7 +294,7 @@ void Pine::Graphics::GLFrameBuffer::Blit(IFrameBuffer *source, Buffers buffer, V
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
-void Pine::Graphics::GLFrameBuffer::ReadPixels(Pine::Vector2i position, Pine::Vector2i size, Pine::Graphics::ReadFormat readFormat, Pine::Graphics::TextureDataFormat dataFormat, size_t bufferSize, void *buffer)
+void Pine::Graphics::GLFrameBuffer::ReadPixels(const Vector2i position, const Vector2i size, const ReadFormat readFormat, const TextureDataFormat dataFormat, size_t bufferSize, void *buffer)
 {
     glReadPixels(position.x, position.y, size.x, size.y, TranslateReadFormat(readFormat), TranslateTextureDataFormatType(dataFormat), buffer);
 }

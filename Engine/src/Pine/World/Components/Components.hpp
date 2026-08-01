@@ -69,14 +69,14 @@ namespace Pine
             return static_cast<std::uint32_t>(m_ComponentOccupationArraySize);
         }
 
-        __inline T* GetComponent(std::uint32_t index)
+        __inline T* GetComponent(const std::uint32_t index)
         {
             // Don't wanna directly access the array here since T could be either
             // an IComponent or the component itself.
             return reinterpret_cast<T*>(reinterpret_cast<std::uintptr_t>(m_ComponentArray) + m_ComponentSize * index);
         }
 
-        __inline bool ComponentIndexValid(std::uint32_t index) const
+        __inline bool ComponentIndexValid(const std::uint32_t index) const
         {
             return m_ComponentOccupationArray[index];
         }
@@ -86,7 +86,7 @@ namespace Pine
     struct ComponentDataBlockIterator
     {
     public:
-        ComponentDataBlockIterator(uint32_t index, ComponentDataBlock<T>* block, bool iterateDisabledObjects)
+        ComponentDataBlockIterator(uint32_t index, ComponentDataBlock<T>* block, const bool iterateDisabledObjects)
             : m_ComponentIndex(index),
               m_BlockParent(block),
               m_IterateDisabledObjects(iterateDisabledObjects)
@@ -226,7 +226,7 @@ namespace Pine::Components
         return block.GetComponent(internalId);
     }
 
-    Component* GetByInternalId(Pine::ComponentType type, std::uint32_t internalId);
+    Component* GetByInternalId(ComponentType type, std::uint32_t internalId);
 
     Component* FindById(ComponentType type, UId id);
 

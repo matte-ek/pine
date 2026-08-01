@@ -16,7 +16,7 @@ Pine::Tilemap* Pine::TilemapRenderer::GetTilemap() const
     return m_Tilemap.Get();
 }
 
-void Pine::TilemapRenderer::SetOrder(int order)
+void Pine::TilemapRenderer::SetOrder(const int order)
 {
     m_Order = order;
 }

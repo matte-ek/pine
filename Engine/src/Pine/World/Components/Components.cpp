@@ -26,7 +26,7 @@ namespace
 {
     std::vector<ComponentDataBlock<Component>*> m_ComponentDataBlocks;
 
-    bool ResizeComponentDataBlock(ComponentDataBlock<Component>* block, std::uint32_t size)
+    bool ResizeComponentDataBlock(ComponentDataBlock<Component>* block, const std::uint32_t size)
     {
         // Allocate the new data
         void* arrayData = malloc(block->m_ComponentSize * size);
@@ -84,7 +84,7 @@ namespace
     }
 
     template<typename T>
-    ComponentDataBlock<T>* CreateComponentDataBlock(std::uint32_t overrideInstanceCount = 0)
+    ComponentDataBlock<T>* CreateComponentDataBlock(const std::uint32_t overrideInstanceCount = 0)
     {
         auto block = new ComponentDataBlock<T>();
 
@@ -157,7 +157,7 @@ const std::vector<ComponentDataBlock<Component>*>&Components::GetComponentTypes(
     return m_ComponentDataBlocks;
 }
 
-Component* Components::Create(ComponentType type, bool standalone)
+Component* Components::Create(ComponentType type, const bool standalone)
 {
     const auto componentDataBlock = m_ComponentDataBlocks[static_cast<int>(type)];
 
@@ -210,7 +210,7 @@ Component* Components::Create(ComponentType type, bool standalone)
     return component;
 }
 
-Component* Components::Copy(Component* component, bool standalone)
+Component* Components::Copy(Component* component, const bool standalone)
 {
     const auto newComponent = Create(component->GetType(), standalone);
 
@@ -265,7 +265,7 @@ ComponentDataBlock<Component>& Components::GetData(ComponentType type)
     return *m_ComponentDataBlocks[static_cast<int>(type)];
 }
 
-Component* Components::GetByInternalId(ComponentType type, std::uint32_t internalId)
+Component* Components::GetByInternalId(const ComponentType type, const std::uint32_t internalId)
 {
     auto& block = GetData(type);
 
@@ -291,7 +291,7 @@ Component* Components::FindById(const ComponentType type, const UId id)
     return nullptr;
 }
 
-void Components::SetIgnoreHighestEntityIndexFlag(bool ignore)
+void Components::SetIgnoreHighestEntityIndexFlag(const bool ignore)
 {
     m_IgnoreSetHighestEntityIndexFlag = ignore;
 }

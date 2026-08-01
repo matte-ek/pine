@@ -140,7 +140,7 @@ void Assets::Shutdown()
     }
 }
 
-void Assets::SetWorkingDirectory(std::string_view workingDirectory)
+void Assets::SetWorkingDirectory(const std::string_view workingDirectory)
 {
     m_WorkingDirectory = workingDirectory;
 
@@ -215,7 +215,7 @@ int Assets::LoadAssetsFromDirectory(const std::filesystem::path& directory)
     return loadedAssets;
 }
 
-Asset* Assets::CreateAsset(AssetType type, std::string_view assetPath)
+Asset* Assets::CreateAsset(const AssetType type, const std::string_view assetPath)
 {
     auto asset = Internal::CreateAssetByType(type);
     if (!asset)
@@ -228,7 +228,7 @@ Asset* Assets::CreateAsset(AssetType type, std::string_view assetPath)
     return asset;
 }
 
-Asset* Assets::GetAssetByUId(UId id)
+Asset* Assets::GetAssetByUId(const UId id)
 {
     if (m_AssetsMapUId.count(id) == 0)
     {
@@ -238,7 +238,7 @@ Asset* Assets::GetAssetByUId(UId id)
     return m_AssetsMapUId[id];
 }
 
-Asset* Assets::GetAssetByPath(std::string_view path)
+Asset* Assets::GetAssetByPath(const std::string_view path)
 {
     if (m_AssetsMapPath.count(path.data()) == 0)
     {
@@ -288,7 +288,7 @@ void Assets::Internal::DeleteAsset(Asset* asset)
     asset->MarkPendingDelete();
 }
 
-Asset* Assets::Internal::CreateAssetByType(AssetType type)
+Asset* Assets::Internal::CreateAssetByType(const AssetType type)
 {
     for (const auto& assetFactory : m_AssetImportFactories)
     {

@@ -31,7 +31,7 @@ float Pine::AudioSource::GetPlaybackPosition() const
     return seconds;
 }
 
-void Pine::AudioSource::SetPlayOnStart(bool playOnStart)
+void Pine::AudioSource::SetPlayOnStart(const bool playOnStart)
 {
     m_PlayOnStart = playOnStart;
 }
@@ -41,7 +41,7 @@ bool Pine::AudioSource::GetPlayOnStart() const
     return m_PlayOnStart;
 }
 
-void Pine::AudioSource::SetVolume(float volume) const
+void Pine::AudioSource::SetVolume(const float volume) const
 {
     if (m_SourceId == 0)
         return;

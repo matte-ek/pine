@@ -11,7 +11,7 @@
 namespace
 {
 
-	std::uint32_t TranslateRenderMode(Pine::Graphics::RenderMode mode)
+	std::uint32_t TranslateRenderMode(const Pine::Graphics::RenderMode mode)
 	{
 		switch (mode)
 		{
@@ -24,7 +24,7 @@ namespace
 		}
 	}
 
-	std::uint32_t TranslateTestFunction(Pine::Graphics::TestFunction testFunction)
+	std::uint32_t TranslateTestFunction(const Pine::Graphics::TestFunction testFunction)
 	{
 		switch (testFunction)
 		{
@@ -49,7 +49,7 @@ namespace
 		}
 	}
 
-	std::uint32_t TranslateStencilOperation(Pine::Graphics::StencilOperation stencilOperation)
+	std::uint32_t TranslateStencilOperation(const Pine::Graphics::StencilOperation stencilOperation)
 	{
 		switch (stencilOperation)
 		{
@@ -74,7 +74,7 @@ namespace
 		}
 	}
 
-	std::uint32_t TranslateBlendingFunction(Pine::Graphics::BlendingFunction blendingFunction)
+	std::uint32_t TranslateBlendingFunction(const Pine::Graphics::BlendingFunction blendingFunction)
 	{
 		switch (blendingFunction)
 		{
@@ -113,7 +113,7 @@ namespace
 		}
 	}
 
-	std::uint32_t TranslateFaceCullingMode(Pine::Graphics::FaceCullMode mode)
+	std::uint32_t TranslateFaceCullingMode(const Pine::Graphics::FaceCullMode mode)
 	{
 		switch (mode)
 		{
@@ -131,7 +131,7 @@ namespace
 	void GLAPIENTRY MessageCallback(GLenum source,
 		GLenum type,
 		GLuint id,
-		GLenum severity,
+		const GLenum severity,
 		GLsizei length,
 		const GLchar* message,
 		const void* userParam)
@@ -174,7 +174,7 @@ const char* Pine::Graphics::OpenGL::GetGraphicsAdapter() const
 	return m_GraphicsAdapter.c_str();
 }
 
-void Pine::Graphics::OpenGL::ClearBuffers(std::uint32_t buffers)
+void Pine::Graphics::OpenGL::ClearBuffers(const std::uint32_t buffers)
 {
 	int clearBits = 0;
 
@@ -191,7 +191,7 @@ void Pine::Graphics::OpenGL::ClearBuffers(std::uint32_t buffers)
 	glClear(clearBits);
 }
 
-void Pine::Graphics::OpenGL::ClearColor(Color color)
+void Pine::Graphics::OpenGL::ClearColor(const Color color)
 {
 	glClearColor(static_cast<float>(color.r) / 255.f,
 		static_cast<float>(color.g) / 255.f,
@@ -260,22 +260,22 @@ void Pine::Graphics::OpenGL::DestroyShaderProgram(IShaderProgram* program)
 	delete dynamic_cast<GLShaderProgram*>(program);
 }
 
-void Pine::Graphics::OpenGL::DrawArrays(RenderMode mode, int count)
+void Pine::Graphics::OpenGL::DrawArrays(const RenderMode mode, const int count)
 {
 	glDrawArrays(TranslateRenderMode(mode), 0, count);
 }
 
-void Pine::Graphics::OpenGL::DrawElements(RenderMode mode, int count)
+void Pine::Graphics::OpenGL::DrawElements(const RenderMode mode, const int count)
 {
 	glDrawElements(TranslateRenderMode(mode), count, GL_UNSIGNED_INT, nullptr);
 }
 
-void Pine::Graphics::OpenGL::DrawArraysInstanced(RenderMode mode, int count, int instanceCount)
+void Pine::Graphics::OpenGL::DrawArraysInstanced(const RenderMode mode, const int count, const int instanceCount)
 {
 	glDrawArraysInstanced(TranslateRenderMode(mode), 0, count, instanceCount);
 }
 
-void Pine::Graphics::OpenGL::DrawElementsInstanced(RenderMode mode, int count, int instanceCount)
+void Pine::Graphics::OpenGL::DrawElementsInstanced(const RenderMode mode, const int count, const int instanceCount)
 {
 	glDrawElementsInstanced(TranslateRenderMode(mode), count, GL_UNSIGNED_INT, nullptr, instanceCount);
 }
@@ -305,12 +305,12 @@ void Pine::Graphics::OpenGL::BindFrameBuffer(IFrameBuffer* buffer)
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Pine::Graphics::OpenGL::SetViewport(Vector2i position, Vector2i size)
+void Pine::Graphics::OpenGL::SetViewport(const Vector2i position, const Vector2i size)
 {
 	glViewport(position.x, position.y, size.x, size.y);
 }
 
-void Pine::Graphics::OpenGL::SetBlendingEnabled(bool value)
+void Pine::Graphics::OpenGL::SetBlendingEnabled(const bool value)
 {
 	value ? glEnable(GL_BLEND) : glDisable(GL_BLEND);
 }
@@ -327,17 +327,17 @@ void Pine::Graphics::OpenGL::DestroyUniformBuffer(IUniformBuffer* buffer)
 	delete dynamic_cast<GLUniformBuffer*>(buffer);
 }
 
-void Pine::Graphics::OpenGL::SetDepthTestEnabled(bool value)
+void Pine::Graphics::OpenGL::SetDepthTestEnabled(const bool value)
 {
 	value ? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST);
 }
 
-void Pine::Graphics::OpenGL::SetStencilTestEnabled(bool value)
+void Pine::Graphics::OpenGL::SetStencilTestEnabled(const bool value)
 {
 	value ? glEnable(GL_STENCIL_TEST) : glDisable(GL_STENCIL_TEST);
 }
 
-void Pine::Graphics::OpenGL::SetFaceCullingEnabled(bool value)
+void Pine::Graphics::OpenGL::SetFaceCullingEnabled(const bool value)
 {
 	value ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
 
@@ -345,42 +345,42 @@ void Pine::Graphics::OpenGL::SetFaceCullingEnabled(bool value)
 	glCullFace(GL_BACK);
 }
 
-void Pine::Graphics::OpenGL::SetMultiSampleEnabled(bool value)
+void Pine::Graphics::OpenGL::SetMultiSampleEnabled(const bool value)
 {
 	value ? glEnable(GL_MULTISAMPLE) : glDisable(GL_MULTISAMPLE);
 }
 
-void Pine::Graphics::OpenGL::SetWireframeEnabled(bool value)
+void Pine::Graphics::OpenGL::SetWireframeEnabled(const bool value)
 {
     value ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void Pine::Graphics::OpenGL::SetFaceCullingMode(FaceCullMode mode)
+void Pine::Graphics::OpenGL::SetFaceCullingMode(const FaceCullMode mode)
 {
 	glCullFace(TranslateFaceCullingMode(mode));
 }
 
-void Pine::Graphics::OpenGL::SetBlendingFunction(BlendingFunction source, BlendingFunction destination)
+void Pine::Graphics::OpenGL::SetBlendingFunction(const BlendingFunction source, const BlendingFunction destination)
 {
 	glBlendFunc(TranslateBlendingFunction(source), TranslateBlendingFunction(destination));
 }
 
-void Pine::Graphics::OpenGL::SetDepthFunction(Pine::Graphics::TestFunction value)
+void Pine::Graphics::OpenGL::SetDepthFunction(const TestFunction value)
 {
 	glDepthFunc(TranslateTestFunction(value));
 }
 
-void Pine::Graphics::OpenGL::SetStencilFunction(Pine::Graphics::TestFunction function, int ref, int mask)
+void Pine::Graphics::OpenGL::SetStencilFunction(const TestFunction function, const int ref, const int mask)
 {
 	glStencilFunc(TranslateTestFunction(function), ref, mask);
 }
 
-void Pine::Graphics::OpenGL::SetStencilMask(int mask)
+void Pine::Graphics::OpenGL::SetStencilMask(const int mask)
 {
 	glStencilMask(mask);
 }
 
-void Pine::Graphics::OpenGL::SetStencilOperation(Pine::Graphics::StencilOperation stencilFail, Pine::Graphics::StencilOperation depthFail, Pine::Graphics::StencilOperation depthPass)
+void Pine::Graphics::OpenGL::SetStencilOperation(const StencilOperation stencilFail, const StencilOperation depthFail, const StencilOperation depthPass)
 {
 	glStencilOp(TranslateStencilOperation(stencilFail), TranslateStencilOperation(depthFail), TranslateStencilOperation(depthPass));
 }

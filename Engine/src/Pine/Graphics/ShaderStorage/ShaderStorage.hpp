@@ -35,7 +35,7 @@ namespace Pine::Graphics
     };
 
     template<typename T>
-    ShaderStorage<T>::ShaderStorage(int index, std::string name)
+    ShaderStorage<T>::ShaderStorage(const int index, std::string name)
         : m_BindIndex(index),
         m_Name(std::move(name))
     {
@@ -60,7 +60,7 @@ namespace Pine::Graphics
     }
 
     template<typename T>
-    void ShaderStorage<T>::Upload(size_t size)
+    void ShaderStorage<T>::Upload(const size_t size)
     {
         m_UniformBuffer->Bind();
 

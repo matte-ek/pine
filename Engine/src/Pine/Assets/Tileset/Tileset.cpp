@@ -58,7 +58,7 @@ Pine::Graphics::TextureAtlas* Pine::Tileset::GetTextureAtlas() const
     return m_TextureAtlas;
 }
 
-Pine::TileData* Pine::Tileset::AddTile(Texture2D* texture, std::uint32_t defaultFlags)
+Pine::TileData* Pine::Tileset::AddTile(Texture2D* texture, const std::uint32_t defaultFlags)
 {
     TileData tile{};
 
@@ -84,7 +84,7 @@ void Pine::Tileset::RemoveTile(const TileData& tile)
     }
 }
 
-Pine::TileData* Pine::Tileset::GetTileByIndex(std::uint32_t index)
+Pine::TileData* Pine::Tileset::GetTileByIndex(const std::uint32_t index)
 {
     for (auto& tile : m_Tiles)
     {
@@ -115,7 +115,7 @@ const std::vector<Pine::TileData>& Pine::Tileset::GetTileList()
     return m_Tiles;
 }
 
-void Pine::Tileset::SetTileSize(int size)
+void Pine::Tileset::SetTileSize(const int size)
 {
     m_TileSize = size;
 }

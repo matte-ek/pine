@@ -27,7 +27,7 @@ void Pine::Tilemap::Dispose()
     m_State = AssetState::Unloaded;
 }
 
-void Pine::Tilemap::CreateTile(std::uint32_t index, Vector2i gridPosition, std::uint32_t flags)
+void Pine::Tilemap::CreateTile(const std::uint32_t index, const Vector2i gridPosition, const std::uint32_t flags)
 {
     if (m_Tileset == nullptr)
     {
@@ -66,7 +66,7 @@ void Pine::Tilemap::RemoveTile(const TileInstance& instance)
     }
 }
 
-const Pine::TileInstance* Pine::Tilemap::GetTileByPosition(Vector2i gridPosition) const
+const Pine::TileInstance* Pine::Tilemap::GetTileByPosition(const Vector2i gridPosition) const
 {
     for (const auto & m_Tile : m_Tiles)
     {

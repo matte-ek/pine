@@ -26,7 +26,7 @@ namespace Pine
 
         // Since you cannot resize the body, we need to keep track of the size during
         // it's creation and update it when the user size changes.
-        Pine::Vector2f m_BodySize = Pine::Vector2f(1.f);
+        Vector2f m_BodySize = Vector2f(1.f);
 
         // Same story for the type, we need to keep track of it during creation.
         RigidBody2DType m_BodyType = RigidBody2DType::Dynamic;

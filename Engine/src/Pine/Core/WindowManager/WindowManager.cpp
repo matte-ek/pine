@@ -24,7 +24,7 @@ namespace
     std::vector<std::function<void()>> m_WindowFocusCallbacks;
     std::vector<std::function<void(const std::vector<std::string>&)>> m_WindowDropCallbacks;
 
-    void OnWindowSizeChanged(GLFWwindow* window, int width, int height)
+    void OnWindowSizeChanged(GLFWwindow* window, const int width, const int height)
     {
         if (window != m_Window)
             return;
@@ -37,7 +37,7 @@ namespace
         m_WindowSize = Pine::Vector2i(width, height);
     }
 
-    void OnWindowPositionChanged(GLFWwindow* window, int x, int y)
+    void OnWindowPositionChanged(GLFWwindow* window, const int x, const int y)
     {
         if (window != m_Window)
             return;
@@ -45,7 +45,7 @@ namespace
         m_WindowPosition = Pine::Vector2i(x, y);
     }
 
-    void OnWindowFocusChanged(GLFWwindow* window, int focused)
+    void OnWindowFocusChanged(GLFWwindow* window, const int focused)
     {
         if (window != m_Window)
             return;
@@ -59,7 +59,7 @@ namespace
         }
     }
 
-    void OnWindowDrop(GLFWwindow* window, int count, const char** paths)
+    void OnWindowDrop(GLFWwindow* window, const int count, const char** paths)
     {
         if (window != m_Window)
             return;
@@ -81,8 +81,8 @@ namespace
 
 }
 
-bool Pine::WindowManager::Internal::CreateWindow(Vector2i position, Vector2i requestedSize,
-                                                 const std::string &title, ScreenType type)
+bool Pine::WindowManager::Internal::CreateWindow(const Vector2i position, const Vector2i requestedSize,
+                                                 const std::string &title, const ScreenType type)
 {
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -152,7 +152,7 @@ bool Pine::WindowManager::IsWindowOpen()
     return !glfwWindowShouldClose(m_Window);
 }
 
-void Pine::WindowManager::SetWindowPosition(Vector2i targetPosition)
+void Pine::WindowManager::SetWindowPosition(const Vector2i targetPosition)
 {
     WINDOW_CHECK
 
@@ -173,7 +173,7 @@ void Pine::WindowManager::SetWindowPosition(Vector2i targetPosition)
     m_WindowPosition = targetPosition;
 }
 
-void Pine::WindowManager::SetWindowSize(Vector2i size)
+void Pine::WindowManager::SetWindowSize(const Vector2i size)
 {
     WINDOW_CHECK
 
@@ -189,7 +189,7 @@ void Pine::WindowManager::SetWindowTitle(const std::string &title)
     m_WindowTitle = title;
 }
 
-void Pine::WindowManager::SetWindowScreenType(ScreenType screenType)
+void Pine::WindowManager::SetWindowScreenType(const ScreenType screenType)
 {
     WINDOW_CHECK
 
@@ -222,7 +222,7 @@ void Pine::WindowManager::SetWindowScreenType(ScreenType screenType)
     SetWindowPosition(Vector2i(-1));
 }
 
-void Pine::WindowManager::SetWindowVisible(bool visible)
+void Pine::WindowManager::SetWindowVisible(const bool visible)
 {
     WINDOW_CHECK
 

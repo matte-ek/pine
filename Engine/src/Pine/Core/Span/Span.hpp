@@ -12,7 +12,7 @@ namespace Pine
 
         ByteSpan() = default;
 
-        ByteSpan(const std::byte* data, size_t size)
+        ByteSpan(const std::byte* data, const size_t size)
         {
             this->data = new std::byte[size];
             this->size = size;

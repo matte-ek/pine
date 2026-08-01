@@ -28,8 +28,8 @@ namespace
     PxMaterial* m_DefaultMaterial;
 
     PxFilterFlags PineFilterShader(
-        PxFilterObjectAttributes attributes0, PxFilterData filterData0,
-        PxFilterObjectAttributes attributes1, PxFilterData filterData1,
+        const PxFilterObjectAttributes attributes0, PxFilterData filterData0,
+        const PxFilterObjectAttributes attributes1, PxFilterData filterData1,
         PxPairFlags& pairFlags, const void* constantBlock, PxU32 constantBlockSize)
     {
         if(PxFilterObjectIsTrigger(attributes0) || PxFilterObjectIsTrigger(attributes1))
@@ -96,7 +96,7 @@ void Pine::Physics3D::ConnectVisualDebugger()
     */
 }
 
-void Pine::Physics3D::Update(double deltaTime)
+void Pine::Physics3D::Update(const double deltaTime)
 {
     PINE_PF_SCOPE();
 

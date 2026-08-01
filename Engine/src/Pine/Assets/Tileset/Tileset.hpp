@@ -28,8 +28,8 @@ namespace Pine
         std::uint32_t m_DefaultFlags = 0;
 
         // Collider
-        Pine::Vector2f m_ColliderOffset = Pine::Vector2f(0.f);
-        Pine::Vector2f m_ColliderSize = Pine::Vector2f(1.f);
+        Vector2f m_ColliderOffset = Vector2f(0.f);
+        Vector2f m_ColliderSize = Vector2f(1.f);
         float m_ColliderRotation = 0.f;
 
         Texture2D* m_Texture;

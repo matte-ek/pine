@@ -29,7 +29,7 @@ namespace Pine
         AudioListener,
     };
 
-    inline const char *ComponentTypeToString(ComponentType type)
+    inline const char *ComponentTypeToString(const ComponentType type)
     {
         switch (type)
         {
@@ -68,7 +68,7 @@ namespace Pine
         return "N/A";
     }
 
-    inline const char *ComponentTypeToHumanString(ComponentType type)
+    inline const char *ComponentTypeToHumanString(const ComponentType type)
     {
         switch (type)
         {

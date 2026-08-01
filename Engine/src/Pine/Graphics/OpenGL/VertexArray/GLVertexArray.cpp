@@ -7,7 +7,7 @@
 namespace
 {
 
-    std::uint32_t TranslateBufferUsageHint(Pine::Graphics::BufferUsageHint hint)
+    std::uint32_t TranslateBufferUsageHint(const Pine::Graphics::BufferUsageHint hint)
     {
         switch (hint)
         {
@@ -45,17 +45,17 @@ void Pine::Graphics::GLVertexArray::Dispose()
     //    delete buffer;
 }
 
-Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreFloatArrayBuffer(float *data, std::size_t size, int binding, int vecSize, BufferUsageHint hint)
+Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreFloatArrayBuffer(float *data, const std::size_t size, const int binding, const int vecSize, const BufferUsageHint hint)
 {
     return StoreArrayBuffer(data, size, binding, vecSize, GL_FLOAT, hint);
 }
 
-Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreIntArrayBuffer(float *data, std::size_t size, int binding, int vecSize, BufferUsageHint hint)
+Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::StoreIntArrayBuffer(float *data, const std::size_t size, const int binding, const int vecSize, const BufferUsageHint hint)
 {
     return StoreArrayBuffer(data, size, binding, vecSize, GL_INT, hint);
 }
 
-void Pine::Graphics::GLVertexArray::StoreElementArrayBuffer(std::uint32_t *data, std::size_t size)
+void Pine::Graphics::GLVertexArray::StoreElementArrayBuffer(std::uint32_t *data, const std::size_t size)
 {
     const auto buffer = CreateBuffer();
 
@@ -83,19 +83,19 @@ std::uint32_t Pine::Graphics::GLVertexArray::GetId() const
 }
 
 Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::CreateFloatArrayBuffer(
-        std::size_t size, int binding, int vecSize, BufferUsageHint usageHint)
+        const std::size_t size, const int binding, const int vecSize, const BufferUsageHint usageHint)
 {
     return CreateArrayBuffer(size, binding, vecSize, GL_FLOAT, usageHint);
 }
 
 Pine::Graphics::IVertexBuffer* Pine::Graphics::GLVertexArray::CreateIntegerArrayBuffer(
-        std::size_t size, int binding, int vecSize, BufferUsageHint usageHint)
+        const std::size_t size, const int binding, const int vecSize, const BufferUsageHint usageHint)
 {
     return CreateArrayBuffer(size, binding, vecSize, GL_INT, usageHint);
 }
 
-Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::CreateArrayBuffer(std::size_t size, int binding, int vecSize, int type,
-    BufferUsageHint hint)
+Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::CreateArrayBuffer(const std::size_t size, const int binding, const int vecSize, const int type,
+    const BufferUsageHint hint)
 {
     const auto buffer = CreateBuffer();
 
@@ -117,7 +117,7 @@ Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::CreateArrayBuffer
 }
 
 template <typename T>
-Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::StoreArrayBuffer(T *data, std::size_t size, int binding, int vecSize, int type, BufferUsageHint hint)
+Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::StoreArrayBuffer(T *data, const std::size_t size, const int binding, const int vecSize, const int type, const BufferUsageHint hint)
 {
     auto vertexBuffer = CreateArrayBuffer(size, binding, vecSize, type, hint);
 

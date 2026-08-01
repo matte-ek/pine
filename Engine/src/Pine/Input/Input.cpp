@@ -32,7 +32,7 @@ namespace
 
 }
 
-Pine::InputBind::InputBind(std::string name, InputType type)
+Pine::InputBind::InputBind(std::string name, const InputType type)
     : m_Name(std::move(name)),
       m_Type(type)
 {
@@ -48,7 +48,7 @@ const std::string &Pine::InputBind::GetName() const
     return m_Name;
 }
 
-void Pine::InputBind::SetType(Pine::InputType type)
+void Pine::InputBind::SetType(const InputType type)
 {
     m_Type = type;
 }
@@ -77,12 +77,12 @@ float Pine::InputBind::GetAxisValue() const
     return m_AxisValue;
 }
 
-void Pine::InputBind::AddAxisBinding(Pine::Axis axis, float sensitivity)
+void Pine::InputBind::AddAxisBinding(const Axis axis, const float sensitivity)
 {
     m_AxisBindings.push_back(AxisBinding{axis, sensitivity});
 }
 
-void Pine::InputBind::AddKeyboardBinding(int key, float value)
+void Pine::InputBind::AddKeyboardBinding(const int key, const float value)
 {
     m_KeyboardBindings.push_back(KeyboardBinding{key, value});
 }
@@ -200,12 +200,12 @@ Pine::InputContext* Pine::Input::GetDefaultContext()
     return m_InputContexts[0];
 }
 
-void Pine::Input::OverrideContext(Pine::InputContext* context)
+void Pine::Input::OverrideContext(InputContext* context)
 {
     m_Context = context;
 }
 
-Pine::InputBind* Pine::Input::CreateInputBind(const std::string& name, Pine::InputType type)
+Pine::InputBind* Pine::Input::CreateInputBind(const std::string& name, const InputType type)
 {
     m_Context->InputBindings.push_back(new InputBind(name, type));
 
@@ -214,14 +214,14 @@ Pine::InputBind* Pine::Input::CreateInputBind(const std::string& name, Pine::Inp
 
 Pine::InputContext* Pine::Input::CreateContext(const std::string& name)
 {
-    m_InputContexts.push_back(new Pine::InputContext(name));
+    m_InputContexts.push_back(new InputContext(name));
 
     return m_InputContexts[m_InputContexts.size() - 1];
 }
 
-void Pine::Input::SetCursorPosition(Pine::Vector2i position)
+void Pine::Input::SetCursorPosition(const Vector2i position)
 {
-    auto windowHandle = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto windowHandle = static_cast<GLFWwindow*>(WindowManager::GetWindowPointer());
 
     glfwSetCursorPos(windowHandle, position.x, position.y);
 
@@ -230,7 +230,7 @@ void Pine::Input::SetCursorPosition(Pine::Vector2i position)
 
 Pine::Vector2i Pine::Input::GetCursorPosition()
 {
-    auto windowHandle = static_cast<GLFWwindow*>(Pine::WindowManager::GetWindowPointer());
+    auto windowHandle = static_cast<GLFWwindow*>(WindowManager::GetWindowPointer());
 
     double cursorX, cursorY;
     glfwGetCursorPos(windowHandle, &cursorX, &cursorY);
@@ -243,47 +243,47 @@ Pine::Vector2i Pine::Input::GetMouseDelta()
     return m_MouseDelta;
 }
 
-Pine::KeyState Pine::Input::GetKeyState(Pine::KeyCode key)
+Pine::KeyState Pine::Input::GetKeyState(KeyCode key)
 {
     const auto currentKeyState = m_KeyStates[static_cast<int>(key)];
     const auto previousKeyState = m_PreviousKeyStates[static_cast<int>(key)];
 
     if (currentKeyState == GLFW_PRESS)
     {
-        return previousKeyState == GLFW_RELEASE ? Pine::KeyState::Pressed : Pine::KeyState::Held;
+        return previousKeyState == GLFW_RELEASE ? KeyState::Pressed : KeyState::Held;
     }
     else
     {
-        return previousKeyState == GLFW_PRESS ? Pine::KeyState::Released : Pine::KeyState::None;
+        return previousKeyState == GLFW_PRESS ? KeyState::Released : KeyState::None;
     }
 }
 
-Pine::KeyState Pine::Input::GetMouseButtonState(Pine::MouseButton button)
+Pine::KeyState Pine::Input::GetMouseButtonState(MouseButton button)
 {
     const auto currentKeyState = m_MouseButtonStates[static_cast<int>(button)];
     const auto previousKeyState = m_PreviousMouseButtonStates[static_cast<int>(button)];
 
     if (currentKeyState == GLFW_PRESS)
     {
-        return previousKeyState == GLFW_RELEASE ? Pine::KeyState::Pressed : Pine::KeyState::Held;
+        return previousKeyState == GLFW_RELEASE ? KeyState::Pressed : KeyState::Held;
     }
     else
     {
-        return previousKeyState == GLFW_PRESS ? Pine::KeyState::Released : Pine::KeyState::None;
+        return previousKeyState == GLFW_PRESS ? KeyState::Released : KeyState::None;
     }
 }
 
-bool Pine::Input::IsKeyDown(Pine::KeyCode key)
+bool Pine::Input::IsKeyDown(KeyCode key)
 {
     return m_KeyStates[static_cast<int>(key)] == GLFW_PRESS;
 }
 
-bool Pine::Input::IsMouseButtonDown(Pine::KeyCode code)
+bool Pine::Input::IsMouseButtonDown(KeyCode code)
 {
     return m_MouseButtonStates[static_cast<int>(code)] == GLFW_PRESS;
 }
 
-void Pine::Input::SetCursorMode(Pine::CursorMode mode)
+void Pine::Input::SetCursorMode(const CursorMode mode)
 {
     m_CursorMode = mode;
 }
@@ -293,7 +293,7 @@ Pine::InputContext::InputContext(const std::string& name)
     Name = name;
 }
 
-Pine::InputBind* Pine::InputContext::CreateInputBinding(const std::string& name, Pine::InputType type)
+Pine::InputBind* Pine::InputContext::CreateInputBinding(const std::string& name, const InputType type)
 {
     InputBindings.push_back(new InputBind(name, type));
     return InputBindings[InputBindings.size() - 1];

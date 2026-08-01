@@ -18,13 +18,13 @@ void Pine::Physics2D::Shutdown()
 {
 }
 
-void Pine::Physics2D::Update(double deltaTime)
+void Pine::Physics2D::Update(const double deltaTime)
 {
     PINE_PF_SCOPE();
 
     static double accumulator = 0.0;
 
-    if (Pine::World::IsPaused())
+    if (World::IsPaused())
     {
         accumulator = 0.0;
         return;
@@ -41,14 +41,14 @@ void Pine::Physics2D::Update(double deltaTime)
 
     accumulator = 0.0;
 
-    for (auto& collider : Pine::Components::Get<Pine::Collider2D>())
+    for (auto& collider : Pine::Components::Get<Collider2D>())
         collider.OnPrePhysicsUpdate();
-    for (auto& rigidBody : Pine::Components::Get<Pine::RigidBody2D>())
+    for (auto& rigidBody : Pine::Components::Get<RigidBody2D>())
         rigidBody.OnPrePhysicsUpdate();
 
-    for (auto& collider : Pine::Components::Get<Pine::Collider2D>())
+    for (auto& collider : Pine::Components::Get<Collider2D>())
         collider.OnPostPhysicsUpdate();
-    for (auto& rigidBody : Pine::Components::Get<Pine::RigidBody2D>())
+    for (auto& rigidBody : Pine::Components::Get<RigidBody2D>())
         rigidBody.OnPostPhysicsUpdate();
 }
 

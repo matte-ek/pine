@@ -46,7 +46,7 @@ std::string Pine::String::ToLower(const std::string& str)
 {
     std::string ret = str;
 
-    std::transform(ret.begin(), ret.end(), ret.begin(), [](unsigned char c) { return std::tolower(c); });
+    std::transform(ret.begin(), ret.end(), ret.begin(), [](const unsigned char c) { return std::tolower(c); });
 
     return ret;
 }
@@ -55,7 +55,7 @@ std::string Pine::String::ToUpper(const std::string& str)
 {
     std::string ret = str;
 
-    std::transform(ret.begin(), ret.end(), ret.begin(), [](unsigned char c) { return std::toupper(c); });
+    std::transform(ret.begin(), ret.end(), ret.begin(), [](const unsigned char c) { return std::toupper(c); });
 
     return ret;
 }
@@ -64,7 +64,7 @@ std::string Pine::String::Trim(std::string str)
 {
     // https://stackoverflow.com/a/217605
 
-    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](unsigned char ch) {
+    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](const unsigned char ch) {
        return !std::isspace(ch);
     }));
 

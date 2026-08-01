@@ -11,7 +11,7 @@ namespace
 {
     Shader* m_BlurShader = nullptr;
 
-    Graphics::IFrameBuffer* CreateBuffer(int width, int height, bool singleChannel)
+    Graphics::IFrameBuffer* CreateBuffer(const int width, const int height, const bool singleChannel)
     {
         const auto buffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
 
@@ -33,7 +33,7 @@ namespace
         return buffer;
     }
 
-    void DoBlurPass(int offset, Graphics::IFrameBuffer* targetOne, Graphics::IFrameBuffer* targetTwo)
+    void DoBlurPass(const int offset, Graphics::IFrameBuffer* targetOne, Graphics::IFrameBuffer* targetTwo)
     {
         const bool sourceSwap = offset % 2 == 0;
 

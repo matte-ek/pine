@@ -9,7 +9,7 @@ Pine::Camera::Camera() :
 {
 }
 
-void Pine::Camera::SetOrthographicSize(float size)
+void Pine::Camera::SetOrthographicSize(const float size)
 {
     m_OrthographicSize = size;
 }
@@ -97,7 +97,7 @@ const Pine::Matrix4f &Pine::Camera::GetViewMatrix() const
     return m_ViewMatrix;
 }
 
-void Pine::Camera::SetNearPlane(float value)
+void Pine::Camera::SetNearPlane(const float value)
 {
     m_NearPlane = value;
 }
@@ -107,7 +107,7 @@ float Pine::Camera::GetNearPlane() const
     return m_NearPlane;
 }
 
-void Pine::Camera::SetFarPlane(float value)
+void Pine::Camera::SetFarPlane(const float value)
 {
     m_FarPlane = value;
 }
@@ -117,7 +117,7 @@ float Pine::Camera::GetFarPlane() const
     return m_FarPlane;
 }
 
-void Pine::Camera::SetFieldOfView(float value)
+void Pine::Camera::SetFieldOfView(const float value)
 {
     m_FieldOfView = value;
 }
@@ -127,7 +127,7 @@ float Pine::Camera::GetFieldOfView() const
     return m_FieldOfView;
 }
 
-void Pine::Camera::SetCameraType(CameraType type)
+void Pine::Camera::SetCameraType(const CameraType type)
 {
     m_CameraType = type;
 }
@@ -137,7 +137,7 @@ Pine::CameraType Pine::Camera::GetCameraType() const
     return m_CameraType;
 }
 
-void Pine::Camera::SetClearColor(Vector4f color)
+void Pine::Camera::SetClearColor(const Vector4f color)
 {
     m_ClearColor = color;
 }
@@ -147,7 +147,7 @@ const Pine::Vector4f &Pine::Camera::GetClearColor() const
     return m_ClearColor;
 }
 
-void Pine::Camera::SetOverrideAspectRatio(float value)
+void Pine::Camera::SetOverrideAspectRatio(const float value)
 {
     m_OverrideAspectRatio = value;
 }

@@ -25,7 +25,7 @@ namespace
 
     Rendering::CoordinateSystem m_CoordinateSystem = Rendering::CoordinateSystem::Screen;
 
-    Pine::Shader* m_OverrideShader = nullptr;
+    Shader* m_OverrideShader = nullptr;
 
     // Matrices store globally for each PrepareFrame() call
     Matrix4f m_ProjectionMatrix;
@@ -53,7 +53,7 @@ namespace
     std::vector<Rectangle> m_Rectangles;
 
     // TODO: Shouldn't we do this in the shader instead?
-    Vector4f ComputePositionSize(const RenderingContext* context, Vector2f position, Vector2f size, Rendering::CoordinateSystem coordinateSystem)
+    Vector4f ComputePositionSize(const RenderingContext* context, const Vector2f position, const Vector2f size, const Rendering::CoordinateSystem coordinateSystem)
     {
         // Compute width and height
         const float w = size.x / context->Size.x;
@@ -105,7 +105,7 @@ namespace
 
             int m_RenderCount = 0;
 
-            void Create(bool renderLines)
+            void Create(const bool renderLines)
             {
                 m_VertexArray = m_GraphicsAPI->CreateVertexArray();
                 m_VertexArray->Bind();
@@ -181,7 +181,7 @@ namespace
 
             void Render(RenderingContext* context, const std::vector<Rectangle>& rects) const
             {
-                const Pine::Shader* shader = m_OverrideShader == nullptr ? m_Shader : m_OverrideShader;
+                const Shader* shader = m_OverrideShader == nullptr ? m_Shader : m_OverrideShader;
 
                 shader->GetProgram()->Use();
 
@@ -394,9 +394,9 @@ void Renderer2D::RenderFrame(RenderingContext* context)
     RectangleRenderer::RenderFrame(context);
 }
 
-void Renderer2D::AddFilledRectangle(Vector2f position, Vector2f size, float rotation, Color color)
+void Renderer2D::AddFilledRectangle(const Vector2f position, const Vector2f size, const float rotation, const Color color)
 {
-    Rectangle rectangleItem =
+    const Rectangle rectangleItem =
     {
         position,
         size,
@@ -408,9 +408,9 @@ void Renderer2D::AddFilledRectangle(Vector2f position, Vector2f size, float rota
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, const Texture2D* texture, Vector2f uvOffset, Vector2f uvScale)
+void Renderer2D::AddFilledTexturedRectangle(const Vector2f position, const Vector2f size, const float rotation, const Color color, const Texture2D* texture, const Vector2f uvOffset, const Vector2f uvScale)
 {
-    Rectangle rectangleItem =
+    const Rectangle rectangleItem =
     {
         position,
         size,
@@ -426,10 +426,10 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, fl
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, float rotation, Color color, Graphics::ITexture* texture,
-                                            Vector2f uvOffset, Vector2f uvScale)
+void Renderer2D::AddFilledTexturedRectangle(const Vector2f position, const Vector2f size, const float rotation, const Color color, Graphics::ITexture* texture,
+                                            const Vector2f uvOffset, const Vector2f uvScale)
 {
-    Rectangle rectangleItem =
+    const Rectangle rectangleItem =
     {
         position,
         size,
@@ -445,9 +445,9 @@ void Renderer2D::AddFilledTexturedRectangle(Vector2f position, Vector2f size, fl
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddFilledRoundedRectangle(Vector2f position, Vector2f size, float radius, Color color)
+void Renderer2D::AddFilledRoundedRectangle(const Vector2f position, const Vector2f size, const float radius, const Color color)
 {
-    Rectangle rectangleItem =
+    const Rectangle rectangleItem =
     {
         position,
         size,
@@ -460,7 +460,7 @@ void Renderer2D::AddFilledRoundedRectangle(Vector2f position, Vector2f size, flo
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::AddText(Vector2f position, Color color, const std::string& str, const Pine::Font* font)
+void Renderer2D::AddText(const Vector2f position, const Color color, const std::string& str, const Font* font)
 {
     if (font->GetFontData(0).m_TextureFontAtlas == nullptr)
     {
@@ -472,7 +472,7 @@ void Renderer2D::AddText(Vector2f position, Color color, const std::string& str,
 
     float cursor = 0.f;
 
-    for (auto chr : str)
+    for (const auto chr : str)
     {
         if (chr < 32 || chr > 126)
             continue;
@@ -480,7 +480,7 @@ void Renderer2D::AddText(Vector2f position, Color color, const std::string& str,
         const auto& chrData = fontData.m_CharData[chr - 32];
 
        AddFilledTexturedRectangle(position + Vector2f(cursor + chrData.xoff, chrData.yoff),
-                                  Pine::Vector2f(chrData.x1 - chrData.x0, chrData.y1 - chrData.y0),
+                                  Vector2f(chrData.x1 - chrData.x0, chrData.y1 - chrData.y0),
                                   0.f,
                                   color,
                                   fontData.m_TextureFontAtlas,
@@ -491,12 +491,12 @@ void Renderer2D::AddText(Vector2f position, Color color, const std::string& str,
     }
 }
 
-void Renderer2D::AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId,
-                                     Color color)
+void Renderer2D::AddTextureAtlasItem(const Vector2f position, const float size, const Graphics::TextureAtlas* atlas, const std::uint32_t itemId,
+                                     const Color color)
 {
     const auto uvScale = atlas->GetTextureUvScale();
 
-    Rectangle rectangleItem =
+    const Rectangle rectangleItem =
     {
         position,
         Vector2f(size),
@@ -512,7 +512,7 @@ void Renderer2D::AddTextureAtlasItem(Vector2f position, float size, const Graphi
     m_FilledRectangles.push_back(rectangleItem);
 }
 
-void Renderer2D::SetCoordinateSystem(Rendering::CoordinateSystem coordinateSystem)
+void Renderer2D::SetCoordinateSystem(const Rendering::CoordinateSystem coordinateSystem)
 {
     m_CoordinateSystem = coordinateSystem;
 }
@@ -522,19 +522,19 @@ Rendering::CoordinateSystem Renderer2D::GetCoordinateSystem()
     return m_CoordinateSystem;
 }
 
-void Pine::Renderer2D::SetOverrideShader(Pine::Shader* shader)
+void Renderer2D::SetOverrideShader(Shader* shader)
 {
     m_OverrideShader = shader;
 }
 
-Pine::Shader* Pine::Renderer2D::GetOverrideShader()
+Shader* Renderer2D::GetOverrideShader()
 {
     return m_OverrideShader;
 }
 
-void Renderer2D::AddRectangle(Vector2f position, Vector2f size, float rotation, Color color)
+void Renderer2D::AddRectangle(const Vector2f position, const Vector2f size, const float rotation, const Color color)
 {
-    Rectangle rectangleItem =
+    const Rectangle rectangleItem =
     {
         position,
         size,

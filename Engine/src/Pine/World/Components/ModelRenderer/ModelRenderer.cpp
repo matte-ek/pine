@@ -26,7 +26,7 @@ Pine::Material * Pine::ModelRenderer::GetOverrideMaterial() const
     return m_OverrideMaterial.Get();
 }
 
-void Pine::ModelRenderer::SetOverrideStencilBuffer(bool value)
+void Pine::ModelRenderer::SetOverrideStencilBuffer(const bool value)
 {
     m_OverrideStencilBuffer = value;
 }
@@ -36,7 +36,7 @@ bool Pine::ModelRenderer::GetOverrideStencilBuffer() const
     return m_OverrideStencilBuffer;
 }
 
-void Pine::ModelRenderer::SetStencilBufferValue(int value)
+void Pine::ModelRenderer::SetStencilBufferValue(const int value)
 {
     m_StencilBufferValue = value;
 }
@@ -46,7 +46,7 @@ int Pine::ModelRenderer::GetStencilBufferValue() const
     return m_StencilBufferValue;
 }
 
-void Pine::ModelRenderer::SetModelMeshIndex(int index)
+void Pine::ModelRenderer::SetModelMeshIndex(const int index)
 {
     m_ModelMeshIndex = index;
 }

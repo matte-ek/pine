@@ -131,7 +131,7 @@ Entity* Entities::Find(const std::string& name)
     return nullptr;
 }
 
-Entity* Entities::Find(UId id)
+Entity* Entities::Find(const UId id)
 {
     for (const auto entity : m_EntityPointerList)
     {
@@ -185,7 +185,7 @@ bool Entities::Delete(const Entity* entity)
     throw std::runtime_error("Failed to find entity pointer while removing entity.");
 }
 
-void Entities::DeleteAll(bool includeTemporary)
+void Entities::DeleteAll(const bool includeTemporary)
 {
     if (includeTemporary)
     {
@@ -241,7 +241,7 @@ const std::vector<Entity*>& Entities::GetList()
     return m_EntityPointerList;
 }
 
-void Entities::MoveEntity(const Entity* entity, std::size_t newIndex)
+void Entities::MoveEntity(const Entity* entity, const std::size_t newIndex)
 {
     bool foundEntity = false;
     std::size_t oldIndex = 0;

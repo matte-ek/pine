@@ -164,7 +164,7 @@ Vector3f Transform::GetEulerAngles() const
     return degrees(eulerAngles(m_LocalRotation));
 }
 
-void Transform::SetEulerAngles(Vector3f angle)
+void Transform::SetEulerAngles(const Vector3f angle)
 {
     m_LocalRotation = glm::quat(radians(angle));
     m_IsDirty = true;

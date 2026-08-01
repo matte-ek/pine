@@ -34,17 +34,17 @@ Pine::Material::Material()
     m_Type = AssetType::Material;
 }
 
-void Pine::Material::SetDiffuseColor(Vector3f color)
+void Pine::Material::SetDiffuseColor(const Vector3f color)
 {
     m_DiffuseColor = color;
 }
 
-void Pine::Material::SetSpecularColor(Vector3f color)
+void Pine::Material::SetSpecularColor(const Vector3f color)
 {
     m_SpecularColor = color;
 }
 
-void Pine::Material::SetAmbientColor(Vector3f color)
+void Pine::Material::SetAmbientColor(const Vector3f color)
 {
     m_AmbientColor = color;
 }
@@ -104,7 +104,7 @@ Pine::Shader* Pine::Material::GetShader() const
     return m_Shader.Get();
 }
 
-void Pine::Material::SetRenderingMode(MaterialRenderingMode mode)
+void Pine::Material::SetRenderingMode(const MaterialRenderingMode mode)
 {
     m_RenderingMode = mode;
 }
@@ -129,7 +129,7 @@ float Pine::Material::GetShininess() const
     return m_Shininess;
 }
 
-void Pine::Material::SetTextureScale(float value)
+void Pine::Material::SetTextureScale(const float value)
 {
     m_TextureScale = value;
 }

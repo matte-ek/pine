@@ -34,7 +34,7 @@ namespace
 
     std::vector<std::function<void(Pine::RenderingContext*, Pine::RenderStage, float)>> m_RenderCallbackFunctions;
 
-    void CallRenderCallback(Pine::RenderingContext* context, Pine::RenderStage stage, float deltaTime)
+    void CallRenderCallback(Pine::RenderingContext* context, const Pine::RenderStage stage, const float deltaTime)
     {
         for (const auto &func: m_RenderCallbackFunctions)
         {

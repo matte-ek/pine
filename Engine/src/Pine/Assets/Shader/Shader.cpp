@@ -43,7 +43,7 @@ bool Shader::CompileShader(
         }
     }
 
-    shaderSource.erase(std::remove_if(shaderSource.begin(), shaderSource.end(), [](char c){return !(c>=0 && c <128);}), shaderSource.end());
+    shaderSource.erase(std::remove_if(shaderSource.begin(), shaderSource.end(), [](const char c){return !(c>=0 && c <128);}), shaderSource.end());
 
     if (!program->CompileAndLoadShader(shaderSource, shaderType))
     {
@@ -103,13 +103,13 @@ bool Shader::LoadAssetData(const ByteSpan& span)
     return true;
 }
 
-Graphics::IShaderProgram* Shader::GetProgram(ShaderVersion version) const
+Graphics::IShaderProgram* Shader::GetProgram(const ShaderVersion version) const
 {
     // surely the user has called HasShaderVersion(...) beforehand and this won't ever crash
     return m_ShaderPrograms[m_ShaderVersionsMap.at(static_cast<std::uint32_t>(version))];
 }
 
-bool Shader::HasShaderVersion(ShaderVersion version) const
+bool Shader::HasShaderVersion(const ShaderVersion version) const
 {
     if (version == 0)
     {
@@ -119,7 +119,7 @@ bool Shader::HasShaderVersion(ShaderVersion version) const
     return m_ShaderVersionsMap.count(static_cast<std::uint32_t>(version)) != 0;
 }
 
-bool Shader::CompileShaderVersion(ShaderVersion version)
+bool Shader::CompileShaderVersion(const ShaderVersion version)
 {
     if (HasShaderVersion(version))
     {
@@ -188,7 +188,7 @@ bool Shader::CompileShaderVersion(ShaderVersion version)
     return true;
 }
 
-void Shader::SetRendererReady(bool ready, ShaderVersion version)
+void Shader::SetRendererReady(const bool ready, const ShaderVersion version)
 {
     if (!HasShaderVersion(version))
     {
@@ -198,7 +198,7 @@ void Shader::SetRendererReady(bool ready, ShaderVersion version)
     m_ShaderRendererReady[m_ShaderVersionsMap[version]] = ready;
 }
 
-bool Shader::IsRendererReady(ShaderVersion version)
+bool Shader::IsRendererReady(const ShaderVersion version)
 {
     if (!HasShaderVersion(version))
     {
@@ -208,7 +208,7 @@ bool Shader::IsRendererReady(ShaderVersion version)
     return m_ShaderRendererReady[m_ShaderVersionsMap[version]];
 }
 
-void Shader::AddVersion(const std::string& name, std::uint32_t bit)
+void Shader::AddVersion(const std::string& name, const std::uint32_t bit)
 {
     if (name.size() > 63)
     {
@@ -224,7 +224,7 @@ void Shader::AddVersion(const std::string& name, std::uint32_t bit)
     m_ShaderVersions.push_back(entry);
 }
 
-void Shader::AddTextureSamplerBinding(const std::string& name, int binding)
+void Shader::AddTextureSamplerBinding(const std::string& name, const int binding)
 {
     if (name.size() > 63)
     {

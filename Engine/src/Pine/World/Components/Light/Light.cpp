@@ -6,7 +6,7 @@ Pine::Light::Light()
 {
 }
 
-void Pine::Light::SetLightType(LightType type)
+void Pine::Light::SetLightType(const LightType type)
 {
     m_LightType = type;
 }
@@ -16,7 +16,7 @@ Pine::LightType Pine::Light::GetLightType() const
     return m_LightType;
 }
 
-void Pine::Light::SetLightColor(Vector3f color)
+void Pine::Light::SetLightColor(const Vector3f color)
 {
     m_LightColor = color;
 }
@@ -26,7 +26,7 @@ const Pine::Vector3f &Pine::Light::GetLightColor() const
     return m_LightColor;
 }
 
-void Pine::Light::SetLightAttenuation(Vector3f attenuation)
+void Pine::Light::SetLightAttenuation(const Vector3f attenuation)
 {
     m_LightAttenuation = attenuation;
 }
@@ -36,7 +36,7 @@ const Pine::Vector3f & Pine::Light::GetLightAttenuation() const
     return m_LightAttenuation;
 }
 
-void Pine::Light::SetSpotlightRadius(float radius)
+void Pine::Light::SetSpotlightRadius(const float radius)
 {
     m_SpotlightRadius = radius;
 }
@@ -46,7 +46,7 @@ float Pine::Light::GetSpotlightRadius() const
     return m_SpotlightRadius;
 }
 
-void Pine::Light::SetSpotlightCutoff(float cutoff)
+void Pine::Light::SetSpotlightCutoff(const float cutoff)
 {
     m_SpotlightCutoff = cutoff;
 }

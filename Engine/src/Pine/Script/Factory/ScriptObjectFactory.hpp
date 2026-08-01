@@ -23,13 +23,13 @@ namespace Pine::Script
         void Setup();
 
         MonoClass* GetEntityClass();
-        MonoClass* GetComponentClass(Pine::ComponentType type);
+        MonoClass* GetComponentClass(ComponentType type);
         MonoClass* GetRayCastHitClass();
 
-        ObjectHandle CreateScriptObject(const Pine::CSharpScript* script, const Pine::Component* component);
+        ObjectHandle CreateScriptObject(const CSharpScript* script, const Component* component);
         ObjectHandle CreateEntity(std::uint32_t entityId, std::uint32_t internalId);
-        ObjectHandle CreateComponent(const Pine::Component* engineComponent);
-        ObjectHandle CreateAsset(const Pine::Asset* asset);
+        ObjectHandle CreateComponent(const Component* engineComponent);
+        ObjectHandle CreateAsset(const Asset* asset);
 
         void DisposeEntity(ObjectHandle* handle);
         void DisposeComponent(const Component* component, ObjectHandle* handle);

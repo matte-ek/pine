@@ -28,8 +28,8 @@ namespace Pine::Renderer2D
     void SetCoordinateSystem(Rendering::CoordinateSystem coordinateSystem);
     Rendering::CoordinateSystem GetCoordinateSystem();
 
-    void SetOverrideShader(Pine::Shader* shader);
-    Pine::Shader* GetOverrideShader();
+    void SetOverrideShader(Shader* shader);
+    Shader* GetOverrideShader();
 
     void AddRectangle(Vector2f position, Vector2f size, float rotation, Color color);
 
@@ -40,6 +40,6 @@ namespace Pine::Renderer2D
 
     void AddTextureAtlasItem(Vector2f position, float size, const Graphics::TextureAtlas* atlas, std::uint32_t itemId, Color color);
 
-    void AddText(Vector2f position, Color color, const std::string& str, const Pine::Font* font);
+    void AddText(Vector2f position, Color color, const std::string& str, const Font* font);
 
 }

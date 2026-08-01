@@ -3,7 +3,7 @@
 namespace Pine::Audio
 {
 
-    AudioSourceObject::AudioSourceObject(ALuint buffer)
+    AudioSourceObject::AudioSourceObject(const ALuint buffer)
     {
         // TODO
         alGenSources(1, &m_id);

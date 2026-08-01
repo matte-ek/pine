@@ -1,17 +1,17 @@
 #include "GLUniformVariable.hpp"
 #include <GL/glew.h>
 
-Pine::Graphics::GLUniformVariable::GLUniformVariable(std::int32_t id) :
+Pine::Graphics::GLUniformVariable::GLUniformVariable(const std::int32_t id) :
       m_Id(id)
 {
 }
 
-void Pine::Graphics::GLUniformVariable::LoadInteger(int value)
+void Pine::Graphics::GLUniformVariable::LoadInteger(const int value)
 {
     glUniform1i(m_Id, value);
 }
 
-void Pine::Graphics::GLUniformVariable::LoadFloat(float value)
+void Pine::Graphics::GLUniformVariable::LoadFloat(const float value)
 {
     glUniform1f(m_Id, value);
 }

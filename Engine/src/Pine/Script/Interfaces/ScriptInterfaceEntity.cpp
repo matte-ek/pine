@@ -18,62 +18,62 @@ namespace
 {
     std::unordered_map<MonoType*, Pine::ComponentType> m_ComponentTypeLookupMap;
 
-    MonoString* GetEntityName(std::uint32_t internalId)
+    MonoString* GetEntityName(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
         return mono_string_new(mono_domain_get(), Pine::Entities::GetByInternalId(internalId)->GetName().c_str());
     }
 
-    void SetEntityName(std::uint32_t internalId, MonoString* name)
+    void SetEntityName(const std::uint32_t internalId, MonoString* name)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Entities::GetByInternalId(internalId)->SetName(mono_string_to_utf8(name));
     }
 
-    bool GetEntityActive(std::uint32_t internalId)
+    bool GetEntityActive(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
         return Pine::Entities::GetByInternalId(internalId)->GetActive();
     }
 
-    void SetEntityActive(std::uint32_t internalId, bool active)
+    void SetEntityActive(const std::uint32_t internalId, const bool active)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Entities::GetByInternalId(internalId)->SetActive(active);
     }
 
-    bool GetEntityStatic(std::uint32_t internalId)
+    bool GetEntityStatic(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
         return Pine::Entities::GetByInternalId(internalId)->GetStatic();
     }
 
-    void SetEntityStatic(std::uint32_t internalId, bool active)
+    void SetEntityStatic(const std::uint32_t internalId, const bool active)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Entities::GetByInternalId(internalId)->SetStatic(active);
     }
 
-    std::uint64_t GetEntityTags(std::uint32_t internalId)
+    std::uint64_t GetEntityTags(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
         return Pine::Entities::GetByInternalId(internalId)->GetTags();
     }
 
-    void SetEntityTags(std::uint32_t internalId, std::uint64_t tags)
+    void SetEntityTags(const std::uint32_t internalId, const std::uint64_t tags)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
         Pine::Entities::GetByInternalId(internalId)->SetTags(tags);
     }
 
-    void DestroyEntity(std::uint32_t internalId)
+    void DestroyEntity(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
 
         Pine::Entities::Delete(Pine::Entities::GetByInternalId(internalId));
     }
 
-    MonoArray* GetChildren(std::uint32_t internalId)
+    MonoArray* GetChildren(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
 
@@ -96,7 +96,7 @@ namespace
         return arr;
     }
 
-    MonoObject* GetTransform(std::uint32_t internalId)
+    MonoObject* GetTransform(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
 
@@ -128,7 +128,7 @@ namespace
         return m_ComponentTypeLookupMap[type];
     }
 
-    bool HasComponent(std::uint32_t id, MonoReflectionType* reflectionType)
+    bool HasComponent(const std::uint32_t id, MonoReflectionType* reflectionType)
     {
         if (std::numeric_limits<std::uint32_t>::max() == id) return false;
 
@@ -145,7 +145,7 @@ namespace
         return false;
     }
 
-    MonoObject* GetComponent(std::uint32_t id, MonoReflectionType* reflectionType)
+    MonoObject* GetComponent(const std::uint32_t id, MonoReflectionType* reflectionType)
     {
         if (std::numeric_limits<std::uint32_t>::max() == id) return nullptr;
 
@@ -167,7 +167,7 @@ namespace
         return nullptr;
     }
 
-    MonoArray* GetComponents(std::uint32_t id, MonoReflectionType* reflectionType)
+    MonoArray* GetComponents(const std::uint32_t id, MonoReflectionType* reflectionType)
     {
         if (std::numeric_limits<std::uint32_t>::max() == id) return nullptr;
 
@@ -199,7 +199,7 @@ namespace
         return arr;
     }
 
-    MonoObject* AddComponent(std::uint32_t id, MonoReflectionType* reflectionType)
+    MonoObject* AddComponent(const std::uint32_t id, MonoReflectionType* reflectionType)
     {
         if (std::numeric_limits<std::uint32_t>::max() == id) return nullptr;
 
@@ -225,7 +225,7 @@ namespace
         return mono_gchandle_get_target(entity->GetScriptHandle()->Handle);
     }
 
-    MonoArray* FindEntityByTag(uint64_t tag)
+    MonoArray* FindEntityByTag(const uint64_t tag)
     {
         std::vector<Pine::Entity*> entities;
 

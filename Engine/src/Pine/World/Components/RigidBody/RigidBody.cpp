@@ -15,7 +15,7 @@ physx::PxRigidDynamic * Pine::RigidBody::GetRigidBody() const
     return m_RigidBody;
 }
 
-void Pine::RigidBody::ApplyForce(const Vector3f& force, physx::PxForceMode::Enum mode) const
+void Pine::RigidBody::ApplyForce(const Vector3f& force, const physx::PxForceMode::Enum mode) const
 {
     if (m_RigidBody == nullptr)
     {
@@ -118,7 +118,7 @@ void Pine::RigidBody::UpdateBody()
 
 }
 
-void Pine::RigidBody::SetRigidBodyType(RigidBodyType type)
+void Pine::RigidBody::SetRigidBodyType(const RigidBodyType type)
 {
     m_RigidBodyType = type;
 }
@@ -128,7 +128,7 @@ Pine::RigidBodyType Pine::RigidBody::GetRigidBodyType() const
     return m_RigidBodyType;
 }
 
-void Pine::RigidBody::SetMass(float mass)
+void Pine::RigidBody::SetMass(const float mass)
 {
     m_Mass = mass;
 }
@@ -138,7 +138,7 @@ float Pine::RigidBody::GetMass() const
     return m_Mass;
 }
 
-void Pine::RigidBody::SetGravityEnabled(bool value)
+void Pine::RigidBody::SetGravityEnabled(const bool value)
 {
     m_GravityEnabled = value;
 }
@@ -148,7 +148,7 @@ bool Pine::RigidBody::GetGravityEnabled() const
     return m_GravityEnabled;
 }
 
-void Pine::RigidBody::SetMaxLinearVelocity(float maxLinearVelocity)
+void Pine::RigidBody::SetMaxLinearVelocity(const float maxLinearVelocity)
 {
     m_MaxLinearVelocity = maxLinearVelocity;
 }
@@ -158,7 +158,7 @@ float Pine::RigidBody::GetMaxLinearVelocity() const
     return m_MaxLinearVelocity;
 }
 
-void Pine::RigidBody::SetMaxAngularVelocity(float maxAngularVelocity)
+void Pine::RigidBody::SetMaxAngularVelocity(const float maxAngularVelocity)
 {
     m_MaxAngularVelocity = maxAngularVelocity;
 }
@@ -173,7 +173,7 @@ std::array<bool, 3> Pine::RigidBody::GetRotationLock() const
     return m_RotationLock;
 }
 
-void Pine::RigidBody::SetRotationLock(std::array<bool, 3> value)
+void Pine::RigidBody::SetRotationLock(const std::array<bool, 3> value)
 {
     m_RotationLock = value;
 }
@@ -183,7 +183,7 @@ std::array<bool, 3> Pine::RigidBody::GetPositionLock() const
     return m_PositionLock;
 }
 
-void Pine::RigidBody::SetPositionLock(std::array<bool, 3> value)
+void Pine::RigidBody::SetPositionLock(const std::array<bool, 3> value)
 {
     m_PositionLock = value;
 }

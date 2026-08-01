@@ -1,11 +1,8 @@
 #include "Collider2D.hpp"
 
-#include "Pine/Physics/Physics2D/Physics2D.hpp"
-
-#include "../../../Core/Serialization/Json/SerializationJson.hpp"
-#include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
-#include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
-#include "Pine/World/Entity/Entity.hpp"
+#include <Pine/World/Components/RigidBody2D/RigidBody2D.hpp>
+#include <Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp>
+#include <Pine/World/Entity/Entity.hpp>
 
 void Pine::Collider2D::UpdateBody()
 {
@@ -38,7 +35,7 @@ void Pine::Collider2D::UpdateBody()
 
 	if (!m_Body)
 	{
-		Pine::Vector2f size = ComputeSize();
+		Vector2f size = ComputeSize();
 	}
 
 	const auto newPosition = ComputePosition();
@@ -46,20 +43,20 @@ void Pine::Collider2D::UpdateBody()
 
 Pine::Vector2f Pine::Collider2D::ComputePosition() const
 {
-	return (Pine::Vector2f(GetParent()->GetTransform()->GetPosition()) + m_ColliderOffset);
+	return (Vector2f(GetParent()->GetTransform()->GetPosition()) + m_ColliderOffset);
 }
 
 Pine::Vector2f Pine::Collider2D::ComputeSize() const
 {
-	Pine::Vector2f ret;
+	Vector2f ret;
 
-	Pine::Vector2f spriteSize;
+	Vector2f spriteSize;
 
-	if (const auto spriteRenderer = GetParent()->GetComponent<Pine::SpriteRenderer>())
+	if (const auto spriteRenderer = GetParent()->GetComponent<SpriteRenderer>())
 	{
 		if (const auto texture = spriteRenderer->GetTexture())
 		{
-			spriteSize = Pine::Vector2f(texture->GetWidth(), texture->GetHeight()) / 64.f;
+			spriteSize = Vector2f(texture->GetWidth(), texture->GetHeight()) / 64.f;
 		}
 	}
 
@@ -75,7 +72,7 @@ Pine::Vector2f Pine::Collider2D::ComputeSize() const
 		break;
 	}
 
-	ret *= Pine::Vector2f(GetParent()->GetTransform()->GetScale());
+	ret *= Vector2f(GetParent()->GetTransform()->GetScale());
 
 	return ret * 0.5f;
 }
@@ -90,7 +87,7 @@ Pine::Collider2D::Collider2D()
 {
 }
 
-void Pine::Collider2D::SetColliderType(Collider2DType type)
+void Pine::Collider2D::SetColliderType(const Collider2DType type)
 {
 	m_ColliderType = type;
 }
@@ -100,7 +97,7 @@ Pine::Collider2DType Pine::Collider2D::GetColliderType() const
 	return m_ColliderType;
 }
 
-void Pine::Collider2D::SetOffset(Vector2f offset)
+void Pine::Collider2D::SetOffset(const Vector2f offset)
 {
 	m_ColliderOffset = offset;
 }
@@ -110,7 +107,7 @@ const Pine::Vector2f& Pine::Collider2D::GetOffset() const
 	return m_ColliderOffset;
 }
 
-void Pine::Collider2D::SetSize(Vector2f size)
+void Pine::Collider2D::SetSize(const Vector2f size)
 {
 	m_ColliderSize = size;
 }
@@ -120,7 +117,7 @@ const Pine::Vector2f& Pine::Collider2D::GetSize() const
 	return m_ColliderSize;
 }
 
-void Pine::Collider2D::SetRotation(float rotation)
+void Pine::Collider2D::SetRotation(const float rotation)
 {
 	m_ColliderRotation = rotation;
 }

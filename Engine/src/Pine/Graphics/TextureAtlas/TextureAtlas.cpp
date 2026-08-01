@@ -3,7 +3,7 @@
 #include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
 #include "Pine/Rendering/RenderingContext.hpp"
 
-Pine::Graphics::TextureAtlas::TextureAtlas(Vector2i size, int tileSize) :
+Pine::Graphics::TextureAtlas::TextureAtlas(const Vector2i size, const int tileSize) :
     m_Size(size),
     m_TileSize(tileSize)
 {
@@ -29,12 +29,12 @@ std::uint32_t Pine::Graphics::TextureAtlas::AddTexture(ITexture* texture)
     return itemId;
 }
 
-const Pine::Vector2f& Pine::Graphics::TextureAtlas::GetTextureUvOffset(std::uint32_t itemId) const
+const Pine::Vector2f& Pine::Graphics::TextureAtlas::GetTextureUvOffset(const std::uint32_t itemId) const
 {
     return m_TextureUvOffsets[itemId];
 }
 
-Pine::Vector2f Pine::Graphics::TextureAtlas::CalculateTextureUv(std::uint32_t itemIndex) const
+Pine::Vector2f Pine::Graphics::TextureAtlas::CalculateTextureUv(const std::uint32_t itemIndex) const
 {
     const auto itemsPerRow = static_cast<int>(std::floor(m_Size.x / m_TileSize));
     const auto row = static_cast<float>(std::floor(static_cast<float>(itemIndex) / static_cast<float>(itemsPerRow)));
@@ -77,7 +77,7 @@ void Pine::Graphics::TextureAtlas::Update()
     GetGraphicsAPI()->BindFrameBuffer(nullptr);
 }
 
-void Pine::Graphics::TextureAtlas::SetTileSize(int tileSize)
+void Pine::Graphics::TextureAtlas::SetTileSize(const int tileSize)
 {
     m_TileSize = tileSize;
 }
@@ -102,7 +102,7 @@ void Pine::Graphics::TextureAtlas::Dispose()
     }
 }
 
-void Pine::Graphics::TextureAtlas::RemoveTexture(std::uint32_t texture)
+void Pine::Graphics::TextureAtlas::RemoveTexture(const std::uint32_t texture)
 {
     m_Textures.erase(m_Textures.begin() + static_cast<int>(texture));
     m_TextureUvOffsets.erase(m_TextureUvOffsets.begin() + static_cast<int>(texture));

@@ -177,12 +177,12 @@ void Pine::Asset::ReLoad()
     LoadAssetData(assetSerializer.Data.Read());
 }
 
-Pine::Asset* Pine::Asset::Load(const ByteSpan& data, bool ignoreAssetData)
+Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const bool ignoreAssetData)
 {
     return Load(data, "", ignoreAssetData);
 }
 
-Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath, bool ignoreAssetData)
+Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath, const bool ignoreAssetData)
 {
     AssetSerializer aSerializer;
 
@@ -234,7 +234,7 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
         aSourceSerializer.FilePath.Read(source.FilePath);
         aSourceSerializer.LastWriteTime.Read(source.LastWriteTime);
 
-        source.FilePath = Pine::File::UniversalPath(source.FilePath);
+        source.FilePath = File::UniversalPath(source.FilePath);
 
         asset->m_SourceFiles.push_back(source);
     }
@@ -257,7 +257,7 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
     return asset;
 }
 
-Pine::Asset* Pine::Asset::LoadFromFile(const std::filesystem::path& filePath, bool ignoreAssetData)
+Pine::Asset* Pine::Asset::LoadFromFile(const std::filesystem::path& filePath, const bool ignoreAssetData)
 {
     if (!std::filesystem::exists(filePath))
     {

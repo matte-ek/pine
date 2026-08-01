@@ -113,7 +113,7 @@ void Pine::Level::CreateFromWorld()
 
 void Pine::Level::Load()
 {
-    auto primaryRenderingContext = Pine::RenderManager::GetPrimaryRenderingContext();
+    auto primaryRenderingContext = RenderManager::GetPrimaryRenderingContext();
 
     Entities::DeleteAll();
 
@@ -131,7 +131,7 @@ void Pine::Level::Load()
 
         if (entityCameraIndex < entityList.size())
         {
-            primaryRenderingContext->SceneCamera = entityList[entityCameraIndex]->GetComponent<Pine::Camera>();
+            primaryRenderingContext->SceneCamera = entityList[entityCameraIndex]->GetComponent<Camera>();
         }
     }
 

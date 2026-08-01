@@ -211,7 +211,7 @@ bool Renderer3D::AddInstance(const Matrix4f& transformationMatrix, ModelRenderer
     return isFull;
 }
 
-void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, ModelRendererHintData* data, int writeStencilBuffer)
+void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, ModelRendererHintData* data, const int writeStencilBuffer)
 {
     if (data != nullptr)
     {
@@ -355,7 +355,7 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     m_HasDirectionalShadowMapUniform = m_Shader->GetUniformVariable("hasDirectionalShadowMap");
 }
 
-void Renderer3D::PrepareScene(Vector3f ambientColor, Vector4f fogColor, float fogDistance, float fogIntensity)
+void Renderer3D::PrepareScene(const Vector3f ambientColor, const Vector4f fogColor, const float fogDistance, const float fogIntensity)
 {
     auto& worldData = ShaderStorages::World.Data();
 

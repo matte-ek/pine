@@ -74,7 +74,7 @@ namespace Pine::Graphics
         One
     };
 
-    inline const char* TextureFormatToString(TextureFormat format)
+    inline const char* TextureFormatToString(const TextureFormat format)
     {
         switch (format)
         {
@@ -99,7 +99,7 @@ namespace Pine::Graphics
         }
     }
 
-    inline const char* TextureCompressionFormatToString(TextureCompressionFormat format)
+    inline const char* TextureCompressionFormatToString(const TextureCompressionFormat format)
     {
         switch (format)
         {
@@ -118,7 +118,7 @@ namespace Pine::Graphics
         }
     }
 
-    inline const char* TextureFilteringModeToString(TextureFilteringMode filteringMode)
+    inline const char* TextureFilteringModeToString(const TextureFilteringMode filteringMode)
     {
         switch (filteringMode)
         {

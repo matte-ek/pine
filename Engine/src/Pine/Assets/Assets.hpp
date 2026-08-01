@@ -40,13 +40,13 @@ namespace Pine::Assets
     Asset* GetAssetByPath(std::string_view path);
 
     template<typename TAsset>
-    TAsset* Get(UId id)
+    TAsset* Get(const UId id)
     {
         return GetAssetByUId(id);
     }
 
     template<typename TAsset>
-    TAsset* Get(std::string_view path)
+    TAsset* Get(const std::string_view path)
     {
         return dynamic_cast<TAsset*>(GetAssetByPath(path));
     }

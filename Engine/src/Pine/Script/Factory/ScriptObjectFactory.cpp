@@ -73,7 +73,7 @@ MonoClass* Pine::Script::ObjectFactory::GetEntityClass()
     return m_EntityClass;
 }
 
-MonoClass* Pine::Script::ObjectFactory::GetComponentClass(Pine::ComponentType type)
+MonoClass* Pine::Script::ObjectFactory::GetComponentClass(const ComponentType type)
 {
     return m_ComponentObjectFactory[type]->m_ComponentClass;
 }
@@ -102,7 +102,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32
     return {entity, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Pine::Component *engineComponent)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Component *engineComponent)
 {
     if (!m_PineImage || engineComponent->GetParent()->GetScriptHandle()->Handle == 0)
     {
@@ -114,7 +114,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Pi
 
     if (m_ComponentObjectFactory.count(componentType) == 0)
     {
-        auto monoClass = mono_class_from_name(m_PineImage, "Pine.World.Components", Pine::ComponentTypeToString(componentType));
+        auto monoClass = mono_class_from_name(m_PineImage, "Pine.World.Components", ComponentTypeToString(componentType));
 
         if (!monoClass)
         {
@@ -157,7 +157,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Pi
     return {component, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const Pine::CSharpScript *script, const Pine::Component *component)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const CSharpScript *script, const Component *component)
 {
     auto data = script->GetScriptData();
     if (!data || !data->IsReady)
@@ -181,7 +181,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const
     return {object, handle};
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::Asset *asset)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Asset *asset)
 {
     if (!m_PineImage)
     {
@@ -192,7 +192,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::
 
     if (m_AssetObjectFactory.count(asset->GetType()) == 0)
     {
-        auto monoClass = mono_class_from_name(m_PineImage, "Pine.Assets", Pine::AssetTypeToString(asset->GetType()));
+        auto monoClass = mono_class_from_name(m_PineImage, "Pine.Assets", AssetTypeToString(asset->GetType()));
 
         if (!monoClass)
         {
@@ -233,14 +233,14 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Pine::
     return {object, handle};
 }
 
-void Pine::Script::ObjectFactory::DisposeObject(Pine::Script::ObjectHandle *handle)
+void Pine::Script::ObjectFactory::DisposeObject(ObjectHandle *handle)
 {
     handle->Object = nullptr;
 
     mono_gchandle_free(handle->Handle);
 }
 
-void Pine::Script::ObjectFactory::DisposeEntity(Pine::Script::ObjectHandle *handle)
+void Pine::Script::ObjectFactory::DisposeEntity(ObjectHandle *handle)
 {
     int newValidState = 0;
 
@@ -249,7 +249,7 @@ void Pine::Script::ObjectFactory::DisposeEntity(Pine::Script::ObjectHandle *hand
     DisposeObject(handle);
 }
 
-void Pine::Script::ObjectFactory::DisposeComponent(const Component* component, Pine::Script::ObjectHandle *handle)
+void Pine::Script::ObjectFactory::DisposeComponent(const Component* component, ObjectHandle *handle)
 {
     const auto& componentData = m_ComponentObjectFactory[component->GetType()];
 

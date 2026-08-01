@@ -95,7 +95,7 @@ Pine::Blueprint::Blueprint()
     m_Type = AssetType::Blueprint;
 }
 
-void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, bool createInstance)
+void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, const bool createInstance)
 {
     dst->SetName(src->GetName());
     dst->SetActive(src->GetActive());

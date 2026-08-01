@@ -133,14 +133,14 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
 
     auto oldCoordinateSystem = Renderer2D::GetCoordinateSystem();
 
-    Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(false);
+    Graphics::GetGraphicsAPI()->SetDepthTestEnabled(false);
 
-    Pine::Graphics::GetGraphicsAPI()->SetBlendingEnabled(true);
-    Pine::Graphics::GetGraphicsAPI()->SetBlendingFunction(Pine::Graphics::BlendingFunction::SourceAlpha, Pine::Graphics::BlendingFunction::OneMinusSourceAlpha);
+    Graphics::GetGraphicsAPI()->SetBlendingEnabled(true);
+    Graphics::GetGraphicsAPI()->SetBlendingFunction(Graphics::BlendingFunction::SourceAlpha, Graphics::BlendingFunction::OneMinusSourceAlpha);
 
     Renderer2D::RenderFrame(&context);
 
-    Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
+    Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 
     Renderer2D::SetCoordinateSystem(oldCoordinateSystem);
 }

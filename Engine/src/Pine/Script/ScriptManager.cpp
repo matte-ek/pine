@@ -144,7 +144,7 @@ bool Pine::Script::Manager::HasGameAssembly()
 
 void Pine::Script::Manager::LoadGameAssembly(const std::filesystem::path &path)
 {
-    m_GameAssembly = Script::Runtime::LoadAssembly(path);
+    m_GameAssembly = Runtime::LoadAssembly(path);
 
     if (!m_GameAssembly)
     {
@@ -160,7 +160,7 @@ void Pine::Script::Manager::ReloadGameAssembly()
 {
     assert(m_HasGameAssembly);
 
-    Script::Runtime::Reset();
+    Runtime::Reset();
 
     LoadGameAssembly(m_GameAssemblyPath);
     ReloadScripts();
@@ -207,7 +207,7 @@ void Pine::Script::Manager::OnStart()
 {
     PINE_PF_SCOPE();
 
-    for (auto& scriptComponent : Components::Get<Pine::ScriptComponent>())
+    for (auto& scriptComponent : Components::Get<ScriptComponent>())
     {
         auto script = scriptComponent.GetScript();
 
@@ -246,7 +246,7 @@ void Pine::Script::Manager::OnUpdate(float deltaTime)
 {
     PINE_PF_SCOPE();
 
-    for (auto& scriptComponent : Components::Get<Pine::ScriptComponent>())
+    for (auto& scriptComponent : Components::Get<ScriptComponent>())
     {
         auto script = scriptComponent.GetScript();
 

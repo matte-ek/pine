@@ -253,7 +253,7 @@ namespace Pine::Serialization
         }
 
         template<typename TElement>
-        TElement ReadElement(uint32_t elementId)
+        TElement ReadElement(const uint32_t elementId)
         {
             assert(elementId < GetDataCount() && m_DataStride == sizeof(TElement));
 
@@ -265,7 +265,7 @@ namespace Pine::Serialization
         }
 
         template<typename TElement>
-        void WriteElement(uint32_t elementId, const TElement& data)
+        void WriteElement(const uint32_t elementId, const TElement& data)
         {
             assert(elementId < GetDataCount() && m_DataStride == sizeof(TElement));
 

@@ -30,7 +30,7 @@ namespace
 
 	PipelineConfiguration m_Configuration;
 
-	void RenderBatch(const Rendering::ObjectBatchMap& mapBatch, MaterialRenderingMode materialRenderingMode)
+	void RenderBatch(const Rendering::ObjectBatchMap& mapBatch, const MaterialRenderingMode materialRenderingMode)
 	{
 	    if (materialRenderingMode == MaterialRenderingMode::Opaque)
 	    {
@@ -279,7 +279,7 @@ void Pipeline3D::Prepare()
     Rendering::SceneProcessor::Prepare(m_SceneContext);
 }
 
-void Pipeline3D::Run(RenderingContext& context, PipelineStage stage)
+void Pipeline3D::Run(RenderingContext& context, const PipelineStage stage)
 {
 	if (stage == PipelineStage::Prepass)
 	{

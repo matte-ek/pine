@@ -24,7 +24,7 @@ namespace
         jmp_buf jmp;
     };
 
-    static void jpeg_error_callback(j_common_ptr cinfo)
+    static void jpeg_error_callback(const j_common_ptr cinfo)
     {
         auto* err = reinterpret_cast<JpegErrorManager*>(cinfo->err);
         longjmp(err->jmp, 1);

@@ -39,7 +39,7 @@ namespace
     }
 }
 
-void Pine::World::SetPaused(bool value)
+void Pine::World::SetPaused(const bool value)
 {
     m_Paused = value;
 }
@@ -49,7 +49,7 @@ bool Pine::World::IsPaused()
     return m_Paused;
 }
 
-void Pine::World::SetActiveLevel(Level *level, bool ignoreLoad)
+void Pine::World::SetActiveLevel(Level *level, const bool ignoreLoad)
 {
     if (!ignoreLoad)
     {
@@ -62,7 +62,7 @@ void Pine::World::SetActiveLevel(Level *level, bool ignoreLoad)
 
     m_Level = level;
 
-    for (auto& transform : Components::Get<Pine::Transform>())
+    for (auto& transform : Components::Get<Transform>())
     {
         transform.OnRender(0.f);
     }
@@ -73,7 +73,7 @@ Pine::Level *Pine::World::GetActiveLevel()
     return m_Level;
 }
 
-void Pine::World::SetTimeScale(float value)
+void Pine::World::SetTimeScale(const float value)
 {
     m_TimeScale = value;
 }

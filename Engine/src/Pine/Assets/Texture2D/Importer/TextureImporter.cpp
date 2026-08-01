@@ -76,7 +76,7 @@ namespace
     }
     */
 
-    Graphics::TextureCompressionFormat DetermineCompressionFormat(TextureUsageHint textureUsageHint)
+    Graphics::TextureCompressionFormat DetermineCompressionFormat(const TextureUsageHint textureUsageHint)
     {
         switch (textureUsageHint)
         {
@@ -96,7 +96,7 @@ namespace
         }
     }
 
-    NvttFormat TranslateCompressionFormat(Graphics::TextureCompressionFormat textureCompressionFormat, int channels)
+    NvttFormat TranslateCompressionFormat(const Graphics::TextureCompressionFormat textureCompressionFormat, const int channels)
     {
         switch (textureCompressionFormat)
         {
@@ -113,7 +113,7 @@ namespace
         }
     }
 
-    NvttQuality TranslateQuality(TextureCompressionQuality textureCompressionQuality)
+    NvttQuality TranslateQuality(const TextureCompressionQuality textureCompressionQuality)
     {
         switch (textureCompressionQuality)
         {
@@ -133,10 +133,10 @@ TextureImportData Importer::TextureImporter::CompressImage(
     Texture2D* texture,
     const nvtt::Context* context,
     const void* inputData,
-    unsigned int width,
-    unsigned int height,
-    unsigned int channels,
-    bool hasGpuAcceleration)
+    const unsigned int width,
+    const unsigned int height,
+    const unsigned int channels,
+    const bool hasGpuAcceleration)
 {
     auto compressionFormat = DetermineCompressionFormat(texture->m_ImportConfiguration.UsageHint);
 

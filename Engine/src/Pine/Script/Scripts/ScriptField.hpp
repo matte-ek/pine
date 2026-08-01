@@ -42,7 +42,7 @@ namespace Pine
         return ScriptFieldTypeMap[type];
     }
 
-    inline const char* ScriptFieldTypeToString(ScriptFieldType type)
+    inline const char* ScriptFieldTypeToString(const ScriptFieldType type)
     {
         switch (type) 
         {
