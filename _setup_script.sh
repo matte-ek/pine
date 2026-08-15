@@ -32,7 +32,7 @@ install_dependencies() {
     case "$OS_FAMILY" in
         *arch*)
             echo "-> Arch-based Linux detected."
-            local arch_deps=(glew assimp fmt mono openal glfw-x11 libjpeg-turbo libpng wget 7zip glm freetype2 nlohmann-json patch make gcc)
+            local arch_deps=(glew assimp fmt mono openal glfw-x11 libjpeg-turbo libpng wget 7zip glm freetype2 nlohmann-json patch make gcc enet)
             
             if pacman -T zlib >/dev/null 2>&1; then
                 echo "   [Notice] zlib dependency is already satisfied by an installed compatibility layer. Skipping vanilla 'zlib'."
@@ -49,7 +49,7 @@ install_dependencies() {
             sudo apt-get install -y build-essential cmake wget 7zip patch \
                 libglew-dev libassimp-dev libfmt-dev mono-complete \
                 libopenal-dev libglfw3-dev libjpeg-turbo8-dev libpng-dev \
-                libglm-dev libfreetype6-dev nlohmann-json3-dev zlib1g-dev
+                libglm-dev libfreetype6-dev nlohmann-json3-dev zlib1g-dev enet
             ;;
 
         *fedora*|*rhel*|*centos*)
@@ -57,7 +57,7 @@ install_dependencies() {
             sudo dnf install -y gcc-c++ make cmake wget 7zip patch \
                 glew-devel assimp-devel fmt-devel mono-devel \
                 openal-soft-devel glfw-devel libjpeg-turbo-devel libpng-devel \
-                glm-devel freetype-devel json-devel zlib-devel
+                glm-devel freetype-devel json-devel zlib-devel enet
             ;;
 
         *)

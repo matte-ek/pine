@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECTS_DIR="$SCRIPT_DIR/assets/projects"
+PROJECTS_DIR="$SCRIPT_DIR/data/projects"
 EDITOR_BIN="$SCRIPT_DIR/Editor/Editor"
 
 mkdir -p "$PROJECTS_DIR"
@@ -72,7 +72,7 @@ launch_project() {
         esac
     fi
 
-    cd "$SCRIPT_DIR/assets" || {
+    cd "$SCRIPT_DIR/data" || {
         echo "Error: Could not find the assets directory at $SCRIPT_DIR/assets"
         exit 1
     }

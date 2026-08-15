@@ -26,4 +26,5 @@ target_link_libraries(Engine
         physx
         nvtt
         perlin-noise
+        enet
 )
