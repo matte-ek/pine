@@ -1,29 +1,68 @@
 # Pine Engine
 
-A 3D/2D game engine written in C++.
+A 3D/2D game engine written in C++ (C++17), with C# gameplay scripting via Mono.
+
+The repo builds one `Engine` static library plus three executables that link it:
+- **Editor** — the ImGui-based editor.
+- **GameHost** — standalone runtime for shipping a game.
+- **EngineCli** — command-line tooling.
 
 ## Build
-Install the required dependencies through your package manager.
+
+Pine builds with **CMake** (the author develops in CLion). Dependencies are a mix of
+system packages and libraries bundled in `third-party/` (`imgui`, `material-icons`,
+`nvtt`, `perlin-noise`, `physx`).
+
+### Dependencies
+
+Install the system packages through your package manager.
 
 #### Arch
-Install `glfw-x11/glfw-wayland glew glm assimp stb nlohmann-json reactphysics3d fmt freetype2 mono`.
+`glfw glew glm assimp stb nlohmann-json fmt freetype2 mono openal libjpeg-turbo libpng`
 
 #### Ubuntu
-Install `libstb-dev libglew-dev libglfw3-dev nlohmann-json3-dev libglm-dev libfreetype-dev libfmt-dev libassimp-dev libmono-2.0-dev`
+`libglfw3-dev libglew-dev libglm-dev libassimp-dev libstb-dev nlohmann-json3-dev libfmt-dev libfreetype-dev libmono-2.0-dev libopenal-dev libjpeg-turbo8-dev libpng-dev zlib1g-dev`
 
 #### Windows
 You'll have to figure it out yourself. :-)
 
-### Initial Setup / Scripting Engine
-In order to get the scripting engine to work, you need to do the following:
-* Remove/rename your previous `game` directory in `/asssets`.
-* Create a copy of the template `game-template` in `/assets` and rename it to `game`.
-* Install mono and msbuild for mono
-  * On Arch you can install the packages `mono` and `mono-msbuild`.
-* Build the engine and the editor/sandbox
-* Build the engine scripting runtime
-  * Run `msbuild -t:Build -p:Configuration=Release` in the `/ScriptRuntime` directory.
-* Optional: Build the game runtime
-  * Run `msbuild -t:Build -p:Configuration=Release` in `/assets/game/runtime` directory.
+### PhysX
 
-*Note: To make developing/building the C# libraries easier, an IDE such as Rider is recommended.*
+3D physics uses **PhysX 5**. The prebuilt static libraries are *not* committed to the
+repo — they need to live in `third-party/physx/lib/` (`.a`) and `third-party/physx/include/`.
+On Arch, `./setup-env.sh` downloads and builds PhysX and installs it there for you.
+
+### Configure & build
+
+```bash
+cmake -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build cmake-build-debug -j
+```
+
+Build a single target with e.g. `--target Editor`.
+
+## Running
+
+The executables load assets relative to the current working directory, so run them from
+the `data/` directory and pass a project name (projects live in `data/projects/`):
+
+```bash
+cd data
+../cmake-build-debug/Editor/Editor <project_name>
+```
+
+Set `PINE_X11=1` to force GLFW onto X11/XWayland (useful on Wayland, e.g. for RenderDoc).
+
+## Scripting runtime
+
+The C# runtime lives in `ScriptRuntime/` and targets .NET Framework 4.7.2 via Mono.
+Build it with msbuild:
+
+```bash
+cd ScriptRuntime
+msbuild -t:Build -p:Configuration=Release
+```
+
+The Release build outputs `Pine.dll` to `data/engine/script/`, where the engine loads it
+from. A per-game script assembly builds the same way under `data/game/runtime`. An IDE
+such as Rider is recommended for working on the C# side.

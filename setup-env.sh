@@ -48,12 +48,12 @@ make -j8
 
 cd ../../bin/linux.x86_64
 
-mkdir -p ../../../../../Engine/lib
+mkdir -p ../../../../../third-party/physx/lib
 
-cp checked/*.a ../../../../../Engine/lib
+cp checked/*.a ../../../../../third-party/physx/lib
 
 cd ../../
 
-mkdir -p ../../../Engine/include/physx
+mkdir -p ../../../third-party/physx/include
 
-cp -r include/* ../../../Engine/include/physx
+cp -r include/* ../../../third-party/physx/include

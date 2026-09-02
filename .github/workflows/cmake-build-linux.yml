@@ -2,65 +2,62 @@ name: Build Linux
 
 on:
   push:
-    branches: [ "main", "dev", "scripting" ]
+    branches: [ "main", "dev", "scripting", "ai" ]
   pull_request:
     branches: [ "main" ]
 
 env:
   BUILD_TYPE: Release
+  PHYSX_URL: "https://github.com/NVIDIA-Omniverse/PhysX/archive/refs/tags/110.1-omni-and-physx-5.9.0.zip"
+  PHYSX_HASH: "c5f73d10c3e2899513051be1ae1082ec0da95cfef2f05efc609a3471d4f77f27"
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install libstb-dev libglew-dev libglfw3-dev nlohmann-json3-dev libglm-dev libfreetype-dev libfmt-dev libassimp-dev libmono-2.0-dev
-    
-    - name: Restore third-party dependencies from cache
-      id: cache-deps
-      uses: actions/cache@v3
+        sudo apt install -y \
+          build-essential cmake ninja-build wget p7zip-full patch python3 \
+          libglew-dev libglfw3-dev libglm-dev libassimp-dev libstb-dev \
+          nlohmann-json3-dev libfmt-dev libfreetype-dev libmono-2.0-dev \
+          libopenal-dev libjpeg-turbo8-dev libpng-dev zlib1g-dev
+
+    # PhysX is not committed to the repo; build it once and cache the result.
+    # Keyed on the PhysX version plus the build patch/preset, so it rebuilds
+    # only when one of those changes.
+    - name: Cache PhysX
+      id: cache-physx
+      uses: actions/cache@v4
       with:
-        path: ~/reactphysics3d
-        key: ${{ runner.os }}-cmake-reactphysics
-     
-    - name: Build third party dependencies
-      if: steps.cache-deps.outputs.cache-hit != 'true'
+        path: third-party/physx
+        key: ${{ runner.os }}-physx-${{ env.PHYSX_HASH }}-${{ hashFiles('.external-required/cmake-patch.diff', '.external-required/linux-gcc-cpu-only-no-snippets.xml') }}
+
+    - name: Build PhysX
+      if: steps.cache-physx.outputs.cache-hit != 'true'
       run: |
-        sudo apt install ninja-build cmake lcov valgrind
-        cd ~
-        git clone https://github.com/DanielChappuis/reactphysics3d.git
-        cd reactphysics3d
-        mkdir build
-        cmake \
-            -S . \
-            -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DRP3D_DOUBLE_PRECISION_ENABLED=False \
-            -DRP3D_CODE_COVERAGE_ENABLED=False \
-            -DCODE_COVERAGE_VERBOSE=Frue \
-            -DRP3D_COMPILE_TESTS=Frue \
-            -G "Ninja"
-        cmake --build build/
-        #sudo cmake --build build/ --target install --config Release
-        cd ${{github.workspace}}
-      
-    - name: "Install dependencies"
-      run: |
-        cd ~/reactphysics3d
-        sudo cmake --install build/
-        cd ${{github.workspace}}
+        set -e
+        ROOT="$GITHUB_WORKSPACE"
+        mkdir -p external && cd external
+        wget -O physx.zip "$PHYSX_URL"
+        echo "$PHYSX_HASH  physx.zip" | sha256sum -c
+        7z x physx.zip > /dev/null
+        cd PhysX-110.1-omni-and-physx-5.9.0/physx
+        patch --merge -i "$ROOT/.external-required/cmake-patch.diff" source/compiler/cmake/linux/CMakeLists.txt
+        cp "$ROOT/.external-required/linux-gcc-cpu-only-no-snippets.xml" buildtools/presets/public/
+        ./generate_projects.sh linux-gcc-cpu-only-no-snippets
+        cd compiler/linux-gcc-cpu-only-no-snippets-checked
+        make -j"$(nproc)"
+        mkdir -p "$ROOT/third-party/physx/lib" "$ROOT/third-party/physx/include"
+        cp ../../bin/linux.x86_64/checked/*.a "$ROOT/third-party/physx/lib/"
+        cp -r ../../include/* "$ROOT/third-party/physx/include/"
 
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target Engine
-
+    - name: Build Engine
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target Engine
