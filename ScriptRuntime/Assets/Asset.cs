@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Pine.Core;
 
 namespace Pine.Assets
 {
@@ -22,15 +23,17 @@ namespace Pine.Assets
     public class Asset
     {
         public readonly AssetType Type = AssetType.Invalid;
-  
-        public string FileName => GetFileName(_internalId);
-        public string Path => GetFileName(_internalId);
 
-        internal uint _internalId = 0;
-        
+        // Assets are identified by their UId (mirror of the native Pine::UId). There is no
+        // array-slot id for assets, unlike entities/components.
+        public readonly UId Id;
+
+        public string FileName => GetFileName(Id);
+        public string Path => GetPath(Id);
+
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern string GetFileName(uint id);
+        private static extern string GetFileName(UId id);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern string GetPath(uint id);
+        private static extern string GetPath(UId id);
     }
 }

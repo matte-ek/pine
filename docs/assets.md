@@ -34,8 +34,13 @@ An `.ih` is small JSON, e.g. `data/engine/shaders/post-processing/ambient-occlus
   shader can be compiled with.
 
 Edit the `.glsl` and the engine rebuilds the `.passet` on load. The same source→`.passet`
-relationship holds for other imported assets (textures, models, `.cs`); shaders just expose it
-as editable text with a sidecar hint.
+relationship holds for other imported assets (textures, models); shaders just expose it as
+editable text with a sidecar hint.
+
+**Scripts are the exception.** A `CSharpScript` `.passet` is *not* built from its `.cs` — the
+`.cs` compiles into the project's `Game.dll` separately, and the `.passet` just stores the
+managed type name + registers the `.cs` as an `AssetSource` sitting next to it. So there is no
+`.ih` for scripts and the `.passet` is authored, not regenerated. See [scripting.md](scripting.md).
 
 ## Asset types
 One folder per type under `Assets/`, each subclassing `Asset`: `Blueprint`, `Level`,

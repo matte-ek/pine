@@ -8,6 +8,7 @@ namespace Pine
     class Component;
     class Asset;
     class CSharpScript;
+    class UId;
 }
 
 namespace Pine::Script
@@ -27,7 +28,7 @@ namespace Pine::Script
         MonoClass* GetRayCastHitClass();
 
         ObjectHandle CreateScriptObject(const CSharpScript* script, const Component* component);
-        ObjectHandle CreateEntity(std::uint32_t entityId, std::uint32_t internalId);
+        ObjectHandle CreateEntity(const UId& id, std::uint32_t internalId);
         ObjectHandle CreateComponent(const Component* engineComponent);
         ObjectHandle CreateAsset(const Asset* asset);
 

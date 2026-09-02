@@ -34,22 +34,20 @@ namespace
     {
         std::vector<Pine::CSharpScript*> scripts;
 
-        /*
-        for (auto& [path, script] : Pine::Assets::GetAll())
+        for (const auto& [id, asset] : Pine::Assets::GetAll())
         {
-            if (script->GetType() != Pine::AssetType::CSharpScript)
+            if (asset->GetType() != Pine::AssetType::CSharpScript)
             {
                 continue;
             }
 
-            if (script->IsDeleted())
+            if (asset->IsPendingDelete())
             {
                 continue;
             }
 
-            scripts.push_back(dynamic_cast<Pine::CSharpScript*>(script));
+            scripts.push_back(dynamic_cast<Pine::CSharpScript*>(asset));
         }
-        */
 
         return scripts;
     }
@@ -81,19 +79,31 @@ namespace
     // Populates all fields of a script data instance
     void ResolveScriptData(Pine::ScriptData* scriptData)
     {
-        const auto fileName = scriptData->Asset->GetFilePath().stem().string();
-
         if (!m_GameAssembly)
         {
             return;
         }
 
-        // Currently, the class name has to be the same as the file name, maybe finding the first class that
-        // matches our requirements in a file is a better solution? Also for the future, a custom namespace might be nice.
-        auto monoClass = mono_class_from_name(m_GameAssembly->Image, "Game", fileName.c_str());
+        // The managed type is stored on the asset as a fully-qualified name (e.g. "Game.Player").
+        // Fall back to the legacy convention (namespace "Game", class == file stem) for older
+        // assets that predate the stored type name.
+        std::string namespaceName = "Game";
+        std::string className = scriptData->Asset->GetTypeName();
+
+        if (className.empty())
+        {
+            className = scriptData->Asset->GetFilePath().stem().string();
+        }
+        else if (const auto dot = className.find_last_of('.'); dot != std::string::npos)
+        {
+            namespaceName = className.substr(0, dot);
+            className = className.substr(dot + 1);
+        }
+
+        auto monoClass = mono_class_from_name(m_GameAssembly->Image, namespaceName.c_str(), className.c_str());
         if (!monoClass)
         {
-            PWarning(fmt::format("Failed to find class for script: {}", fileName));
+            PWarning(fmt::format("Failed to find class for script: {}.{}", namespaceName, className));
             return;
         }
 
@@ -116,21 +126,9 @@ namespace
 
 void Pine::Script::Manager::Setup()
 {
-    if (Runtime::GetPineAssembly() == nullptr)
-    {
-        // If we've failed to load the entire Pine runtime, there is no need to be looking for
-        // the game runtime, as things won't work anyway.
-        return;
-    }
-
-    // Attempt to find the game runtime at the default location
-    if (!std::filesystem::exists("game/runtime-bin/Game.dll"))
-    {
-        PError("Script: Failed to find game runtime, project might be missing scripts?");
-        return;
-    }
-
-    LoadGameAssembly("game/runtime-bin/Game.dll");
+    // The game assembly is loaded per-project by the host application (the Editor, once it
+    // knows which project is open; the GameHost, from its baked output) after engine setup,
+    // via LoadGameAssembly(). Nothing to do here at boot time.
 }
 
 void Pine::Script::Manager::Dispose()

@@ -8,7 +8,7 @@ namespace Pine.World
 {
     public class Entity
     {
-        public readonly uint Id = 0;
+        public readonly UId Id;
         public bool IsValid => _isValid == 1;
         
         public string Name

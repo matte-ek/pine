@@ -205,6 +205,16 @@ namespace
                 std::filesystem::remove(selectedNode->Path.c_str());
                 std::filesystem::create_hard_link(newPath.c_str(), asset->GetFilePath());
 
+                // A script asset carries a sibling '.cs' source that must be renamed alongside it.
+                // (Renaming the C# class itself remains a manual edit in the user's IDE.)
+                if (asset->GetType() == Pine::AssetType::CSharpScript)
+                {
+                    std::error_code ec;
+                    const auto oldCs = std::filesystem::path(selectedNode->Path).replace_extension(".cs");
+                    const auto newCs = std::filesystem::path(newPath).replace_extension(".cs");
+                    std::filesystem::rename(oldCs, newCs, ec);
+                }
+
                 // Update mapped path
                 asset->SetPath(Editor::Utilities::Asset::EstimateMappedPath(newPath, Editor::Projects::GetProjectPath() + "/assets/"));
 

@@ -48,6 +48,7 @@
         <Compile Include="Assets\Model.cs" />
         <Compile Include="Core\EditorUtils.cs" />
         <Compile Include="Core\Log.cs" />
+        <Compile Include="Core\UId.cs" />
         <Compile Include="Input\InputBind.cs" />
         <Compile Include="Input\InputManager.cs" />
         <Compile Include="Input\KeyCode.cs" />

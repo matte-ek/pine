@@ -7,16 +7,18 @@
 
 namespace
 {
-    MonoString* GetFileName(std::uint32_t internalId)
+    MonoString* GetFileName(Pine::UId id)
     {
-        //return mono_string_new(mono_domain_get(), Pine::Assets::GetById(internalId)->GetFileName().c_str());
-        return nullptr;
+        const auto asset = Pine::Assets::GetAssetByUId(id);
+        if (!asset) return nullptr;
+        return mono_string_new(mono_domain_get(), asset->GetFileName().c_str());
     }
 
-    MonoString* GetPath(std::uint32_t internalId)
+    MonoString* GetPath(Pine::UId id)
     {
-        //return mono_string_new(mono_domain_get(), Pine::Assets::GetById(internalId)->GetPath().c_str());
-        return nullptr;
+        const auto asset = Pine::Assets::GetAssetByUId(id);
+        if (!asset) return nullptr;
+        return mono_string_new(mono_domain_get(), asset->GetPath().c_str());
     }
 
     MonoObject* GetByPath(MonoString* str)
@@ -33,34 +35,38 @@ namespace
 
     // -----------------------------------------------------
 
-    bool GetHasEntity(std::uint32_t internalId)
+    // NOTE: The Blueprint/Level script interface below is still dormant — it predates the UId
+    // migration and was never re-wired. Signatures now take the asset UId (so the managed side
+    // binds correctly and resolution would go through Assets::GetAssetByUId), but the bodies
+    // remain stubbed pending a separate pass to revive Blueprint/Level scripting.
+    bool GetHasEntity(Pine::UId id)
     {
         return false;
-        //return dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId))->HasEntity();
+        //return dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetAssetByUId(id))->HasEntity();
     }
 
-    void CreateFromEntity(std::uint32_t internalId, std::uint32_t entityId)
+    void CreateFromEntity(Pine::UId id, std::uint32_t entityId)
     {
-        //auto asset = dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId));
+        //auto asset = dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetAssetByUId(id));
         //asset->CreateFromEntity(Pine::Entities::GetByInternalId(entityId));
     }
 
-    MonoObject* SpawnEntity(std::uint32_t internalId)
+    MonoObject* SpawnEntity(Pine::UId id)
     {
-        //return mono_gchandle_get_target(dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetById(internalId))->Spawn()->GetScriptHandle()->Handle);
+        //return mono_gchandle_get_target(dynamic_cast<Pine::Blueprint*>(Pine::Assets::GetAssetByUId(id))->Spawn()->GetScriptHandle()->Handle);
         return nullptr;
     }
 
-    void LevelCreateFromWorld(std::uint32_t internalId)
+    void LevelCreateFromWorld(Pine::UId id)
     {
-        //auto asset = dynamic_cast<Pine::Level*>(Pine::Assets::GetById(internalId));
+        //auto asset = dynamic_cast<Pine::Level*>(Pine::Assets::GetAssetByUId(id));
 
         //asset->CreateFromWorld();
     }
 
-    void LevelLoad(std::uint32_t internalId)
+    void LevelLoad(Pine::UId id)
     {
-        //auto asset = dynamic_cast<Pine::Level*>(Pine::Assets::GetById(internalId));
+        //auto asset = dynamic_cast<Pine::Level*>(Pine::Assets::GetAssetByUId(id));
 
         //asset->Load();
     }

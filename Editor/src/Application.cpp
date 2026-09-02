@@ -1,6 +1,10 @@
+#include <filesystem>
+
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Core/Math/Math.hpp"
+#include "Pine/Core/Log/Log.hpp"
 #include "Pine/Engine/Engine.hpp"
+#include "Pine/Script/ScriptManager.hpp"
 #include "Pine/World/World.hpp"
 
 #include "Gui/Gui.hpp"
@@ -40,6 +44,18 @@ int main(int argc, const char* argv[])
 
     // Load user assets
     Editor::Projects::LoadProjectAssets();
+
+    // Now that the project and its assets are loaded, load the project's C# game assembly
+    // (built externally by the user's IDE) so scripts can be resolved against it.
+    const auto gameAssemblyPath = Editor::Projects::GetProjectPath() + "/runtime-bin/Game.dll";
+    if (std::filesystem::exists(gameAssemblyPath))
+    {
+        Pine::Script::Manager::LoadGameAssembly(gameAssemblyPath);
+    }
+    else
+    {
+        PWarning(fmt::format("No game assembly found at '{}', scripts will be unavailable until the project is built.", gameAssemblyPath));
+    }
 
     // Make sure we're not starting simulation
     Pine::World::SetPaused(true);

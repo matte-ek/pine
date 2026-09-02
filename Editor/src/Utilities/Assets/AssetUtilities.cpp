@@ -5,6 +5,7 @@
 #include "Gui/Panels/AssetBrowser/AssetBrowserPanel.hpp"
 #include "Gui/Panels/AssetBrowser/AssetHierarchy/AssetHierarchy.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 #include "Pine/Assets/Importer/AssetImporter.hpp"
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/String/String.hpp"
@@ -37,6 +38,28 @@ Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::p
 {
     // Create an empty version of the asset type.
     auto asset = Pine::Assets::CreateAsset(type, path.string());
+
+    // A C# script is a source-backed asset: write the editable '.cs' next to the '.passet',
+    // register it as the asset's source, and record the managed type it maps to. The '.cs' is
+    // compiled into the game assembly by the project's Game.csproj (which globs assets/**/*.cs).
+    if (type == Pine::AssetType::CSharpScript)
+    {
+        const auto className = std::filesystem::path(path).stem().string();
+        const auto csPath = std::filesystem::path(path).replace_extension(".cs");
+
+        Script::CreateScriptSource(csPath.string(), className);
+
+        if (auto* script = dynamic_cast<Pine::CSharpScript*>(asset))
+        {
+            if (std::filesystem::exists(csPath))
+            {
+                script->AddSource(csPath.string());
+            }
+
+            script->SetTypeName("Game." + className);
+        }
+    }
+
     asset->SaveToFile();
     delete asset;
 
@@ -45,11 +68,6 @@ Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::p
 
     // Make sure this new asset will appear in the browser.
     Panels::AssetBrowser::BuildAssetHierarchy();
-
-    if (type == Pine::AssetType::CSharpScript)
-    {
-        Script::AddScript(asset->GetFilePath().string());
-    }
 
     return asset;
 }
@@ -128,6 +146,12 @@ void Editor::Utilities::Asset::DeletePath(const std::filesystem::path& path)
         {
             PWarning("Editor: Could not find asset by file path during deletion.");
             return;
+        }
+
+        // A script asset also owns a sibling '.cs' source file that must be removed with it.
+        if (asset->GetType() == Pine::AssetType::CSharpScript)
+        {
+            Script::DeleteScript(path.string());
         }
 
         Pine::Assets::Internal::DeleteAsset(asset);

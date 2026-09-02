@@ -36,7 +36,7 @@ cd data
 
 Set `PINE_X11=1` to force GLFW onto X11/XWayland (useful on Wayland, e.g. for RenderDoc).
 
-**Build the C# runtime.** From `ScriptRuntime/`, `msbuild -t:Build -p:Configuration=Release` (Release outputs `Pine.dll` to `data/engine/script/`, the path the engine loads). Targets .NET Framework `v4.7.2` via Mono. A per-game script assembly builds similarly under `data/game/runtime`.
+**Build the C# runtime.** From `ScriptRuntime/`, `msbuild -t:Build -p:Configuration=Release` (Release outputs `Pine.dll` to `data/engine/script/`, the path the engine loads). Targets .NET Framework `v4.7.2` via Mono. Each **project** has its own gameplay assembly under `data/projects/<name>/runtime/` (`Game.csproj`, globs `../assets/**/*.cs`, outputs `runtime-bin/Game.dll`); the Editor loads it per-project after selecting the project, GameHost loads its baked `data/game/runtime-bin/Game.dll`. Builds are external (IDE); the engine only watches/loads the DLL. See [`docs/scripting.md`](docs/scripting.md).
 
 **Tests:** there is no test suite or test framework in this repo. CI (`.github/workflows/cmake-build-linux.yml`) builds PhysX (cached) and compiles only the `Engine` target.
 

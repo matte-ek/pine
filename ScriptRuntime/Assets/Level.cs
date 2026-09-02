@@ -1,15 +1,16 @@
 using System.Runtime.CompilerServices;
+using Pine.Core;
 
 namespace Pine.Assets
 {
     public class Level : Asset
     {
-        public void CreateFromWorld() => CreateFromWorld(_internalId);
-        public void Load() => Load(_internalId);
-        
+        public void CreateFromWorld() => CreateFromWorld(Id);
+        public void Load() => Load(Id);
+
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void CreateFromWorld(uint id);
+        private static extern void CreateFromWorld(UId id);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void Load(uint id);
+        private static extern void Load(UId id);
     }
 }

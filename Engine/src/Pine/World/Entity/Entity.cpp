@@ -321,8 +321,7 @@ Pine::Script::ObjectHandle *Pine::Entity::GetScriptHandle()
 
 void Pine::Entity::CreateScriptHandle()
 {
-    // TODO: Fix me with new ID.
-    m_EntityScriptHandle = Script::ObjectFactory::CreateEntity(0, m_InternalId);
+    m_EntityScriptHandle = Script::ObjectFactory::CreateEntity(m_Id, m_InternalId);
 }
 
 void Pine::Entity::DestroyScriptHandle()

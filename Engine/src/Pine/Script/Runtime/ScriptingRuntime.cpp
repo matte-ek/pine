@@ -100,20 +100,16 @@ bool Pine::Script::Runtime::Setup()
 
 void Pine::Script::Runtime::Dispose()
 {
-    /*
-    for (const auto& [assetPath, asset] : Assets::GetAll())
+    // The appdomain is about to be unloaded, which frees every GC handle wholesale. Mark the
+    // runtime unavailable so nothing tries to create/free handles against the dying domain, and
+    // invalidate all managed mirrors — they are lazily rebuilt on next access against the fresh
+    // domain (assets are re-anchored by UId; see Asset::GetScriptHandle).
+    m_IsAvailable = false;
+
+    for (const auto& [id, asset] : Assets::GetAll())
     {
-        if (asset->GetType() == AssetType::CSharpScript)
-        {
-            auto script = dynamic_cast<CSharpScript*>(asset);
-
-            if (script->GetScriptHandle()->Object != nullptr)
-                mono_gchandle_free(script->GetScriptHandle()->Handle);
-        }
-
-        asset->DestroyScriptHandle();
+        asset->InvalidateScriptHandle();
     }
-    */
 
     for (const auto& entity : Entities::GetList())
     {

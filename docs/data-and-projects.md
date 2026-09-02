@@ -13,9 +13,9 @@ doc explains what lives where and how asset paths resolve — easy things to get
 
 ## Project structure
 A project (`data/projects/<name>/`) has:
-- **`assets/`** — the engine-native `.passet` files that make up the game (levels, materials, imported textures/models, C# scripts). This is what actually loads.
-- **`content/`** — the *raw source files* (`.glb`, `.png`, …) that get **imported** into `.passet` files in `assets/`. Think "source" vs. "compiled". (See [assets.md](assets.md) for the importer.)
-- **`runtime/`** — the project's C# gameplay assembly (`Game.csproj` / `game.sln`), built against the engine's `Pine` runtime.
+- **`assets/`** — the engine-native `.passet` files that make up the game (levels, materials, imported textures/models, C# scripts). This is what actually loads. Mostly compiled binaries, but it also holds editable **`.cs` script source** sitting next to its `CSharpScript` `.passet` (the one asset kind whose source is hand-edited in place — see [scripting.md](scripting.md)).
+- **`content/`** — the *raw source files* (`.glb`, `.png`, …) that get **imported** into `.passet` files in `assets/`. Think "source" vs. "compiled". (See [assets.md](assets.md) for the importer.) Scripts do **not** go here — their `.cs` lives beside the `.passet` in `assets/`.
+- **`runtime/`** — the project's C# gameplay project (`Game.csproj` / `game.sln`), built against the engine's `Pine` runtime. Its csproj globs `..\assets\**\*.cs` and outputs `runtime-bin/Game.dll`, which the engine loads per-project.
 
 `data/projects/project-template/` is the skeleton copied to create a new project.
 

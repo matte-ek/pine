@@ -1,9 +1,12 @@
 #include "Asset.hpp"
 
+#include <algorithm>
+
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
+#include "Pine/Script/Runtime/ScriptingRuntime.hpp"
 #include "Pine/Threading/Threading.hpp"
 
 bool Pine::Asset::LoadAssetData(const ByteSpan& span)
@@ -88,6 +91,13 @@ void Pine::Asset::SetPath(const std::string& path)
 
 void Pine::Asset::RemoveSource(const std::string& filePath)
 {
+    const auto universalPath = File::UniversalPath(filePath);
+
+    m_SourceFiles.erase(std::remove_if(m_SourceFiles.begin(), m_SourceFiles.end(),
+        [&](const AssetSource& source)
+        {
+            return File::UniversalPath(source.FilePath) == universalPath;
+        }), m_SourceFiles.end());
 }
 
 const std::vector<Pine::AssetSource>& Pine::Asset::GetSources() const
@@ -137,12 +147,39 @@ void Pine::Asset::DestroyScriptHandle()
         return;
     }
 
+    // Freeing the GC handle requires a live appdomain. If the runtime is already down
+    // (shutdown / mid-reload) the handle is freed wholesale by the domain unload, so just
+    // forget it here.
+    if (!Script::Runtime::IsAvailable())
+    {
+        InvalidateScriptHandle();
+        return;
+    }
+
     Script::ObjectFactory::DisposeObject(&m_ScriptObjectHandle);
+}
+
+void Pine::Asset::InvalidateScriptHandle()
+{
+    m_ScriptObjectHandle = { nullptr, 0 };
 }
 
 Pine::Script::ObjectHandle* Pine::Asset::GetScriptHandle()
 {
+    // Lazily create the managed mirror the first time script touches this asset (and after a
+    // domain reset, which invalidates it). Assets are identified by UId, so a mirror rebuilt
+    // in a fresh domain still resolves back to the correct asset.
+    if (m_ScriptObjectHandle.Object == nullptr && Script::Runtime::IsAvailable())
+    {
+        CreateScriptHandle();
+    }
+
     return &m_ScriptObjectHandle;
+}
+
+Pine::Asset::~Asset()
+{
+    DestroyScriptHandle();
 }
 
 void Pine::Asset::SaveToFile()

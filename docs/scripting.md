@@ -21,9 +21,30 @@ are relative to `Engine/src/Pine/` unless noted.
 - **`ScriptComponent`** (`World/Components/Script/`) — a managed C# script, backed by a `CSharpScript` asset (`Assets/CSharpScript/`). This is the normal one.
 - **`NativeScript`** (`World/Components/NativeScript/`) — a C++ script; currently a stub.
 
+## `CSharpScript` is a source-backed asset
+A `CSharpScript` `.passet` is **not** the C# code — it's a thin identity asset. Its payload
+stores the fully-qualified managed **type name** (e.g. `Game.Player`), and the editable `.cs`
+source lives **next to it** in the project's `assets/` tree, registered as an `AssetSource`
+(`Asset::AddSource`). The `.cs` is compiled into the game assembly separately (see below); the
+engine only loads the compiled DLL and resolves each script's `MonoClass` by its stored type
+name (`ScriptManager.cpp` → `ResolveScriptData`). Older assets with an empty payload fall back
+to the legacy convention: namespace `Game`, class name == the `.passet` file stem.
+
+Creating a script in the editor (Asset Browser → Create → Script) writes both `Foo.cs` (from a
+built-in template, `Editor/.../ScriptUtilities.cpp`) and `Foo.passet` side by side; rename/delete
+keep the pair in sync. There is **no** `.ih` sidecar for scripts (unlike shaders) — the `.passet`
+isn't a compile output, so the source list + payload is all that's needed.
+
 ## Building & running the managed side
-From `ScriptRuntime/`: `msbuild -t:Build -p:Configuration=Release` → outputs `Pine.dll` to
-`data/engine/script/` (the path the engine loads). Targets .NET Framework 4.7.2 via Mono.
-See the root `README.md` / `CLAUDE.md` for the full flow.
+- **Engine API assembly (`Pine.dll`):** from `ScriptRuntime/`, `msbuild -t:Build -p:Configuration=Release`
+  → outputs `Pine.dll` to `data/engine/script/` (loaded by `ScriptingRuntime.cpp`). Targets .NET
+  Framework 4.7.2 via Mono.
+- **Per-project game assembly (`Game.dll`):** each project owns `projects/<name>/runtime/Game.csproj`,
+  which globs `..\assets\**\*.cs` and outputs `projects/<name>/runtime-bin/Game.dll`. Build it in
+  your IDE (CLion/Rider). The engine loads it **per project**: the Editor calls
+  `Script::Manager::LoadGameAssembly(GetProjectPath() + "/runtime-bin/Game.dll")` after the project
+  is selected (`Editor/src/Application.cpp`); GameHost loads its baked `game/runtime-bin/Game.dll`.
+  The editor hot-reloads on window focus when the DLL's write-time changes (`ScriptUtilities.cpp`).
+  Builds are **external** — the engine never invokes a compiler.
 
 Related: [world-ecs.md](world-ecs.md) · [assets.md](assets.md)

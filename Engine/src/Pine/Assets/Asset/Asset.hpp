@@ -145,7 +145,7 @@ namespace Pine
         template<typename>
         friend class AssetHandle;
     public:
-        virtual ~Asset() = default;
+        virtual ~Asset();
 
         // This should ideally be done through a constructor.
         void SetupNew(const std::filesystem::path& absoluteFilePath);
@@ -174,6 +174,12 @@ namespace Pine
 
         void CreateScriptHandle();
         void DestroyScriptHandle();
+        // Drops the managed mirror without touching Mono — used when the appdomain is being
+        // unloaded (hot reload), which frees all GC handles wholesale. The mirror is lazily
+        // rebuilt on the next GetScriptHandle() access against the fresh domain.
+        void InvalidateScriptHandle();
+        // Lazily creates the managed mirror on first access (only for assets actually touched
+        // by script), and returns it. Rebuilds automatically after a domain reset.
         Script::ObjectHandle* GetScriptHandle();
 
         ByteSpan Save();

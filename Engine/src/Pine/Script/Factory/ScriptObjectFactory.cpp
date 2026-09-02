@@ -38,7 +38,7 @@ namespace
     struct AssetTypeData
     {
         MonoClass* m_AssetClass = nullptr;
-        MonoClassField* m_AssetInternalIdField = nullptr;
+        MonoClassField* m_AssetIdField = nullptr;
         MonoClassField* m_AssetTypeField = nullptr;
     };
 
@@ -83,7 +83,7 @@ MonoClass* Pine::Script::ObjectFactory::GetRayCastHitClass()
     return m_RaycastHitClass;
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32_t entityId, std::uint32_t internalId)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(const UId& id, std::uint32_t internalId)
 {
     if (!m_PineImage)
     {
@@ -94,8 +94,12 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(std::uint32
 
     mono_runtime_object_init(entity);
 
+    // The managed Entity.Id is a value-type mirror of Pine::UId (two 64-bit halves).
+    // Copy the raw value across; the C# side uses it purely as a stable identity token.
+    struct { std::uint64_t Time; std::uint64_t Random; } idValue{ id.GetTime(), id.GetRandom() };
+
     mono_field_set_value(entity, m_EntityInternalIdField, &internalId);
-    mono_field_set_value(entity, m_EntityIdProperty, &entityId);
+    mono_field_set_value(entity, m_EntityIdProperty, &idValue);
 
     auto handle = mono_gchandle_new(entity, true);
 
@@ -204,7 +208,7 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Asset 
         assetTypeData = new AssetTypeData();
 
         assetTypeData->m_AssetClass = monoClass;
-        assetTypeData->m_AssetInternalIdField = mono_class_get_field_from_name(monoClass, "_internalId");
+        assetTypeData->m_AssetIdField = mono_class_get_field_from_name(monoClass, "Id");
         assetTypeData->m_AssetTypeField = mono_class_get_field_from_name(monoClass, "Type");
 
         m_AssetObjectFactory[asset->GetType()] = assetTypeData;
@@ -221,11 +225,13 @@ Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Asset 
 
     mono_runtime_object_init(object);
 
-    assert(false);
-    auto internalId = 0;
+    // Assets are identified by their UId (there is no array-slot id for assets, unlike
+    // entities/components). Mirror it into the managed Asset.Id value type.
+    const auto& uid = asset->GetUId();
+    struct { std::uint64_t Time; std::uint64_t Random; } idValue{ uid.GetTime(), uid.GetRandom() };
     auto type = static_cast<int>(asset->GetType());
 
-    mono_field_set_value(object, assetTypeData->m_AssetInternalIdField, &internalId);
+    mono_field_set_value(object, assetTypeData->m_AssetIdField, &idValue);
     mono_field_set_value(object, assetTypeData->m_AssetTypeField, &type);
 
     auto handle = mono_gchandle_new(object, true);

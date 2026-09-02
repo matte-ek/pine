@@ -34,7 +34,7 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Pine">
-          <HintPath>..\..\..\engine\script\Pine.dll</HintPath>
+          <HintPath>..\..\engine\script\Pine.dll</HintPath>
         </Reference>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
@@ -43,8 +43,11 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Properties\AssemblyInfo.cs"/>
+        <!-- Gameplay scripts live next to their .passet in the game's assets/ tree. -->
+        <Compile Include="..\assets\**\*.cs">
+            <Link>Scripts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Compile>
     </ItemGroup>
-	<Import Project="ScriptFiles.props"/>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
          Other similar extension points exist, see Microsoft.Common.targets.

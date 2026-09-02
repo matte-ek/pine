@@ -1,8 +1,11 @@
 #include <Pine/Pine.hpp>
 
+#include <filesystem>
+
 #include "Pine/Rendering/RenderingContext.hpp"
 #include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/Script/ScriptManager.hpp"
 
 namespace
 {
@@ -42,6 +45,12 @@ int main()
     if (!Pine::Engine::Setup(engineConfiguration))
     {
         return 0;
+    }
+
+    // The standalone host runs a single baked game from data/game/.
+    if (std::filesystem::exists("game/runtime-bin/Game.dll"))
+    {
+        Pine::Script::Manager::LoadGameAssembly("game/runtime-bin/Game.dll");
     }
 
     text = Pine::Assets::Get<Pine::Texture2D>("game/assets/test");
