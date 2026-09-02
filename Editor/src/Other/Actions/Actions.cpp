@@ -1,5 +1,8 @@
 ﻿#include "Actions.hpp"
 
+#include <memory>
+#include <vector>
+
 #include "imgui.h"
 
 #include "Pine/Core/Serialization/Serialization.hpp"
@@ -11,39 +14,40 @@ namespace
 {
     using namespace Editor::Actions;
 
+    constexpr std::size_t MaxHistorySize = 128;
+
     bool m_ItemUpdated = false;
 
     bool m_IsSavingHeldState = false;
     EditorCommand* m_HeldStateCommand = nullptr;
 
-    int m_CommandPointer = 0;
-    std::deque<EditorCommand*> m_CommandHistory;
+    // Standard undo stack: index 0 is the oldest command, the back is the newest. m_CommandIndex is the number
+    // of commands currently "applied" - the next undo targets m_CommandHistory[m_CommandIndex - 1], the next
+    // redo targets m_CommandHistory[m_CommandIndex]. Ownership lives in the unique_ptrs, so trimming the history
+    // frees the commands automatically.
+    std::size_t m_CommandIndex = 0;
+    std::vector<std::unique_ptr<EditorCommand>> m_CommandHistory;
 
     void RegisterCommand(EditorCommand* editorCommand)
     {
-        // We're going to rewrite history
-        if (m_CommandPointer > 0)
+        // Anything that was undone can no longer be redone once new history is written, so discard it.
+        if (m_CommandIndex < m_CommandHistory.size())
         {
-            PInfo(fmt::format("Re-writing history, current pointer: {}, current size: {}", m_CommandPointer, m_CommandHistory.size()));
+            PVerbose(fmt::format("Re-writing history, discarding {} redoable command(s)", m_CommandHistory.size() - m_CommandIndex));
 
-            for (int i = m_CommandPointer - 1; i >= 0; --i)
-            {
-                delete m_CommandHistory[i];
-                m_CommandHistory.erase(m_CommandHistory.begin() + i);
-            }
-
-            m_CommandPointer = 0;
+            m_CommandHistory.erase(m_CommandHistory.begin() + m_CommandIndex, m_CommandHistory.end());
         }
 
-        m_CommandHistory.push_front(editorCommand);
+        m_CommandHistory.emplace_back(editorCommand);
+        m_CommandIndex = m_CommandHistory.size();
 
-        if (m_CommandHistory.size() > 128)
+        if (m_CommandHistory.size() > MaxHistorySize)
         {
-            delete m_CommandHistory[m_CommandHistory.size() - 1];
-            m_CommandHistory.pop_back();
+            m_CommandHistory.erase(m_CommandHistory.begin());
+            m_CommandIndex--;
         }
 
-        PInfo(fmt::format("Writing history, ptr: {}, size: {}", m_CommandPointer, m_CommandHistory.size()));
+        PVerbose(fmt::format("Writing history, index: {}, size: {}", m_CommandIndex, m_CommandHistory.size()));
     }
 }
 
@@ -66,7 +70,11 @@ void UpdateComponentCommand::SaveState(const CommandState commandState)
 {
     const auto component = Pine::Components::FindById(m_ComponentType, m_ComponentId);
 
-    assert(component != nullptr);
+    if (component == nullptr)
+    {
+        PWarning(fmt::format("UpdateComponentCommand::SaveState: component {} no longer exists, skipping.", m_ComponentId.ToString()));
+        return;
+    }
 
     (commandState == CommandState::PreCommand ? m_PreCommand : m_PostCommand) = component->SaveData();
 }
@@ -75,7 +83,11 @@ void UpdateComponentCommand::Apply(const CommandState commandState)
 {
     const auto component = Pine::Components::FindById(m_ComponentType, m_ComponentId);
 
-    assert(component != nullptr);
+    if (component == nullptr)
+    {
+        PWarning(fmt::format("UpdateComponentCommand::Apply: component {} no longer exists, skipping.", m_ComponentId.ToString()));
+        return;
+    }
 
     component->LoadData(commandState == CommandState::PreCommand ? m_PreCommand : m_PostCommand);
 }
@@ -97,7 +109,11 @@ void CreateDeleteComponentCommand::Apply(const CommandState commandState)
     {
         const auto entity = Pine::Entities::Find(m_ParentId);
 
-        assert(entity != nullptr);
+        if (entity == nullptr)
+        {
+            PWarning(fmt::format("CreateDeleteComponentCommand::Apply: parent entity {} no longer exists, skipping.", m_ParentId.ToString()));
+            return;
+        }
 
         const auto component = entity->AddComponent(m_ComponentType);
 
@@ -109,7 +125,11 @@ void CreateDeleteComponentCommand::Apply(const CommandState commandState)
     {
         const auto component = Pine::Components::FindById(m_ComponentType, m_ComponentId);
 
-        assert(component != nullptr);
+        if (component == nullptr)
+        {
+            PWarning(fmt::format("CreateDeleteComponentCommand::Apply: component {} no longer exists, skipping.", m_ComponentId.ToString()));
+            return;
+        }
 
         component->GetParent()->RemoveComponent(component);
     }
@@ -166,6 +186,11 @@ CreateComponentCommand::~CreateComponentCommand()
         return;
     }
 
+    // The caller mutates the component between constructing this scope object and it going out of scope, so now
+    // is the moment to snapshot the resulting ("post") state - otherwise redo would have nothing to restore.
+    // (For create/delete commands SaveState is a no-op; their data is captured in the constructor.)
+    m_Command->SaveState(CommandState::PostCommand);
+
     RegisterCommand(m_Command);
 }
 
@@ -176,28 +201,28 @@ bool Editor::Actions::HasItemUpdated()
 
 void Editor::Actions::ExecuteUndo()
 {
-    if (m_CommandPointer >= m_CommandHistory.size())
+    if (m_CommandIndex == 0)
     {
         return;
     }
 
-    PInfo(fmt::format("Executing undo, ptr: {}, size: {}", m_CommandPointer, m_CommandHistory.size()));
+    PVerbose(fmt::format("Executing undo, index: {}, size: {}", m_CommandIndex, m_CommandHistory.size()));
 
-    m_CommandHistory[m_CommandPointer]->Apply(CommandState::PreCommand);
-    m_CommandPointer++;
+    m_CommandIndex--;
+    m_CommandHistory[m_CommandIndex]->Apply(CommandState::PreCommand);
 }
 
 void Editor::Actions::ExecuteRedo()
 {
-    if (m_CommandHistory.empty() || m_CommandPointer == 0)
+    if (m_CommandIndex >= m_CommandHistory.size())
     {
         return;
     }
 
-    PInfo(fmt::format("Executing redo, ptr: {}, size: {}", m_CommandPointer, m_CommandHistory.size()));
+    PVerbose(fmt::format("Executing redo, index: {}, size: {}", m_CommandIndex, m_CommandHistory.size()));
 
-    m_CommandPointer--;
-    m_CommandHistory[m_CommandPointer]->Apply(CommandState::PostCommand);
+    m_CommandHistory[m_CommandIndex]->Apply(CommandState::PostCommand);
+    m_CommandIndex++;
 }
 
 void Editor::Actions::Update()
