@@ -9,6 +9,7 @@
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Projects/Projects.hpp"
+#include "Utilities/Scripts/ScriptUtilities.hpp"
 
 std::string Editor::Utilities::Asset::EstimateMappedPath(std::filesystem::path path, const std::string& relativePath)
 {
@@ -44,6 +45,11 @@ Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::p
 
     // Make sure this new asset will appear in the browser.
     Panels::AssetBrowser::BuildAssetHierarchy();
+
+    if (type == Pine::AssetType::CSharpScript)
+    {
+        Script::AddScript(asset->GetFilePath().string());
+    }
 
     return asset;
 }

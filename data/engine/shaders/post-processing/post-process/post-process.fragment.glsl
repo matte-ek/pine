@@ -21,8 +21,5 @@ void main(void)
 
     float aoScale = texture(ambientOcclusionBuffer, vec2(vIn.uv.x, vIn.uv.y)).r;
 
-    float gammaFactor = 2.2;
-    
-    m_OutputColor = vec4(frag.rgb * aoScale, 1);
-    //m_OutputColor = vec4(pow(frag.rgb * aoScale, vec3(1.0 / gammaFactor)), 1);
+    m_OutputColor = vec4(frag.rgb * aoScale, frag.a);
 }

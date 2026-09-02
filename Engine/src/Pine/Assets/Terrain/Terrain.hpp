@@ -90,8 +90,6 @@ namespace Pine
         GenerateFromPerlinNoise(TerrainChunk &chunk,
                                 const TerrainPerlinSettings &perlinSettings);
 
-        std::expected<void, std::string> LoadHeightMapData();
-
         std::vector<TerrainChunk>& GetChunks();
 
         void Dispose() override;

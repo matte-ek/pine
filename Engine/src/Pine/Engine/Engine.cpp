@@ -8,6 +8,7 @@
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
 #include "Pine/Input/Input.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/Rendering/GraphicsSettings/GraphicsSettings.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/Utilities/HotReload/HotReload.hpp"
@@ -114,8 +115,17 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     // At this point we should be safe to start initializing parts of the engine
     Components::Setup();
     Entities::Setup();
+
+    // Load graphics settings before RenderManager::Setup() so allocation-class
+    // values (resolution, shadow map size, AO resolution) are available when the
+    // rendering features size their GPU buffers.
+    Rendering::GraphicsSettings::Setup();
+
     RenderManager::Setup();
     Renderer3D::Setup();
+
+    // Push the live graphics toggles (shadows, AO) into the now-initialized pipeline.
+    Rendering::GraphicsSettings::ApplyRuntime();
     Physics3D::Setup();
     Physics2D::Setup();
     Input::Setup();

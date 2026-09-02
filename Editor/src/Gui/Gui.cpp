@@ -21,6 +21,7 @@
 #include "Panels/EntityList/EntityListPanel.hpp"
 #include "Panels/GamePanel/GamePanel.hpp"
 #include "Panels/GameViewport/GameViewportPanel.hpp"
+#include "Panels/GraphicsSettings/GraphicsSettingsPanel.hpp"
 #include "Panels/LevelPanel/LevelPanel.hpp"
 #include "Panels/LevelViewport/LevelViewportPanel.hpp"
 #include "Panels/Profiler/ProfilerPanel.hpp"
@@ -205,6 +206,7 @@ namespace
         Panels::EngineAssetsPanel::Render();
         Panels::Debug::Render();
         Panels::Game::Render();
+        Panels::GraphicsSettings::Render();
 
         Editor::Commands::Update();
         Editor::Actions::Update();
@@ -235,6 +237,7 @@ void Editor::Gui::Setup()
     IconStorage::Setup();
 
     Panels::Game::Setup();
+    Panels::GraphicsSettings::Setup();
 
     Pine::RenderManager::AddRenderCallback(OnPineRender);
 }

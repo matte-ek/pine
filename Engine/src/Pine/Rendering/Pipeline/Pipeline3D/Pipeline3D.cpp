@@ -300,7 +300,12 @@ void Pipeline3D::Run(RenderingContext& context, const PipelineStage stage)
 		// Render depth pre-pass
 		RenderDepthPrepass(context);
 
-		Rendering::AmbientOcclusion::Run(context);
+		// When disabled the AO output buffer stays cleared to white (see
+		// AmbientOcclusion::Setup), so the post-process multiply is a no-op.
+		if (m_Configuration.RenderAmbientOcclusion)
+		{
+			Rendering::AmbientOcclusion::Run(context);
+		}
 
 		return;
 	}

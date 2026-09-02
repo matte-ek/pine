@@ -437,3 +437,7 @@ third-party/physx/lib
 projects/
 
 /assets/cache
+
+# Per-machine graphics settings (written next to the running executable's CWD, e.g. data/)
+graphics.json
+data/graphics.json

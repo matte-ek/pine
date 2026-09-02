@@ -7,6 +7,7 @@
 #include "Pine/Rendering/Renderer3D/ShaderStorages.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
+#include "Pine/Rendering/GraphicsSettings/GraphicsSettings.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
@@ -158,7 +159,8 @@ namespace
 
         Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
         Graphics::GetGraphicsAPI()->SetFaceCullingMode(Graphics::FaceCullMode::Front);
-        Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Vector2i(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION));
+        const int shadowMapResolution = Rendering::GraphicsSettings::GetShadowMapResolution();
+        Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Vector2i(shadowMapResolution, shadowMapResolution));
         Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::DepthBuffer);
 
         const auto direction = light->GetParent()->GetTransform()->GetRotation() * Vector3f(0.f, 0.f, -1.f);
@@ -197,8 +199,10 @@ void Rendering::Shadows::Setup()
     depthArrayTexture->SetType(Graphics::TextureType::Texture2DArray);
     depthArrayTexture->SetArraySize(CASCADE_COUNT);
 
+    const int shadowMapResolution = Rendering::GraphicsSettings::GetShadowMapResolution();
+
     depthArrayTexture->Bind();
-    depthArrayTexture->UploadTextureData(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 0, Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float, nullptr);
+    depthArrayTexture->UploadTextureData(shadowMapResolution, shadowMapResolution, 0, Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float, nullptr);
     depthArrayTexture->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
     depthArrayTexture->SetCompareModeLowerEqual();
 

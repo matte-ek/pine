@@ -17,6 +17,7 @@ namespace Pine::Pipeline3D
     {
         bool RenderShadows = true;
         bool RenderSkybox = true;
+        bool RenderAmbientOcclusion = true;
     };
 
     void Setup();

@@ -531,7 +531,7 @@ namespace
 
             if (generateAll)
             {
-                terrain->LoadHeightMapData();
+                //terrain->LoadHeightMapData();
             }
 
             if (ImGui::CollapsingHeader(fmt::format("Chunk #{}", index).c_str()))

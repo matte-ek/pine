@@ -19,6 +19,24 @@ UId+time, then hands the payload to the subclass. Raw sources (`.png`, models, `
 *imported* into `.passet` through `Assets/Importer/` (with per-type `Importer/` subfolders
 under `Texture2D/`, `Model/`, `Shader/`).
 
+## Editing shaders: `.passet` vs. raw GLSL and the `.ih` hint
+Shaders follow the same rule as every other asset: the `.passet` is a **compiled binary
+container built from raw source at (re)load time**, so you never hand-edit it. For a shader,
+the source lives in `.glsl` files and the `.ih` ("import hint") file next to the `.passet`
+points at them. **To read or change shader code, open the `.glsl` the `.ih` references — not
+the `.passet`.**
+
+An `.ih` is small JSON, e.g. `data/engine/shaders/post-processing/ambient-occlusion.ih`:
+- **`SourceFiles`** — the raw GLSL stages (vertex/fragment) this shader is built from.
+- **`Data.TextureSamplers`** — sampler name → binding unit (mirrors the `#shader bind <name> <unit>`
+  directives at the top of the GLSL).
+- **`Data.Versions`** (optional) — preprocessor `#define` variants (e.g. `VERSION_TERRAIN`) the
+  shader can be compiled with.
+
+Edit the `.glsl` and the engine rebuilds the `.passet` on load. The same source→`.passet`
+relationship holds for other imported assets (textures, models, `.cs`); shaders just expose it
+as editable text with a sidecar hint.
+
 ## Asset types
 One folder per type under `Assets/`, each subclassing `Asset`: `Blueprint`, `Level`,
 `Material`, `Mesh`, `Model`, `Shader`, `Texture2D`, `Texture3D`, `Font`, `Tileset`,

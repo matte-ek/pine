@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(Editor)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 17)
 
 include_directories(src ${CMAKE_SOURCE_DIR}/Engine/src /usr/include/mono-2.0)
 link_directories(lib)
