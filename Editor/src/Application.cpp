@@ -5,6 +5,7 @@
 
 #include "Gui/Gui.hpp"
 #include "Other/EditorEntity/EditorEntity.hpp"
+#include "Pine/Utilities/HotReload/HotReload.hpp"
 #include "Projects/Projects.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include "Utilities/Scripts/ScriptUtilities.hpp"
@@ -34,7 +35,7 @@ int main(int argc, const char* argv[])
 
     // Load editor assets
     Pine::Assets::LoadAssetsFromDirectory("editor");
-
+    
     Editor::Projects::SetProject(argv[1]);
 
     // Load user assets

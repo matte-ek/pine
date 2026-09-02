@@ -127,10 +127,24 @@ void Pine::Importer::AddFile(
     const std::string& enginePath,
     AssetImportConfiguration* configuration)
 {
+    AddFiles(context, {sourcePath}, enginePath, configuration);
+}
+
+void Pine::Importer::AddFiles(
+    ImportContext* context,
+    const std::vector<std::filesystem::path>& sourcePaths,
+    const std::string& enginePath,
+    AssetImportConfiguration* configuration)
+{
+    if (sourcePaths.empty())
+    {
+        return;
+    }
+
     AssetImport import;
 
     import.Configuration = configuration;
-    import.SourcePaths = {sourcePath};
+    import.SourcePaths = sourcePaths;
     import.EnginePath = enginePath;
     import.Context = context;
 

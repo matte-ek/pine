@@ -2,15 +2,12 @@
 #include "World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
-#include "Pine/World/Components/NativeScript/NativeScript.hpp"
 #include "Pine/Script/ScriptManager.hpp"
-#include "Pine/Core/Log/Log.hpp"
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Physics/Physics2D/Physics2D.hpp"
 
 namespace
 {
-
     Pine::Level *m_Level = nullptr;
 
     float m_TimeScale = 1.f;

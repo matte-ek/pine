@@ -26,6 +26,16 @@ float ComputeShadowFactor()
 
     vec2 samplePoint = pointNormalized.xy;
     float currentDepth = pointNormalized.z;
+
+    // Fragments that fall outside this cascade's light frustum (or beyond its far
+    // plane) have no valid depth to compare against - treat them as fully lit to
+    // avoid a dark band at the cascade edge / past the last cascade.
+    if (currentDepth > 1.0 ||
+        any(lessThan(samplePoint, vec2(0.0))) || any(greaterThan(samplePoint, vec2(1.0))))
+    {
+        return 1.0;
+    }
+
     float shadow = 0.0;
     float texelSize = 1.0 / textureSize(ShadowMap, 0).x;
 

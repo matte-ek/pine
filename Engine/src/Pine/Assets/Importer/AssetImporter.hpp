@@ -70,6 +70,14 @@ namespace Pine::Importer
         const std::string& enginePath,
         AssetImportConfiguration* configuration = nullptr);
 
+    // Same as AddFile, but for assets built from several source files (e.g. a shader
+    // with separate vertex/fragment sources) that must import into a single asset.
+    void AddFiles(
+        ImportContext* context,
+        const std::vector<std::filesystem::path>& sourcePaths,
+        const std::string& enginePath,
+        AssetImportConfiguration* configuration = nullptr);
+
     void Run(ImportContext* context);
 
     // Can be used by other importers when dealing with dependencies.

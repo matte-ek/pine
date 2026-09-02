@@ -1,5 +1,8 @@
 #include "Shadows.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Graphics/Graphics.hpp"
@@ -44,23 +47,47 @@ namespace
         return glm::lookAt(center - lightDirection, center, Vector3f(0.f, 1.f, 0.f));
     }
 
-    Matrix4f BuildProjectionMatrix(std::array<Vector3f, 8> corners, const Matrix4f &viewMatrix, const float farPlaneMargin)
+    Matrix4f BuildProjectionMatrix(const std::array<Vector3f, 8>& corners, const Matrix4f &viewMatrix, const float farPlaneMargin, const int shadowMapResolution)
     {
-        for (auto& corner : corners)
+        // Use the frustum's bounding sphere for the X/Y extents. Its radius is
+        // independent of camera orientation, so the ortho box stays a constant
+        // size as the camera turns, which (together with the texel snap below)
+        // stops the shadow edges from crawling/shimmering as the camera moves.
+        const auto center = ComputeBoxCenter(corners);
+
+        float radius = 0.f;
+        for (const auto& corner : corners)
         {
-            corner = viewMatrix * Vector4f(corner, 1.f);
+            radius = std::max(radius, glm::distance(center, corner));
         }
 
-        auto min = Vector3f(std::numeric_limits<float>::max());
-        auto max = Vector3f(std::numeric_limits<float>::lowest());
+        const auto centerLightSpace = Vector3f(viewMatrix * Vector4f(center, 1.f));
+
+        float minX = centerLightSpace.x - radius;
+        float minY = centerLightSpace.y - radius;
+
+        // Snap the box origin to whole-texel increments in light space. The light
+        // view orientation is fixed frame-to-frame, so this keeps each texel
+        // mapping to a stable world region.
+        const float texelSize = (2.f * radius) / static_cast<float>(shadowMapResolution);
+        minX = std::floor(minX / texelSize) * texelSize;
+        minY = std::floor(minY / texelSize) * texelSize;
+
+        const float maxX = minX + 2.f * radius;
+        const float maxY = minY + 2.f * radius;
+
+        // Keep a tight depth range from the actual corners so precision isn't wasted.
+        float minZ = std::numeric_limits<float>::max();
+        float maxZ = std::numeric_limits<float>::lowest();
 
         for (const auto& corner : corners)
         {
-            min = glm::min(min, corner);
-            max = glm::max(max, corner);
+            const float z = (viewMatrix * Vector4f(corner, 1.f)).z;
+            minZ = std::min(minZ, z);
+            maxZ = std::max(maxZ, z);
         }
 
-        return glm::ortho(min.x, max.x, min.y, max.y, min.z - farPlaneMargin, max.z + farPlaneMargin);
+        return glm::ortho(minX, maxX, minY, maxY, minZ - farPlaneMargin, maxZ + farPlaneMargin);
     }
 
     void RenderScene(const Rendering::ObjectBatchMap& mapBatch, const Camera* sceneCamera)
@@ -84,7 +111,7 @@ namespace
 
                     auto modelRendererTransform = modelRenderer->GetParent()->GetTransform();
 
-                    if (glm::distance2(cameraPosition, modelRendererTransform->GetLocalPosition()) > MAX_SHADOW_DISTANCE)
+                    if (glm::distance2(cameraPosition, modelRendererTransform->GetPosition()) > MAX_SHADOW_DISTANCE)
                     {
                         continue;
                     }
@@ -119,6 +146,8 @@ namespace
 
         auto& shadowData = Renderer3D::ShaderStorages::Shadows.Data();
 
+        const int shadowMapResolution = Rendering::GraphicsSettings::GetShadowMapResolution();
+
         for (int i = 0; i < CASCADE_COUNT; i++)
         {
             if (i != 0)
@@ -132,7 +161,7 @@ namespace
             const auto frustumCorners = m_SceneCamera->GetFrustumCorners();
 
             const auto viewMatrix = BuildViewMatrix(frustumCorners, lightDirection);
-            const auto projectionMatrix = BuildProjectionMatrix(frustumCorners, viewMatrix, farPlane[i] * 0.5f);
+            const auto projectionMatrix = BuildProjectionMatrix(frustumCorners, viewMatrix, farPlane[i] * 0.5f, shadowMapResolution);
 
             shadowData.LightSpaceMatrix[i] = projectionMatrix * viewMatrix;
         }

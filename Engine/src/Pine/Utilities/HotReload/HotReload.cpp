@@ -6,6 +6,7 @@
 
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Asset/Asset.hpp"
+#include "Pine/Assets/Shader/Shader.hpp"
 
 namespace
 {
@@ -73,14 +74,21 @@ void Pine::Utilities::HotReload::Setup()
         return;
     }
 
-    for (const auto& [id, asset] : Assets::GetAll())
-    {
-        m_EngineAssets.emplace_back(asset->GetUId());
-    }
+    ReloadCache();
 
     glfwSetWindowFocusCallback(static_cast<GLFWwindow*>(WindowManager::GetWindowPointer()), OnWindowFocusCallback);
 }
 
 void Pine::Utilities::HotReload::Shutdown()
 {
+}
+
+void Pine::Utilities::HotReload::ReloadCache()
+{
+    m_EngineAssets.clear();
+
+    for (const auto& [id, asset] : Assets::GetAll())
+    {
+        m_EngineAssets.emplace_back(asset->GetUId());
+    }
 }

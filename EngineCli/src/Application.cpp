@@ -1,8 +1,10 @@
 #include <iostream>
 #include <set>
+#include <nlohmann/json.hpp>
 #include <Pine/Pine.hpp>
 #include <Pine/Core/Serialization/Json/SerializationJson.hpp>
 
+#include "Pine/Assets/Importer/AssetImporter.hpp"
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Core/File/File.hpp"
@@ -10,14 +12,38 @@
 
 namespace
 {
+    // Imports one asset (built from one or more source files) and writes its .passet to
+    // <enginePath>.passet. Runs "standalone" (DontLoad) so nothing is loaded/compiled --
+    // this keeps the CLI headless (no graphics context required). Returns the imported
+    // asset (still owned by the caller) or nullptr on failure.
+    Pine::Asset* ImportAsset(const std::vector<std::filesystem::path>& sourceFiles, const std::string& enginePath)
+    {
+        auto context = Pine::Importer::CreateContext();
+        context->DontLoad = true;
 
+        Pine::Importer::AddFiles(context, sourceFiles, enginePath);
+        Pine::Importer::Run(context);
+
+        Pine::Asset* asset = nullptr;
+        if (!context->Imports.empty() && context->Imports.front().ImportStatus == Pine::AssetImportStatus::Imported)
+        {
+            asset = context->Imports.front().AssetPtr;
+        }
+
+        // DeleteContext only frees the context, not the imported asset it points to.
+        Pine::Importer::DeleteContext(context);
+
+        return asset;
+    }
 }
 
 int main(int argc, const char* argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Use `EngineCli help` for list of commands." << std::endl;
+        std::cout << "Usage:" << std::endl;
+        std::cout << "  EngineCli --import <output> <input file>..." << std::endl;
+        std::cout << "  EngineCli --batch-import <directory> [<map-root>]" << std::endl;
         return 1;
     }
 
@@ -25,7 +51,7 @@ int main(int argc, const char* argv[])
     {
         if (argc < 3 || !std::filesystem::is_directory(argv[2]))
         {
-            std::cout << "Usage: EngineCli --batch-import <directory> <map-root>" << std::endl;
+            std::cout << "Usage: EngineCli --batch-import <directory> [<map-root>]" << std::endl;
             return 1;
         }
 
@@ -118,15 +144,18 @@ int main(int argc, const char* argv[])
                 continue;
             }
 
+            std::vector<std::filesystem::path> sourceFiles;
+            nlohmann::json importHint;
+            const bool isImportHint = extension == ".ih";
+
             // For "import hint" files, we get some extra information over what to do.
-            if (extension == ".ih")
+            if (isImportHint)
             {
-                auto j = Pine::SerializationJson::LoadFromFile(targetFile).value();
+                importHint = Pine::SerializationJson::LoadFromFile(targetFile).value();
 
                 bool ignoreImportHint = false;
-                std::vector<std::filesystem::path> sourceFiles;
 
-                for (const auto& sourceFile : j["SourceFiles"])
+                for (const auto& sourceFile : importHint["SourceFiles"])
                 {
                     auto sourceFileFullPath = targetFile.parent_path().string() + "/" + sourceFile.get<std::string>();
 
@@ -143,76 +172,59 @@ int main(int argc, const char* argv[])
                 {
                     continue;
                 }
-
-                auto asset = Pine::Assets::ImportAssetFromFiles(
-                    sourceFiles,
-                    mappedPath);
-
-                if (!asset)
-                {
-                    std::cerr << "Failed to import asset: " << targetFile << std::endl;
-                    continue;
-                }
-
-                // Process shader "custom" data
-                if (asset->GetType() == Pine::AssetType::Shader)
-                {
-                    auto shader = dynamic_cast<Pine::Shader*>(asset);
-
-                    assert(shader);
-
-                    for (const auto& textureSampler : j["Data"]["TextureSamplers"].items())
-                    {
-                        shader->AddTextureSamplerBinding(textureSampler.key(), textureSampler.value());
-                    }
-
-                    for (const auto& textureSampler : j["Data"]["Versions"].items())
-                    {
-                        shader->AddVersion(textureSampler.key(), textureSampler.value());
-                    }
-                }
-
-                asset->SaveToFile();
-
-                if (std::filesystem::exists(targetFile.replace_extension(".passet")))
-                {
-                    std::filesystem::remove(targetFile.replace_extension(".passet"));
-                }
-
-                // Pine itself doesn't really care that much about the assets folder after the file has been
-                // imported, but the user might care. Therefore, create a hard link to the location of the source
-                // file, to make it (maybe) clearer to the user (and editor).
-                std::filesystem::create_hard_link(asset->GetFilePath(), targetFile.replace_extension(".passet"));
-
-                std::cout << "Imported file " << targetFile << " as " << asset->GetUId().ToString() << std::endl;
-
-                delete asset;
             }
             else
             {
-                auto asset = Pine::Assets::ImportAssetFromFile(
-                    targetFile,
-                    mappedPath);
-
-                if (!asset)
-                {
-                    std::cerr << "Failed to import asset: " << targetFile << std::endl;
-                    return 1;
-                }
-
-                asset->SaveToFile();
-
-                if (std::filesystem::exists(targetFile.replace_extension(".passet")))
-                {
-                    std::filesystem::remove(targetFile.replace_extension(".passet"));
-                }
-
-                std::filesystem::create_hard_link(asset->GetFilePath(), targetFile.replace_extension(".passet"));
-
-                std::cout << "Imported file " << targetFile << " as " << asset->GetUId().ToString() << std::endl;
-
-                delete asset;
+                sourceFiles.emplace_back(targetFile);
             }
+
+            auto asset = ImportAsset(sourceFiles, mappedPath);
+
+            if (!asset)
+            {
+                std::cerr << "Failed to import asset: " << targetFile << std::endl;
+                continue;
+            }
+
+            // Process shader "custom" data provided by the import hint.
+            if (isImportHint && asset->GetType() == Pine::AssetType::Shader)
+            {
+                auto shader = dynamic_cast<Pine::Shader*>(asset);
+
+                assert(shader);
+
+                for (const auto& textureSampler : importHint["Data"]["TextureSamplers"].items())
+                {
+                    shader->AddTextureSamplerBinding(textureSampler.key(), textureSampler.value());
+                }
+
+                for (const auto& version : importHint["Data"]["Versions"].items())
+                {
+                    shader->AddVersion(version.key(), version.value());
+                }
+
+                // Persist the extra data added on top of the imported source.
+                asset->SaveToFile();
+            }
+
+            // Pine itself doesn't really care that much about the assets folder after the file has been
+            // imported, but the user might care. Therefore, create a hard link to the location of the source
+            // file, to make it (maybe) clearer to the user (and editor).
+            auto linkPath = std::filesystem::path(targetFile).replace_extension(".passet");
+
+            if (std::filesystem::exists(linkPath))
+            {
+                std::filesystem::remove(linkPath);
+            }
+
+            if (Pine::File::UniversalPath(linkPath.string()) != Pine::File::UniversalPath(asset->GetFilePath().string()))
+            {
+                std::filesystem::create_hard_link(asset->GetFilePath(), linkPath);
+            }
+
+            std::cout << "Imported file " << targetFile << " as " << asset->GetUId().ToString() << std::endl;
+
+            delete asset;
         }
 
         return 0;
@@ -223,11 +235,11 @@ int main(int argc, const char* argv[])
         // Import single asset
         if (argc < 4)
         {
-            std::cout << "Usage: EngineCli --import <output> <input file> ..." << std::endl;
+            std::cout << "Usage: EngineCli --import <output> <input file>..." << std::endl;
             return 1;
         }
 
-        const auto targetFile = argv[2];
+        const auto enginePath = std::filesystem::path(argv[2]).replace_extension("").string();
         const auto sourceFilesCount = argc - 3;
 
         std::vector<std::filesystem::path> sourceFiles;
@@ -236,9 +248,7 @@ int main(int argc, const char* argv[])
             sourceFiles.emplace_back(argv[3 + i]);
         }
 
-        auto asset = Pine::Assets::ImportAssetFromFiles(
-            sourceFiles,
-            std::filesystem::path(targetFile).replace_extension("").string());
+        auto asset = ImportAsset(sourceFiles, enginePath);
 
         if (!asset)
         {
@@ -246,17 +256,14 @@ int main(int argc, const char* argv[])
             return 1;
         }
 
-        asset->SaveToFile();
-
-        if (std::filesystem::exists(std::filesystem::path(targetFile).replace_extension(".passet")))
-        {
-            std::filesystem::remove(std::filesystem::path(targetFile).replace_extension(".passet"));
-        }
-
-        std::filesystem::create_hard_link(asset->GetFilePath(), std::filesystem::path(targetFile).replace_extension(".passet"));
+        std::cout << "Imported " << asset->GetPath() << " -> " << asset->GetFilePath().string()
+                  << " (" << asset->GetUId().ToString() << ")" << std::endl;
 
         delete asset;
+
+        return 0;
     }
 
-    return 0;
+    std::cerr << "Unknown command: " << argv[1] << std::endl;
+    return 1;
 }
