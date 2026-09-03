@@ -40,9 +40,12 @@ vec3 CalculateDirectionalLight(Surface surface)
     return result.diffuse + result.specular + result.ambient;
 }
 
-vec3 CalculateSpotLight(Surface surface, int index, int directionIndex)
+// lightDirection is the per-vertex direction towards the light (vIn.lightDir[n]). Callers pass the
+// vector itself rather than an index: dynamically indexing the vIn.lightDir[] varying array returns
+// garbage on some drivers (seen on NVIDIA), which silently zeroes N.L and leaves only ambient.
+vec3 CalculateSpotLight(Surface surface, int index, vec3 lightDirection)
 {
-    surface.lightDirection = vIn.lightDir[directionIndex];
+    surface.lightDirection = lightDirection;
     surface.lightColor = lights[index].color;
 
     BaseLightResult baseResult = CalculateBaseLightning(surface);
@@ -62,9 +65,9 @@ vec3 CalculateSpotLight(Surface surface, int index, int directionIndex)
     return baseResult.diffuse + baseResult.specular + baseResult.ambient;
 }
 
-vec3 CalculatePointLight(Surface surface, int index, int directionIndex)
+vec3 CalculatePointLight(Surface surface, int index, vec3 lightDirection)
 {
-    surface.lightDirection = vIn.lightDir[directionIndex];
+    surface.lightDirection = lightDirection;
     surface.lightColor = lights[index].color;
 
     BaseLightResult baseResult = CalculateBaseLightning(surface);
@@ -81,7 +84,7 @@ vec3 CalculatePointLight(Surface surface, int index, int directionIndex)
     baseResult.diffuse *= attenuation;
     baseResult.specular *= attenuation;
 
-    float lightRotationDirection = dot(vIn.lightDir[index], -lights[index].rotation);
+    float lightRotationDirection = dot(lightDirection, -lights[index].rotation);
     float lightRotationDirectionStep = smoothstep(lights[index].cutOffAngle, lights[index].cutOffSmoothness, lightRotationDirection);
 
     baseResult.diffuse *= lightRotationDirectionStep;

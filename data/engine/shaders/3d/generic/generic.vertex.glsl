@@ -56,13 +56,17 @@ void main()
 	// Extract the camera origin from the view matrix, and calculate the direction from the vertex.
 	vec3 cameraDir = normalize(vOut.cameraPos - vOut.worldPosition.xyz);	
 
-	// Pass everything directly in world space
+	// Pass everything directly in world space.
+	// lightDir[0] is the directional light; lightDir[n] (n = 1..6) is the direction towards the light in
+	// instance light slot n - 1 (slots 0-4 point lights, slot 5 the spot light). Written with literal
+	// subscripts: dynamically indexing this varying array misbehaves on some drivers (NVIDIA).
 	vOut.lightDir[0] = normalize(lights[0].rotation);
-
-    for (int i = 1; i < 6;i++)
-    {
-    	vOut.lightDir[i] = normalize(lights[vOut.lightIndices[i - 1]].position - vOut.worldPosition.xyz);
-    }
+	vOut.lightDir[1] = normalize(lights[vOut.lightIndices[0]].position - vOut.worldPosition.xyz);
+	vOut.lightDir[2] = normalize(lights[vOut.lightIndices[1]].position - vOut.worldPosition.xyz);
+	vOut.lightDir[3] = normalize(lights[vOut.lightIndices[2]].position - vOut.worldPosition.xyz);
+	vOut.lightDir[4] = normalize(lights[vOut.lightIndices[3]].position - vOut.worldPosition.xyz);
+	vOut.lightDir[5] = normalize(lights[vOut.lightIndices[4]].position - vOut.worldPosition.xyz);
+	vOut.lightDir[6] = normalize(lights[vOut.lightIndices[5]].position - vOut.worldPosition.xyz);
 
 	if (hasTangentData)
 	{
@@ -78,11 +82,12 @@ void main()
 		);
 
 		vOut.lightDir[0] = tangentMatrix * vOut.lightDir[0];
-
-		for (int i = 1; i < 6;i++)
-		{
-			vOut.lightDir[i] = tangentMatrix * vOut.lightDir[i];
-		}	
+		vOut.lightDir[1] = tangentMatrix * vOut.lightDir[1];
+		vOut.lightDir[2] = tangentMatrix * vOut.lightDir[2];
+		vOut.lightDir[3] = tangentMatrix * vOut.lightDir[3];
+		vOut.lightDir[4] = tangentMatrix * vOut.lightDir[4];
+		vOut.lightDir[5] = tangentMatrix * vOut.lightDir[5];
+		vOut.lightDir[6] = tangentMatrix * vOut.lightDir[6];
 
 		vOut.cameraDir = tangentMatrix * cameraDir;
 		vOut.normalDir = tangentMatrix * worldNormalDir;
