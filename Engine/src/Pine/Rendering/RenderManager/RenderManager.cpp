@@ -12,6 +12,7 @@
 #include "Pine/Rendering/Common/Blur/Blur.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/PostProcessing/PostProcessing.hpp"
+#include "Pine/Rendering/Features/Bloom/Bloom.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 
 namespace
@@ -48,10 +49,15 @@ void Pine::RenderManager::Setup()
     m_InternalFrameBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
     m_InternalFrameBuffer->Prepare();
 
+    // The scene renders into this buffer in HDR: a float (RGBA16F) color target lets lighting
+    // accumulate values above 1.0 without clipping. Tone mapping + gamma in the post-process
+    // resolve pass bring it back down to the 8-bit output target for display.
     m_InternalFrameBuffer->AttachTextures(
         Renderer3D::Specifications::General::INTERNAL_WIDTH,
         Renderer3D::Specifications::General::INTERNAL_HEIGHT,
-        Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer | Graphics::Buffers::StencilBuffer);
+        Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer | Graphics::Buffers::StencilBuffer,
+        0,
+        Graphics::TextureFormat::RGBA16F);
 
     m_InternalFrameBuffer->Finish();
 
@@ -65,6 +71,7 @@ void Pine::RenderManager::Setup()
     Rendering::Common::QuadTarget::Setup();
     Rendering::Common::Blur::Setup();
     Rendering::PostProcessing::Setup();
+    Rendering::Bloom::Setup();
 }
 
 void Pine::RenderManager::Shutdown()
@@ -73,6 +80,7 @@ void Pine::RenderManager::Shutdown()
 
     Rendering::Common::QuadTarget::Shutdown();
     Rendering::Common::Blur::Shutdown();
+    Rendering::Bloom::Shutdown();
     Rendering::PostProcessing::Shutdown();
     Pipeline3D::Shutdown();
     Pipeline2D::Shutdown();
@@ -189,6 +197,9 @@ void Pine::RenderManager::Run()
 
             // Post Processing
             CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
+
+            // Bloom reads the finished HDR scene and produces the glow the resolve pass composites.
+            Rendering::Bloom::Run(*renderingContext, m_InternalFrameBuffer);
 
             Rendering::PostProcessing::Render(renderingContext, m_InternalFrameBuffer);
         }

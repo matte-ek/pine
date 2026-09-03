@@ -158,6 +158,7 @@ namespace
     {
         int lightType = static_cast<int>(light->GetLightType());
         Pine::Vector3f lightColor = light->GetLightColor();
+        float lightIntensity = light->GetLightIntensity();
         Pine::Vector3f lightAttenuation = light->GetLightAttenuation();
         float spotlightRadius = light->GetSpotlightRadius();
         float spotlightCutOff = light->GetSpotlightCutoff();
@@ -174,6 +175,15 @@ namespace
             CreateComponentCommand updateCmd(light, CommandType::Update);
 
             light->SetLightColor(lightColor);
+        }
+
+        // Intensity is unbounded (HDR): values > 1 let the light blow out. InputFloat, not a slider,
+        // so there's no artificial ceiling.
+        if (Widgets::InputFloat("Intensity", &lightIntensity))
+        {
+            CreateComponentCommand updateCmd(light, CommandType::Update);
+
+            light->SetLightIntensity(lightIntensity);
         }
 
         if (light->GetLightType() != Pine::LightType::Directional)

@@ -143,7 +143,7 @@ void Pine::Graphics::GLFrameBuffer::Prepare()
     glBindFramebuffer(GL_FRAMEBUFFER, m_Id);
 }
 
-void Pine::Graphics::GLFrameBuffer::AttachTextures(const int width, const int height, const int buffers, const int multiSample)
+void Pine::Graphics::GLFrameBuffer::AttachTextures(const int width, const int height, const int buffers, const int multiSample, const TextureFormat colorFormat)
 {
     if (buffers & StencilBuffer)
     {
@@ -161,8 +161,13 @@ void Pine::Graphics::GLFrameBuffer::AttachTextures(const int width, const int he
         m_ColorBuffer->SetMultiSampled(multiSampleEnabled);
         m_ColorBuffer->SetSamples(multiSample);
 
+        // Float color formats (e.g. RGBA16F for HDR) must upload as Float; 8-bit formats use UnsignedByte.
+        const auto colorDataFormat = (colorFormat == TextureFormat::RGBA16F || colorFormat == TextureFormat::RGB16F)
+            ? TextureDataFormat::Float
+            : TextureDataFormat::UnsignedByte;
+
         m_ColorBuffer->Bind();
-        m_ColorBuffer->UploadTextureData(width, height, 0, TextureFormat::RGBA, TextureDataFormat::UnsignedByte, nullptr);
+        m_ColorBuffer->UploadTextureData(width, height, 0, colorFormat, colorDataFormat, nullptr);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textureType, m_ColorBuffer->GetId(), 0);
 

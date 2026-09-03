@@ -13,6 +13,10 @@ namespace Pine::Rendering::Common::Blur
 
         bool UseSingleChannel = false;
 
+        // When set, the ping-pong buffers are RGBA16F instead of 8-bit, so values above 1.0 survive
+        // the blur (needed for HDR bloom; without it bright pixels clamp to white before blurring).
+        bool UseHDR = false;
+
         int PassCount = 3;
 
         void Create();

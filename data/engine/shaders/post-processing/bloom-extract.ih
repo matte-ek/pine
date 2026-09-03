@@ -1,0 +1,11 @@
+{
+	"SourceFiles": [
+		"bloom-extract/bloom-extract.vertex.glsl",
+		"bloom-extract/bloom-extract.fragment.glsl"
+	],
+	"Data": {
+		"TextureSamplers": {
+			"sceneBuffer": 0
+		}
+	}
+}

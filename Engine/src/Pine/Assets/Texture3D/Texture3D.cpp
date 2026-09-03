@@ -102,6 +102,8 @@ bool Pine::Texture3D::Build()
     // Create and prepare a new cube map
     m_CubeMapTexture = Graphics::GetGraphicsAPI()->CreateTexture();
     m_CubeMapTexture->SetType(Graphics::TextureType::CubeMap);
+    // A skybox is color data, so the cube faces use an sRGB internal format (decoded to linear on sample).
+    m_CubeMapTexture->SetSRGB(true);
     m_CubeMapTexture->Bind();
 
     // Build cube map via 6 individual textures

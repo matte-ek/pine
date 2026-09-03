@@ -82,7 +82,7 @@ namespace
         }
     }
 
-    GLTextureFormat TranslateOpenGLTextureFormat(const Pine::Graphics::TextureFormat format)
+    GLTextureFormat TranslateOpenGLTextureFormat(const Pine::Graphics::TextureFormat format, const bool sRGB = false)
     {
         int openglFormat;
         int openglInternalFormat = 0;
@@ -95,9 +95,14 @@ namespace
                 break;
             case Pine::Graphics::TextureFormat::RGB:
                 openglFormat = GL_RGB;
+                // sRGB color textures use an sRGB internal format so the GPU decodes to linear on sample.
+                if (sRGB)
+                    openglInternalFormat = GL_SRGB8;
                 break;
             case Pine::Graphics::TextureFormat::RGBA:
                 openglFormat = GL_RGBA;
+                if (sRGB)
+                    openglInternalFormat = GL_SRGB8_ALPHA8;
                 break;
             case Pine::Graphics::TextureFormat::RGB16F:
                 openglFormat = GL_RGB;
@@ -129,20 +134,22 @@ namespace
 
     std::uint32_t TranslateCompressionFormat(
         const Pine::Graphics::TextureFormat textureFormat,
-        const Pine::Graphics::TextureCompressionFormat textureCompressionFormat)
+        const Pine::Graphics::TextureCompressionFormat textureCompressionFormat,
+        const bool sRGB = false)
     {
         switch (textureCompressionFormat)
         {
             case Pine::Graphics::TextureCompressionFormat::BC7:
-                return GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+                // BC7/BC1 have sRGB variants (same block layout); BC4/BC5 are data-only (never sRGB).
+                return sRGB ? GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB : GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
             case Pine::Graphics::TextureCompressionFormat::BC4:
                 return GL_COMPRESSED_RED_RGTC1;
             case Pine::Graphics::TextureCompressionFormat::BC5:
                 return GL_COMPRESSED_RG_RGTC2;
             case Pine::Graphics::TextureCompressionFormat::BC1:
-                return textureFormat == Pine::Graphics::TextureFormat::RGB ?
-                    GL_COMPRESSED_RGB_S3TC_DXT1_EXT :
-                    GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+                if (textureFormat == Pine::Graphics::TextureFormat::RGB)
+                    return sRGB ? GL_COMPRESSED_SRGB_S3TC_DXT1_EXT : GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+                return sRGB ? GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT : GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
             case Pine::Graphics::TextureCompressionFormat::Raw:
                 throw std::runtime_error("RAW format used for compression.");
             default:
@@ -190,7 +197,7 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
 
     auto textureType = TranslateTextureType(m_Type, m_IsMultiSampled);
     auto cubeMapTextureType = m_Type == TextureType::CubeMap ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<int>(textureUploadTarget) - 1 : GL_TEXTURE_2D;
-    auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(texture->GetTextureFormat());
+    auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(texture->GetTextureFormat(), m_SRGB);
 
     auto srcId = *static_cast<std::uint32_t *>(texture->GetGraphicsIdentifier());
 
@@ -228,7 +235,7 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
 
         glCompressedTexImage2D(cubeMapTextureType,
             0,
-            TranslateCompressionFormat(texture->GetTextureFormat(), texture->GetTextureCompressionFormat()),
+            TranslateCompressionFormat(texture->GetTextureFormat(), texture->GetTextureCompressionFormat(), m_SRGB),
             texture->GetWidth(),
             texture->GetHeight(),
             0,
@@ -275,7 +282,7 @@ void Pine::Graphics::GLTexture::UploadTextureData(
     const TextureDataFormat dataFormat,
     void *data)
 {
-    auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(format);
+    auto [openglFormat, openglInternalFormat] = TranslateOpenGLTextureFormat(format, m_SRGB);
 
     const auto openglType = TranslateTextureType(m_Type, m_IsMultiSampled);
 
@@ -329,7 +336,7 @@ void Pine::Graphics::GLTexture::UploadTextureDataCompressed(
 {
     const auto openglType = TranslateTextureType(m_Type, m_IsMultiSampled);
 
-    glCompressedTexImage2D(openglType, level, TranslateCompressionFormat(textureFormat, compressionFormat), width, height, 0, size, data);
+    glCompressedTexImage2D(openglType, level, TranslateCompressionFormat(textureFormat, compressionFormat, m_SRGB), width, height, 0, size, data);
 
     glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
     glTexParameteri(openglType, GL_TEXTURE_MAG_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
@@ -459,6 +466,16 @@ Pine::Graphics::TextureDataFormat Pine::Graphics::GLTexture::GetTextureDataForma
 Pine::Graphics::TextureCompressionFormat Pine::Graphics::GLTexture::GetTextureCompressionFormat()
 {
     return m_TextureCompressionFormat;
+}
+
+void Pine::Graphics::GLTexture::SetSRGB(const bool sRGB)
+{
+    m_SRGB = sRGB;
+}
+
+bool Pine::Graphics::GLTexture::IsSRGB()
+{
+    return m_SRGB;
 }
 
 void Pine::Graphics::GLTexture::EnableMipmaps(const int levels)

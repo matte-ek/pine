@@ -104,6 +104,7 @@ void Pine::Serialization::DataPrimitive::Write(const void* data, const size_t si
     memcpy(m_Data, data, size);
 
     m_DataSize = size;
+    m_Populated = true;
 }
 
 Pine::Serialization::DataPrimitive::DataPrimitive(Serializer* parentSerializer, const DataType type, const char* name)

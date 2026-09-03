@@ -27,7 +27,7 @@ namespace Pine::Graphics
 
        void Prepare() override;
 
-       void AttachTextures(int width, int height, int buffers, int multiSample = 0) override;
+       void AttachTextures(int width, int height, int buffers, int multiSample = 0, TextureFormat colorFormat = TextureFormat::RGBA) override;
 
        void AttachTexture(ITexture* texture, BufferAttachment attachment, int attachmentOffset = 0) override;
 

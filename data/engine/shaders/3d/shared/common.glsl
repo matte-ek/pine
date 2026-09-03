@@ -1,4 +1,8 @@
-﻿struct Light
+﻿// All colors and textures reaching these shaders are already linear: authored colors are decoded
+// CPU-side (SrgbToLinear in Math.hpp) and color textures use sRGB internal formats (hardware decode).
+// The single linear->sRGB encode happens at the end of the post-process resolve pass.
+
+struct Light
 {
 	vec3 position;
 	vec3 rotation;

@@ -26,6 +26,16 @@ const Pine::Vector3f &Pine::Light::GetLightColor() const
     return m_LightColor;
 }
 
+void Pine::Light::SetLightIntensity(const float intensity)
+{
+    m_Intensity = intensity;
+}
+
+float Pine::Light::GetLightIntensity() const
+{
+    return m_Intensity;
+}
+
 void Pine::Light::SetLightAttenuation(const Vector3f attenuation)
 {
     m_LightAttenuation = attenuation;
@@ -69,6 +79,7 @@ void Pine::Light::LoadData(const ByteSpan& span)
 
     serializer.Type.Read(m_LightType);
     serializer.Color.Read(m_LightColor);
+    serializer.Intensity.Read(m_Intensity);
     serializer.Attenuation.Read(m_LightAttenuation);
     serializer.SpotlightRadius.Read(m_SpotlightRadius);
     serializer.SpotlightCutoff.Read(m_SpotlightCutoff);
@@ -80,6 +91,7 @@ Pine::ByteSpan Pine::Light::SaveData()
 
     serializer.Type.Write(m_LightType);
     serializer.Color.Write(m_LightColor);
+    serializer.Intensity.Write(m_Intensity);
     serializer.Attenuation.Write(m_LightAttenuation);
     serializer.SpotlightRadius.Write(m_SpotlightRadius);
     serializer.SpotlightCutoff.Write(m_SpotlightCutoff);

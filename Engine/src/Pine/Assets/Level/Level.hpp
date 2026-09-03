@@ -17,6 +17,15 @@ namespace Pine
         float FogDistance = 30.f;
         float FogIntensity = 0.f;
 
+        // HDR exposure multiplier, applied before tone mapping in the post-process pass.
+        // 1.0 = neutral; higher brightens the scene before it's tone-mapped to display range.
+        float Exposure = 1.0f;
+
+        // Bloom: HDR brightness above BloomThreshold is extracted, blurred and added back, so bright
+        // areas glow. BloomIntensity scales how strongly the glow is composited (0 = off).
+        float BloomThreshold = 1.0f;
+        float BloomIntensity = 0.6f;
+
         // Post-processing film look (applied in the post-process pass).
         float GrainStrength = 0.08f;
         float VignetteStrength = 0.5f;
@@ -44,6 +53,9 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(FogColor, Serialization::DataType::Vec4);
             PINE_SERIALIZE_PRIMITIVE(FogDistance, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(FogIntensity, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(Exposure, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(BloomThreshold, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(BloomIntensity, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(GrainStrength, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(VignetteStrength, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(Camera, Serialization::DataType::Int32);

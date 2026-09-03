@@ -11,7 +11,7 @@ namespace
 {
     Shader* m_BlurShader = nullptr;
 
-    Graphics::IFrameBuffer* CreateBuffer(const int width, const int height, const bool singleChannel)
+    Graphics::IFrameBuffer* CreateBuffer(const int width, const int height, const bool singleChannel, const bool hdr)
     {
         const auto buffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
 
@@ -19,12 +19,16 @@ namespace
 
         const auto blurTargetTexture = Graphics::GetGraphicsAPI()->CreateTexture();
 
+        const auto format = hdr ? Graphics::TextureFormat::RGBA16F
+                                : (singleChannel ? Graphics::TextureFormat::SingleChannel : Graphics::TextureFormat::RGBA);
+        const auto dataFormat = hdr ? Graphics::TextureDataFormat::Float : Graphics::TextureDataFormat::UnsignedByte;
+
         blurTargetTexture->Bind();
         blurTargetTexture->UploadTextureData(
             width, height,
             0,
-            singleChannel ? Graphics::TextureFormat::SingleChannel : Graphics::TextureFormat::RGBA,
-            Graphics::TextureDataFormat::UnsignedByte,
+            format,
+            dataFormat,
             nullptr);
 
         buffer->AttachTexture(blurTargetTexture, Graphics::BufferAttachment::Color);
@@ -57,8 +61,8 @@ namespace
 
 void Rendering::Common::Blur::BlurContext::Create()
 {
-    IntermediateBuffer = CreateBuffer(Width, Height, UseSingleChannel);
-    TargetBuffer = CreateBuffer(Width, Height, UseSingleChannel);
+    IntermediateBuffer = CreateBuffer(Width, Height, UseSingleChannel, UseHDR);
+    TargetBuffer = CreateBuffer(Width, Height, UseSingleChannel, UseHDR);
 }
 
 void Rendering::Common::Blur::BlurContext::Destroy()

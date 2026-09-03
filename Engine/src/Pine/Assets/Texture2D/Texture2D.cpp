@@ -5,6 +5,17 @@
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Threading/Threading.hpp"
 
+namespace
+{
+    // Color textures (albedo) are authored in sRGB and must be uploaded with an sRGB internal format
+    // so the GPU decodes them to linear on sample. Data textures (normal maps, masks, grayscale) are
+    // already linear and must stay linear. The usage hint the texture was imported with tells us which.
+    bool IsSRGBUsageHint(const Pine::TextureUsageHint hint)
+    {
+        return hint == Pine::TextureUsageHint::Albedo || hint == Pine::TextureUsageHint::AlbedoFaster;
+    }
+}
+
 bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
 {
     TextureSerializer textureSerializer;
@@ -36,6 +47,9 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
         }
 
         m_Texture->Bind();
+
+        // Decide sRGB vs linear from the import usage hint, before any upload uses it.
+        m_Texture->SetSRGB(IsSRGBUsageHint(m_ImportConfiguration.UsageHint));
 
         // Prepare and upload texture data to GPU.
         for (size_t i{}; i < textureSerializer.Mips.GetDataCount(); i++)

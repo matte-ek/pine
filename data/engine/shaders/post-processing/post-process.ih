@@ -6,7 +6,8 @@
 	"Data": {
 		"TextureSamplers": {
 			"sceneBuffer": 0,
-			"ambientOcclusionBuffer": 1
+			"ambientOcclusionBuffer": 1,
+			"bloomBuffer": 2
 		}
 	}
 }

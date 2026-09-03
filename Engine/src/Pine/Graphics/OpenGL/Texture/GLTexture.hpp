@@ -12,6 +12,8 @@ namespace Pine::Graphics
     private:
         std::uint32_t m_Id = 0;
 
+        bool m_SRGB = false;
+
         void UpdateTextureFiltering();
         void UpdateSwizzleMask() const;
         void UpdateWrapMode();
@@ -60,6 +62,9 @@ namespace Pine::Graphics
         TextureFormat GetTextureFormat() override;
         TextureDataFormat GetTextureDataFormat() override;
         TextureCompressionFormat GetTextureCompressionFormat() override;
+
+        void SetSRGB(bool sRGB) override;
+        bool IsSRGB() override;
 
         bool HasCustomSwizzleMask() override;
         void SetSwizzleMask(SwizzleMaskChannel r, SwizzleMaskChannel g, SwizzleMaskChannel b, SwizzleMaskChannel a) override;

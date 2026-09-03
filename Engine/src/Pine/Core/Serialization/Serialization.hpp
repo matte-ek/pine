@@ -82,6 +82,11 @@ namespace Pine::Serialization
     private:
         char m_Data[16];
         size_t m_DataSize;
+
+        // True once this field has actually been given a value (written, or read from a file that
+        // contained it). Lets Read() leave the caller's default untouched when the field is absent
+        // from an older file, instead of overwriting it with the zero-initialized buffer.
+        bool m_Populated = false;
     protected:
         void Write(const void* data, size_t size);
 
@@ -103,6 +108,13 @@ namespace Pine::Serialization
         template<typename TPrimitive>
         bool Read(TPrimitive& data)
         {
+            // Absent from the file (e.g. a field added in a newer version): leave the caller's
+            // default in place rather than clobbering it with the zero-initialized buffer.
+            if (!m_Populated)
+            {
+                return false;
+            }
+
             if (sizeof(TPrimitive) != m_DataSize)
             {
                 PWarning("Failed to read primitive type, size is mismatched. Is the type correct?");
@@ -129,6 +141,8 @@ namespace Pine::Serialization
 
             memcpy(m_Data, &handle, sizeof(UId));
 
+            m_Populated = true;
+
             return true;
         }
 
@@ -138,6 +152,8 @@ namespace Pine::Serialization
             assert(sizeof(TPrimitive) == m_DataSize);
 
             memcpy(m_Data, &data, sizeof(TPrimitive));
+
+            m_Populated = true;
 
             return true;
         }

@@ -170,9 +170,10 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     /* Material Properties */
     auto& materialData = ShaderStorages::Material.Data().Properties[0];
 
-    materialData.DiffuseColor = m_Material->GetDiffuseColor();
-    materialData.SpecularColor = m_Material->GetSpecularColor();
-    materialData.AmbientColor = m_Material->GetAmbientColor();
+    // Authored colors are sRGB; decode to linear here so the shader receives linear data.
+    materialData.DiffuseColor = SrgbToLinear(m_Material->GetDiffuseColor());
+    materialData.SpecularColor = SrgbToLinear(m_Material->GetSpecularColor());
+    materialData.AmbientColor = SrgbToLinear(m_Material->GetAmbientColor());
     materialData.Shininess = m_Material->GetShininess();
     materialData.UVScale = m_Material->GetTextureScale();
 
@@ -359,8 +360,9 @@ void Renderer3D::PrepareScene(const Vector3f ambientColor, const Vector4f fogCol
 {
     auto& worldData = ShaderStorages::World.Data();
 
-    worldData.AmbientColor = Vector4f(ambientColor, 1.f);
-    worldData.FogColor = fogColor;
+    // Authored colors are sRGB; decode to linear here so the shader receives linear data.
+    worldData.AmbientColor = Vector4f(SrgbToLinear(ambientColor), 1.f);
+    worldData.FogColor = SrgbToLinear(fogColor);
     worldData.FogSettings  = Vector4f(fogDistance, fogIntensity, 0, 0);
 
     ShaderStorages::World.Upload();
@@ -411,7 +413,7 @@ void Renderer3D::AddLight(Light *light)
 
     lightData.Position = light->GetParent()->GetTransform()->GetPosition();
     lightData.Rotation = rotation;
-    lightData.Color = light->GetLightColor();
+    lightData.Color = SrgbToLinear(light->GetLightColor()) * light->GetLightIntensity();
     lightData.Attenuation = light->GetLightAttenuation();
     lightData.Angle = light->GetSpotlightRadius();
     lightData.AngleSmoothness = light->GetSpotlightCutoff();

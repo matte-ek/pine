@@ -53,7 +53,7 @@ namespace Pine::Graphics
 
         virtual void Prepare() = 0;
 
-        virtual void AttachTextures(int width, int height, int buffers, int multiSample = 0) = 0;
+        virtual void AttachTextures(int width, int height, int buffers, int multiSample = 0, TextureFormat colorFormat = TextureFormat::RGBA) = 0;
 
         virtual void AttachTexture(ITexture* texture, BufferAttachment attachment, int attachmentOffset = 0) = 0;
 

@@ -28,6 +28,10 @@ namespace Pine
 
         Vector3f m_LightColor = Vector3f(1.f, 1.f, 1.f);
 
+        // Linear radiance multiplier on the (linear) light color. Values > 1 push the lit result
+        // above 1.0 in the HDR buffer, so the light can blow out / bloom instead of clamping to white.
+        float m_Intensity = 1.0f;
+
         Vector3f m_LightAttenuation = Vector3f(1.f, 0.045f, 0.0075f);
 
         float m_SpotlightRadius = 1.0f;
@@ -39,6 +43,7 @@ namespace Pine
         {
             PINE_SERIALIZE_PRIMITIVE(Type, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(Color, Serialization::DataType::Vec3);
+            PINE_SERIALIZE_PRIMITIVE(Intensity, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(Attenuation, Serialization::DataType::Vec3);
             PINE_SERIALIZE_PRIMITIVE(SpotlightRadius, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(SpotlightCutoff, Serialization::DataType::Float32);
@@ -51,6 +56,9 @@ namespace Pine
 
         void SetLightColor(Vector3f color);
         const Vector3f& GetLightColor() const;
+
+        void SetLightIntensity(float intensity);
+        float GetLightIntensity() const;
 
         void SetLightAttenuation(Vector3f attenuation);
         const Vector3f& GetLightAttenuation() const;

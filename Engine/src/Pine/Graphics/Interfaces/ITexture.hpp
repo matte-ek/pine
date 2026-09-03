@@ -207,6 +207,12 @@ namespace Pine::Graphics
         virtual TextureDataFormat GetTextureDataFormat() = 0;
         virtual TextureCompressionFormat GetTextureCompressionFormat() = 0;
 
+        // When set (before uploading data), color textures use an sRGB internal format so the GPU
+        // decodes to linear on sample. This is the texture-side counterpart to SrgbToLinear() for
+        // authored colors; it must be false for data textures (normal maps, masks, HDR/float buffers).
+        virtual void SetSRGB(bool sRGB) = 0;
+        virtual bool IsSRGB() = 0;
+
         virtual bool HasCustomSwizzleMask() = 0;
         virtual void SetSwizzleMask(SwizzleMaskChannel r, SwizzleMaskChannel g, SwizzleMaskChannel b, SwizzleMaskChannel a) = 0;
         virtual void ResetSwizzleMask() = 0;

@@ -9,6 +9,7 @@
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
+#include "Pine/Rendering/Features/Bloom/Bloom.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 
@@ -19,6 +20,8 @@ namespace
     Pine::Graphics::IUniformVariable* m_PostProcessingTime = nullptr;
     Pine::Graphics::IUniformVariable* m_PostProcessingGrainStrength = nullptr;
     Pine::Graphics::IUniformVariable* m_PostProcessingVignetteStrength = nullptr;
+    Pine::Graphics::IUniformVariable* m_PostProcessingExposure = nullptr;
+    Pine::Graphics::IUniformVariable* m_PostProcessingBloomIntensity = nullptr;
 }
 
 void Pine::Rendering::PostProcessing::Setup()
@@ -84,9 +87,18 @@ void Pine::Rendering::PostProcessing::Render(const RenderingContext *renderingCo
     {
         m_PostProcessingVignetteStrength = m_PostProcessingShader->GetProgram()->GetUniformVariable("vignetteStrength");
     }
+    if (m_PostProcessingExposure == nullptr)
+    {
+        m_PostProcessingExposure = m_PostProcessingShader->GetProgram()->GetUniformVariable("exposure");
+    }
+    if (m_PostProcessingBloomIntensity == nullptr)
+    {
+        m_PostProcessingBloomIntensity = m_PostProcessingShader->GetProgram()->GetUniformVariable("bloomIntensity");
+    }
 
     sceneFrameBuffer->GetColorBuffer()->Bind(0);
     AmbientOcclusion::GetOutputTexture()->Bind(1);
+    Bloom::GetOutputTexture()->Bind(2);
 
     m_PostProcessingViewportScale->LoadVector2(Vector2f(renderingContext->Size.x / static_cast<float>(sceneFrameBuffer->GetSize().x),
                                                         renderingContext->Size.y / static_cast<float>(sceneFrameBuffer->GetSize().y)));
@@ -102,11 +114,15 @@ void Pine::Rendering::PostProcessing::Render(const RenderingContext *renderingCo
     // Film look is authored per-level; fall back to sensible defaults if there's no active level.
     float grainStrength = 0.08f;
     float vignetteStrength = 0.5f;
+    float exposure = 1.0f;
+    float bloomIntensity = 0.6f;
 
     if (const auto level = World::GetActiveLevel())
     {
         grainStrength = level->GetLevelSettings().GrainStrength;
         vignetteStrength = level->GetLevelSettings().VignetteStrength;
+        exposure = level->GetLevelSettings().Exposure;
+        bloomIntensity = level->GetLevelSettings().BloomIntensity;
     }
 
     if (m_PostProcessingGrainStrength != nullptr)
@@ -117,6 +133,16 @@ void Pine::Rendering::PostProcessing::Render(const RenderingContext *renderingCo
     if (m_PostProcessingVignetteStrength != nullptr)
     {
         m_PostProcessingVignetteStrength->LoadFloat(vignetteStrength);
+    }
+
+    if (m_PostProcessingExposure != nullptr)
+    {
+        m_PostProcessingExposure->LoadFloat(exposure);
+    }
+
+    if (m_PostProcessingBloomIntensity != nullptr)
+    {
+        m_PostProcessingBloomIntensity->LoadFloat(bloomIntensity);
     }
 
     Common::QuadTarget::Render();
