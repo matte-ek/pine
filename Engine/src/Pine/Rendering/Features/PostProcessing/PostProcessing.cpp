@@ -1,5 +1,7 @@
 ﻿#include "PostProcessing.hpp"
 
+#include <chrono>
+
 #include <Pine/Assets/Assets.hpp>
 #include <Pine/Assets/Shader/Shader.hpp>
 #include <Pine/Graphics/Graphics.hpp>
@@ -7,11 +9,16 @@
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
+#include "Pine/World/World.hpp"
+#include "Pine/Assets/Level/Level.hpp"
 
 namespace
 {
     Pine::Shader* m_PostProcessingShader = nullptr;
     Pine::Graphics::IUniformVariable* m_PostProcessingViewportScale = nullptr;
+    Pine::Graphics::IUniformVariable* m_PostProcessingTime = nullptr;
+    Pine::Graphics::IUniformVariable* m_PostProcessingGrainStrength = nullptr;
+    Pine::Graphics::IUniformVariable* m_PostProcessingVignetteStrength = nullptr;
 }
 
 void Pine::Rendering::PostProcessing::Setup()
@@ -64,11 +71,53 @@ void Pine::Rendering::PostProcessing::Render(const RenderingContext *renderingCo
     // Shader is probably wrong for whatever reason
     assert(m_PostProcessingViewportScale != nullptr);
 
+    // Grab the film-grain / vignette uniforms if we haven't (guarded - may be absent in older shaders).
+    if (m_PostProcessingTime == nullptr)
+    {
+        m_PostProcessingTime = m_PostProcessingShader->GetProgram()->GetUniformVariable("time");
+    }
+    if (m_PostProcessingGrainStrength == nullptr)
+    {
+        m_PostProcessingGrainStrength = m_PostProcessingShader->GetProgram()->GetUniformVariable("grainStrength");
+    }
+    if (m_PostProcessingVignetteStrength == nullptr)
+    {
+        m_PostProcessingVignetteStrength = m_PostProcessingShader->GetProgram()->GetUniformVariable("vignetteStrength");
+    }
+
     sceneFrameBuffer->GetColorBuffer()->Bind(0);
     AmbientOcclusion::GetOutputTexture()->Bind(1);
 
     m_PostProcessingViewportScale->LoadVector2(Vector2f(renderingContext->Size.x / static_cast<float>(sceneFrameBuffer->GetSize().x),
                                                         renderingContext->Size.y / static_cast<float>(sceneFrameBuffer->GetSize().y)));
+
+    if (m_PostProcessingTime != nullptr)
+    {
+        static const auto startTime = std::chrono::high_resolution_clock::now();
+        const auto elapsed = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - startTime).count();
+
+        m_PostProcessingTime->LoadFloat(elapsed);
+    }
+
+    // Film look is authored per-level; fall back to sensible defaults if there's no active level.
+    float grainStrength = 0.08f;
+    float vignetteStrength = 0.5f;
+
+    if (const auto level = World::GetActiveLevel())
+    {
+        grainStrength = level->GetLevelSettings().GrainStrength;
+        vignetteStrength = level->GetLevelSettings().VignetteStrength;
+    }
+
+    if (m_PostProcessingGrainStrength != nullptr)
+    {
+        m_PostProcessingGrainStrength->LoadFloat(grainStrength);
+    }
+
+    if (m_PostProcessingVignetteStrength != nullptr)
+    {
+        m_PostProcessingVignetteStrength->LoadFloat(vignetteStrength);
+    }
 
     Common::QuadTarget::Render();
 }

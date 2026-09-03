@@ -27,6 +27,7 @@ namespace Pine
         Script,
         AudioSource,
         AudioListener,
+        CharacterController,
     };
 
     inline const char *ComponentTypeToString(const ComponentType type)
@@ -63,6 +64,8 @@ namespace Pine
                 return "AudioSource";
             case ComponentType::AudioListener:
                 return "AudioListener";
+            case ComponentType::CharacterController:
+                return "CharacterController";
         }
 
         return "N/A";
@@ -102,6 +105,8 @@ namespace Pine
                 return "Audio Source";
             case ComponentType::AudioListener:
                 return "Audio Listener";
+            case ComponentType::CharacterController:
+                return "Character Controller";
         }
 
         return "N/A";

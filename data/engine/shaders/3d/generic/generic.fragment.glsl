@@ -92,5 +92,13 @@ void main(void)
 
     m_OutputColor = directionalLight + spotLights + pointLights;
 
+    // Distance fog. fogSettings.x = view distance, fogSettings.y = intensity (0 disables it).
+    // Classic linear fog: blends toward fogColor from the camera out to the view distance.
+    if (world.fogSettings.y > 0.0)
+    {
+        float fogFactor = clamp(vIn.cameraDistance / max(world.fogSettings.x, 0.001), 0.0, 1.0) * world.fogSettings.y;
+        m_OutputColor.rgb = mix(m_OutputColor.rgb, world.fogColor.rgb, fogFactor);
+    }
+
     #shader postFragment
 }

@@ -245,7 +245,7 @@ void Pine::RigidBody::LoadData(const ByteSpan& span)
 
     serializer.Read(span);
 
-    serializer.Type.Read(m_Type);
+    serializer.Type.Read(m_RigidBodyType);
     serializer.Mass.Read(m_Mass);
     serializer.GravityEnabled.Read(m_GravityEnabled);
     serializer.PositionLock.Read(m_PositionLock);
@@ -258,7 +258,7 @@ Pine::ByteSpan Pine::RigidBody::SaveData()
 {
     RigidBodySerializer serializer;
 
-    serializer.Type.Write(m_Type);
+    serializer.Type.Write(m_RigidBodyType);
     serializer.Mass.Write(m_Mass);
     serializer.GravityEnabled.Write(m_GravityEnabled);
     serializer.PositionLock.Write(m_PositionLock);

@@ -28,6 +28,8 @@ bool Pine::Level::LoadAssetData(const ByteSpan& span)
     levelSerializer.FogColor.Read(m_LevelSettings.FogColor);
     levelSerializer.FogIntensity.Read(m_LevelSettings.FogIntensity);
     levelSerializer.FogDistance.Read(m_LevelSettings.FogDistance);
+    levelSerializer.GrainStrength.Read(m_LevelSettings.GrainStrength);
+    levelSerializer.VignetteStrength.Read(m_LevelSettings.VignetteStrength);
     levelSerializer.Camera.Read(m_LevelSettings.CameraEntity);
 
     return true;
@@ -49,6 +51,8 @@ Pine::ByteSpan Pine::Level::SaveAssetData()
     levelSerializer.FogColor.Write(m_LevelSettings.FogColor);
     levelSerializer.FogIntensity.Write(m_LevelSettings.FogIntensity);
     levelSerializer.FogDistance.Write(m_LevelSettings.FogDistance);
+    levelSerializer.GrainStrength.Write(m_LevelSettings.GrainStrength);
+    levelSerializer.VignetteStrength.Write(m_LevelSettings.VignetteStrength);
 
     return levelSerializer.Write();
 }

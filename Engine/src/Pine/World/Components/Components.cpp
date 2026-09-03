@@ -2,6 +2,7 @@
 
 #include "AudioListener/AudioListener.hpp"
 #include "AudioSource/AudioSource.hpp"
+#include "CharacterController/CharacterController.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
@@ -130,6 +131,7 @@ void Components::Setup()
     CreateComponentDataBlock<ScriptComponent>();
     CreateComponentDataBlock<AudioSource>();
     CreateComponentDataBlock<AudioListener>();
+    CreateComponentDataBlock<CharacterController>();
 
     std::size_t totalSize = 0;
 

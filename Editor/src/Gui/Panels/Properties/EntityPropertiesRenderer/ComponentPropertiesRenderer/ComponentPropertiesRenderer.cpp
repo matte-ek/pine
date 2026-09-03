@@ -19,6 +19,7 @@
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/RigidBody2D/RigidBody2D.hpp"
+#include "Pine/World/Components/CharacterController/CharacterController.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 #include "Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp"
 #include "Pine/World/Components/TerrainRenderer/TerrainRendererComponent.hpp"
@@ -417,6 +418,60 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
+    void RenderCharacterController(Pine::CharacterController* characterController)
+    {
+        auto radius = characterController->GetRadius();
+        auto height = characterController->GetHeight();
+        auto slopeLimit = characterController->GetSlopeLimit();
+        auto stepOffset = characterController->GetStepOffset();
+        auto contactOffset = characterController->GetContactOffset();
+        auto gravity = characterController->GetGravity();
+
+        if (Widgets::InputFloat("Radius", &radius))
+        {
+            CreateComponentCommand updateCmd(characterController, CommandType::Update);
+
+            characterController->SetRadius(radius);
+        }
+
+        if (Widgets::InputFloat("Height", &height))
+        {
+            CreateComponentCommand updateCmd(characterController, CommandType::Update);
+
+            characterController->SetHeight(height);
+        }
+
+        if (Widgets::SliderFloat("Slope Limit", &slopeLimit, 0.f, 89.f))
+        {
+            CreateComponentCommand updateCmd(characterController, CommandType::Update);
+
+            characterController->SetSlopeLimit(slopeLimit);
+        }
+
+        if (Widgets::InputFloat("Step Offset", &stepOffset))
+        {
+            CreateComponentCommand updateCmd(characterController, CommandType::Update);
+
+            characterController->SetStepOffset(stepOffset);
+        }
+
+        if (Widgets::InputFloat("Contact Offset", &contactOffset))
+        {
+            CreateComponentCommand updateCmd(characterController, CommandType::Update);
+
+            characterController->SetContactOffset(contactOffset);
+        }
+
+        if (Widgets::InputFloat("Gravity", &gravity))
+        {
+            CreateComponentCommand updateCmd(characterController, CommandType::Update);
+
+            characterController->SetGravity(gravity);
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------------
+
     void RenderSpriteRenderer(Pine::SpriteRenderer* spriteRenderer)
     {
         int scalingMode = static_cast<int>(spriteRenderer->GetScalingMode());
@@ -709,6 +764,9 @@ namespace
                     break;
                 case Pine::ComponentType::RigidBody:
                     RenderRigidBody(dynamic_cast<Pine::RigidBody *>(component));
+                    break;
+                case Pine::ComponentType::CharacterController:
+                    RenderCharacterController(dynamic_cast<Pine::CharacterController *>(component));
                     break;
                 case Pine::ComponentType::SpriteRenderer:
                     RenderSpriteRenderer(dynamic_cast<Pine::SpriteRenderer *>(component));

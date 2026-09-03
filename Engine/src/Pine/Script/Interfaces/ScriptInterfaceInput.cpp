@@ -62,6 +62,11 @@ namespace
         *mouseDelta = Pine::Input::GetMouseDelta();
     }
 
+    void SetCursorMode(const int mode)
+    {
+        Pine::Input::SetCursorMode(static_cast<Pine::CursorMode>(mode));
+    }
+
     int LookupInputBind(MonoString* name)
     {
         const auto context = Pine::Input::GetDefaultContext();
@@ -107,9 +112,10 @@ void Pine::Script::Interfaces::Input::Setup()
     mono_add_internal_call("Pine.Input.InputManager::PineIsMouseButtonDown", reinterpret_cast<void *>(IsMouseButtonDown));
     mono_add_internal_call("Pine.Input.InputManager::PineGetKeyState", reinterpret_cast<void *>(GetKeyState));
     mono_add_internal_call("Pine.Input.InputManager::PineGetMouseButtonKeyState", reinterpret_cast<void *>(GetMouseButtonKeyState));
-    mono_add_internal_call("Pine.Input.InputManager::PineGetMousePosition", reinterpret_cast<void *>(LookupInputBind));
-    mono_add_internal_call("Pine.Input.InputManager::PineFindInputBinding", reinterpret_cast<void *>(GetMousePosition));
+    mono_add_internal_call("Pine.Input.InputManager::PineGetMousePosition", reinterpret_cast<void *>(GetMousePosition));
+    mono_add_internal_call("Pine.Input.InputManager::PineFindInputBinding", reinterpret_cast<void *>(LookupInputBind));
     mono_add_internal_call("Pine.Input.InputManager::PineGetMouseDelta", reinterpret_cast<void *>(GetMouseDelta));
+    mono_add_internal_call("Pine.Input.InputManager::PineSetCursorMode", reinterpret_cast<void *>(SetCursorMode));
     mono_add_internal_call("Pine.Input.InputManager::PineCreateInputBinding", reinterpret_cast<void *>(CreateInputBinding));
 
     // InputBind

@@ -17,6 +17,10 @@ namespace Pine
         float FogDistance = 30.f;
         float FogIntensity = 0.f;
 
+        // Post-processing film look (applied in the post-process pass).
+        float GrainStrength = 0.08f;
+        float VignetteStrength = 0.5f;
+
         bool HasCamera = false;
         std::uint32_t CameraEntity = 0;
     };
@@ -40,6 +44,8 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(FogColor, Serialization::DataType::Vec4);
             PINE_SERIALIZE_PRIMITIVE(FogDistance, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(FogIntensity, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(GrainStrength, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(VignetteStrength, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(Camera, Serialization::DataType::Int32);
         };
     public:

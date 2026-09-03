@@ -7,6 +7,7 @@
 #include "Pine/World/Components/Components.hpp"
 #include "mono/metadata/object.h"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
+#include "Pine/World/Components/CharacterController/CharacterController.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 
 namespace
@@ -159,6 +160,22 @@ namespace
 
     // -----------------------------------------------------
 
+    void CharacterControllerMove(const std::uint32_t internalId, const Pine::Vector3f* motion)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->Move(*motion);
+    }
+
+    bool CharacterControllerIsGrounded(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->IsGrounded();
+    }
+
+    // -----------------------------------------------------
+
     MonoObject* ScriptGetCSharpScript(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
@@ -190,6 +207,9 @@ void Pine::Script::Interfaces::Component::Setup()
     mono_add_internal_call("Pine.World.Components.ModelRenderer::GetModel", reinterpret_cast<void *>(GetModel));
 
     mono_add_internal_call("Pine.World.Components.RigidBody::ApplyForce", reinterpret_cast<void *>(RigidBodyApplyForce));
+
+    mono_add_internal_call("Pine.World.Components.CharacterController::PineMove", reinterpret_cast<void *>(CharacterControllerMove));
+    mono_add_internal_call("Pine.World.Components.CharacterController::PineIsGrounded", reinterpret_cast<void *>(CharacterControllerIsGrounded));
 
     mono_add_internal_call("Pine.World.Components.Transform::GetPosition", reinterpret_cast<void *>(TransformGetPosition));
     mono_add_internal_call("Pine.World.Components.Transform::GetRotation", reinterpret_cast<void *>(TransformGetRotation));

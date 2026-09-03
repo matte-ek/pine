@@ -21,7 +21,11 @@ target_include_directories(perlin-noise INTERFACE perlin-noise)
 add_library(physx INTERFACE)
 
 target_include_directories(physx INTERFACE physx/include physx/include/physx)
+# Wrap the PhysX static archives in a linker group. These libraries reference each other
+# (e.g. CharacterKinematic depends on symbols in Extensions), so a plain left-to-right scan is
+# order-sensitive; --start-group/--end-group makes the linker re-scan until all symbols resolve.
 target_link_libraries(physx INTERFACE
+        -Wl,--start-group
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXExtensions_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysX_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXPvdSDK_static_64.a"
@@ -30,6 +34,7 @@ target_link_libraries(physx INTERFACE
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXCooking_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXCommon_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXFoundation_static_64.a"
+        -Wl,--end-group
 )
 
 # NVTT

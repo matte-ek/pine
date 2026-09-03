@@ -3,8 +3,10 @@
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
+#include "Pine/World/Components/CharacterController/CharacterController.hpp"
 
 #include "physx/PxPhysicsAPI.h"
+#include "physx/characterkinematic/PxControllerManager.h"
 #include "physx/extensions/PxDefaultAllocator.h"
 #include "physx/extensions/PxDefaultCpuDispatcher.h"
 #include "physx/extensions/PxDefaultErrorCallback.h"
@@ -26,6 +28,8 @@ namespace
     PxScene* m_Scene;
 
     PxMaterial* m_DefaultMaterial;
+
+    PxControllerManager* m_ControllerManager;
 
     PxFilterFlags PineFilterShader(
         const PxFilterObjectAttributes attributes0, PxFilterData filterData0,
@@ -70,10 +74,14 @@ void Pine::Physics3D::Setup()
     sceneDescriptor.filterShader = PineFilterShader;
 
     m_Scene = m_Physics->createScene(sceneDescriptor);
+
+    // One controller manager per scene - drives all CharacterController components.
+    m_ControllerManager = PxCreateControllerManager(*m_Scene);
 }
 
 void Pine::Physics3D::Shutdown()
 {
+    PX_RELEASE(m_ControllerManager);
     PX_RELEASE(m_Scene);
     PX_RELEASE(m_Dispatcher);
     PX_RELEASE(m_Physics);
@@ -124,6 +132,11 @@ void Pine::Physics3D::Update(const double deltaTime)
     for (auto& rigidBody : Pine::Components::Get<RigidBody>())
         rigidBody.OnPrePhysicsUpdate();
 
+    // Character controllers move synchronously (their own sweeps), driven with the fixed
+    // physics delta so their motion stays framerate-independent.
+    for (auto& characterController : Pine::Components::Get<CharacterController>())
+        characterController.Simulate(physicsTimeDelta);
+
     m_Scene->simulate(physicsTimeDelta);
     m_Scene->fetchResults(true);
 
@@ -146,4 +159,9 @@ PxScene * Pine::Physics3D::GetScene()
 PxMaterial * Pine::Physics3D::GetDefaultMaterial()
 {
     return m_DefaultMaterial;
+}
+
+PxControllerManager * Pine::Physics3D::GetControllerManager()
+{
+    return m_ControllerManager;
 }

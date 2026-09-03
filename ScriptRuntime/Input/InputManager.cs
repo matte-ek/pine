@@ -18,6 +18,13 @@ namespace Pine.Input
         Right,
         Middle
     }
+
+    public enum CursorMode
+    {
+        Normal,   // Visible, free cursor
+        Hidden,   // Hidden, but not locked
+        Disabled  // Hidden and locked to the window - use this for mouse-look
+    }
     
     public class InputManager
     {
@@ -38,6 +45,8 @@ namespace Pine.Input
                 return position;
             }
         }
+
+        public static void SetCursorMode(CursorMode mode) => PineSetCursorMode((int)mode);
 
         public static bool IsKeyDown(KeyCode key) => PineIsKeyDown((int)key);
         public static bool IsMouseButtonDown(MouseButton mouseButton) => PineIsMouseButtonDown((int)mouseButton);
@@ -65,5 +74,7 @@ namespace Pine.Input
         private static extern void PineGetMousePosition(out Vector2 position);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void PineGetMouseDelta(out Vector2 position);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void PineSetCursorMode(int mode);
     }
 }

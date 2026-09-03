@@ -17,7 +17,10 @@ namespace Pine.World
         SpriteRenderer,
         TilemapRenderer,
         NativeScript,
-        Script
+        Script,
+        AudioSource,
+        AudioListener,
+        CharacterController
     }
     
     public class Component

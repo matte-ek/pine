@@ -43,6 +43,9 @@ void Panels::LevelPanel::Render()
         Widgets::SliderFloat("Fog Intensity", &currentLevel->GetLevelSettings().FogIntensity, 0.0f, 1.0f);
         Widgets::SliderFloat("Fog Distance", &currentLevel->GetLevelSettings().FogDistance, 1.0f, 250.0f);
 
+        Widgets::SliderFloat("Grain Strength", &currentLevel->GetLevelSettings().GrainStrength, 0.0f, 0.3f);
+        Widgets::SliderFloat("Vignette Strength", &currentLevel->GetLevelSettings().VignetteStrength, 0.0f, 1.0f);
+
         if (newSkybox.hasResult)
         {
             currentLevel->GetLevelSettings().Skybox = dynamic_cast<Pine::Texture3D*>(newSkybox.asset);

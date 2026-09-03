@@ -173,13 +173,18 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
 
     Assimp::Importer importer;
 
+    // Only meshes that ship without normals get generated ones (no aiProcess_ForceGenNormals),
+    // so authored hard edges survive. For that fallback, don't smooth across sharp edges:
+    // Assimp's default is 175 degrees, which averages e.g. a wall face with its edge bevel
+    // and bends the normals along the edges of otherwise flat surfaces.
+    importer.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 80.f);
+
     const auto scene = importer.ReadFile(
         file.FilePath.c_str(),
         aiProcess_Triangulate           | aiProcess_FlipUVs |
         aiProcess_GenSmoothNormals      | aiProcess_GenBoundingBoxes |
-        aiProcess_CalcTangentSpace      | aiProcess_ForceGenNormals |
-        aiProcess_GlobalScale           | aiProcess_PreTransformVertices |
-        aiProcess_FindInvalidData);
+        aiProcess_CalcTangentSpace      | aiProcess_GlobalScale |
+        aiProcess_PreTransformVertices  | aiProcess_FindInvalidData);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
