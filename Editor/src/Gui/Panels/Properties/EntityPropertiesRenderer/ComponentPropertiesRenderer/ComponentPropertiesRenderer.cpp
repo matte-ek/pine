@@ -160,8 +160,8 @@ namespace
         Pine::Vector3f lightColor = light->GetLightColor();
         float lightIntensity = light->GetLightIntensity();
         Pine::Vector3f lightAttenuation = light->GetLightAttenuation();
-        float spotlightRadius = light->GetSpotlightRadius();
-        float spotlightCutOff = light->GetSpotlightCutoff();
+        float spotlightOuterAngle = light->GetSpotlightOuterAngle();
+        float spotlightInnerAngle = light->GetSpotlightInnerAngle();
 
         if (Widgets::DropDown("Light Type", &lightType, "Directional\0Point Light\0Spot Light\0"))
         {
@@ -212,18 +212,20 @@ namespace
 
         if (light->GetLightType() == Pine::LightType::SpotLight)
         {
-            if (Widgets::SliderFloat("Spotlight Radius", &spotlightRadius, 0.f, 1.f))
+            // Cone half-angles in degrees. The setters clamp inner <= outer, so dragging outer
+            // below inner pulls inner down with it rather than inverting the cone.
+            if (Widgets::SliderFloat("Spotlight Outer Angle", &spotlightOuterAngle, 1.f, 89.f))
             {
                 CreateComponentCommand updateCmd(light, CommandType::Update);
 
-                light->SetSpotlightRadius(spotlightRadius);
+                light->SetSpotlightOuterAngle(spotlightOuterAngle);
             }
 
-            if (Widgets::SliderFloat("Spotlight Cutoff", &spotlightCutOff, 0.f, 1.f))
+            if (Widgets::SliderFloat("Spotlight Inner Angle", &spotlightInnerAngle, 0.f, 89.f))
             {
                 CreateComponentCommand updateCmd(light, CommandType::Update);
 
-                light->SetSpotlightCutoff(spotlightCutOff);
+                light->SetSpotlightInnerAngle(spotlightInnerAngle);
             }
         }
     }

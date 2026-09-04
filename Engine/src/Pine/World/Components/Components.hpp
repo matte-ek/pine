@@ -265,7 +265,7 @@ namespace Pine
                 return nullptr;
             }
 
-            return dynamic_cast<T*>(component);
+            return static_cast<T*>(component);
         }
 
         T *operator->()

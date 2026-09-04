@@ -5,12 +5,24 @@ namespace Pine::Renderer3D::Specifications
     namespace General
     {
         constexpr int DYNAMIC_LIGHT_COUNT = 32;
-        constexpr int DYNAMIC_LIGHT_OBJECT_COUNT = 6;
         constexpr int MAX_INSTANCE_COUNT = 512;
 
         // TODO: Stop with this.
         constexpr int INTERNAL_WIDTH = 1920;
         constexpr int INTERNAL_HEIGHT = 1080;
+    }
+
+    // How the light slots of a single object are laid out. Each slot holds an index into the light
+    // buffer, so this has to match the lightIndices[] handling of the generic shader.
+    namespace ObjectLightSlots
+    {
+        constexpr int POINT_LIGHT_OFFSET = 0;
+        constexpr int POINT_LIGHT_COUNT = 5;
+
+        constexpr int SPOT_LIGHT_OFFSET = POINT_LIGHT_OFFSET + POINT_LIGHT_COUNT;
+        constexpr int SPOT_LIGHT_COUNT = 1;
+
+        constexpr int COUNT = POINT_LIGHT_COUNT + SPOT_LIGHT_COUNT;
     }
 
     namespace Shadows

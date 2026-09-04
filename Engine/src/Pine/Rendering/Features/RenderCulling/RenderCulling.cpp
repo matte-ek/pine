@@ -1,54 +1,82 @@
-﻿#include "RenderCulling.hpp"
+#include "RenderCulling.hpp"
 
-#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Engine/Engine.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
-#include "Pine/World/Entity/Entity.hpp"
 
-void Pine::Rendering::RenderCulling::RunFrustumCulling(const Camera* camera)
+namespace
 {
-    const auto frustumCorners = camera->GetFrustumCorners();
+    constexpr std::size_t BitsPerWord = 64;
+}
 
-    auto min = Vector3f(std::numeric_limits<float>::max());
-    auto max = Vector3f(std::numeric_limits<float>::lowest());
+void Pine::Rendering::RenderCulling::VisibilitySet::Reset(const std::size_t capacity)
+{
+    const std::size_t wordCount = (capacity + BitsPerWord - 1) / BitsPerWord;
 
-    for (const auto& corner : frustumCorners)
+    // Keeps the allocation across frames; only the first call (or a grow) actually allocates.
+    if (m_Bits.size() < wordCount)
     {
-        min = glm::min(min, corner);
-        max = glm::max(max, corner);
+        m_Bits.resize(wordCount);
     }
 
-    const auto center = (min + max) * 0.5f;
-    const float size = glm::distance2(min, max);
+    std::fill(m_Bits.begin(), m_Bits.end(), 0ull);
+}
 
-    int culledObjects = 0;
+void Pine::Rendering::RenderCulling::VisibilitySet::Set(const std::uint32_t index)
+{
+    const std::size_t word = index / BitsPerWord;
+
+    if (word >= m_Bits.size())
+    {
+        return;
+    }
+
+    m_Bits[word] |= 1ull << (index % BitsPerWord);
+}
+
+bool Pine::Rendering::RenderCulling::VisibilitySet::IsVisible(const std::uint32_t index) const
+{
+    const std::size_t word = index / BitsPerWord;
+
+    if (word >= m_Bits.size())
+    {
+        return false;
+    }
+
+    return (m_Bits[word] & (1ull << (index % BitsPerWord))) != 0;
+}
+
+Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cull(
+    const Frustum& frustum,
+    VisibilitySet& visibility)
+{
+    PINE_PF_SCOPE();
+
+    visibility.Reset(Engine::GetEngineConfiguration().m_MaxObjectCount);
+
+    CullingResult result;
 
     for (auto& modelRenderer : Components::Get<ModelRenderer>())
     {
-        auto& renderingHintData = modelRenderer.GetRenderingHintData();
-
         if (!modelRenderer.GetModel())
         {
             continue;
         }
 
-        auto model = modelRenderer.GetModel();
-        auto transform = modelRenderer.GetParent()->GetTransform();
+        const auto& data = modelRenderer.GetRenderingHintData();
 
-        const auto position = transform->GetPosition();
-
-        const auto modelMin = model->GetBoundingBoxMin() * transform->GetScale();
-        const auto modelMax = model->GetBoundingBoxMax() * transform->GetScale();
-        const auto modelCenter = (modelMin + modelMax) * 0.5f + position;
-
-        if (glm::distance2(modelCenter, center) < size)
+        if (frustum.Intersects(data.BoundsMin, data.BoundsMax))
         {
-            renderingHintData.HasPassedFrustumCulling = true;
+            visibility.Set(modelRenderer.GetInternalId());
+
+            result.VisibleObjectCount++;
         }
         else
         {
-            renderingHintData.HasPassedFrustumCulling = false;
-            culledObjects++;
+            result.CulledObjectCount++;
         }
     }
+
+    return result;
 }

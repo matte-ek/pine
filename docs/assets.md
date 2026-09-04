@@ -31,11 +31,34 @@ An `.ih` is small JSON, e.g. `data/engine/shaders/post-processing/ambient-occlus
 - **`Data.TextureSamplers`** — sampler name → binding unit (mirrors the `#shader bind <name> <unit>`
   directives at the top of the GLSL).
 - **`Data.Versions`** (optional) — preprocessor `#define` variants (e.g. `VERSION_TERRAIN`) the
-  shader can be compiled with.
+  shader can be compiled with. The `.ih` is the **only** place these can be declared: a
+  `#shader <anything>` line in GLSL is stripped and ignored by the importer.
 
-Edit the `.glsl` and the engine rebuilds the `.passet` on load. The same source→`.passet`
-relationship holds for other imported assets (textures, models); shaders just expose it as
-editable text with a sidecar hint.
+The same source→`.passet` relationship holds for other imported assets (textures, models);
+shaders just expose it as editable text with a sidecar hint.
+
+### Regenerating a `.passet` after editing source
+
+**Just open the editor.** On window focus, `HotReload::UpdateAssets` compares each tracked
+source's write time and calls `Asset::ReImport()` → `ReLoad()` → `File::WriteCompressed(...)`
+(`Asset.cpp`). That rewrites the `.passet` **on disk**, operating on the already-loaded asset so
+the **UId is preserved**. Commit the rewritten `.passet`; that is what makes GameHost and fresh
+clones (neither of which hot-reloads) correct. There is no CLI step for editing an existing asset.
+
+Two things that bite:
+
+- **Shared `#include`s are not tracked sources.** The importer inlines `#include`d files
+  (recursively, through the same line processor — so `#shader bind` directives inside an include
+  *are* picked up), but it never adds them to the shader's `SourceFiles`. Editing
+  `shared/common.glsl` or `shared/lightning/*.glsl` alone therefore triggers no reload. Touch a
+  top-level `.vertex.glsl`/`.fragment.glsl` of every shader that includes it.
+- **Never `EngineCli --import` an asset that already has a `.passet`.** It constructs a *new*
+  asset, so it mints a **new UId** — and assets reference each other by UId
+  (`PINE_SERIALIZE_ASSET`, plus a hard-coded shader UId in `Material.hpp`), so every material
+  pointing at that shader silently breaks. It also never reads the `.ih`, so `Data.Versions` is
+  lost. `--batch-import` does read the `.ih`, but its "already imported" dedup scan is a
+  non-recursive `directory_iterator("data")`, so it never finds the nested engine shaders and
+  remints their UIds too. `--import` is for **first-time** imports of new assets only.
 
 **Scripts are the exception.** A `CSharpScript` `.passet` is *not* built from its `.cs` — the
 `.cs` compiles into the project's `Game.dll` separately, and the `.passet` just stores the

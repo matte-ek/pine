@@ -1,8 +1,10 @@
 ﻿#include "SceneLightsProcessing.hpp"
 
+#include <array>
 #include <limits>
 
 #include "Pine/Performance/Performance.hpp"
+#include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
@@ -10,110 +12,86 @@
 
 namespace
 {
-    bool m_WorldLightRecomputationRequired = false;
+    using namespace Pine;
 
-    std::vector<Pine::Light*> GetWorldLights()
+    namespace Slots = Renderer3D::Specifications::ObjectLightSlots;
+
+    // Keeps the 'Count' nearest lights inserted so far, sorted by ascending distance. 'Count' is a
+    // light slot count, so it stays small enough that a linear insert beats anything smarter.
+    template <int Count>
+    class NearestLights
     {
-        std::vector<Pine::Light*> lights;
-
-        for (auto& light : Pine::Components::Get<Pine::Light>())
+        std::array<Light*, Count> m_Lights = {};
+        std::array<float, Count> m_Distances = {};
+    public:
+        NearestLights()
         {
-            if (light.GetParent()->IsDirty())
-            {
-                m_WorldLightRecomputationRequired = true;
-            }
-
-            // TODO: Add checks to check if this light is relevant. I'm sure we can come up with some things.
-            lights.push_back(&light);
+            m_Distances.fill(std::numeric_limits<float>::max());
         }
 
-        return lights;
+        void Insert(Light* light, const float distanceSqr)
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                if (distanceSqr >= m_Distances[i])
+                {
+                    continue;
+                }
+
+                // Move the lights we're closer than one slot back, dropping the furthest one.
+                for (int j = Count - 1; j > i; j--)
+                {
+                    m_Lights[j] = m_Lights[j - 1];
+                    m_Distances[j] = m_Distances[j - 1];
+                }
+
+                m_Lights[i] = light;
+                m_Distances[i] = distanceSqr;
+
+                return;
+            }
+        }
+
+        // Returns nullptr if fewer than 'index' lights were inserted.
+        Light* Get(const int index) const
+        {
+            return m_Lights[index];
+        }
+    };
+
+    // True if anything changed that the cached light slots depend on. The transform flag covers
+    // movement (slots are picked by distance); the entity flag is the general "something about
+    // this entity changed" signal, which Light::SetLightType raises since the type decides which
+    // slot bucket a light competes for. SceneProcessor::Prepare clears the entity flag each frame.
+    bool HasSlotInputChanged(const Component& component)
+    {
+        return component.GetParent()->IsDirty() || component.GetTransform()->IsDirty();
     }
 
-    void PrepareModelRendererInstance(const Pine::Rendering::SceneProcessor::SceneProcessorContext& context, Pine::ModelRenderer* modelRenderer)
+    // Gathers the lights of the world for this frame. Returns true if the set of lights changed in a
+    // way that invalidates the light slots computed for the objects during the previous frame.
+    bool CollectWorldLights(std::vector<Light*>& lights)
     {
-        constexpr float float_max = std::numeric_limits<float>::max();
+        const std::size_t previousLightCount = lights.size();
 
-        auto& data = modelRenderer->GetRenderingHintData();
+        // Keeps the allocated capacity around, this runs every frame.
+        lights.clear();
 
-        bool computationRequired =
-                    !data.HasComputedData ||
-                    modelRenderer->GetParent()->IsDirty() ||
-                    modelRenderer->GetParent()->GetTransform()->IsDirty();
+        bool lightsChanged = false;
 
-        if (!computationRequired)
+        for (auto& light : Components::Get<Light>())
         {
-            return;
-        }
+            // TODO: Add checks to check if this light is relevant. I'm sure we can come up with some things.
+            lights.push_back(&light);
 
-        for (int i = 0; i < 6;i++)
-        {
-            data.LightSlotIndex[i] = nullptr;
-        }
-
-        std::array<Pine::Light*, 4> lightCandidates {nullptr, nullptr, nullptr, nullptr};
-        std::array<float, 3> lightDistances {float_max, float_max, float_max};
-
-        for (auto light : context.Lights)
-        {
-            auto lightType = light->GetLightType();
-
-            if (lightType == Pine::LightType::Directional)
+            if (HasSlotInputChanged(light))
             {
-                continue;
-            }
-
-            if (lightType == Pine::LightType::SpotLight)
-            {
-                lightCandidates[3] = light;
-                continue;
-            }
-
-            const auto modelPosition = modelRenderer->GetParent()->GetTransform()->GetPosition();
-            const auto lightPosition = light->GetParent()->GetTransform()->GetPosition();
-            const auto length = glm::distance2(modelPosition, lightPosition);
-
-            if (!lightCandidates[0] || length < lightDistances[0])
-            {
-                lightCandidates[2] = lightCandidates[1];
-                lightCandidates[1] = lightCandidates[0];
-                lightCandidates[0] = light;
-
-                lightDistances[2] = lightDistances[1];
-                lightDistances[1] = lightDistances[0];
-                lightDistances[0] = length;
-            }
-            else if (!lightCandidates[1] || length < lightDistances[1])
-            {
-                lightCandidates[2] = lightCandidates[1];
-                lightCandidates[1] = light;
-
-                lightDistances[2] = lightDistances[1];
-                lightDistances[1] = length;
-            }
-            else if (!lightCandidates[2] || length < lightDistances[2])
-            {
-                lightDistances[2] = length;
-                lightCandidates[2] = light;
+                lightsChanged = true;
             }
         }
 
-        if (lightCandidates[0])
-        {
-            data.LightSlotIndex[0] = lightCandidates[0];
-        }
-
-        if (lightCandidates[1])
-        {
-            data.LightSlotIndex[1] = lightCandidates[1];
-        }
-
-        if (lightCandidates[2])
-        {
-            data.LightSlotIndex[2] = lightCandidates[2];
-        }
-
-        data.HasComputedData = true;
+        // A light being created or destroyed changes which lights are the nearest ones as well.
+        return lightsChanged || lights.size() != previousLightCount;
     }
 }
 
@@ -121,16 +99,14 @@ void Pine::Rendering::SceneProcessor::Lights::Prepare(SceneProcessorContext& con
 {
     PINE_PF_SCOPE();
 
-    m_WorldLightRecomputationRequired = false;
-
-    context.Lights = GetWorldLights();
-
-    if (m_WorldLightRecomputationRequired)
+    if (!CollectWorldLights(context.Lights))
     {
-        for (auto& modelRenderer : Components::Get<ModelRenderer>())
-        {
-            modelRenderer.GetRenderingHintData().HasComputedData = false;
-        }
+        return;
+    }
+
+    for (auto& modelRenderer : Components::Get<ModelRenderer>())
+    {
+        modelRenderer.GetRenderingHintData().HasComputedData = false;
     }
 }
 
@@ -138,5 +114,52 @@ void Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(const ScenePr
 {
     PINE_PF_SCOPE();
 
-    PrepareModelRendererInstance(context, modelRenderer);
+    auto& data = modelRenderer->GetRenderingHintData();
+
+    // Which lights an object ends up with only depends on where it and the lights are, so unless one
+    // of them moved (Prepare clears HasComputedData then) the previous frame's slots still hold.
+    if (data.HasComputedData && !HasSlotInputChanged(*modelRenderer))
+    {
+        return;
+    }
+
+    const auto objectPosition = modelRenderer->GetTransform()->GetPosition();
+
+    NearestLights<Slots::POINT_LIGHT_COUNT> pointLights;
+    NearestLights<Slots::SPOT_LIGHT_COUNT> spotLights;
+
+    for (const auto light : context.Lights)
+    {
+        const auto lightType = light->GetLightType();
+
+        // Directional lights are global, they always occupy light index 0 and never an object slot.
+        if (lightType == LightType::Directional)
+        {
+            continue;
+        }
+
+        const auto distanceSqr = glm::distance2(objectPosition, light->GetTransform()->GetPosition());
+
+        if (lightType == LightType::SpotLight)
+        {
+            spotLights.Insert(light, distanceSqr);
+        }
+        else
+        {
+            pointLights.Insert(light, distanceSqr);
+        }
+    }
+
+    // Slots without a light are assigned nullptr, which invalidates the handle.
+    for (int i = 0; i < Slots::POINT_LIGHT_COUNT; i++)
+    {
+        data.LightSlotIndex[Slots::POINT_LIGHT_OFFSET + i] = pointLights.Get(i);
+    }
+
+    for (int i = 0; i < Slots::SPOT_LIGHT_COUNT; i++)
+    {
+        data.LightSlotIndex[Slots::SPOT_LIGHT_OFFSET + i] = spotLights.Get(i);
+    }
+
+    data.HasComputedData = true;
 }

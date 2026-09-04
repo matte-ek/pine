@@ -139,19 +139,23 @@ Vector3f Transform::GetScale() const
     return scale;
 }
 
+// World-space basis vectors, so these use GetRotation() and not m_LocalRotation. For an entity with
+// no parent the two are identical, but for a parented one the local rotation ignores everything the
+// parent contributes - a camera childed to a player would report the direction it faces *relative to
+// the player* rather than the direction it actually looks.
 Vector3f Transform::GetForward() const
 {
-    return m_LocalRotation * Vector3f(0.f, 0.f, -1.f);
+    return GetRotation() * Vector3f(0.f, 0.f, -1.f);
 }
 
 Vector3f Transform::GetRight() const
 {
-    return m_LocalRotation * Vector3f(1.f, 0.f, 0.f);
+    return GetRotation() * Vector3f(1.f, 0.f, 0.f);
 }
 
 Vector3f Transform::GetUp() const
 {
-    return m_LocalRotation * Vector3f(0.f, 1.f, 0.f);
+    return GetRotation() * Vector3f(0.f, 1.f, 0.f);
 }
 
 const Matrix4f &Transform::GetTransformationMatrix() const

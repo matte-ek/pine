@@ -30,7 +30,9 @@ namespace
 
 	PipelineConfiguration m_Configuration;
 
-	void RenderBatch(const Rendering::ObjectBatchMap& mapBatch, const MaterialRenderingMode materialRenderingMode)
+	void RenderBatch(const Rendering::ObjectBatchMap& mapBatch,
+	                 const MaterialRenderingMode materialRenderingMode,
+	                 const Rendering::RenderCulling::VisibilitySet& visibility)
 	{
 	    if (materialRenderingMode == MaterialRenderingMode::Opaque)
 	    {
@@ -67,7 +69,7 @@ namespace
 				{
 					const auto modelRenderer = renderer;
 
-				    if (!modelRenderer->GetRenderingHintData().HasPassedFrustumCulling)
+				    if (!visibility.IsVisible(modelRenderer->GetInternalId()))
 				    {
 				        continue;
 				    }
@@ -152,7 +154,7 @@ namespace
 		renderSettings.IgnoreShaderVersions = true;
 		renderSettings.SkipMaterialInitialization = true;
 
-		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque);
+		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque, renderingContext.Visibility);
 
 		renderSettings.OverrideShader = nullptr;
 		renderSettings.IgnoreShaderVersions = false;
@@ -168,8 +170,6 @@ namespace
 		if (context.SceneCamera)
         {
             Renderer3D::SetCamera(context.SceneCamera);
-
-	        Rendering::RenderCulling::RunFrustumCulling(context.SceneCamera);
         }
 
 	    const auto& levelSettings = World::GetActiveLevel()->GetLevelSettings();
@@ -201,10 +201,10 @@ namespace
 		Renderer3D::UploadLights();
 
 		// Render fully opaque objects.
-		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque);
+		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque, context.Visibility);
 
 		// Render objects which require discarding
-		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Discard);
+		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Discard, context.Visibility);
 
 		// TODO: Render semi-transparent objects, we'll have to sort all objects by distance as well.
 
@@ -284,6 +284,21 @@ void Pipeline3D::Run(RenderingContext& context, const PipelineStage stage)
 	if (stage == PipelineStage::Prepass)
 	{
 		PINE_PF_SCOPE_MANUAL("Pine::Pipeline3D::Run(PipelineStage::Prepass)");
+
+		// Visibility depends on the camera, and *both* stages consume it - the depth pre-pass below
+		// skips culled objects, and so does RenderScene in the Default stage. Culling here, into this
+		// context's own set, is what keeps the two stages agreeing and keeps two viewports from
+		// overwriting each other's results.
+		if (context.SceneCamera != nullptr)
+		{
+			const auto frustum = Frustum::FromViewProjection(
+				context.SceneCamera->GetProjectionMatrix() * context.SceneCamera->GetViewMatrix());
+
+			const auto cullingResult = Rendering::RenderCulling::Cull(frustum, context.Visibility);
+
+			context.Statistics.VisibleObjectCount = cullingResult.VisibleObjectCount;
+			context.Statistics.CulledObjectCount = cullingResult.CulledObjectCount;
+		}
 
 		// Render shadow pass
 		if (m_Configuration.RenderShadows)

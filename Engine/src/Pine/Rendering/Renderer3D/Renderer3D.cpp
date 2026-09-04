@@ -7,6 +7,9 @@
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 using namespace Pine;
 
 namespace
@@ -196,7 +199,7 @@ bool Renderer3D::AddInstance(const Matrix4f& transformationMatrix, ModelRenderer
     {
         auto& lightIndices = ShaderStorages::Instance.Data().Instances[instanceId].LightIndices;
 
-        for (int i = 0; i < 6;i++)
+        for (int i = 0; i < Specifications::ObjectLightSlots::COUNT;i++)
         {
             if (auto light = data->LightSlotIndex[i].Get())
             {
@@ -218,7 +221,7 @@ void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, ModelRendererH
     {
         auto& lightIndices = ShaderStorages::Instance.Data().Instances[0].LightIndices;
 
-        for (int i = 0; i < 6;i++)
+        for (int i = 0; i < Specifications::ObjectLightSlots::COUNT;i++)
         {
             if (auto light = data->LightSlotIndex[i].Get())
             {
@@ -407,16 +410,33 @@ void Renderer3D::AddLight(Light *light)
         return;
     }
 
-    const auto rotation = -normalize(rotate(light->GetParent()->GetTransform()->GetRotation(), Vector3f(0.f, 0.f, -1.f)));
+    // Negated so the uploaded vector points *towards* the light rather than along its forward
+    // axis - that is the convention the whole lighting path uses (see the Light struct in
+    // data/engine/shaders/3d/shared/common.glsl).
+    const auto directionToLight = -normalize(rotate(light->GetParent()->GetTransform()->GetRotation(), Vector3f(0.f, 0.f, -1.f)));
     const int lightSlot = light->GetLightType() == LightType::Directional ? 0 : m_CurrentLightIndex++;
     auto& lightData = ShaderStorages::Lights.Data().Lights[lightSlot];
 
+    // Cone half-angles are authored in degrees; the shader wants cosines to compare against a dot
+    // product. cos() is decreasing, so the *outer* (wider) angle yields the *smaller* cosine, which
+    // is what smoothstep needs as edge0. The epsilon keeps the two edges apart: equal edges make
+    // smoothstep divide by zero, which is undefined in GLSL.
+    //
+    // Separate them by pushing the outer edge *down* rather than the inner edge up. Nudging the
+    // inner edge up can carry it past 1.0, which no dot product can reach - a very tight cone would
+    // then never reach full brightness instead of just being narrow.
+    constexpr float minimumConeEdgeSeparation = 0.001f;
+
+    const float cutOffInner = std::cos(glm::radians(light->GetSpotlightInnerAngle()));
+    const float cutOffOuter = std::min(std::cos(glm::radians(light->GetSpotlightOuterAngle())),
+                                       cutOffInner - minimumConeEdgeSeparation);
+
     lightData.Position = light->GetParent()->GetTransform()->GetPosition();
-    lightData.Rotation = rotation;
+    lightData.DirectionToLight = directionToLight;
     lightData.Color = SrgbToLinear(light->GetLightColor()) * light->GetLightIntensity();
     lightData.Attenuation = light->GetLightAttenuation();
-    lightData.Angle = light->GetSpotlightRadius();
-    lightData.AngleSmoothness = light->GetSpotlightCutoff();
+    lightData.CutOffOuter = cutOffOuter;
+    lightData.CutOffInner = cutOffInner;
 
     light->GetLightHintData().LightIndex = lightSlot;
 
@@ -424,17 +444,21 @@ void Renderer3D::AddLight(Light *light)
 
     if (light->GetLightType() == LightType::PointLight)
     {
-        for (int i = 0; i < 5;i++)
+        for (int i = 0; i < Specifications::ObjectLightSlots::POINT_LIGHT_COUNT;i++)
         {
-            if (LightIndices[i] == 0)
+            const int slot = Specifications::ObjectLightSlots::POINT_LIGHT_OFFSET + i;
+
+            if (LightIndices[slot] == 0)
             {
-                LightIndices[i] = lightSlot;
+                LightIndices[slot] = lightSlot;
+
+                break;
             }
         }
     }
     else if (light->GetLightType() == LightType::SpotLight)
     {
-        LightIndices[5] = lightSlot;
+        LightIndices[Specifications::ObjectLightSlots::SPOT_LIGHT_OFFSET] = lightSlot;
     }
 }
 

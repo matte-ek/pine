@@ -3,6 +3,7 @@
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
+#include "Pine/Rendering/Features/RenderCulling/RenderCulling.hpp"
 
 namespace Pine
 {
@@ -15,6 +16,9 @@ namespace Pine
         std::uint64_t VertexCount = 0;
         double RenderTime = 0.f;
 
+        int VisibleObjectCount = 0;
+        int CulledObjectCount = 0;
+
         void Reset()
         {
             LightCount = 0;
@@ -22,6 +26,8 @@ namespace Pine
             DrawCalls = 0;
             VertexCount = 0;
             RenderTime = 0.f;
+            VisibleObjectCount = 0;
+            CulledObjectCount = 0;
         }
     };
 
@@ -43,6 +49,11 @@ namespace Pine
         bool EnableStencilBuffer = true;
 
         RenderingStatistics Statistics;
+
+        // What this context's camera can see. Owned per context because visibility depends on the
+        // frustum: two viewports looking different ways cull differently, and both stages of this
+        // context's frame read the same set.
+        Rendering::RenderCulling::VisibilitySet Visibility;
 
         int PreAllocItems = 0;
     };

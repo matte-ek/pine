@@ -1,5 +1,6 @@
 #pragma once
 #include "Pine/Assets/Model/Model.hpp"
+#include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
@@ -12,9 +13,17 @@ namespace Pine
     {
         struct ModelRendererHintData
         {
-            bool HasPassedFrustumCulling = false;
             bool HasComputedData = false;
-            std::array<ComponentHandle<Light>, 6> LightSlotIndex = {};
+            std::array<ComponentHandle<Light>, Specifications::ObjectLightSlots::COUNT> LightSlotIndex = {};
+
+            // World-space bounds, recomputed once per frame by the scene processor.
+            //
+            // Cached on the object because bounds belong to the object alone - unlike visibility,
+            // which belongs to (object, frustum) and therefore lives in a VisibilitySet. With
+            // several frustums culling per frame, computing this once instead of per frustum is the
+            // difference that matters.
+            Vector3f BoundsMin = Vector3f(0.f);
+            Vector3f BoundsMax = Vector3f(0.f);
         };
     }
 

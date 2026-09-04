@@ -60,7 +60,7 @@ void main()
 	// lightDir[0] is the directional light; lightDir[n] (n = 1..6) is the direction towards the light in
 	// instance light slot n - 1 (slots 0-4 point lights, slot 5 the spot light). Written with literal
 	// subscripts: dynamically indexing this varying array misbehaves on some drivers (NVIDIA).
-	vOut.lightDir[0] = normalize(lights[0].rotation);
+	vOut.lightDir[0] = normalize(lights[0].directionToLight);
 	vOut.lightDir[1] = normalize(lights[vOut.lightIndices[0]].position - vOut.worldPosition.xyz);
 	vOut.lightDir[2] = normalize(lights[vOut.lightIndices[1]].position - vOut.worldPosition.xyz);
 	vOut.lightDir[3] = normalize(lights[vOut.lightIndices[2]].position - vOut.worldPosition.xyz);

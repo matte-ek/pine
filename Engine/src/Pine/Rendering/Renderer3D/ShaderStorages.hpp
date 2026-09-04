@@ -48,16 +48,20 @@ namespace Pine::Renderer3D::ShaderStorages
             Vector3f Position = Vector3f(0.f);
             float Pad0 = 0;
 
-            Vector3f Rotation = Vector3f(0.f);
+            // Points *towards* the light (the opposite of the light's forward). See the Light
+            // struct in data/engine/shaders/3d/shared/common.glsl for the convention.
+            Vector3f DirectionToLight = Vector3f(0.f);
             float Pad1 = 0;
 
             Vector3f Color = Vector3f(0.f);
             float Pad2 = 0;
 
             Vector3f Attenuation = Vector3f(0.f);
-            float Angle = 0.f;
 
-            float AngleSmoothness = 0.f;
+            // Cosines of the spotlight cone half-angles. AddLight guarantees Outer < Inner.
+            float CutOffOuter = 0.f;
+
+            float CutOffInner = 0.f;
             float Pad4 = 0;
             float Pad5 = 0;
             float Pad6 = 0;

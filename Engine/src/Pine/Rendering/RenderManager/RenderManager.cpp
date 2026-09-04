@@ -134,18 +134,17 @@ void Pine::RenderManager::Run()
 
         m_CurrentRenderingContext = renderingContext;
 
-        if (renderingContext->UseRenderPipeline)
-        {
-            Pipeline3D::Run(*renderingContext, PipelineStage::Prepass);
-        }
-
-        // Reset statistics
+        // Reset statistics. Done before the pre-pass so the shadow, depth and AO draw calls it
+        // issues are counted against this context rather than wiped afterwards.
         renderingContext->Statistics.Reset();
 
         Timer renderTime;
 
-        m_InternalFrameBuffer->Bind();
-
+        // The camera has to be up to date *before* the pre-pass, not after it: the pre-pass renders
+        // the depth buffer that ambient occlusion consumes, so updating the matrices later meant
+        // both ran on the previous frame's viewpoint and the AO lagged behind the geometry
+        // whenever the camera moved.
+        //
         // If we're not running in the editor, only update the scene camera.
         if (engineConfig.m_ProductionMode)
         {
@@ -163,6 +162,13 @@ void Pine::RenderManager::Run()
                 camera.OnRender(fDeltaTime);
             }
         }
+
+        if (renderingContext->UseRenderPipeline)
+        {
+            Pipeline3D::Run(*renderingContext, PipelineStage::Prepass);
+        }
+
+        m_InternalFrameBuffer->Bind();
 
         Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), renderingContext->Size);
 

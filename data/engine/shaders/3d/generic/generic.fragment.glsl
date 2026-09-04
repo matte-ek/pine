@@ -48,27 +48,28 @@ Surface CreateSurface()
 
 // Point lights occupy instance light slots 0-4; their directions are vIn.lightDir[1..5].
 // Written out with literal subscripts on purpose: a loop that indexes vIn.lightDir[i + 1] reads
-// garbage on some drivers (seen on NVIDIA), which zeroes N.L and leaves the surface ambient-only.
-vec3 CalculateSpotLights(Surface surface)
+// garbage on some drivers (seen on NVIDIA), which zeroes N.L so these lights contribute nothing
+// and the surface falls back to the flat ambient term alone.
+vec3 CalculatePointLights(Surface surface)
 {
     vec3 lightColorOutput = vec3(0.f);
 
-    if (vIn.lightIndices[0] != 0) lightColorOutput += CalculateSpotLight(surface, vIn.lightIndices[0], vIn.lightDir[1]);
-    if (vIn.lightIndices[1] != 0) lightColorOutput += CalculateSpotLight(surface, vIn.lightIndices[1], vIn.lightDir[2]);
-    if (vIn.lightIndices[2] != 0) lightColorOutput += CalculateSpotLight(surface, vIn.lightIndices[2], vIn.lightDir[3]);
-    if (vIn.lightIndices[3] != 0) lightColorOutput += CalculateSpotLight(surface, vIn.lightIndices[3], vIn.lightDir[4]);
-    if (vIn.lightIndices[4] != 0) lightColorOutput += CalculateSpotLight(surface, vIn.lightIndices[4], vIn.lightDir[5]);
+    if (vIn.lightIndices[0] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[0], vIn.lightDir[1]);
+    if (vIn.lightIndices[1] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[1], vIn.lightDir[2]);
+    if (vIn.lightIndices[2] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[2], vIn.lightDir[3]);
+    if (vIn.lightIndices[3] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[3], vIn.lightDir[4]);
+    if (vIn.lightIndices[4] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[4], vIn.lightDir[5]);
 
     return lightColorOutput;
 }
 
 // The spot light occupies instance light slot 5; its direction is vIn.lightDir[6].
-vec3 CalculatePointLights(Surface surface)
+vec3 CalculateSpotLights(Surface surface)
 {
     vec3 ret = vec3(0.f);
 
     if (vIn.lightIndices[5] != 0) {
-        ret = CalculatePointLight(surface, vIn.lightIndices[5], vIn.lightDir[6]);
+        ret = CalculateSpotLight(surface, vIn.lightIndices[5], vIn.lightDir[6]);
     }
 
     return ret;
@@ -89,12 +90,14 @@ void main(void)
 
     Surface surface = CreateSurface();
 
-    vec4 directionalLight = vec4(CalculateDirectionalLight(surface), 1.0);
-    vec4 spotLights = vec4(CalculateSpotLights(surface), 1.0);
-    vec4 pointLights = vec4(CalculatePointLights(surface), 1.0);
+    // Ambient is per-environment, so it is added once rather than once per light. Direct light from
+    // each source is summed on top.
+    vec3 ambient = CalculateAmbientLight(surface);
+    vec3 directionalLight = CalculateDirectionalLight(surface);
+    vec3 pointLights = CalculatePointLights(surface);
+    vec3 spotLights = CalculateSpotLights(surface);
 
-    // Sum the rgb terms only: adding the vec4s would leave alpha at 3.0, and the resolve pass passes alpha through.
-    m_OutputColor = vec4(directionalLight.rgb + spotLights.rgb + pointLights.rgb, 1.0);
+    m_OutputColor = vec4(ambient + directionalLight + pointLights + spotLights, 1.0);
 
     // Distance fog. fogSettings.x = view distance, fogSettings.y = intensity (0 disables it).
     // Classic linear fog: blends toward fogColor from the camera out to the view distance.

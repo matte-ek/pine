@@ -5,11 +5,20 @@
 struct Light
 {
 	vec3 position;
-	vec3 rotation;
+
+	// Unit vector pointing *towards* the light, i.e. the opposite of the direction the light
+	// shines. This is the same convention as vIn.lightDir[], so the two can be compared directly.
+	// Renderer3D::AddLight uploads -forward to make it hold. Negating this in a shader is what
+	// used to invert the spot cone.
+	vec3 directionToLight;
+
 	vec3 color;
 	vec3 attenuation;
-	float cutOffAngle;
-	float cutOffSmoothness;
+
+	// Cosines of the cone half-angles, always cutOffOuter < cutOffInner (enforced on upload) so
+	// they can be handed straight to smoothstep as (edge0, edge1).
+	float cutOffOuter;
+	float cutOffInner;
 };
 
 struct Instance
@@ -30,11 +39,12 @@ struct Surface
 	vec3 lightColor;
 };
 
+// The contribution of a single light. Ambient is deliberately not in here: it belongs to the
+// environment rather than to any one light, so it is computed once per fragment in main().
 struct BaseLightResult
 {
 	vec3 diffuse;
     vec3 specular;
-    vec3 ambient;
 };
 
 struct MaterialProperties

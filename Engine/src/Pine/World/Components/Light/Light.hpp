@@ -34,8 +34,12 @@ namespace Pine
 
         Vector3f m_LightAttenuation = Vector3f(1.f, 0.045f, 0.0075f);
 
-        float m_SpotlightRadius = 1.0f;
-        float m_SpotlightCutoff = 1.0f;
+        // Spotlight cone half-angles, in degrees. Inner is where the falloff starts, outer where
+        // it reaches zero, so inner <= outer always. Stored as angles rather than the cosines the
+        // shader wants: the conversion is one cos() at upload, and a cosine is a poor thing to put
+        // in front of someone authoring a light.
+        float m_SpotlightOuterAngle = 45.0f;
+        float m_SpotlightInnerAngle = 30.0f;
 
         Renderer3D::LightHintData m_LightHintData;
 
@@ -45,8 +49,8 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(Color, Serialization::DataType::Vec3);
             PINE_SERIALIZE_PRIMITIVE(Intensity, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(Attenuation, Serialization::DataType::Vec3);
-            PINE_SERIALIZE_PRIMITIVE(SpotlightRadius, Serialization::DataType::Float32);
-            PINE_SERIALIZE_PRIMITIVE(SpotlightCutoff, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(SpotlightOuterAngle, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(SpotlightInnerAngle, Serialization::DataType::Float32);
         };
     public:
         Light();
@@ -63,11 +67,12 @@ namespace Pine
         void SetLightAttenuation(Vector3f attenuation);
         const Vector3f& GetLightAttenuation() const;
 
-        void SetSpotlightRadius(float radius);
-        float GetSpotlightRadius() const;
+        // Both in degrees; the setters keep inner <= outer so the cone can never invert.
+        void SetSpotlightOuterAngle(float degrees);
+        float GetSpotlightOuterAngle() const;
 
-        void SetSpotlightCutoff(float cutoff);
-        float GetSpotlightCutoff() const;
+        void SetSpotlightInnerAngle(float degrees);
+        float GetSpotlightInnerAngle() const;
 
         Renderer3D::LightHintData& GetLightHintData();
 
