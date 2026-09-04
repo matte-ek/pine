@@ -232,6 +232,21 @@ bool Rendering::ShadowAtlas::Reserve(const TileSize size, const void* owner, con
     return true;
 }
 
+int Rendering::ShadowAtlas::GetTileCapacity(const TileSize size)
+{
+    int count = 0;
+
+    for (const auto& slot : m_Slots)
+    {
+        if (slot.Size == size && !slot.Pinned)
+        {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 bool Rendering::ShadowAtlas::HasTiles(const void* owner)
 {
     for (const auto& slot : m_Slots)

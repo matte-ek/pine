@@ -42,6 +42,16 @@ namespace Pine::Rendering
         // x, y, width, height in target texels.
         Vector4i Viewport = Vector4i(0);
 
+        // World size of one of this view's texels, per unit distance from the view origin:
+        // 2 * tan(fov/2) / Viewport.z. Multiply by a point's distance from the origin and you have
+        // the world footprint of the texel covering it.
+        //
+        // Perspective views only. An orthographic view's texels are the same size everywhere, so
+        // there is nothing to scale by distance and the cascades leave this at zero. Stored rather
+        // than recovered from ViewProjection because the projection is built here and the factors
+        // that go into it are not separable again afterwards.
+        float TexelWorldScale = 0.f;
+
         // Atlas slot backing this view, or -1 for a view that renders somewhere else (the cascades
         // render into their own array texture). Kept so a view can report back to the allocator.
         int AtlasSlot = -1;

@@ -97,8 +97,10 @@ namespace Pine::Renderer3D::ShaderStorages
             // zw = size. The shader maps its own [0,1] projection into this rect.
             Vector4f TileRect = Vector4f(0.f);
 
-            // x = constant depth bias, y = world-space normal offset, z = shadow strength
-            // (the fade applied when a light gains or loses its tile), w = unused.
+            // x = world size of one of this view's texels per unit distance from the view origin
+            // (zero for an orthographic view, whose texels do not change size with distance),
+            // y = normal offset in texels, z = shadow strength (the fade applied when a light gains
+            // or loses its tile), w = unused.
             Vector4f Params = Vector4f(0.f);
         }Views[Specifications::Shadows::SHADOW_VIEW_COUNT];
     };

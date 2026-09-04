@@ -79,6 +79,17 @@ namespace Pine::Rendering::ShadowAtlas
     // and the interesting question is which lights win tiles, not how to arrange them.
     bool Acquire(TileSize size, const void* owner, int count, int* outSlots);
 
+    // How many tiles of one class exist to be handed out at all. Pinned tiles are excluded - they
+    // are out of the pool for the process lifetime, so counting them would answer a question nobody
+    // asked.
+    //
+    // Capacity, deliberately, and not availability: this answers "could this class ever serve a
+    // group of this size", which is a property of the layout and does not change frame to frame.
+    // Acquire is all-or-nothing over a group, so a caller wanting six tiles cannot be served by a
+    // class that only has four however empty the atlas is - and whoever picks a size class has to be
+    // able to find that out without knowing the quadrant layout.
+    int GetTileCapacity(TileSize size);
+
     // Whether 'owner' holds any tile at all. The allocator's sweep is the authority on that, so
     // anything keeping its own per-owner bookkeeping has to be able to ask.
     bool HasTiles(const void* owner);

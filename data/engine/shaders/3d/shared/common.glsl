@@ -48,7 +48,8 @@ struct ShadowView
 	// Where this view's tile lives in the atlas, in normalized atlas UV: xy = origin, zw = size.
 	vec4 tileRect;
 
-	// x = constant depth bias, y = world-space normal offset, z = shadow strength, w = unused.
+	// x = world texel size per unit distance from the view origin (0 for an ortho view),
+	// y = normal offset in texels, z = shadow strength, w = unused.
 	vec4 params;
 };
 

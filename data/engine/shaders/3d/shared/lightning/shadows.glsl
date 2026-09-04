@@ -9,6 +9,13 @@ uniform sampler2DShadow ShadowAtlas;
 // Samples one shadow view's tile and returns its shadow term, or 1.0 (fully lit) for anything the
 // view cannot answer for.
 //
+// Takes the sample position as given and applies no bias of its own. Bias policy belongs to whoever
+// knows what kind of shadow source this is - a cascade separates with front-face culling, a local
+// light with a normal offset - and there is no offset that is correct for both. A constant in
+// *projected* depth especially is not: it is linear in world depth for an ortho cascade and grows
+// with the square of the distance from the light for a perspective one, which is how this used to
+// slide a spot light's shadow the better part of a metre away from its caster.
+//
 // 'pcfTaps' is the radius of a grid of hardware taps: 0 is a single 2x2 tap, 1 is a 3x3 grid of
 // them. Local lights take the cheap one because a fragment may sample several; a cascade takes the
 // wide one because it is at most one per fragment and its texels cover far more world.
@@ -47,7 +54,6 @@ float SampleShadowView(int viewIndex, vec3 samplePosition, int pcfTaps)
     // Half a texel of inset, so no tap in the footprint can cross the tile border.
     vec2 inset = tileTexel * 0.5;
 
-    float depth = projected.z - view.params.x;
     float shadow = 0.0;
     float taps = 0.0;
 
@@ -58,7 +64,7 @@ float SampleShadowView(int viewIndex, vec3 samplePosition, int pcfTaps)
             vec2 tileUv = clamp(projected.xy + vec2(x, y) * tileTexel, inset, vec2(1.0) - inset);
             vec2 atlasUv = view.tileRect.xy + tileUv * view.tileRect.zw;
 
-            shadow += texture(ShadowAtlas, vec3(atlasUv, depth));
+            shadow += texture(ShadowAtlas, vec3(atlasUv, projected.z));
             taps += 1.0;
         }
     }
@@ -104,17 +110,38 @@ float SampleLocalShadow(int lightIndex, vec3 worldPosition, vec3 worldNormal)
         return 1.0;
     }
 
+    vec3 toLight = lights[lightIndex].position - worldPosition;
+    float lightDistance = length(toLight);
+    vec3 lightDirection = toLight / max(lightDistance, 0.0001);
+
     // Normal-offset: push the sample point off the surface along its normal before projecting.
     // This is what replaces the cascades' front-face culling, which peter-pans badly at the short
     // ranges a local light works over and breaks outright on single-sided geometry.
     //
+    // Measured in shadow-map texels, not in world units, because that is what acne is made of: the
+    // tile stores one depth for a texel, and the receiver's own depth drifts away from it across the
+    // rest of that texel's world footprint. Sizing the offset to the footprint means it tracks a
+    // tile demotion, a wide cone and a distant fragment for free - params.x is the world size of one
+    // of this view's texels per unit distance from the light, params.y the offset in texels.
+    //
+    // sin(angle between the normal and the light) is the scale: zero where the surface faces the
+    // light head on and a texel's footprint is flat, largest where the drift across one is worst. It
+    // is the bounded stand-in for the tan() an exact depth correction would want, and the grazing
+    // angles where the two disagree are the ones N.L has already faded to nothing.
+    //
     // Done *before* the face pick, not after. Picking the face from the un-offset position and then
     // offsetting can carry the sample past the edge of the face that was chosen - it then projects
     // outside [0,1] and is treated as unshadowed, which draws a bright seam along every cube edge.
-    // The face border is about one texel of angle while the offset is 0.02 world units, so within a
-    // few metres of the light the offset wins comfortably. All six faces carry identical params, so
-    // reading them off the first one is exact rather than approximate.
-    vec3 samplePosition = worldPosition + worldNormal * shadowViews[viewIndex].params.y;
+    // The face border is about one texel of angle and the offset is a small multiple of a texel of
+    // world, so the offset wins comfortably. All six faces carry identical params, so reading them
+    // off the first one is exact rather than approximate.
+    float nDotL = dot(worldNormal, lightDirection);
+    float slope = sqrt(max(1.0 - nDotL * nDotL, 0.0));
+
+    float texelWorldSize = lightDistance * shadowViews[viewIndex].params.x;
+    float offset = texelWorldSize * shadowViews[viewIndex].params.y * slope;
+
+    vec3 samplePosition = worldPosition + worldNormal * offset;
 
     // A point light spends six views, a spot one. Branching on the *count* rather than on a light
     // type keeps this as ignorant of light types as the CPU side is.

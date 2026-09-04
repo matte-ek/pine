@@ -149,6 +149,13 @@ namespace
 
     constexpr int POINT_FACE_COUNT = 6;
 
+    // How far a local light's shadow lookup pushes its sample point off the receiver, in texels of
+    // that light's own tile. A local view is sampled with a single hardware 2x2 tap, so the
+    // footprint to clear is two texels wide, and the sin() term in the shader only ever shrinks
+    // this. Raise it if acne appears; every texel costs a little contact shadow at grazing light
+    // angles, which is the direction that peter-pans.
+    constexpr float LOCAL_NORMAL_OFFSET_TEXELS = 2.f;
+
     // The largest group any single light can ask for, which is the cube.
     constexpr int MAX_LIGHT_TILE_COUNT = POINT_FACE_COUNT;
 
@@ -403,16 +410,34 @@ namespace
         return candidate.Importance * CHALLENGER_MARGIN;
     }
 
-    Rendering::ShadowAtlas::TileSize SelectTileSize(const float importance, const LightShadowState* state)
+    // The class importance asks for, clamped to one that can actually hold a group this size.
+    //
+    // The clamp is not an optimisation, it is the difference between casting and not: a group is
+    // granted all-or-nothing out of a single class, so a point light's six faces cannot come from
+    // the Quarter class at all - that quadrant holds four tiles. Asking anyway is not a contest the
+    // light loses, it is a request that can never be granted, and it costs the light its shadow
+    // outright: it holds nothing, so it has no state to be demoted from, so it asks for the same
+    // impossible thing again next frame. Size following importance rather than light type is what
+    // exposed this - every point light close enough to matter scores above the threshold.
+    Rendering::ShadowAtlas::TileSize SelectTileSize(const float importance, const LightShadowState* state, const int tileCount)
     {
         const float threshold =
             state != nullptr && state->Size == Rendering::ShadowAtlas::TileSize::Quarter
                 ? HIGH_RES_TILE_IMPORTANCE_DROP
                 : HIGH_RES_TILE_IMPORTANCE;
 
-        return importance >= threshold
+        const auto size = importance >= threshold
             ? Rendering::ShadowAtlas::TileSize::Quarter
             : Rendering::ShadowAtlas::TileSize::Eighth;
+
+        // Eighth is the smallest class there is, so it is the only thing to fall back to - and a
+        // group that does not fit there does not fit anywhere, which Setup checks for once.
+        if (Rendering::ShadowAtlas::GetTileCapacity(size) < tileCount)
+        {
+            return Rendering::ShadowAtlas::TileSize::Eighth;
+        }
+
+        return size;
     }
 
     void SelectShadowCandidates(const std::vector<Light*>& lights)
@@ -463,7 +488,7 @@ namespace
             // outer angle covers about 94 - the same. What a multi-size atlas is actually for is
             // giving a light that fills the screen a sharp shadow and one across the room a cheap
             // one, and that is a question about the light's importance, which is already computed.
-            candidate.Size = SelectTileSize(candidate.Importance, state);
+            candidate.Size = SelectTileSize(candidate.Importance, state, candidate.TileCount);
 
             // Off screen and holding nothing: there is no decision to make about it. An off-screen
             // light that still holds tiles stays in the list so it can fade out rather than pop.
@@ -558,12 +583,15 @@ namespace
 
         view.ViewProjection = projectionMatrix * viewMatrix;
         view.ViewFrustum = Frustum::FromViewProjection(view.ViewProjection);
+        const auto viewport = Rendering::ShadowAtlas::GetViewport(atlasSlot);
+
         view.Target = Rendering::ShadowAtlas::GetFrameBuffer();
         view.TargetLayer = -1;
-        view.Viewport = Rendering::ShadowAtlas::GetViewport(atlasSlot);
+        view.Viewport = viewport;
+        view.TexelWorldScale = 2.f * std::tan(fov * 0.5f) / static_cast<float>(viewport.z);
 
-        // Slope-scaled bias is applied by the rasterizer while rendering this view; the constant and
-        // normal offsets are applied by the shader when sampling it.
+        // Slope-scaled bias is applied by the rasterizer while rendering this view; the normal
+        // offset is applied by the shader when sampling it.
         view.SlopeBias = 2.f;
         view.DepthBias = 4.f;
     }
@@ -622,6 +650,7 @@ namespace
         view.Target = Rendering::ShadowAtlas::GetFrameBuffer();
         view.TargetLayer = -1;
         view.Viewport = viewport;
+        view.TexelWorldScale = 2.f * std::tan(fov * 0.5f) / static_cast<float>(viewport.z);
 
         view.SlopeBias = 2.f;
         view.DepthBias = 4.f;
@@ -727,9 +756,10 @@ namespace
             viewData.ViewProjection = viewProjection;
             viewData.TileRect = Rendering::ShadowAtlas::GetUvRect(atlasSlot);
 
-            // No constant bias and no normal offset: front-face culling already provides the
-            // separation those exist to buy, and stacking them would peter-pan. Strength is 1 -
-            // a cascade never fades because it never competes for its tile.
+            // No normal offset: front-face culling already provides the separation it exists to
+            // buy, and stacking them would peter-pan. The texel scale in x is perspective-only and
+            // goes unread here for the same reason. Strength is 1 - a cascade never fades because
+            // it never competes for its tile.
             viewData.Params = Vector4f(0.f, 0.f, 1.f, 0.f);
         }
 
@@ -875,6 +905,16 @@ void Rendering::Shadows::Setup()
         {
             m_TileStates[slot].Owner = &m_CascadeOwner;
         }
+    }
+
+    // A layout that cannot serve the largest group a light can ask for is a layout in which that
+    // kind of light silently never casts: Acquire refuses it, and a refusal is indistinguishable
+    // from losing a contest for space. Worth failing loudly at boot rather than in a level.
+    if (ShadowAtlas::GetTileCapacity(ShadowAtlas::TileSize::Eighth) < MAX_LIGHT_TILE_COUNT)
+    {
+        PError(fmt::format("Shadow atlas smallest tile class holds {} tiles, fewer than the {} a single "
+                           "light can ask for - lights needing a full group will never cast.",
+                           ShadowAtlas::GetTileCapacity(ShadowAtlas::TileSize::Eighth), MAX_LIGHT_TILE_COUNT));
     }
 
     m_ShadowShader = Assets::Get<Shader>("engine/shaders/3d/shadow");
@@ -1039,10 +1079,10 @@ void Rendering::Shadows::PrepareLocalViews(const SceneProcessor::SceneProcessorC
             viewData.ViewProjection = view.ViewProjection;
             viewData.TileRect = ShadowAtlas::GetUvRect(atlasSlot);
 
-            // x = constant depth bias in projected depth, y = world-space normal offset, z = strength.
-            // Strength is the light's fade, not the tile's: all six faces of a point light appear and
-            // disappear together or the cube comes apart mid-transition.
-            viewData.Params = Vector4f(0.0015f, 0.02f, lightState.Fade, 0.f);
+            // x = world texel size per unit distance from the light, y = normal offset in texels,
+            // z = strength. Strength is the light's fade, not the tile's: all six faces of a point
+            // light appear and disappear together or the cube comes apart mid-transition.
+            viewData.Params = Vector4f(view.TexelWorldScale, LOCAL_NORMAL_OFFSET_TEXELS, lightState.Fade, 0.f);
         }
 
         candidate.LightPtr->GetLightHintData().ShadowViewIndex = LOCAL_VIEW_BASE + firstLocalIndex;
