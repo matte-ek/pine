@@ -7,6 +7,7 @@
 #include "Pine/Core/WindowManager/WindowManager.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
+#include "Gui/Dialogs/AssetImport/AssetImportDialog.hpp"
 #include "Gui/MenuBar/MenuBar.hpp"
 #include "Gui/Shared/Commands/Commands.hpp"
 #include "Gui/Shared/Gizmo/Gizmo2D/Gizmo2D.hpp"
@@ -43,8 +44,9 @@ namespace
 
     void OnWindowDrop(const std::vector<std::string>& paths)
     {
-        Editor::Utilities::Asset::ImportAssets(paths);
-        Editor::Utilities::Asset::RefreshAll();
+        // Runs inside glfwPollEvents(), so nothing heavier than remembering the paths happens
+        // here. The import dialog picks them up on the next frame.
+        Editor::Gui::Dialog::AssetImport::Queue(paths);
     }
 
     void SetTheme()
@@ -207,6 +209,8 @@ namespace
         Panels::Debug::Render();
         Panels::Game::Render();
         Panels::GraphicsSettings::Render();
+
+        Editor::Gui::Dialog::AssetImport::Render();
 
         Editor::Commands::Update();
         Editor::Actions::Update();

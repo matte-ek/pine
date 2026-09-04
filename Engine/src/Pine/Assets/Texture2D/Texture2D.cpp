@@ -1,6 +1,9 @@
 #include "Texture2D.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 
+#include <algorithm>
+#include <cctype>
+
 #include "Importer/TextureImporter.hpp"
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Threading/Threading.hpp"
@@ -13,6 +16,96 @@ namespace
     bool IsSRGBUsageHint(const Pine::TextureUsageHint hint)
     {
         return hint == Pine::TextureUsageHint::Albedo || hint == Pine::TextureUsageHint::AlbedoFaster;
+    }
+
+    // Cuts a name into lower-case tokens on the separators texture packs actually use. Matching
+    // whole tokens instead of substrings is not optional: 'metal_floor_5.png' in gm's texture pack
+    // is an albedo texture of a metal floor, and a contains("metal") rule would encode it as a
+    // metalness map.
+    std::vector<std::string> Tokenize(const std::string& name)
+    {
+        std::vector<std::string> tokens;
+        std::string current;
+
+        for (const auto character : name)
+        {
+            if (character == '_' || character == '-' || character == ' ' || character == '.')
+            {
+                if (!current.empty())
+                {
+                    tokens.push_back(current);
+                    current.clear();
+                }
+
+                continue;
+            }
+
+            current += static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+        }
+
+        if (!current.empty())
+        {
+            tokens.push_back(current);
+        }
+
+        return tokens;
+    }
+
+    bool IsNumericToken(const std::string& token)
+    {
+        return !token.empty() && std::all_of(token.begin(), token.end(),
+            [](const unsigned char character) { return std::isdigit(character) != 0; });
+    }
+
+    // The heuristic table. Deliberately short: every entry here is a token that means "this is a
+    // map of type X" and essentially nothing else. The ambiguous short forms that a texture pack
+    // also uses to describe a *material* - 'metal', 'rough', 'wood' - are left out on purpose;
+    // gm's pack alone has 'floor_3_metal' (albedo) next to 'metal_floor_5' (also albedo).
+    struct UsageHintRule
+    {
+        const char* Token;
+        Pine::TextureUsageHint Hint;
+    };
+
+    constexpr UsageHintRule UsageHintRules[] = {
+        {"n", Pine::TextureUsageHint::NormalMap},
+        {"nrm", Pine::TextureUsageHint::NormalMap},
+        {"norm", Pine::TextureUsageHint::NormalMap},
+        {"normal", Pine::TextureUsageHint::NormalMap},
+        {"normals", Pine::TextureUsageHint::NormalMap},
+        {"normalmap", Pine::TextureUsageHint::NormalMap},
+
+        // Emitted light is colour, so it stays sRGB - but it is usually mostly black with a few
+        // bright regions, which is exactly what BC1 handles worst. The fast default exists to keep
+        // bulk albedo imports quick; there are never many emission maps.
+        {"emis", Pine::TextureUsageHint::Albedo},
+        {"emission", Pine::TextureUsageHint::Albedo},
+        {"emissive", Pine::TextureUsageHint::Albedo},
+
+        {"roughness", Pine::TextureUsageHint::LinearColor},
+        {"metallic", Pine::TextureUsageHint::LinearColor},
+        {"metalness", Pine::TextureUsageHint::LinearColor},
+        {"spec", Pine::TextureUsageHint::LinearColor},
+        {"specular", Pine::TextureUsageHint::LinearColor},
+        {"ao", Pine::TextureUsageHint::LinearColor},
+        {"occlusion", Pine::TextureUsageHint::LinearColor},
+        {"orm", Pine::TextureUsageHint::LinearColor},
+        {"rma", Pine::TextureUsageHint::LinearColor},
+        {"arm", Pine::TextureUsageHint::LinearColor},
+        {"mask", Pine::TextureUsageHint::LinearColor},
+    };
+
+    std::optional<Pine::TextureUsageHint> MatchRule(const std::string& token)
+    {
+        for (const auto& rule : UsageHintRules)
+        {
+            if (token == rule.Token)
+            {
+                return rule.Hint;
+            }
+        }
+
+        return {};
     }
 }
 
@@ -34,6 +127,8 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
     textureSerializer.WrapMode.Read(m_WrapMode);
     textureSerializer.CompressionFormat.Read(m_CompressionFormat);
     textureSerializer.ImportUsageHint.Read(m_ImportConfiguration.UsageHint);
+    textureSerializer.ImportUsageHintSource.Read(m_ImportConfiguration.UsageHintSource);
+    textureSerializer.ImportCompressionQuality.Read(m_ImportConfiguration.CompressionQuality);
     textureSerializer.ImportGenerateMipMaps.Read(m_ImportConfiguration.GenerateMipmaps);
 
     m_MipmapLevels = textureSerializer.Mips.GetDataCount();
@@ -240,6 +335,73 @@ bool Pine::Texture2D::Import(Importer::AssetImport* context)
     return Importer::TextureImporter::Import(this);
 }
 
+void Pine::Texture2D::ResolveImportSettings(const Importer::AssetImport& import)
+{
+    if (import.SourcePaths.empty())
+    {
+        return;
+    }
+
+    if (const auto hint = GuessTextureUsageHint(import.SourcePaths.front()))
+    {
+        ApplyTextureUsageHint(m_ImportConfiguration, *hint, TextureUsageHintSource::Heuristic);
+    }
+}
+
+bool Pine::ApplyTextureUsageHint(
+    TextureImportConfiguration& configuration,
+    const TextureUsageHint hint,
+    const TextureUsageHintSource source)
+{
+    if (source < configuration.UsageHintSource)
+    {
+        return false;
+    }
+
+    configuration.UsageHint = hint;
+    configuration.UsageHintSource = source;
+
+    return true;
+}
+
+std::optional<Pine::TextureUsageHint> Pine::GuessTextureUsageHint(const std::filesystem::path& sourcePath)
+{
+    // The map type lives in the file name's trailing token, after whatever the texture depicts:
+    // 'blood_wall_hell_1_normal'. A plain index is not a token worth reading, so skip past it -
+    // 'wall_normal_2' means the same thing as 'wall_normal'.
+    const auto fileTokens = Tokenize(sourcePath.stem().string());
+
+    for (auto token = fileTokens.rbegin(); token != fileTokens.rend(); ++token)
+    {
+        if (IsNumericToken(*token))
+        {
+            continue;
+        }
+
+        if (const auto hint = MatchRule(*token))
+        {
+            return hint;
+        }
+
+        // Only the trailing token is the map type. An earlier one describes the subject, and
+        // reading it is how 'metal_floor_5' becomes a metalness map.
+        break;
+    }
+
+    // Failing that, the directory holding it may say - packs like to sort by map type
+    // ('PSX Textures/Normal Maps/'). Only the immediate parent: any higher and we would be
+    // reading whichever folder the user happened to unzip the pack into.
+    for (const auto& token : Tokenize(sourcePath.parent_path().filename().string()))
+    {
+        if (const auto hint = MatchRule(token))
+        {
+            return hint;
+        }
+    }
+
+    return {};
+}
+
 Pine::ByteSpan Pine::Texture2D::SaveAssetData()
 {
     TextureSerializer textureSerializer;
@@ -283,6 +445,8 @@ Pine::ByteSpan Pine::Texture2D::SaveAssetData()
     textureSerializer.WrapMode.Write(m_WrapMode);
     textureSerializer.CompressionFormat.Write(m_CompressionFormat);
     textureSerializer.ImportUsageHint.Write(m_ImportConfiguration.UsageHint);
+    textureSerializer.ImportUsageHintSource.Write(m_ImportConfiguration.UsageHintSource);
+    textureSerializer.ImportCompressionQuality.Write(m_ImportConfiguration.CompressionQuality);
     textureSerializer.ImportGenerateMipMaps.Write(m_ImportConfiguration.GenerateMipmaps);
 
     return textureSerializer.Write();

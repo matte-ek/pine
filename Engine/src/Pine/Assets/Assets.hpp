@@ -66,5 +66,9 @@ namespace Pine::Assets
 
         Asset* CreateAssetByType(AssetType type);
         Asset* CreateAssetByFile(const std::filesystem::path& path);
+
+        // The asset type a raw source file would be imported as, or AssetType::Invalid if no
+        // importer is registered for its extension.
+        AssetType GetAssetTypeByFile(const std::filesystem::path& path);
     }
 }

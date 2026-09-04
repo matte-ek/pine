@@ -100,6 +100,11 @@ void Pine::Asset::RemoveSource(const std::string& filePath)
         }), m_SourceFiles.end());
 }
 
+void Pine::Asset::ClearSources()
+{
+    m_SourceFiles.clear();
+}
+
 const std::vector<Pine::AssetSource>& Pine::Asset::GetSources() const
 {
     return m_SourceFiles;
@@ -307,6 +312,11 @@ Pine::Asset* Pine::Asset::LoadFromFile(const std::filesystem::path& filePath, co
 bool Pine::Asset::Import(Importer::AssetImport* context)
 {
     return true;
+}
+
+void Pine::Asset::ResolveImportSettings(const Importer::AssetImport& import)
+{
+    // Most asset types have no import settings to work out.
 }
 
 Pine::ByteSpan Pine::Asset::Save()

@@ -8,6 +8,7 @@
 #include "Gui/Panels/AssetBrowser/AssetHierarchy/AssetHierarchy.hpp"
 
 #include "Gui/Panels/Properties/EntityPropertiesRenderer/EntityPropertiesRenderer.hpp"
+#include "Gui/Shared/AssetImportSettings/AssetImportSettings.hpp"
 #include "Gui/Shared/IconStorage/IconStorage.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Gui/Shared/Widgets/Widgets.hpp"
@@ -66,9 +67,7 @@ namespace
         ImGui::Separator();
         ImGui::Spacing();
 
-        modifiedTexture |= Widgets::DropDown("Compression Quality", reinterpret_cast<int*>(&importConfiguration.CompressionQuality), "Normal\0Fastest\0Production\0");
-        modifiedTexture |= Widgets::DropDown("Usage Hint", reinterpret_cast<int*>(&importConfiguration.UsageHint), "Albedo (BC7)\0Albedo Fast (BC1)\0Normal (BC5)\0Grayscale (BC4)\0Data Map\0Raw\0");
-        modifiedTexture |= Widgets::Checkbox("Generate mip maps", &importConfiguration.GenerateMipmaps);
+        modifiedTexture |= Editor::Gui::AssetImportSettings::RenderTexture(importConfiguration).Any();
 
         if (ImGui::Button("Re-import"))
         {

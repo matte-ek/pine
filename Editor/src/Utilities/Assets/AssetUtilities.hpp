@@ -3,6 +3,7 @@
 #include <string>
 
 #include "Pine/Assets/Asset/Asset.hpp"
+#include "Pine/Assets/Importer/AssetImporter.hpp"
 
 namespace Editor::Utilities::Asset
 {
@@ -13,8 +14,11 @@ namespace Editor::Utilities::Asset
     // load that asset into the asset manager, and return that newly loaded asset.
     Pine::Asset* CreateEmptyAsset(const std::filesystem::path& path, Pine::AssetType type);
 
-    // Utilities to import assets into Pine
-    void ImportAssets(const std::vector<std::string>& paths);
+    // Builds an import context for the given files and directories, targeting the directory
+    // currently open in the asset browser. The queue is filled but nothing is resolved or
+    // imported: that is the caller's to drive, and the caller owns the context - see
+    // Pine::Importer::DeleteContext().
+    Pine::Importer::ImportContext* CreateImportContext(const std::vector<std::string>& paths);
 
     // Utilities to delete both assets and directories
     void DeletePath(const std::filesystem::path& path);

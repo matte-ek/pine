@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Importer/AssetImporter.hpp"
 #include "Pine/Graphics/Interfaces/ITexture.hpp"
@@ -11,6 +13,8 @@ namespace Pine
         class TextureImporter;
     }
 
+    // What a texture is for. Decides the block compression format it is encoded with, and whether
+    // the GPU sRGB-decodes it when sampled. Serialized as an integer, so only ever append.
     enum class TextureUsageHint
     {
         Albedo = 0,
@@ -18,7 +22,32 @@ namespace Pine
         NormalMap,
         Grayscale,
         DataMap,
-        Uncompressed
+        Uncompressed,
+
+        // A three-channel texture that carries data rather than colour: packed
+        // roughness/metalness/AO, specular maps. Encoded like Albedo, but sampled linearly -
+        // sRGB-decoding these makes the values they hold plain wrong.
+        LinearColor
+    };
+
+    // Why a texture carries the usage hint it does. Ordered weakest to strongest: a hint is only
+    // ever overwritten by a reason at least as good as the one already recorded, which is what
+    // keeps a re-import from throwing away a choice the user made by hand. Serialized alongside
+    // the hint so the ranking survives one.
+    enum class TextureUsageHintSource
+    {
+        // Nobody had an opinion; this is whatever the configuration was constructed with.
+        Default = 0,
+
+        // Worked out from the file name (see GuessTextureUsageHint).
+        Heuristic,
+
+        // The source file said so outright - e.g. a model file listing a texture as its normal
+        // map. Ground truth as far as the importer is concerned.
+        SourceFormat,
+
+        // Set by hand.
+        User
     };
 
     enum class TextureCompressionQuality
@@ -31,9 +60,25 @@ namespace Pine
     struct TextureImportConfiguration : AssetImportConfiguration
     {
         TextureUsageHint UsageHint = TextureUsageHint::AlbedoFaster;
+        TextureUsageHintSource UsageHintSource = TextureUsageHintSource::Default;
         TextureCompressionQuality CompressionQuality = TextureCompressionQuality::Normal;
         bool GenerateMipmaps = true;
     };
+
+    // Applies 'hint' to 'configuration' if 'source' is at least as good a reason to believe it as
+    // whatever decided the hint already there, and reports whether it did. Every guess about what
+    // a texture is for goes through here - the model importer reading a texture slot out of a
+    // model file, the file name heuristic, the editor writing down what the user picked - so that
+    // a weaker reason can never quietly replace a stronger one.
+    bool ApplyTextureUsageHint(
+        TextureImportConfiguration& configuration,
+        TextureUsageHint hint,
+        TextureUsageHintSource source);
+
+    // The heuristic tier: what a texture is probably for, going by its file name and the directory
+    // holding it. Returns nothing when nothing matches, which is the common case - most textures
+    // are albedo and are named after what they depict, not what they are.
+    std::optional<TextureUsageHint> GuessTextureUsageHint(const std::filesystem::path& sourcePath);
 
     struct TextureImportData
     {
@@ -83,6 +128,7 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(CompressionFormat, Serialization::DataType::Int32);
 
             PINE_SERIALIZE_PRIMITIVE(ImportUsageHint, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(ImportUsageHintSource, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(ImportCompressionQuality, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(ImportGenerateMipMaps, Serialization::DataType::Boolean);
 
@@ -128,6 +174,7 @@ namespace Pine
         size_t GetTextureDataSize() const;
 
         bool Import(Importer::AssetImport* context) override;
+        void ResolveImportSettings(const Importer::AssetImport& import) override;
         void Dispose() override;
 
         friend class Importer::TextureImporter;

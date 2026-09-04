@@ -63,6 +63,14 @@ bool Model::LoadAssetData(const ByteSpan& span)
 
     auto task = Threading::QueueTask<void>([this]()
     {
+        // Reload replaces the GPU meshes as well as their serialized data.
+        for (const auto mesh : m_Meshes)
+        {
+            mesh->Dispose();
+            delete mesh;
+        }
+        m_Meshes.clear();
+
         // Seeded inside-out rather than at zero, so the aggregate is the union of the meshes and
         // not the union of the meshes and the origin. A model authored away from the origin would
         // otherwise report a box stretching back to it, which throws off anything that centers or

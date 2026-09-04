@@ -72,7 +72,7 @@ Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::p
     return asset;
 }
 
-void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& paths)
+Pine::Importer::ImportContext* Editor::Utilities::Asset::CreateImportContext(const std::vector<std::string>& paths)
 {
     auto importContext = Pine::Importer::CreateContext();
     auto currentDirectory = Panels::AssetBrowser::GetOpenDirectoryNode();
@@ -104,26 +104,7 @@ void Editor::Utilities::Asset::ImportAssets(const std::vector<std::string>& path
         }
     }
 
-    Pine::Importer::Run(importContext);
-
-    int importedAssets = 0;
-    int failedAssets = 0;
-
-    for (const auto& iter : importContext->Imports)
-    {
-        if (iter.ImportStatus == Pine::AssetImportStatus::Imported)
-        {
-            importedAssets++;
-        }
-        else if (iter.ImportStatus == Pine::AssetImportStatus::Failed)
-        {
-            failedAssets++;
-        }
-    }
-
-    PInfo(fmt::format("Imported {} assets", importedAssets));
-
-    Pine::Importer::DeleteContext(importContext);
+    return importContext;
 }
 
 void Editor::Utilities::Asset::DeletePath(const std::filesystem::path& path)

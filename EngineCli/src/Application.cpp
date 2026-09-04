@@ -25,9 +25,9 @@ namespace
         Pine::Importer::Run(context);
 
         Pine::Asset* asset = nullptr;
-        if (!context->Imports.empty() && context->Imports.front().ImportStatus == Pine::AssetImportStatus::Imported)
+        if (!context->Imports.empty() && context->Imports.front()->ImportStatus == Pine::AssetImportStatus::Imported)
         {
-            asset = context->Imports.front().AssetPtr;
+            asset = context->Imports.front()->AssetPtr;
         }
 
         // DeleteContext only frees the context, not the imported asset it points to.

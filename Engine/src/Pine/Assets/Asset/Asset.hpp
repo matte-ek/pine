@@ -162,6 +162,10 @@ namespace Pine
 
         void AddSource(const std::string& filePath);
         void RemoveSource(const std::string& filePath);
+
+        // Drops every source file the asset is built from, used when re-importing an asset from
+        // a different set of sources than it was originally created with.
+        void ClearSources();
         const std::vector<AssetSource>& GetSources() const;
 
         void MarkAsModified();
@@ -189,6 +193,14 @@ namespace Pine
         void ReLoad();
         
         virtual bool Import(Importer::AssetImport* context = nullptr);
+
+        // Called by the importer once it knows which files an asset will be built from, but before
+        // any of them are read, so an asset type can work out import settings from what it can see
+        // - the file name, the directory holding it. Runs on re-imports too, so anything decided
+        // here has to be the weakest kind of evidence there is and must not overwrite a setting
+        // that was decided for a better reason (see TextureUsageHintSource).
+        virtual void ResolveImportSettings(const Importer::AssetImport& import);
+
         virtual void Dispose() = 0;
 
         static Asset* Load(const ByteSpan& data, bool ignoreAssetData = false);

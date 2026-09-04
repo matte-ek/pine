@@ -312,3 +312,10 @@ Asset* Assets::Internal::CreateAssetByFile(const std::filesystem::path& path)
 
     return factory->m_Factory();
 }
+
+AssetType Assets::Internal::GetAssetTypeByFile(const std::filesystem::path& path)
+{
+    const auto factory = GetAssetFactoryFromFileName(path);
+
+    return factory ? factory->m_Type : AssetType::Invalid;
+}

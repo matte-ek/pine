@@ -84,6 +84,7 @@ namespace
             case TextureUsageHint::DataMap:
                 return Graphics::TextureCompressionFormat::Raw;
             case TextureUsageHint::Albedo:
+            case TextureUsageHint::LinearColor:
                 return Graphics::TextureCompressionFormat::BC7;
             case TextureUsageHint::AlbedoFaster:
                 return Graphics::TextureCompressionFormat::BC1;

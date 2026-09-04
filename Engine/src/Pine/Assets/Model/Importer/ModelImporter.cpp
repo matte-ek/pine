@@ -4,8 +4,11 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#include <optional>
+
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Core/File/File.hpp"
+#include "Pine/Core/String/String.hpp"
 
 namespace
 {
@@ -18,6 +21,45 @@ namespace
                     return c > 127;
                 }),
                 str.end());
+    }
+
+    // The model file tells us what each of its textures is for, which decides both the block
+    // compression format and whether the texture gets sRGB-decoded when sampled. That's a much
+    // better source than guessing from the file name, so use it while we still have it.
+    //
+    // What a slot means is partly a property of the model format, not just of assimp's enum:
+    // assimp maps an OBJ's 'map_Bump' onto aiTextureType_HEIGHT rather than NORMALS, and in that
+    // format that is what a normal map looks like. Elsewhere HEIGHT may be a real displacement
+    // map, so it is left alone.
+    std::optional<Pine::TextureUsageHint> UsageHintForTextureType(
+        const aiTextureType textureType,
+        const std::string& modelExtension)
+    {
+        switch (textureType)
+        {
+            case aiTextureType_NORMALS:
+                return Pine::TextureUsageHint::NormalMap;
+
+            case aiTextureType_HEIGHT:
+                if (Pine::String::ToLower(modelExtension) == ".obj")
+                {
+                    return Pine::TextureUsageHint::NormalMap;
+                }
+
+                return {};
+
+            // Everything below carries data in colour channels: sampling it sRGB-decoded makes the
+            // values it holds plain wrong.
+            case aiTextureType_SPECULAR:
+            case aiTextureType_METALNESS:
+            case aiTextureType_DIFFUSE_ROUGHNESS:
+            case aiTextureType_AMBIENT_OCCLUSION:
+            case aiTextureType_LIGHTMAP:
+                return Pine::TextureUsageHint::LinearColor;
+
+            default:
+                return {};
+        }
     }
 
     bool IsSupportedImageExtension(const std::string& ext)
@@ -119,6 +161,28 @@ Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* conte
         return nullptr;
     }
 
+    std::function<bool(Asset*)> configure = nullptr;
+
+    const auto modelExtension = context->SourcePaths.empty() ?
+        std::string() : context->SourcePaths.front().extension().string();
+
+    if (const auto usageHint = UsageHintForTextureType(textureType, modelExtension))
+    {
+        configure = [usageHint](Asset* asset)
+        {
+            if (const auto texture = dynamic_cast<Texture2D*>(asset))
+            {
+                const auto previous = texture->GetImportConfiguration();
+                ApplyTextureUsageHint(
+                    texture->GetImportConfiguration(), *usageHint, TextureUsageHintSource::SourceFormat);
+                const auto& current = texture->GetImportConfiguration();
+                return current.UsageHint != previous.UsageHint ||
+                       current.UsageHintSource != previous.UsageHintSource;
+            }
+            return false;
+        };
+    }
+
     aiString filePath;
     material->GetTexture(textureType, 0, &filePath);
 
@@ -148,7 +212,7 @@ Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* conte
 
             File::WriteRaw(temporaryFilePath, imageBytes);
 
-            const auto texture = dynamic_cast<Texture2D*>(ImportRelative(context, temporaryFilePath, embeddedTexture->mFilename.C_Str()));
+            const auto texture = dynamic_cast<Texture2D*>(ImportRelative(context, temporaryFilePath, embeddedTexture->mFilename.C_Str(), configure));
 
             std::filesystem::remove(temporaryFilePath);
 
@@ -158,7 +222,7 @@ Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* conte
         return nullptr;
     }
 
-    return dynamic_cast<Texture2D*>(ImportRelative(context, filePath.C_Str()));
+    return dynamic_cast<Texture2D*>(ImportRelative(context, filePath.C_Str(), "", configure));
 }
 
 bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* model)
@@ -192,6 +256,14 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
         return false;
     }
 
+    // Importing appends, so a re-import has to start from a clean model. The embedded materials
+    // are kept aside rather than dropped: meshes reference their material by UId, so a material
+    // that is still in the file must come back as the same asset, not a new one.
+    auto previousMaterials = std::move(model->m_EmbeddedMaterials);
+
+    model->m_EmbeddedMaterials.clear();
+    model->m_MeshData.clear();
+
     if (scene->HasMaterials())
     {
         auto materialLoadRelPath = std::filesystem::path(file.FilePath).parent_path().string();
@@ -209,7 +281,23 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
 
             RemoveNonASCII(materialName);
 
-            auto engineMaterial = dynamic_cast<Material*>(Assets::CreateAsset(AssetType::Material, model->GetPath() + "-" + materialName));
+            const auto materialPath = String::ToLower(model->GetPath() + "-" + materialName);
+
+            Material* engineMaterial = nullptr;
+
+            for (const auto previousMaterial : previousMaterials)
+            {
+                if (previousMaterial->GetPath() == materialPath)
+                {
+                    engineMaterial = previousMaterial;
+                    break;
+                }
+            }
+
+            if (!engineMaterial)
+            {
+                engineMaterial = dynamic_cast<Material*>(Assets::CreateAsset(AssetType::Material, materialPath));
+            }
 
             aiColor3D diffuse_color(1.f, 1.f, 1.f);
             aiColor3D ambient_color(0.f, 0.f, 0.f);
@@ -224,20 +312,17 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
             engineMaterial->SetAmbientColor(Vector3f(ambient_color.r, ambient_color.g, ambient_color.b));
             engineMaterial->SetShininess(shininess);
 
-            if (auto diffuseTexture = ImportTexture(importContext, scene, material, aiTextureType_DIFFUSE))
-            {
-                engineMaterial->SetDiffuse(diffuseTexture);
-            }
+            engineMaterial->SetDiffuse(ImportTexture(importContext, scene, material, aiTextureType_DIFFUSE));
+            engineMaterial->SetSpecular(ImportTexture(importContext, scene, material, aiTextureType_SPECULAR));
 
-            if (auto specularTexture = ImportTexture(importContext, scene, material, aiTextureType_SPECULAR))
+            auto normalMapTexture = ImportTexture(importContext, scene, material, aiTextureType_NORMALS);
+            if (!normalMapTexture && importContext &&
+                !importContext->SourcePaths.empty() &&
+                String::ToLower(importContext->SourcePaths.front().extension().string()) == ".obj")
             {
-                engineMaterial->SetSpecular(specularTexture);
+                normalMapTexture = ImportTexture(importContext, scene, material, aiTextureType_HEIGHT);
             }
-
-            if (auto normalMapTexture = ImportTexture(importContext, scene, material, aiTextureType_NORMALS))
-            {
-                engineMaterial->SetNormal(normalMapTexture);
-            }
+            engineMaterial->SetNormal(normalMapTexture);
 
             model->m_EmbeddedMaterials.push_back(engineMaterial);
         }
