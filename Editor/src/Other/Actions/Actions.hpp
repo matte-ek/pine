@@ -91,7 +91,11 @@ namespace Editor::Actions
         ~CreateComponentCommand();
     };
 
+    // Set by every command created anywhere this frame, cleared once in Update(). A consumer that wants
+    // to know whether its *own* section of UI changed something has to ClearItemUpdated() first, or it
+    // also sees unrelated commands made earlier in the frame (the viewport gizmo, for instance).
     bool HasItemUpdated();
+    void ClearItemUpdated();
 
     void ExecuteUndo();
     void ExecuteRedo();

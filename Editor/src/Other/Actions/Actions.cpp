@@ -199,6 +199,11 @@ bool Editor::Actions::HasItemUpdated()
     return m_ItemUpdated;
 }
 
+void Editor::Actions::ClearItemUpdated()
+{
+    m_ItemUpdated = false;
+}
+
 void Editor::Actions::ExecuteUndo()
 {
     if (m_CommandIndex == 0)

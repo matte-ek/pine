@@ -1,6 +1,8 @@
 #include "Model.hpp"
 #include "Pine/Assets/Assets.hpp"
 
+#include <limits>
+
 #include "Importer/ModelImporter.hpp"
 #include "Pine/Threading/Threading.hpp"
 
@@ -61,6 +63,13 @@ bool Model::LoadAssetData(const ByteSpan& span)
 
     auto task = Threading::QueueTask<void>([this]()
     {
+        // Seeded inside-out rather than at zero, so the aggregate is the union of the meshes and
+        // not the union of the meshes and the origin. A model authored away from the origin would
+        // otherwise report a box stretching back to it, which throws off anything that centers or
+        // frames on these bounds. Reset per load, since a re-import runs this again.
+        m_BoundingBoxMin = Vector3f(std::numeric_limits<float>::max());
+        m_BoundingBoxMax = Vector3f(std::numeric_limits<float>::lowest());
+
         for (auto& meshData : m_MeshData)
         {
             auto mesh = CreateMesh();
@@ -96,6 +105,12 @@ bool Model::LoadAssetData(const ByteSpan& span)
 
             m_BoundingBoxMin = glm::min(meshData.BoundingBoxMin, m_BoundingBoxMin);
             m_BoundingBoxMax = glm::max(meshData.BoundingBoxMax, m_BoundingBoxMax);
+        }
+
+        if (m_MeshData.empty())
+        {
+            m_BoundingBoxMin = Vector3f(0.f);
+            m_BoundingBoxMax = Vector3f(0.f);
         }
 
         // We don't need this data anymore.

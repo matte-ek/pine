@@ -809,6 +809,11 @@ namespace
 
 bool ComponentPropertiesRenderer::Render(Pine::Component* component, int index)
 {
+    // The updated flag is frame-global and anything that ran earlier in the frame may have set it - the
+    // viewport gizmo does exactly that while dragging. Clear it first so the return value means "this
+    // component's own widgets changed something", which is what the caller acts on.
+    ClearItemUpdated();
+
     RenderComponent(component, index);
 
     return HasItemUpdated();
