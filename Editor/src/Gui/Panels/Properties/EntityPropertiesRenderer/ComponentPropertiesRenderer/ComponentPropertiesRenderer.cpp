@@ -159,7 +159,8 @@ namespace
         int lightType = static_cast<int>(light->GetLightType());
         Pine::Vector3f lightColor = light->GetLightColor();
         float lightIntensity = light->GetLightIntensity();
-        Pine::Vector3f lightAttenuation = light->GetLightAttenuation();
+        float lightRange = light->GetRange();
+        bool castShadows = light->GetCastShadows();
         float spotlightOuterAngle = light->GetSpotlightOuterAngle();
         float spotlightInnerAngle = light->GetSpotlightInnerAngle();
 
@@ -177,37 +178,38 @@ namespace
             light->SetLightColor(lightColor);
         }
 
-        // Intensity is unbounded (HDR): values > 1 let the light blow out. InputFloat, not a slider,
-        // so there's no artificial ceiling.
-        if (Widgets::InputFloat("Intensity", &lightIntensity))
+        // Intensity is unbounded (HDR): values > 1 let the light blow out. The slider covers the
+        // span actually worth dragging through and ctrl+click still types anything above it, so
+        // there is still no real ceiling. Logarithmic because the windowed inverse-square falloff
+        // puts useful values across two decades - a dim fill light sits near 1, while a lamp that
+        // has to reach across a room needs tens.
+        if (Widgets::SliderFloat("Intensity", &lightIntensity, 0.f, 100.f, true))
         {
             CreateComponentCommand updateCmd(light, CommandType::Update);
 
             light->SetLightIntensity(lightIntensity);
         }
 
+        // Directional lights are infinitely far away, so a range would be meaningless for them.
         if (light->GetLightType() != Pine::LightType::Directional)
         {
-            if (Widgets::SliderFloat("Attenuation Constant Factor", &lightAttenuation.x, 0.f, 1.f))
+            // The distance at which this light's contribution reaches exactly zero. Logarithmic for
+            // the same reason as intensity: the useful values run from a candle (1) through a room
+            // (10) to a street (50), and a linear slider would spend most of its travel above the
+            // range anything indoors wants.
+            if (Widgets::SliderFloat("Range", &lightRange, 0.1f, 100.f, true))
             {
                 CreateComponentCommand updateCmd(light, CommandType::Update);
 
-                light->SetLightAttenuation(lightAttenuation);
+                light->SetRange(lightRange);
             }
+        }
 
-            if (Widgets::SliderFloat("Attenuation Linear Factor", &lightAttenuation.y, 0.f, 1.f))
-            {
-                CreateComponentCommand updateCmd(light, CommandType::Update);
+        if (Widgets::Checkbox("Cast Shadows", &castShadows))
+        {
+            CreateComponentCommand updateCmd(light, CommandType::Update);
 
-                light->SetLightAttenuation(lightAttenuation);
-            }
-
-            if (Widgets::SliderFloat("Attenuation Quadratic Factor", &lightAttenuation.z, 0.f, 1.f))
-            {
-                CreateComponentCommand updateCmd(light, CommandType::Update);
-
-                light->SetLightAttenuation(lightAttenuation);
-            }
+            light->SetCastShadows(castShadows);
         }
 
         if (light->GetLightType() == Pine::LightType::SpotLight)

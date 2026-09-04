@@ -45,6 +45,14 @@ namespace Pine::RenderManager
     // The rendering context currently being used during rendering.
     RenderingContext* GetCurrentRenderingContext();
 
+    // Every context that will be rendered this frame, primary first.
+    //
+    // Needed by scene-level work that happens once per frame but has to answer a question about
+    // "the viewer" - which viewer is genuinely ambiguous with an editor viewport and a game camera
+    // both live, and the primary context is the *game* one in the editor, not the one being looked
+    // at. Answering against all of them is the only reading that is right in both.
+    const std::vector<RenderingContext*>& GetRenderingContexts();
+
     // The default rendering context's properties may be overwritten, but is generally used
     // as a 'reset' for the rendering pipeline.
     RenderingContext* GetDefaultRenderingContext();

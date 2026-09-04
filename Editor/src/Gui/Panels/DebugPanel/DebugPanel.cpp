@@ -10,6 +10,10 @@
 
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
+#include "Pine/Rendering/Features/Shadows/Shadows.hpp"
+#include "Pine/Rendering/Features/Shadows/ShadowAtlas/ShadowAtlas.hpp"
+#include "Pine/Rendering/GraphicsSettings/GraphicsSettings.hpp"
+#include "Pine/World/Entity/Entity.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
@@ -20,6 +24,7 @@ namespace
 
     bool m_AmbientOcclusionTexture = false;
     bool m_DepthPositionTexture = false;
+    bool m_ShadowAtlasTexture = false;
 }
 
 void Panels::Debug::SetActive(bool value)
@@ -128,6 +133,106 @@ void Panels::Debug::Render()
             ImGui::Checkbox("View Position Texture", &m_DepthPositionTexture);
         }
 
+        if (ImGui::CollapsingHeader("Shadows"))
+        {
+            const auto& statistics = Pine::Rendering::Shadows::GetStatistics();
+
+            ImGui::Text("Local views: %d (%d cached), casters drawn: %d",
+                statistics.LocalViewCount,
+                statistics.TilesCached,
+                statistics.CastersDrawn);
+
+            // Every tile drawn this frame, cascades included - they share the atlas and the render
+            // path now, so a single number is the honest one.
+            ImGui::Text("Tiles rendered: %d", statistics.TilesRendered);
+
+            ImGui::Text("Cascade views: %d, casters drawn: %d",
+                statistics.CascadeViewCount,
+                statistics.CascadeCastersDrawn);
+
+            ImGui::Text("Atlas: %dx%d", Pine::Rendering::ShadowAtlas::GetResolution(),
+                                        Pine::Rendering::ShadowAtlas::GetResolution());
+
+            // Tile ownership, eviction churn, cube seams and stale caches are all invisible in the
+            // final image and obvious here. Worth having before the things it diagnoses exist.
+            const auto& slots = Pine::Rendering::ShadowAtlas::GetSlots();
+
+            int occupied = 0;
+            for (const auto& slot : slots)
+            {
+                if (slot.Owner != nullptr)
+                {
+                    occupied++;
+                }
+            }
+
+            ImGui::Text("Slots: %d of %d in use", occupied, static_cast<int>(slots.size()));
+
+            if (ImGui::TreeNode("Tiles"))
+            {
+                for (std::size_t i = 0; i < slots.size(); i++)
+                {
+                    const auto& slot = slots[i];
+
+                    if (slot.Owner == nullptr)
+                    {
+                        continue;
+                    }
+
+                    static const char* sizeNames[] = { "1/2", "1/4", "1/8" };
+
+                    const auto tile = Pine::Rendering::Shadows::GetTileDebugInfo(static_cast<int>(i));
+
+                    // Slot::Owner is only a Light for tiles a light claimed. The cascades' tiles are
+                    // pinned to a token, and casting that to a Light would dereference a char.
+                    const char* ownerName = tile.Reserved
+                        ? "directional cascade"
+                        : static_cast<const Pine::Light*>(slot.Owner)->GetParent()->GetName().c_str();
+
+                    ImGui::Text("#%d %s %dx%d @ (%d,%d) - %s%s",
+                        static_cast<int>(i),
+                        sizeNames[static_cast<int>(slot.Size)],
+                        slot.Rect.z, slot.Rect.w, slot.Rect.x, slot.Rect.y,
+                        ownerName,
+                        slot.RenderedThisFrame ? " [rendered]" : " [cached]");
+
+                    if (tile.Reserved)
+                    {
+                        continue;
+                    }
+
+                    // Importance drives who wins a tile, fade covers the hand-over, residency is
+                    // what stops two lights trading the same tile every frame. A thrashing scene
+                    // shows up as residency never climbing past MIN_RESIDENCY_SECONDS.
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("  importance %.2f, fade %.2f, held %.1fs, %d tile%s",
+                        tile.Importance, tile.Fade, tile.ResidencyTime,
+                        tile.TileCount, tile.TileCount == 1 ? "" : "s");
+                }
+
+                ImGui::TreePop();
+            }
+
+            // An allocator that never runs out is an allocator whose exhaustion path has never run.
+            // -1 is off; 0 forces every light to lose its tile, which is the setting that shows at a
+            // glance that the control is actually connected.
+            auto settings = Pine::Rendering::GraphicsSettings::Get();
+
+            if (ImGui::SliderInt("Tile budget", &settings.LocalShadowTileBudget, 0, 16))
+            {
+                Pine::Rendering::GraphicsSettings::Set(settings);
+            }
+
+            int debugSlotLimit = Pine::Rendering::ShadowAtlas::GetDebugSlotLimit();
+            if (ImGui::SliderInt("Force tile limit", &debugSlotLimit, -1, 16,
+                                 debugSlotLimit < 0 ? "off" : "%d tiles"))
+            {
+                Pine::Rendering::ShadowAtlas::SetDebugSlotLimit(debugSlotLimit);
+            }
+
+            ImGui::Checkbox("View Shadow Atlas", &m_ShadowAtlasTexture);
+        }
+
         if (ImGui::CollapsingHeader("Physics"))
         {
             if (ImGui::Button("Connect to PhysX debugger"))
@@ -145,6 +250,41 @@ void Panels::Debug::Render()
         {
             const std::uint64_t id = *static_cast<std::uint32_t*>(Pine::Rendering::AmbientOcclusion::GetOutputTexture()->GetGraphicsIdentifier());
             ImGui::Image(id, ImVec2(640, 360));
+        }
+        ImGui::End();
+    }
+
+    if (m_ShadowAtlasTexture)
+    {
+        if (ImGui::Begin(ICON_MD_TROUBLESHOOT " Shadow Atlas", &m_ShadowAtlasTexture))
+        {
+            if (auto* texture = Pine::Rendering::ShadowAtlas::GetTexture())
+            {
+                const std::uint64_t id = *static_cast<std::uint32_t*>(texture->GetGraphicsIdentifier());
+
+                const auto origin = ImGui::GetCursorScreenPos();
+                constexpr float displaySize = 512.f;
+
+                ImGui::Image(id, ImVec2(displaySize, displaySize));
+
+                // Tile borders drawn over the depth image: a depth atlas is near-featureless to
+                // look at, and which tile is which is the whole question being asked here.
+                auto* drawList = ImGui::GetWindowDrawList();
+
+                const float scale = displaySize / static_cast<float>(Pine::Rendering::ShadowAtlas::GetResolution());
+
+                for (const auto& slot : Pine::Rendering::ShadowAtlas::GetSlots())
+                {
+                    const auto min = ImVec2(origin.x + slot.Rect.x * scale, origin.y + slot.Rect.y * scale);
+                    const auto max = ImVec2(min.x + slot.Rect.z * scale, min.y + slot.Rect.w * scale);
+
+                    const ImU32 color = slot.Owner == nullptr
+                        ? IM_COL32(80, 80, 80, 120)
+                        : (slot.RenderedThisFrame ? IM_COL32(80, 220, 80, 255) : IM_COL32(220, 180, 60, 255));
+
+                    drawList->AddRect(min, max, color);
+                }
+            }
         }
         ImGui::End();
     }

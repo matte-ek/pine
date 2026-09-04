@@ -93,6 +93,18 @@ namespace Pine::Graphics
 
         virtual void SetViewport(Vector2i position, Vector2i size) = 0;
 
+        // Restricts rasterization *and clears* to a rectangle. SetViewport alone does not bound a
+        // clear, so this is what makes it possible to clear one region of a shared render target
+        // without destroying the rest of it.
+        virtual void SetScissorEnabled(bool value) = 0;
+        virtual void SetScissor(Vector2i position, Vector2i size) = 0;
+
+        // Offsets generated depth by (slope * dz/dxy + units * smallest-resolvable-depth). The
+        // slope term is what a constant bias cannot do: it scales with how steeply a surface faces
+        // away, which is exactly where depth-comparison acne appears.
+        virtual void SetDepthBiasEnabled(bool value) = 0;
+        virtual void SetDepthBias(float slope, float units) = 0;
+
         virtual void SetBlendingEnabled(bool value) = 0;
         virtual void SetDepthTestEnabled(bool value) = 0;
         virtual void SetStencilTestEnabled(bool value) = 0;

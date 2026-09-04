@@ -53,11 +53,15 @@ namespace Pine::Renderer3D
     void RenderMeshInstanced();
 
     void AddLight(Light* light);
-    void AddDirectionalShadowMap(Graphics::ITexture* depthMap);
     void UploadLights();
 
     void SetCamera(Camera* camera);
     void SetCamera(const Matrix4f &viewMatrix, const Matrix4f &projMatrix);
+
+    // Renders from a single combined view-projection, as a ShadowView carries. The Matrices UBO
+    // holds the two matrices separately and the shaders only ever use their product, so the view is
+    // set to identity and the whole transform goes in the projection slot.
+    void SetViewProjection(const Matrix4f& viewProjection);
 
     Camera* GetCamera();
 

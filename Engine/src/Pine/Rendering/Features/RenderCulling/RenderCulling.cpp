@@ -49,7 +49,8 @@ bool Pine::Rendering::RenderCulling::VisibilitySet::IsVisible(const std::uint32_
 
 Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cull(
     const Frustum& frustum,
-    VisibilitySet& visibility)
+    VisibilitySet& visibility,
+    const VisibilitySet* restrictTo)
 {
     PINE_PF_SCOPE();
 
@@ -64,9 +65,55 @@ Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cu
             continue;
         }
 
+        if (restrictTo != nullptr && !restrictTo->IsVisible(modelRenderer.GetInternalId()))
+        {
+            continue;
+        }
+
         const auto& data = modelRenderer.GetRenderingHintData();
 
         if (frustum.Intersects(data.BoundsMin, data.BoundsMax))
+        {
+            visibility.Set(modelRenderer.GetInternalId());
+
+            result.VisibleObjectCount++;
+        }
+        else
+        {
+            result.CulledObjectCount++;
+        }
+    }
+
+    return result;
+}
+
+Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cull(
+    const Vector3f& center,
+    const float radius,
+    VisibilitySet& visibility)
+{
+    PINE_PF_SCOPE();
+
+    visibility.Reset(Engine::GetEngineConfiguration().m_MaxObjectCount);
+
+    CullingResult result;
+
+    const float radiusSqr = radius * radius;
+
+    for (auto& modelRenderer : Components::Get<ModelRenderer>())
+    {
+        if (!modelRenderer.GetModel())
+        {
+            continue;
+        }
+
+        const auto& data = modelRenderer.GetRenderingHintData();
+
+        // Closest point on the box to the sphere centre. Clamping the centre into the box gives it
+        // directly, with no case analysis over faces, edges and corners.
+        const auto closest = glm::clamp(center, data.BoundsMin, data.BoundsMax);
+
+        if (glm::distance2(closest, center) <= radiusSqr)
         {
             visibility.Set(modelRenderer.GetInternalId());
 

@@ -14,6 +14,7 @@ in VertexData
 	vec3 cameraDir;
 	float cameraDistance;
 	vec3 normalDir;
+	vec3 worldNormal;
 	vec3 lightDir[8];
     flat int lightIndices[8];
 }vIn;
@@ -63,14 +64,18 @@ vec3 CalculatePointLights(Surface surface)
     return lightColorOutput;
 }
 
-// The spot light occupies instance light slot 5; its direction is vIn.lightDir[6].
+// Spot lights occupy instance light slots 5-6; their directions are vIn.lightDir[6..7]. Two slots
+// so a hand-held light and a world light can reach the same surface. Same literal-subscript rule as
+// the point lights above.
+//
+// Each slot costs a cone test and a shadow atlas sample, so this is the loop that gets more
+// expensive when the count is raised - not the vertex side.
 vec3 CalculateSpotLights(Surface surface)
 {
     vec3 ret = vec3(0.f);
 
-    if (vIn.lightIndices[5] != 0) {
-        ret = CalculateSpotLight(surface, vIn.lightIndices[5], vIn.lightDir[6]);
-    }
+    if (vIn.lightIndices[5] != 0) ret += CalculateSpotLight(surface, vIn.lightIndices[5], vIn.lightDir[6]);
+    if (vIn.lightIndices[6] != 0) ret += CalculateSpotLight(surface, vIn.lightIndices[6], vIn.lightDir[7]);
 
     return ret;
 }

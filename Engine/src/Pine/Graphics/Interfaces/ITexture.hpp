@@ -12,7 +12,16 @@ namespace Pine::Graphics
         RGBA,
         RGB16F,
         RGBA16F,
+
+        // Driver's choice of depth precision. Prefer one of the sized formats below when the
+        // precision actually matters - which for a depth buffer being compared against, it does.
         Depth,
+
+        // Sized depth formats. 16 bits is plenty for a short-range local light and halves the
+        // memory of a large shadow allocation; 32F is there for when a near/far ratio needs it.
+        Depth16,
+        Depth32F,
+
         DepthStencil,
         Alpha
     };
@@ -90,6 +99,10 @@ namespace Pine::Graphics
             return "RGBA16F";
         case TextureFormat::Depth:
             return "Depth";
+        case TextureFormat::Depth16:
+            return "Depth16";
+        case TextureFormat::Depth32F:
+            return "Depth32F";
         case TextureFormat::Alpha:
             return "Alpha";
         case TextureFormat::DepthStencil:

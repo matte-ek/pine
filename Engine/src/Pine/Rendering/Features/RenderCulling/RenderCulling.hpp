@@ -40,5 +40,18 @@ namespace Pine::Rendering::RenderCulling
     // Takes a frustum and fills a set, deliberately knowing nothing about cameras, lights or render
     // batches: a shadow pass calls this exactly as the scene camera does, with its own frustum and
     // its own set.
-    CullingResult Cull(const Frustum& frustum, VisibilitySet& visibility);
+    //
+    // 'restrictTo', when given, limits the test to objects already in that set. It reads as "cull a
+    // subset", not "cull for shadows" - a point light culls once against its sphere of influence and
+    // restricts each of its six face culls to what that found, and any caller with a cheaper
+    // superset test can do the same. Objects excluded by it are not counted as culled: they were
+    // never candidates, and counting them would make the two numbers mean different things
+    // depending on whether a restriction was passed.
+    CullingResult Cull(const Frustum& frustum, VisibilitySet& visibility, const VisibilitySet* restrictTo = nullptr);
+
+    // The same, against a sphere.
+    //
+    // Not a special case of the frustum test: a sphere is the natural bound for anything that
+    // radiates rather than projects, and testing one is a fraction of the cost of six planes.
+    CullingResult Cull(const Vector3f& center, float radius, VisibilitySet& visibility);
 }

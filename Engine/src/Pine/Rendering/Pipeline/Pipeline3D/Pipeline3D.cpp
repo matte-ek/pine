@@ -30,103 +30,20 @@ namespace
 
 	PipelineConfiguration m_Configuration;
 
-	void RenderBatch(const Rendering::ObjectBatchMap& mapBatch,
-	                 const MaterialRenderingMode materialRenderingMode,
-	                 const Rendering::RenderCulling::VisibilitySet& visibility)
+	// Terrain is not part of the object batch - it renders through its own path, with its own shader
+	// and its own camera state, and therefore ignores Renderer3D's shader override. That is exactly
+	// why it cannot stay inside RenderBatch: a shadow view renders the batch with an override
+	// shader, and a terrain that ignores the override would draw itself lit into the depth target.
+	// Both existing callers still call this, so what they draw is unchanged.
+	void RenderTerrain()
 	{
-	    if (materialRenderingMode == MaterialRenderingMode::Opaque)
+	    for (const auto& terrainRenderer : Components::Get<TerrainRendererComponent>())
 	    {
-	        for (const auto& terrainRenderer : Components::Get<TerrainRendererComponent>())
-	        {
-	            if (terrainRenderer.GetTerrain() == nullptr)
-	                continue;
+	        if (terrainRenderer.GetTerrain() == nullptr)
+	            continue;
 
-	            Rendering::TerrainRenderer::Render(&terrainRenderer);
-	        }
+	        Rendering::TerrainRenderer::Render(&terrainRenderer);
 	    }
-
-		for (const auto& [modelGroup, objectRenderInstances] : mapBatch)
-		{
-			const auto model = modelGroup.ModelPtr;
-
-			int meshIndex = -1;
-			for (const auto mesh : model->GetMeshes())
-			{
-				meshIndex++;
-
-				// Make sure we're rendering materials with the correct mode
-				const auto material = modelGroup.OverrideMaterial != nullptr ? modelGroup.OverrideMaterial : mesh->GetMaterial();
-				if (material && material->GetRenderingMode() != materialRenderingMode)
-				{
-					continue;
-				}
-
-				Renderer3D::PrepareMesh(mesh, modelGroup.OverrideMaterial);
-
-				bool hasStencilBufferOverride = false;
-
-				for (auto [renderer, distance] : objectRenderInstances)
-				{
-					const auto modelRenderer = renderer;
-
-				    if (!visibility.IsVisible(modelRenderer->GetInternalId()))
-				    {
-				        continue;
-				    }
-
-					modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
-
-					int modelMeshIndex = modelRenderer->GetModelMeshIndex();
-					if (modelMeshIndex >= 0)
-					{
-						if (modelMeshIndex != meshIndex)
-						{
-							continue;
-						}
-					}
-
-				    if (modelRenderer->GetOverrideStencilBuffer())
-				    {
-				        hasStencilBufferOverride = true;
-				        continue;
-				    }
-
-					if (Renderer3D::AddInstance(
-					    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),
-					    &modelRenderer->GetRenderingHintData()))
-					{
-						Renderer3D::RenderMeshInstanced();
-					}
-				}
-
-				Renderer3D::RenderMeshInstanced();
-
-				if (hasStencilBufferOverride)
-				{
-					for (const auto [renderer, distance] : objectRenderInstances)
-					{
-					    int modelMeshIndex = renderer->GetModelMeshIndex();
-					    if (modelMeshIndex >= 0)
-					    {
-					        if (modelMeshIndex != meshIndex)
-					        {
-					            continue;
-					        }
-					    }
-
-						if (renderer->GetOverrideStencilBuffer())
-						{
-							renderer->GetParent()->GetTransform()->OnRender(0.f);
-
-							Renderer3D::RenderMesh(
-							    renderer->GetParent()->GetTransform()->GetTransformationMatrix(),
-							    &renderer->GetRenderingHintData(),
-							    renderer->GetStencilBufferValue());
-						}
-					}
-				}
-			}
-		}
 	}
 
 	void RenderDepthPrepass(RenderingContext& renderingContext)
@@ -154,6 +71,7 @@ namespace
 		renderSettings.IgnoreShaderVersions = true;
 		renderSettings.SkipMaterialInitialization = true;
 
+		RenderTerrain();
 		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque, renderingContext.Visibility);
 
 		renderSettings.OverrideShader = nullptr;
@@ -188,17 +106,17 @@ namespace
 		Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
 		Graphics::GetGraphicsAPI()->SetBlendingFunction(Graphics::BlendingFunction::SourceAlpha, Graphics::BlendingFunction::OneMinusSourceAlpha);
 
+		// No separate shadow upload any more: a light's shadow views reach the shader through its
+		// own entry in the light buffer, which AddLight already writes. The directional light used
+		// to need a second call here to hand over a texture nothing else could see.
 		for (const auto light : lights)
 		{
 			Renderer3D::AddLight(light);
-
-			if (m_Configuration.RenderShadows)
-			{
-				Rendering::Shadows::UploadShadowData(light);
-			}
 		}
 
 		Renderer3D::UploadLights();
+
+		RenderTerrain();
 
 		// Render fully opaque objects.
 		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque, context.Visibility);
@@ -250,6 +168,94 @@ namespace
 	}
 }
 
+void Pipeline3D::RenderBatch(const Rendering::ObjectBatchMap& mapBatch,
+                             const MaterialRenderingMode materialRenderingMode,
+                             const Rendering::RenderCulling::VisibilitySet& visibility)
+{
+	for (const auto& [modelGroup, objectRenderInstances] : mapBatch)
+	{
+		const auto model = modelGroup.ModelPtr;
+
+		int meshIndex = -1;
+		for (const auto mesh : model->GetMeshes())
+		{
+			meshIndex++;
+
+			// Make sure we're rendering materials with the correct mode
+			const auto material = modelGroup.OverrideMaterial != nullptr ? modelGroup.OverrideMaterial : mesh->GetMaterial();
+			if (material && material->GetRenderingMode() != materialRenderingMode)
+			{
+				continue;
+			}
+
+			Renderer3D::PrepareMesh(mesh, modelGroup.OverrideMaterial);
+
+			bool hasStencilBufferOverride = false;
+
+			for (auto [renderer, distance] : objectRenderInstances)
+			{
+				const auto modelRenderer = renderer;
+
+			    if (!visibility.IsVisible(modelRenderer->GetInternalId()))
+			    {
+			        continue;
+			    }
+
+				modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
+
+				int modelMeshIndex = modelRenderer->GetModelMeshIndex();
+				if (modelMeshIndex >= 0)
+				{
+					if (modelMeshIndex != meshIndex)
+					{
+						continue;
+					}
+				}
+
+			    if (modelRenderer->GetOverrideStencilBuffer())
+			    {
+			        hasStencilBufferOverride = true;
+			        continue;
+			    }
+
+				if (Renderer3D::AddInstance(
+				    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),
+				    &modelRenderer->GetRenderingHintData()))
+				{
+					Renderer3D::RenderMeshInstanced();
+				}
+			}
+
+			Renderer3D::RenderMeshInstanced();
+
+			if (hasStencilBufferOverride)
+			{
+				for (const auto [renderer, distance] : objectRenderInstances)
+				{
+				    int modelMeshIndex = renderer->GetModelMeshIndex();
+				    if (modelMeshIndex >= 0)
+				    {
+				        if (modelMeshIndex != meshIndex)
+				        {
+				            continue;
+				        }
+				    }
+
+					if (renderer->GetOverrideStencilBuffer())
+					{
+						renderer->GetParent()->GetTransform()->OnRender(0.f);
+
+						Renderer3D::RenderMesh(
+						    renderer->GetParent()->GetTransform()->GetTransformationMatrix(),
+						    &renderer->GetRenderingHintData(),
+						    renderer->GetStencilBufferValue());
+					}
+				}
+			}
+		}
+	}
+}
+
 void Pipeline3D::Setup()
 {
 	Rendering::Skybox::Setup();
@@ -277,6 +283,25 @@ void Pipeline3D::Prepare()
 	PINE_PF_SCOPE();
 
     Rendering::SceneProcessor::Prepare(m_SceneContext);
+
+	// Local light shadows are viewer-independent, so they are built and rendered once here rather
+	// than inside each rendering context's prepass. With an editor viewport and a game camera both
+	// live, doing it per context would render every spot light's shadow map twice per frame for an
+	// identical result.
+	if (m_Configuration.RenderShadows)
+	{
+		Rendering::Shadows::PrepareLocalViews(m_SceneContext);
+		Rendering::Shadows::RenderLocalViews(m_SceneContext.RenderingBatch);
+	}
+	else
+	{
+		Rendering::Shadows::ClearLocalViews(m_SceneContext.Lights);
+	}
+
+	// After the scene-level shadow work, not inside SceneProcessor::Prepare where it used to live
+	// behind a TODO. Prepare is no longer the last thing to look at the scene each frame, so the
+	// flags have to outlive it. This ordering is load-bearing - see SceneProcessor::EndFrame.
+	Rendering::SceneProcessor::EndFrame();
 }
 
 void Pipeline3D::Run(RenderingContext& context, const PipelineStage stage)
@@ -308,7 +333,7 @@ void Pipeline3D::Run(RenderingContext& context, const PipelineStage stage)
 
 			for (const auto light : m_SceneContext.Lights)
 			{
-				Rendering::Shadows::RenderPassLight(light, m_SceneContext.RenderingBatch);
+				Rendering::Shadows::RenderPassLight(light, m_SceneContext);
 			}
 		}
 

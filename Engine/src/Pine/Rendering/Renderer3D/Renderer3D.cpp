@@ -4,6 +4,7 @@
 #include "Specifications.hpp"
 #include "ShaderStorages.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Rendering/Features/Shadows/ShadowAtlas/ShadowAtlas.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
@@ -27,10 +28,6 @@ namespace
     ShaderVersion m_ShaderVersion = 0;
 
     Graphics::IUniformVariable* m_HasTangentData = nullptr;
-    Graphics::IUniformVariable* m_HasDirectionalShadowMapUniform = nullptr;
-
-    bool m_HasDirectionalShadowMap = false;
-    Graphics::ITexture* m_DirectionalShadowMap = nullptr;
 
     Mesh* m_Mesh = nullptr;
 
@@ -64,7 +61,7 @@ void Renderer3D::Setup()
     ShaderStorages::Instance.Create();
     ShaderStorages::Material.Create();
     ShaderStorages::Lights.Create();
-    ShaderStorages::Shadows.Create();
+    ShaderStorages::ShadowViews.Create();
     ShaderStorages::World.Create();
 }
 
@@ -74,7 +71,7 @@ void Renderer3D::Shutdown()
     ShaderStorages::Instance.Dispose();
     ShaderStorages::Material.Dispose();
     ShaderStorages::Lights.Dispose();
-    ShaderStorages::Shadows.Dispose();
+    ShaderStorages::ShadowViews.Dispose();
     ShaderStorages::World.Dispose();
 }
 
@@ -139,15 +136,12 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         return;
     }
 
-    // Apply shadow data
-    if (m_HasDirectionalShadowMapUniform)
+    // Every shadow in the engine comes out of this one texture - cascades included, since they
+    // were folded in. There is no "has a shadow map" uniform to go with it: a light that is not
+    // casting carries shadowViewIndex -1, so the shader never reaches the sampler at all.
+    if (auto* shadowAtlas = Rendering::ShadowAtlas::GetTexture())
     {
-        m_HasDirectionalShadowMapUniform->LoadInteger(m_HasDirectionalShadowMap);
-
-        if (m_HasDirectionalShadowMap && m_DirectionalShadowMap)
-        {
-            m_DirectionalShadowMap->Bind(Specifications::Samplers::DIRECTIONAL_SHADOW_MAP);
-        }
+        shadowAtlas->Bind(Specifications::Samplers::SHADOW_ATLAS);
     }
 
     // Apply Textures
@@ -337,9 +331,9 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
             PWarning("Renderer3D: Shader is missing 'Lights' shader storage, expect rendering issues.");
         }
 
-        if (!ShaderStorages::Shadows.AttachShaderProgram(shaderProgram))
+        if (!ShaderStorages::ShadowViews.AttachShaderProgram(shaderProgram))
         {
-            PWarning("Renderer3D: Shader is missing 'Shadows' shader storage, expect rendering issues.");
+            PWarning("Renderer3D: Shader is missing 'ShadowViews' shader storage, expect rendering issues.");
         }
 
         if (!ShaderStorages::World.AttachShaderProgram(shaderProgram))
@@ -356,7 +350,6 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     m_ShaderVersion = version;
 
     m_HasTangentData = m_Shader->GetUniformVariable("hasTangentData");
-    m_HasDirectionalShadowMapUniform = m_Shader->GetUniformVariable("hasDirectionalShadowMap");
 }
 
 void Renderer3D::PrepareScene(const Vector3f ambientColor, const Vector4f fogColor, const float fogDistance, const float fogIntensity)
@@ -384,6 +377,11 @@ void Renderer3D::SetCamera(Camera* camera)
     ShaderStorages::Matrix.Data().View = camera->GetViewMatrix();
 
     ShaderStorages::Matrix.Upload();
+}
+
+void Renderer3D::SetViewProjection(const Matrix4f& viewProjection)
+{
+    SetCamera(Matrix4f(1.f), viewProjection);
 }
 
 void Renderer3D::SetCamera(const Matrix4f &viewMatrix, const Matrix4f &projMatrix)
@@ -434,7 +432,13 @@ void Renderer3D::AddLight(Light *light)
     lightData.Position = light->GetParent()->GetTransform()->GetPosition();
     lightData.DirectionToLight = directionToLight;
     lightData.Color = SrgbToLinear(light->GetLightColor()) * light->GetLightIntensity();
-    lightData.Attenuation = light->GetLightAttenuation();
+    lightData.Range = light->GetRange();
+
+    // Allocated at scene level in Pipeline3D::Prepare, consumed here per rendering context. -1
+    // when this light is not casting, which the shader treats as fully lit.
+    lightData.ShadowViewIndex = light->GetLightHintData().ShadowViewIndex;
+    lightData.ShadowViewCount = light->GetLightHintData().ShadowViewCount;
+    lightData.ShadowFade = lightData.ShadowViewIndex >= 0 ? 1.f : 0.f;
     lightData.CutOffOuter = cutOffOuter;
     lightData.CutOffInner = cutOffInner;
 
@@ -442,23 +446,32 @@ void Renderer3D::AddLight(Light *light)
 
     auto& [_, LightIndices] = ShaderStorages::Instance.Data().Instances[0];
 
-    if (light->GetLightType() == LightType::PointLight)
+    // Fills the first free slot of the light's class. Both branches scan rather than write a fixed
+    // index: the spot branch used to assign SPOT_LIGHT_OFFSET directly, which was correct only for
+    // as long as there was exactly one spot slot and would have silently kept handling one after
+    // SPOT_LIGHT_COUNT was raised.
+    const auto claimSlot = [&LightIndices, lightSlot](const int offset, const int count)
     {
-        for (int i = 0; i < Specifications::ObjectLightSlots::POINT_LIGHT_COUNT;i++)
+        for (int i = 0; i < count; i++)
         {
-            const int slot = Specifications::ObjectLightSlots::POINT_LIGHT_OFFSET + i;
-
-            if (LightIndices[slot] == 0)
+            if (LightIndices[offset + i] == 0)
             {
-                LightIndices[slot] = lightSlot;
+                LightIndices[offset + i] = lightSlot;
 
-                break;
+                return;
             }
         }
+    };
+
+    if (light->GetLightType() == LightType::PointLight)
+    {
+        claimSlot(Specifications::ObjectLightSlots::POINT_LIGHT_OFFSET,
+                  Specifications::ObjectLightSlots::POINT_LIGHT_COUNT);
     }
     else if (light->GetLightType() == LightType::SpotLight)
     {
-        LightIndices[Specifications::ObjectLightSlots::SPOT_LIGHT_OFFSET] = lightSlot;
+        claimSlot(Specifications::ObjectLightSlots::SPOT_LIGHT_OFFSET,
+                  Specifications::ObjectLightSlots::SPOT_LIGHT_COUNT);
     }
 }
 
@@ -469,17 +482,17 @@ void Renderer3D::UploadLights()
     m_CurrentLightIndex = 1;
 }
 
-void Renderer3D::AddDirectionalShadowMap(Graphics::ITexture *depthMap)
-{
-    m_DirectionalShadowMap = depthMap;
-    m_HasDirectionalShadowMap = true;
-}
-
 void Renderer3D::FrameReset()
 {
     for (auto& Light : ShaderStorages::Lights.Data().Lights)
     {
         Light.Color = Vector3f(0.0f, 0.0f, 0.0f);
+
+        // Cleared, not just the colour. lights[0] is the directional slot whether or not the level
+        // has a sun, and the shader now decides "is there a directional shadow" from this field
+        // alone - a stale index from a level that did have one would sample a cascade nothing wrote.
+        Light.ShadowViewIndex = -1;
+        Light.ShadowViewCount = 0;
     }
 
     auto& [_, LightIndices] = ShaderStorages::Instance.Data().Instances[0];
@@ -497,7 +510,6 @@ void Renderer3D::FrameReset()
     m_Shader = nullptr;
     m_Mesh = nullptr;
     m_Material = nullptr;
-    m_HasDirectionalShadowMap = false;
 
     m_RenderingConfiguration.OverrideShader = nullptr;
     m_RenderingConfiguration.OverrideMaterial = nullptr;

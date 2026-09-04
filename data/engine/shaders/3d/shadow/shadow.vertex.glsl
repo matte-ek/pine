@@ -13,7 +13,7 @@ void main()
 
 	#shader preVertex
 
-	gl_Position = transformationMatrix * vertexPosition;
+	gl_Position = projectionMatrix * viewMatrix * transformationMatrix * vertexPosition;
 
 	#shader postVertex
 }

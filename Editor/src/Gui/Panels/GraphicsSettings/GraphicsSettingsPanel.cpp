@@ -75,17 +75,23 @@ void Panels::GraphicsSettings::Render()
 
         ImGui::SeparatorText("Applied on restart");
 
+        // One control, because there is one shadow texture. The cascades pin the two half-size
+        // tiles out of it and the local lights compete for the rest, so this sets every shadow's
+        // resolution at once - a directional map size that could be set independently of the atlas
+        // no longer exists.
         int shadowIndex = 3; // default 4096
         for (int i = 0; i < 5; i++)
         {
-            if (m_ShadowResValues[i] == m_Settings.ShadowMapResolution)
+            if (m_ShadowResValues[i] == m_Settings.ShadowAtlasResolution)
                 shadowIndex = i;
         }
-        if (Widgets::DropDown("Shadow Map Resolution", &shadowIndex, "512\0" "1024\0" "2048\0" "4096\0" "8192\0"))
+        if (Widgets::DropDown("Shadow Atlas Resolution", &shadowIndex, "512\0" "1024\0" "2048\0" "4096\0" "8192\0"))
         {
-            m_Settings.ShadowMapResolution = m_ShadowResValues[shadowIndex];
+            m_Settings.ShadowAtlasResolution = m_ShadowResValues[shadowIndex];
             changed = true;
         }
+
+        changed |= Widgets::SliderInt("Shadow Tile Budget", &m_Settings.LocalShadowTileBudget, 0, 16);
 
         changed |= Widgets::SliderInt("AO Resolution Divisor", &m_Settings.AmbientOcclusionResDivisor, 1, 4);
 
@@ -96,7 +102,7 @@ void Panels::GraphicsSettings::Render()
         }
 
         ImGui::Spacing();
-        ImGui::TextDisabled("Shadow map size and AO resolution divisor take effect after a restart.");
+        ImGui::TextDisabled("Shadow atlas size and AO resolution divisor take effect after a restart.");
         ImGui::Spacing();
 
         if (ImGui::Button("Save & Apply", ImVec2(150, 40)))

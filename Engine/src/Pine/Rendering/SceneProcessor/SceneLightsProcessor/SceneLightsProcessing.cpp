@@ -62,7 +62,7 @@ namespace
     // True if anything changed that the cached light slots depend on. The transform flag covers
     // movement (slots are picked by distance); the entity flag is the general "something about
     // this entity changed" signal, which Light::SetLightType raises since the type decides which
-    // slot bucket a light competes for. SceneProcessor::Prepare clears the entity flag each frame.
+    // slot bucket a light competes for. SceneProcessor::EndFrame clears the entity flag each frame.
     bool HasSlotInputChanged(const Component& component)
     {
         return component.GetParent()->IsDirty() || component.GetTransform()->IsDirty();
@@ -81,7 +81,16 @@ namespace
 
         for (auto& light : Components::Get<Light>())
         {
-            // TODO: Add checks to check if this light is relevant. I'm sure we can come up with some things.
+            // Not culled by range against the camera here, even though Range now makes that a
+            // two-line test. The light set feeds ProcessModelRenderer's per-object slot cache,
+            // which is scene-level state shared by every rendering context - so filtering it by one
+            // camera's frustum would drop lights the *other* context can still see. In the editor
+            // the primary context is the game view (RenderHandler.cpp), not the viewport being
+            // looked at, so this would visibly pop lights out of the viewport.
+            //
+            // Doing it properly means either a per-context light set (and per-context slot caches
+            // with it) or culling against the union of active frustums. Neither is a prerequisite
+            // for shadows, so it is deliberately not bundled in here.
             lights.push_back(&light);
 
             if (HasSlotInputChanged(light))

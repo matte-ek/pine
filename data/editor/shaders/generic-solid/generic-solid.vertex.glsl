@@ -19,7 +19,7 @@ struct Instance
 
 layout(std140) uniform Instances 
 {
-	Instance instances[128];
+	Instance instances[MAX_INSTANCE_COUNT];
 };
 
 #shader hooks

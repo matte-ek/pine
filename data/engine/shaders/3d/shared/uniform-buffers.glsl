@@ -6,13 +6,12 @@
 
 layout(std140) uniform Instances
 {
-	Instance instances[128];
+	Instance instances[MAX_INSTANCE_COUNT];
 };
 
 layout(std140) uniform Lights
 {
-	Light lights[32];
-	vec3 blah;
+	Light lights[DYNAMIC_LIGHT_COUNT];
 };
 
 layout(std140) uniform Material
@@ -20,9 +19,9 @@ layout(std140) uniform Material
     MaterialProperties matPropeties[8];
 };
 
-layout(std140) uniform Shadows
+layout(std140) uniform ShadowViews
 {
-	mat4 lightSpaceMatrix[8];
+	ShadowView shadowViews[SHADOW_VIEW_COUNT];
 };
 
 layout(std140) uniform World

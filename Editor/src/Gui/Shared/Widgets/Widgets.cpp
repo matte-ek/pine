@@ -221,7 +221,7 @@ bool Widgets::InputText(const std::string& str, char* buf, size_t size)
     return ret;
 }
 
-bool Widgets::SliderFloat(const std::string& str, float* value, float min, float max)
+bool Widgets::SliderFloat(const std::string& str, float* value, float min, float max, const bool logarithmic)
 {
     bool ret = false;
     
@@ -229,7 +229,12 @@ bool Widgets::SliderFloat(const std::string& str, float* value, float min, float
 
     ImGui::SetNextItemWidth(-1.f);
 
-    ret = ImGui::SliderFloat(std::string("##SliderFloat" + str).c_str(), value, min, max);
+    // Deliberately without ImGuiSliderFlags_AlwaysClamp: ctrl+click then stays free to enter a value
+    // outside the slider's range. That is what lets a slider be chosen for the *useful* span of a
+    // quantity that has no real upper bound, rather than having to pick a ceiling and enforce it.
+    const ImGuiSliderFlags flags = logarithmic ? ImGuiSliderFlags_Logarithmic : 0;
+
+    ret = ImGui::SliderFloat(std::string("##SliderFloat" + str).c_str(), value, min, max, "%.3f", flags);
 
     FinishWidget();
 

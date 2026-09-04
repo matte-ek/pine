@@ -31,6 +31,12 @@ namespace Pine::Graphics
 
         void SetViewport(Vector2i position, Vector2i size) override;
 
+        void SetScissorEnabled(bool value) override;
+        void SetScissor(Vector2i position, Vector2i size) override;
+
+        void SetDepthBiasEnabled(bool value) override;
+        void SetDepthBias(float slope, float units) override;
+
         void SetBlendingEnabled(bool value) override;
         void SetDepthTestEnabled(bool value) override;
         void SetStencilTestEnabled(bool value) override;

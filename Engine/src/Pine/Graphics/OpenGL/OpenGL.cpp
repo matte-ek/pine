@@ -5,6 +5,8 @@
 #include "Pine/Graphics/OpenGL/VertexArray/GLVertexArray.hpp"
 #include "Pine/Graphics/OpenGL/UniformBuffer/GLUniformBuffer.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Rendering/Renderer3D/ShaderStorages.hpp"
+#include <fmt/core.h>
 #include <GL/glew.h>
 #include <stdexcept>
 
@@ -148,6 +150,43 @@ namespace
 
 }
 
+namespace
+{
+	// Logged once at startup because two of these are budgets features silently spend, and neither
+	// is visible at the call site that spends it.
+	//
+	// The uniform *block count* is the one that surprises: it is per shader stage and much smaller
+	// than the number of binding points, so "add another UBO" has a countable limit long before
+	// block size does. Block size matters too - the instance buffer is the only block near it - and
+	// the shader storage size is the escape hatch for when it is not enough.
+	void LogDeviceLimits()
+	{
+		GLint uniformBlockSize = 0, uniformBindings = 0, vertexBlocks = 0, fragmentBlocks = 0;
+		GLint storageBlockSize = 0, fragmentTextureUnits = 0;
+
+		glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformBlockSize);
+		glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &uniformBindings);
+		glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &vertexBlocks);
+		glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &fragmentBlocks);
+		glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &storageBlockSize);
+		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &fragmentTextureUnits);
+
+		PInfo(fmt::format("GPU limits: uniform block {} KB, {} bindings, {}/{} blocks per vertex/fragment stage",
+			uniformBlockSize / 1024, uniformBindings, vertexBlocks, fragmentBlocks));
+		PInfo(fmt::format("GPU limits: shader storage block {} MB, {} fragment texture units",
+			storageBlockSize / (1024 * 1024), fragmentTextureUnits));
+
+		const auto instanceBufferSize = static_cast<GLint>(sizeof(Pine::Renderer3D::ShaderStorages::InstanceData));
+
+		if (instanceBufferSize > uniformBlockSize)
+		{
+			PError(fmt::format("Instance uniform block is {} KB but the device supports {} KB. "
+			                   "Lower Renderer3D::Specifications::General::MAX_INSTANCE_COUNT.",
+			                   instanceBufferSize / 1024, uniformBlockSize / 1024));
+		}
+	}
+}
+
 void Pine::Graphics::OpenGL::EnableErrorLogging()
 {
 	glEnable(GL_DEBUG_OUTPUT);
@@ -212,7 +251,11 @@ bool Pine::Graphics::OpenGL::Setup()
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &m_SupportedTextureSlots);
 
 	// TODO: Figure out how this exactly works, using GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS doesn't work.
+	// Note this is only consumed by Renderer2D's batching; it does not gate sampler bindings, which
+	// is why the shadow map can sit at slot 16 and the shadow atlas at 17.
 	m_SupportedTextureSlots = 16;
+
+	LogDeviceLimits();
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -308,6 +351,28 @@ void Pine::Graphics::OpenGL::BindFrameBuffer(IFrameBuffer* buffer)
 void Pine::Graphics::OpenGL::SetViewport(const Vector2i position, const Vector2i size)
 {
 	glViewport(position.x, position.y, size.x, size.y);
+}
+
+void Pine::Graphics::OpenGL::SetScissorEnabled(const bool value)
+{
+	value ? glEnable(GL_SCISSOR_TEST) : glDisable(GL_SCISSOR_TEST);
+}
+
+void Pine::Graphics::OpenGL::SetScissor(const Vector2i position, const Vector2i size)
+{
+	glScissor(position.x, position.y, size.x, size.y);
+}
+
+void Pine::Graphics::OpenGL::SetDepthBiasEnabled(const bool value)
+{
+	// GL_POLYGON_OFFSET_FILL only affects filled polygons; line and point modes have their own
+	// enables, which nothing here rasterizes.
+	value ? glEnable(GL_POLYGON_OFFSET_FILL) : glDisable(GL_POLYGON_OFFSET_FILL);
+}
+
+void Pine::Graphics::OpenGL::SetDepthBias(const float slope, const float units)
+{
+	glPolygonOffset(slope, units);
 }
 
 void Pine::Graphics::OpenGL::SetBlendingEnabled(const bool value)

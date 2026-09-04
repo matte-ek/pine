@@ -41,7 +41,12 @@ namespace Widgets
     bool InputFloat(const std::string& str, float* value);
     bool InputText(const std::string& str, char* buf, size_t size);
 
-    bool SliderFloat(const std::string& str, float* value, float min, float max);
+    // 'logarithmic' spreads the resolution evenly across orders of magnitude instead of across the
+    // raw span, which is what you want whenever the useful values run from fractions to tens - a
+    // linear slider spends nearly all its travel on the top decade and makes the bottom one
+    // unusable. Note the slider does not hard-clamp: ctrl+click still types any value, in or out of
+    // range.
+    bool SliderFloat(const std::string& str, float* value, float min, float max, bool logarithmic = false);
     bool SliderInt(const std::string& str, int* value, int min, int max);
 
     bool ColorPicker3(const std::string& str, Pine::Vector3f& color);

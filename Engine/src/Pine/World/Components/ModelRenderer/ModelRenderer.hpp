@@ -24,6 +24,17 @@ namespace Pine
             // difference that matters.
             Vector3f BoundsMin = Vector3f(0.f);
             Vector3f BoundsMax = Vector3f(0.f);
+
+            // Last frame's bounds, so "did this object move" can be answered without depending on
+            // Transform::IsDirty(). That flag is cleared by Transform::OnRender, which only runs for
+            // objects that were actually drawn - a culled object would keep it raised forever and
+            // every shadow view containing it would re-render every frame, which is precisely the
+            // cost caching exists to avoid.
+            //
+            // A mover invalidates the view it *left* as well as the one it entered, so both the old
+            // and the new box have to be testable.
+            Vector3f PreviousBoundsMin = Vector3f(0.f);
+            Vector3f PreviousBoundsMax = Vector3f(0.f);
         };
     }
 

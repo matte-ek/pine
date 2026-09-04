@@ -26,32 +26,36 @@ void Rendering::GraphicsSettings::ApplyPreset(const QualityPreset preset)
         s.AmbientOcclusion = false;
         s.AmbientOcclusionSamples = 8;
         s.AmbientOcclusionBlurPasses = 2;
-        s.ShadowMapResolution = 1024;
         s.AmbientOcclusionResDivisor = 4;
+        s.ShadowAtlasResolution = 1024;
+        s.LocalShadowTileBudget = 2;
         break;
     case QualityPreset::Medium:
         s.Shadows = true;
         s.AmbientOcclusion = true;
         s.AmbientOcclusionSamples = 16;
         s.AmbientOcclusionBlurPasses = 3;
-        s.ShadowMapResolution = 2048;
         s.AmbientOcclusionResDivisor = 2;
+        s.ShadowAtlasResolution = 2048;
+        s.LocalShadowTileBudget = 6;
         break;
     case QualityPreset::High:
         s.Shadows = true;
         s.AmbientOcclusion = true;
         s.AmbientOcclusionSamples = 24;
         s.AmbientOcclusionBlurPasses = 4;
-        s.ShadowMapResolution = 4096;
         s.AmbientOcclusionResDivisor = 2;
+        s.ShadowAtlasResolution = 4096;
+        s.LocalShadowTileBudget = 12;
         break;
     case QualityPreset::Ultra:
         s.Shadows = true;
         s.AmbientOcclusion = true;
         s.AmbientOcclusionSamples = 48;
         s.AmbientOcclusionBlurPasses = 4;
-        s.ShadowMapResolution = 4096;
         s.AmbientOcclusionResDivisor = 1;
+        s.ShadowAtlasResolution = 8192;
+        s.LocalShadowTileBudget = 16;
         break;
     case QualityPreset::Custom:
         // Leave the fields as-is.
@@ -84,7 +88,8 @@ void Rendering::GraphicsSettings::Setup()
     SerializationJson::LoadValue(j, "ambientOcclusion", m_Settings.AmbientOcclusion);
     SerializationJson::LoadValue(j, "ambientOcclusionSamples", m_Settings.AmbientOcclusionSamples);
     SerializationJson::LoadValue(j, "ambientOcclusionBlurPasses", m_Settings.AmbientOcclusionBlurPasses);
-    SerializationJson::LoadValue(j, "shadowMapResolution", m_Settings.ShadowMapResolution);
+    SerializationJson::LoadValue(j, "shadowAtlasResolution", m_Settings.ShadowAtlasResolution);
+    SerializationJson::LoadValue(j, "localShadowTileBudget", m_Settings.LocalShadowTileBudget);
     SerializationJson::LoadValue(j, "ambientOcclusionResDivisor", m_Settings.AmbientOcclusionResDivisor);
 }
 
@@ -107,7 +112,8 @@ void Rendering::GraphicsSettings::Save()
     j["ambientOcclusion"] = m_Settings.AmbientOcclusion;
     j["ambientOcclusionSamples"] = m_Settings.AmbientOcclusionSamples;
     j["ambientOcclusionBlurPasses"] = m_Settings.AmbientOcclusionBlurPasses;
-    j["shadowMapResolution"] = m_Settings.ShadowMapResolution;
+    j["shadowAtlasResolution"] = m_Settings.ShadowAtlasResolution;
+    j["localShadowTileBudget"] = m_Settings.LocalShadowTileBudget;
     j["ambientOcclusionResDivisor"] = m_Settings.AmbientOcclusionResDivisor;
 
     SerializationJson::SaveToFile(SETTINGS_FILE, j);
@@ -121,9 +127,14 @@ void Rendering::GraphicsSettings::ApplyRuntime()
     config.RenderAmbientOcclusion = m_Settings.AmbientOcclusion;
 }
 
-int Rendering::GraphicsSettings::GetShadowMapResolution()
+int Rendering::GraphicsSettings::GetShadowAtlasResolution()
 {
-    return std::max(16, m_Settings.ShadowMapResolution);
+    return std::max(256, m_Settings.ShadowAtlasResolution);
+}
+
+int Rendering::GraphicsSettings::GetLocalShadowTileBudget()
+{
+    return std::max(0, m_Settings.LocalShadowTileBudget);
 }
 
 int Rendering::GraphicsSettings::GetAmbientOcclusionResDivisor()

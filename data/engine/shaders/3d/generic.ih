@@ -8,7 +8,7 @@
 			"matSamplers.diffuse": 0,
 			"matSamplers.specular": 4,
 			"matSamplers.normal": 8,
-			"ShadowMap": 16
+			"ShadowAtlas": 17
 		},
 		"Versions": {
 			"VERSION_DISCARD": 1,

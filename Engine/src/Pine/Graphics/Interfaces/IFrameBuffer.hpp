@@ -57,6 +57,12 @@ namespace Pine::Graphics
 
         virtual void AttachTexture(ITexture* texture, BufferAttachment attachment, int attachmentOffset = 0) = 0;
 
+        // Attaches a single layer of an array texture, as opposed to AttachTexture, which attaches
+        // an array texture in its entirety (layered rendering, where the layer is chosen by a
+        // geometry shader writing gl_Layer). Rendering one layer at a time is what lets each layer
+        // have its own projection, its own culling and its own draw list.
+        virtual void AttachTextureLayer(ITexture* texture, BufferAttachment attachment, int layer, int attachmentOffset = 0) = 0;
+
         virtual bool Finish() = 0;
     };
 

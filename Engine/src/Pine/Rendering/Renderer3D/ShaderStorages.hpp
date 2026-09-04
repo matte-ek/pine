@@ -56,21 +56,51 @@ namespace Pine::Renderer3D::ShaderStorages
             Vector3f Color = Vector3f(0.f);
             float Pad2 = 0;
 
-            Vector3f Attenuation = Vector3f(0.f);
+            // World units at which this light's contribution reaches exactly zero. The falloff is
+            // windowed against it (see CalculatePositionalLight), so it is a hard cutoff rather
+            // than an asymptote - which is what lets a shadow far plane sit here.
+            float Range = 0.f;
+            float Pad2a = 0;
+            float Pad2b = 0;
 
             // Cosines of the spotlight cone half-angles. AddLight guarantees Outer < Inner.
             float CutOffOuter = 0.f;
 
             float CutOffInner = 0.f;
-            float Pad4 = 0;
-            float Pad5 = 0;
-            float Pad6 = 0;
+
+            // Index of this light's first ShadowView, or -1 when it casts none. Deliberately -1 and
+            // not 0: index 0 is already overloaded in this buffer (the directional light lives
+            // there AND Instance::LightIndices uses 0 to mean "slot empty"), and a second sentinel
+            // colliding with the first is a bug waiting to be written.
+            int ShadowViewIndex = -1;
+
+            // 1 for a spot, 6 for a point light's cube faces.
+            int ShadowViewCount = 0;
+
+            // Multiplier on the shadow term, faded 0..1 when a light gains or loses a shadow tile.
+            // Lives here from the start on purpose: retrofitting a factor the shader must multiply
+            // by, after the lookup already works, means finding every place that forgot to.
+            float ShadowFade = 0.f;
         }Lights[Specifications::General::DYNAMIC_LIGHT_COUNT];
     };
 
-    struct ShadowData
+    // One entry per live ShadowView. Mirrors the ShadowView struct in
+    // data/engine/shaders/3d/shared/common.glsl - std140 puts every member on a 16-byte boundary
+    // here, so the two layouts agree without explicit padding.
+    struct ShadowViewData
     {
-        Matrix4f LightSpaceMatrix[8];
+        struct View
+        {
+            Matrix4f ViewProjection = Matrix4f(1.f);
+
+            // Where this view's tile sits in the atlas, in normalized atlas UV: xy = origin,
+            // zw = size. The shader maps its own [0,1] projection into this rect.
+            Vector4f TileRect = Vector4f(0.f);
+
+            // x = constant depth bias, y = world-space normal offset, z = shadow strength
+            // (the fade applied when a light gains or loses its tile), w = unused.
+            Vector4f Params = Vector4f(0.f);
+        }Views[Specifications::Shadows::SHADOW_VIEW_COUNT];
     };
 
     struct WorldData
@@ -84,6 +114,6 @@ namespace Pine::Renderer3D::ShaderStorages
     inline Graphics::ShaderStorage<InstanceData> Instance(Specifications::ShaderStorages::INSTANCE, "Instances");
     inline Graphics::ShaderStorage<MaterialData> Material(Specifications::ShaderStorages::MATERIAL, "Material");
     inline Graphics::ShaderStorage<LightsData> Lights(Specifications::ShaderStorages::LIGHTS, "Lights");
-    inline Graphics::ShaderStorage<ShadowData> Shadows(Specifications::ShaderStorages::SHADOWS, "Shadows");
+    inline Graphics::ShaderStorage<ShadowViewData> ShadowViews(Specifications::ShaderStorages::SHADOW_VIEWS, "ShadowViews");
     inline Graphics::ShaderStorage<WorldData> World(Specifications::ShaderStorages::WORLD, "World");
 }

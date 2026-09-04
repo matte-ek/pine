@@ -243,6 +243,11 @@ Pine::RenderingContext *Pine::RenderManager::GetCurrentRenderingContext()
     return m_CurrentRenderingContext;
 }
 
+const std::vector<Pine::RenderingContext*>& Pine::RenderManager::GetRenderingContexts()
+{
+    return m_RenderingContexts;
+}
+
 Pine::RenderingContext *Pine::RenderManager::GetDefaultRenderingContext()
 {
     return &m_DefaultRenderingContext;

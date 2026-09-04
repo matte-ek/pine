@@ -48,8 +48,21 @@ namespace
             worldMax = glm::max(worldMax, worldCorner);
         }
 
+        data.PreviousBoundsMin = data.BoundsMin;
+        data.PreviousBoundsMax = data.BoundsMax;
+
         data.BoundsMin = worldMin;
         data.BoundsMax = worldMax;
+    }
+
+    // Whether the object's bounds changed since last frame.
+    //
+    // Exact comparison on purpose. These are recomputed from the same inputs by the same code every
+    // frame, so an object that did not move reproduces its bounds bit-for-bit; an epsilon would only
+    // buy the ability to miss a genuinely small movement.
+    bool HasBoundsChanged(const Pine::Renderer3D::ModelRendererHintData& data)
+    {
+        return data.BoundsMin != data.PreviousBoundsMin || data.BoundsMax != data.PreviousBoundsMax;
     }
 
     // Find and sort all active ModelRenderers in the scene. Will make sure to group together models using the
@@ -61,6 +74,12 @@ namespace
 
         context.RenderingBatch = Pine::Rendering::ObjectBatchData();
 
+        const std::size_t previousCasterCount = context.CasterCount;
+
+        context.MovedCasters.clear();
+        context.CasterCount = 0;
+        context.CasterSetChanged = false;
+
         for (auto& modelRenderer : Pine::Components::Get<Pine::ModelRenderer>())
         {
             if (!modelRenderer.GetModel())
@@ -68,7 +87,14 @@ namespace
                 continue;
             }
 
+            context.CasterCount++;
+
             UpdateWorldBounds(modelRenderer);
+
+            if (HasBoundsChanged(modelRenderer.GetRenderingHintData()))
+            {
+                context.MovedCasters.push_back(&modelRenderer);
+            }
 
             Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(context, &modelRenderer);
 
@@ -107,6 +133,12 @@ namespace
         {
             context.ModelInstanceCountHint[objectGroup] = modelRenderers.size();
         }
+
+        // A count that did not change is not proof the *set* did not - one object destroyed and
+        // another created in the same frame reads as no change. Anything that survives that is
+        // per-object identity tracking, which is a real cost every frame to catch a case that
+        // costs one stale frame; taking the stale frame is the better trade.
+        context.CasterSetChanged = context.CasterCount != previousCasterCount;
     }
 }
 
@@ -117,9 +149,14 @@ void Pine::Rendering::SceneProcessor::Prepare(SceneProcessorContext& context)
     Lights::Prepare(context);
 
     PrepareRenderingBatch(context);
+}
 
-    // TODO: This should really not be done here, since it could be used by other engine components.
-    // Right now it will sort of work since the rendering is done last anyway, but it's not ideal.
+void Pine::Rendering::SceneProcessor::EndFrame()
+{
+    // Everything that reads Entity::IsDirty() has to have run by now - see the header. This used to
+    // sit at the end of Prepare with a TODO saying it did not belong there, and the thing that made
+    // that survivable - Prepare being the last scene-level work in the frame - stopped being true
+    // once the local shadow pass moved in after it.
     for (const auto& entity : Entities::GetList())
     {
         entity->SetDirty(false);

@@ -69,14 +69,21 @@ BaseLightResult CalculatePositionalLight(Surface surface, int index, vec3 lightD
 
     BaseLightResult result = CalculateBaseLightning(surface);
 
-    float lightDistance = length(lights[index].position - vIn.worldPosition);
+    // Windowed inverse-square falloff. The 1/(1+d^2) term is the physical part; the window is what
+    // drives it to exactly zero at 'range' instead of merely small.
+    //
+    // Reaching zero is not a tidiness point, it is a correctness one: a light's shadow map only
+    // covers out to its range, so any illumination surviving past that distance is illumination the
+    // shadow pass never rendered casters for, and it lights geometry that should be occluded. The
+    // old constant/linear/quadratic curve had no zero at all - with the shipped defaults it stayed
+    // above 1/256 until ~181 units - which is why lights had to be treated as infinite.
+    vec3 toLight = lights[index].position - vIn.worldPosition;
+    float distanceSqr = dot(toLight, toLight);
 
-    // x component being the constant factor, y is the linear factor and z the quadratic factor
-    vec3 attenuationFactors = lights[index].attenuation;
+    float range = lights[index].range;
+    float window = clamp(1.0 - distanceSqr / max(range * range, 0.0001), 0.0, 1.0);
 
-    float attenuation = 1.0 / (attenuationFactors.x +
-                               attenuationFactors.y * lightDistance +
-                               attenuationFactors.z * (lightDistance * lightDistance));
+    float attenuation = (window * window) / (1.0 + distanceSqr);
 
     result.diffuse *= attenuation;
     result.specular *= attenuation;
@@ -88,7 +95,13 @@ vec3 CalculatePointLight(Surface surface, int index, vec3 lightDirection)
 {
     BaseLightResult result = CalculatePositionalLight(surface, index, lightDirection);
 
-    return result.diffuse + result.specular;
+    // Same call as the spot path below - SampleLocalShadow picks the cube face itself from the
+    // light's view count, so nothing here has to know that this light spends six views and that one
+    // spends one. Returns 1.0 for a light holding no tile, so an unshadowed point light costs one
+    // compare.
+    float shadow = SampleLocalShadow(index, vIn.worldPosition, vIn.worldNormal);
+
+    return (result.diffuse + result.specular) * shadow;
 }
 
 vec3 CalculateSpotLight(Surface surface, int index, vec3 lightDirection)
@@ -113,6 +126,13 @@ vec3 CalculateSpotLight(Surface surface, int index, vec3 lightDirection)
 
     result.diffuse *= cone;
     result.specular *= cone;
+
+    // Both terms, unlike the directional path which only shadows diffuse. A specular highlight
+    // surviving inside a shadow reads as a light leak, and it is the more noticeable of the two.
+    float shadow = SampleLocalShadow(index, vIn.worldPosition, vIn.worldNormal);
+
+    result.diffuse *= shadow;
+    result.specular *= shadow;
 
     return result.diffuse + result.specular;
 }

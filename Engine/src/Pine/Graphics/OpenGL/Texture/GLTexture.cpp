@@ -113,7 +113,16 @@ namespace
                 openglInternalFormat = GL_RGBA16F;
                 break;
             case Pine::Graphics::TextureFormat::Depth:
+                // Unsized: the driver picks the precision. Kept for existing callers.
                 openglFormat = GL_DEPTH_COMPONENT;
+                break;
+            case Pine::Graphics::TextureFormat::Depth16:
+                openglFormat = GL_DEPTH_COMPONENT;
+                openglInternalFormat = GL_DEPTH_COMPONENT16;
+                break;
+            case Pine::Graphics::TextureFormat::Depth32F:
+                openglFormat = GL_DEPTH_COMPONENT;
+                openglInternalFormat = GL_DEPTH_COMPONENT32F;
                 break;
             case Pine::Graphics::TextureFormat::DepthStencil:
                 openglFormat = GL_DEPTH_STENCIL;

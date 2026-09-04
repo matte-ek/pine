@@ -54,14 +54,41 @@ float Pine::Light::GetLightIntensity() const
     return m_Intensity;
 }
 
-void Pine::Light::SetLightAttenuation(const Vector3f attenuation)
+void Pine::Light::SetRange(const float range)
 {
-    m_LightAttenuation = attenuation;
+    // A zero or negative range makes the falloff window degenerate and the shadow far plane
+    // invalid, so it is clamped rather than trusted.
+    const float newRange = std::max(range, 0.01f);
+
+    if (m_Range == newRange)
+    {
+        return;
+    }
+
+    m_Range = newRange;
+
+    // Same reasoning as SetLightType: range decides how far this light reaches, which feeds the
+    // per-object slot cache and (later) shadow view invalidation. SceneProcessor::Prepare clears
+    // the entity dirty flag once it has been acted on.
+    if (auto* parent = GetParent())
+    {
+        parent->SetDirty(true);
+    }
 }
 
-const Pine::Vector3f & Pine::Light::GetLightAttenuation() const
+float Pine::Light::GetRange() const
 {
-    return m_LightAttenuation;
+    return m_Range;
+}
+
+void Pine::Light::SetCastShadows(const bool value)
+{
+    m_CastShadows = value;
+}
+
+bool Pine::Light::GetCastShadows() const
+{
+    return m_CastShadows;
 }
 
 // The cone is only well defined for 0 <= inner <= outer < 90. Clamping in the setters keeps the
@@ -102,7 +129,8 @@ void Pine::Light::LoadData(const ByteSpan& span)
     serializer.Type.Read(m_LightType);
     serializer.Color.Read(m_LightColor);
     serializer.Intensity.Read(m_Intensity);
-    serializer.Attenuation.Read(m_LightAttenuation);
+    serializer.Range.Read(m_Range);
+    serializer.CastShadows.Read(m_CastShadows);
     serializer.SpotlightOuterAngle.Read(m_SpotlightOuterAngle);
     serializer.SpotlightInnerAngle.Read(m_SpotlightInnerAngle);
 }
@@ -114,7 +142,8 @@ Pine::ByteSpan Pine::Light::SaveData()
     serializer.Type.Write(m_LightType);
     serializer.Color.Write(m_LightColor);
     serializer.Intensity.Write(m_Intensity);
-    serializer.Attenuation.Write(m_LightAttenuation);
+    serializer.Range.Write(m_Range);
+    serializer.CastShadows.Write(m_CastShadows);
     serializer.SpotlightOuterAngle.Write(m_SpotlightOuterAngle);
     serializer.SpotlightInnerAngle.Write(m_SpotlightInnerAngle);
 
