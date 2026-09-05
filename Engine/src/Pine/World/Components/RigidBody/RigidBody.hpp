@@ -28,7 +28,11 @@ namespace Pine
 
         bool m_GravityEnabled = true;
 
-        physx::PxRigidDynamic *m_RigidBody = nullptr;
+        // The PhysX actor backing this body. Its concrete class depends on whether the body is
+        // static (PxRigidStatic) or kinematic/dynamic (PxRigidDynamic), so changing type at
+        // runtime has to recreate it - m_ActorIsStatic records which class we currently hold.
+        physx::PxRigidActor *m_Actor = nullptr;
+        bool m_ActorIsStatic = false;
         physx::PxTransform m_RigidBodyTransform;
 
         std::array<bool, 3> m_PositionLock = {false, false, false};
@@ -41,6 +45,8 @@ namespace Pine
 
         void UpdateColliders();
         void UpdateBody();
+        void CreateActor(bool isStatic);
+        void DestroyActor();
 
         struct RigidBodySerializer : Serialization::Serializer
         {
@@ -57,6 +63,7 @@ namespace Pine
     public:
         RigidBody();
 
+        // The underlying dynamic actor, or null when this body is static.
         physx::PxRigidDynamic *GetRigidBody() const;
 
         void ApplyForce(const Vector3f& force, physx::PxForceMode::Enum mode = physx::PxForceMode::Enum::eFORCE) const;

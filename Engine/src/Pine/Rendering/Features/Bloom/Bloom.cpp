@@ -37,6 +37,8 @@ namespace
         // RGBA16F: the extracted brightness is still HDR (values well above 1.0) until it's composited.
         tex->UploadTextureData(BloomWidth(), BloomHeight(), 0, Graphics::TextureFormat::RGBA16F, Graphics::TextureDataFormat::Float, nullptr);
         tex->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
+        // The first blur pass must not sample brightness from the opposite screen edge.
+        tex->SetTextureWrapMode(Graphics::TextureWrapMode::ClampToEdge);
 
         m_ExtractBuffer->AttachTexture(tex, Graphics::BufferAttachment::Color);
         m_ExtractBuffer->Finish();

@@ -90,8 +90,19 @@ void Pine::CharacterController::ApplyFilterData() const
 
 void Pine::CharacterController::Simulate(const float elapsedTime)
 {
+    // A static entity is one whose transform never changes, which a character controller
+    // contradicts by definition - say so rather than silently doing nothing.
     if (m_Parent->GetStatic())
+    {
+        if (!m_StaticWarningIssued)
+        {
+            PWarning(fmt::format("CharacterController on entity '{}' will not simulate because the entity is marked Static.", m_Parent->GetName()));
+
+            m_StaticWarningIssued = true;
+        }
+
         return;
+    }
 
     if (m_Controller == nullptr)
         CreateController();
@@ -231,6 +242,7 @@ void Pine::CharacterController::OnCopied()
     m_VerticalVelocity = 0.0f;
     m_Grounded = false;
     m_PendingMovement = Vector3f(0.0f);
+    m_StaticWarningIssued = false;
 }
 
 void Pine::CharacterController::OnDestroyed()

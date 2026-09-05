@@ -31,6 +31,9 @@ namespace
             dataFormat,
             nullptr);
 
+        // Blur taps outside the image must stay at the edge instead of wrapping across it.
+        blurTargetTexture->SetTextureWrapMode(Graphics::TextureWrapMode::ClampToEdge);
+
         buffer->AttachTexture(blurTargetTexture, Graphics::BufferAttachment::Color);
         buffer->Finish();
 

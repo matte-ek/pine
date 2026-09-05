@@ -36,6 +36,7 @@ namespace Pine
         Vector3f m_PendingMovement = Vector3f(0.f); // World-space displacement queued from script.
         float m_VerticalVelocity = 0.f;
         bool m_Grounded = false;
+        bool m_StaticWarningIssued = false; // So the static-entity warning is logged once, not per tick.
 
         void CreateController();
         void ApplyFilterData() const;
