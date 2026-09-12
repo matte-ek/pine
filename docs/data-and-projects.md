@@ -24,17 +24,18 @@ Assets use a **virtual path** rooted at a working directory, not raw filesystem 
 - `Pine::Assets::SetWorkingDirectory(path)` sets the VFS prefix.
 - `Pine::Assets::LoadAssetsFromDirectory(dir)` loads (recursively) relative to it; an empty string means "everything under the working directory".
 
-The Editor wires this up in `Projects::LoadProjectAssets()`:
+The Editor wires this up across two calls (`Editor/src/Projects/Projects.cpp`):
 ```
-Assets::SetWorkingDirectory(GetProjectPath() + "/assets");
-Assets::LoadAssetsFromDirectory("");   // load the whole project
+Projects::SetProject(name)      -> Assets::SetWorkingDirectory("projects/" + name + "/assets");
+Projects::LoadProjectAssets()   -> Assets::LoadAssetsFromDirectory("");  // load the whole project
 ```
+`SetProject` only points the VFS at the project; nothing is read until `LoadProjectAssets`.
 So within a project, an asset's engine path is relative to its `assets/` folder — that
 virtual path (plus the asset's `UId`) is how references between assets are stored, which is
 why moving `.passet` files around by hand breaks references.
 
 ## Running
 Always launch from `data/` with a project name, e.g. `../cmake-build-debug/Editor/Editor gm`
-(full command + `PINE_X11` in the root `README.md` / `CLAUDE.md`).
+(full command + `PINE_X11` in the root `README.md`).
 
 Related: [assets.md](assets.md) · [editor.md](editor.md) · [scripting.md](scripting.md)

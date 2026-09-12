@@ -15,7 +15,7 @@ relative to `Engine/src/Pine/`.
 - **`RenderManager`** owns the contexts and the stage model — `RenderStage` (Pre/PostRender, RenderContext, Pre/PostRender2D, Pre/PostRender3D, PostProcessing) and `PipelineStage` (Prepass, Default). External code hooks in via `AddRenderCallback(fn(context, stage, dt))`.
 - Per context it runs **`Rendering/Pipeline/Pipeline3D/`** or **`Pipeline2D/`** depending on the context config.
 - **`Rendering/SceneProcessor/`** (incl. `SceneLightsProcessor/`) walks the ECS component blocks to gather what to draw and light — this is the bridge from the ECS to the renderer.
-- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`) and ordering in `Rendering/RenderGraph/`.
+- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`), ordering in `Rendering/RenderGraph/`, the quality presets in `Rendering/GraphicsSettings/`, and `Rendering/ShadowView/` holds the one type the shadow passes are built out of (see below).
 - **`Renderer2D/`** mirrors `Renderer3D/` for sprites/tilemaps.
 
 ## Frame order within a context
@@ -50,20 +50,59 @@ design:
   `GetTransformationMatrix()`: the matrix is only rebuilt in `Transform::OnRender`, which in
   production mode does not run until `RenderBatch`, after culling needs it.
 
-Shadow passes do not use this yet — they still walk the whole batch with their own distance test.
-Wiring them up means a `VisibilitySet` per cascade and per shadow-casting light; no new mechanism.
+Shadow passes use the same mechanism: every `ShadowView` owns a `VisibilitySet` and is culled
+against its own frustum, so there is no second visibility concept to keep in sync.
+
+## Shadows
+
+Everything decomposes into **`ShadowView`** (`Rendering/ShadowView/`): one projection, its frustum,
+a slice of a render target, and a `VisibilitySet`. A directional light is `CASCADE_COUNT` views, a
+spot is one, a point light is six cube faces — so the build/cull/render loop has no per-light-type
+branch left in it.
+
+Views land in a **`ShadowAtlas`** (`Features/Shadows/ShadowAtlas/`): one depth texture partitioned
+into tiles (`Half`/`Quarter`/`Eighth` of the atlas edge), handed out by importance and capped at
+`Specifications::Shadows::SHADOW_VIEW_COUNT` live views. One texture means one sampler
+(`Samplers::SHADOW_ATLAS`); a light keeping the *same* tile across frames is what makes caching
+possible, and a tile whose contents are still correct is not re-rendered.
+
+**Where each kind runs is not the same, deliberately** (`Pipeline3D`):
+- **Local views** (spot, point) are built and rendered in `Pipeline3D::Prepare()`, **once per
+  frame** — `Shadows::PrepareLocalViews` / `RenderLocalViews`. Their maps do not depend on the
+  viewer, so doing this per context would render every spot light twice with an editor viewport and
+  a game camera both live.
+- **Cascades** are built from the camera frustum, so they stay **per context**, inside that
+  context's prepass — `Shadows::NewFrame(camera)` then `RenderPassLight(light, ...)` per light.
+
+With shadows switched off, `Pipeline3D` calls `Shadows::ClearLocalViews` rather than simply
+skipping the work: a light still pointing at the tile it held would otherwise keep sampling a tile
+nothing refreshes, freezing its shadow in place instead of removing it.
+
+`Shadows::GetStatistics()` and `GetTileDebugInfo(slot)` back the editor's atlas debug view — tile
+residency, importance and cache hits are invisible in the final image when they work and obvious
+there when they don't.
+
+The design reasoning, including what was rejected and why, is in
+[`reports/spot-point-light-shadows-plan.md`](reports/spot-point-light-shadows-plan.md).
 
 ## Lighting
 
 **Light slot layout.** An object gets a fixed set of light slots
-(`Renderer3D::Specifications::ObjectLightSlots`): slots 0-4 are the nearest point lights, slot 5 the
-nearest spot. The directional light is global and always light index 0. `SceneLightsProcessor`
-assigns slots per object by distance and caches them until a light moves, is added/removed, or
-changes type.
+(`Renderer3D::Specifications::ObjectLightSlots`): slots 0-4 are the nearest point lights, slots 5-6
+the nearest two spots — `COUNT` is 7. Two spot slots rather than one so a hand-held light and a
+world light can reach the same surface. The directional light is global and always light index 0.
+`SceneLightsProcessor` assigns slots per object by distance and caches them until a light moves, is
+added/removed, or changes type.
 
-⚠ **That layout is asserted in four places with nothing tying them together**: `Specifications.hpp`,
-`SceneLightsProcessing.cpp`, `Renderer3D::AddLight`, and the hand-unrolled subscripts in
-`generic.fragment.glsl`. Change one and nothing tells you about the other three.
+⚠ **`COUNT` is capped at 7 by the shader, not by anything in C++.** The generic shader's varying
+block carries `lightDir[8]`, of which `[0]` is the directional light and `[1..7]` are these slots.
+Going past 7 means growing that array and costs three interpolated floats per fragment on *every*
+material, so 6→7 was free in a way 7→8 is not.
+
+⚠ **The layout is asserted in several places with nothing tying them together**:
+`Specifications.hpp`, `SceneLightsProcessing.cpp`, `Renderer3D::AddLight`, and the hand-unrolled
+subscripts in both `generic.vertex.glsl` and `generic.fragment.glsl`. Change one and nothing tells
+you about the others.
 
 **Direction convention.** `Light.directionToLight` in the UBO points *towards* the light — the
 opposite of where the lamp shines — matching `vIn.lightDir[]`. `AddLight` uploads `-forward` to make
@@ -83,7 +122,8 @@ returns garbage on some drivers (seen on NVIDIA), silently zeroing N·L. The loo
 
 ⚠ **Terrain and editor gizmos draw with no light hint data**, so they fall back to whatever
 `AddLight` left in `Instances[0]` — an arbitrary global subset (first five point lights in pool
-order, last spot), identical across the whole terrain. Terrain needs real per-chunk slots.
+order, last two spots), and now its arbitrary shadow views with it, identical across the whole
+terrain. Terrain needs real per-chunk slots.
 
 ## Notes
 - Shaders, materials, meshes and models are all **assets** (see [assets.md](assets.md)); the renderer pulls them from the asset system rather than owning GPU resources directly.

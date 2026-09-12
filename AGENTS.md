@@ -4,19 +4,19 @@ Pine is a 3D/2D game engine written in C++17, developed over several years as a 
 
 # Working preferences
 
-The files linked below are instructions, not background reading. Read each one with your file-reading tool at the point it applies, then apply it. Do not work from a summary, a previous session, or an assumption about what a file contains.
+The modules linked below are loaded into your context automatically (see `CLAUDE.md`). They are instructions, not background reading: apply the relevant module at the point it applies. Do not work from a summary, a previous session, or an assumption about what a module contains. The one exception is [Code review and audit](agent-guidelines/code-review.md), which is not preloaded — read it with your file-reading tool if and when it activates.
 
-When interpreting requests and working with the user, read and apply [Collaborative iteration](agent-guidelines/collaborative-iteration.md).
+When interpreting requests and working with the user, apply [Collaborative iteration](agent-guidelines/collaborative-iteration.md).
 
-Before writing or changing code, read and apply these modules:
+Before writing or changing code, apply these modules:
 
 - [Readable code](agent-guidelines/readable-code.md)
 - [Design for likely changes](agent-guidelines/design-for-change.md)
 - [Consistency with nearby code](agent-guidelines/local-consistency.md)
 
-Before reporting code work as finished, read and apply [Complete the change](agent-guidelines/complete-the-change.md).
+Before reporting code work as finished, apply [Complete the change](agent-guidelines/complete-the-change.md).
 
-Do not commit, push, or deploy anything unless the user asks for that action in the current request. Read and apply [Actions to leave to the user](agent-guidelines/leave-to-the-user.md).
+Do not commit, push, or deploy anything unless the user asks for that action in the current request. Apply [Actions to leave to the user](agent-guidelines/leave-to-the-user.md).
 
 Only when the user explicitly asks for a code review or audit, read and apply [Code review and audit](agent-guidelines/code-review.md). Apply it to the requested review scope and phase only. Do not activate it for general questions, implementation work, routine development checks, or requests to write review guidelines. A request such as "Review these changes" or "Audit the permission handling" activates it for that scope; an implementation request or a routine development check does not.
 
