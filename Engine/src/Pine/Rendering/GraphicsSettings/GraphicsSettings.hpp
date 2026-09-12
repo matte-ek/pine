@@ -25,12 +25,17 @@ namespace Pine::Rendering::GraphicsSettings
 
         bool AmbientOcclusion = true;
 
+        bool Bloom = true;
+
         // Number of hemisphere samples the SSAO shader takes per fragment.
         // Clamped to [1, 64] (the kernel buffer holds 64 entries).
         int AmbientOcclusionSamples = 24;
 
         // Number of blur passes applied to the SSAO result.
         int AmbientOcclusionBlurPasses = 4;
+
+        // Number of blur passes applied to the extracted bright areas. More = a wider, softer glow.
+        int BloomBlurPasses = 6;
 
         // How many shadow atlas tiles local (spot, and later point) lights may hold at once.
         //
@@ -66,6 +71,10 @@ namespace Pine::Rendering::GraphicsSettings
         // The SSAO buffer is rendered at (internal resolution / this divisor).
         // Higher = lower AO resolution = faster.
         int AmbientOcclusionResDivisor = 2;
+
+        // The bloom buffers are rendered at (internal resolution / this divisor). Bloom is a wide,
+        // soft blur, so low resolution is the point rather than only a saving - 1 is rarely worth it.
+        int BloomResDivisor = 2;
     };
 
     // Loads "graphics.json" from the working directory. If missing, keeps the
@@ -94,4 +103,6 @@ namespace Pine::Rendering::GraphicsSettings
     int GetAmbientOcclusionResDivisor();
     int GetAmbientOcclusionBlurPasses();
     int GetAmbientOcclusionSamples();
+    int GetBloomResDivisor();
+    int GetBloomBlurPasses();
 }

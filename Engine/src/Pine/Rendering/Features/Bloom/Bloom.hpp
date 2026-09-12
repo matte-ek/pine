@@ -15,6 +15,10 @@ namespace Pine::Rendering::Bloom
     // Must run after the scene has been rendered into sceneFrameBuffer, before the post-process resolve.
     void Run(const RenderingContext& context, Graphics::IFrameBuffer* sceneFrameBuffer);
 
+    // Blacks out the glow buffer so the post-process composite adds nothing. Called when bloom is
+    // disabled, so the last glow isn't left frozen on screen; cheap to call repeatedly.
+    void ClearOutput();
+
     void Setup();
     void Shutdown();
 }

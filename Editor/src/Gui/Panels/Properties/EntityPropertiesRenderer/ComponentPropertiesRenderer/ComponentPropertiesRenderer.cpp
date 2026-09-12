@@ -234,43 +234,81 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
-    void RenderCollider(Pine::Collider* collider)
+    // The single-layer dropdown, shared by every component that lives in the collision layer space
+    // (Collider, CharacterController). Lists "Default" plus the layers named in the project's game
+    // properties, and maps the selection back to the single bit the component stores. Returns true
+    // and writes 'layer' when the user picked something new.
+    bool LayerDropDown(const char* label, std::uint32_t& layer)
     {
         static std::vector<char> layerSelectionBuffer;
 
-        auto colliderType = static_cast<int>(collider->GetColliderType());
-        auto position = collider->GetPosition();
-        auto size = collider->GetSize();
-        auto isTrigger = collider->IsTrigger();
-        auto triggerMask = collider->GetTriggerMask();
-        auto layer = collider->GetLayer() >> 1;
-        auto layerMask = collider->GetLayerMask();
-
+        // The stored value is a single bit; turn it back into a dropdown index.
+        auto layerBit = layer >> 1;
         auto layerIndex = 0;
-        while (layer != 0)
+
+        while (layerBit != 0)
         {
-            layer = layer >> 1;
+            layerBit = layerBit >> 1;
             layerIndex++;
         }
 
         layerSelectionBuffer = {'D', 'e', 'f', 'a', 'u', 'l', 't', '\0'};
 
-        for (const auto& ColliderLayer : Pine::Game::GetGameProperties().ColliderLayers)
+        std::vector<std::string> namedLayers;
+
+        for (const auto& colliderLayer : Pine::Game::GetGameProperties().ColliderLayers)
         {
-            if (ColliderLayer.empty())
+            if (colliderLayer.empty())
             {
                 continue;
             }
 
-            for (auto c : ColliderLayer)
+            for (auto c : colliderLayer)
             {
                 layerSelectionBuffer.push_back(c);
             }
 
             layerSelectionBuffer.push_back('\0');
+
+            namedLayers.push_back(colliderLayer);
         }
 
         layerSelectionBuffer.push_back('\0');
+
+        if (!Widgets::DropDown(label, &layerIndex, layerSelectionBuffer.data()))
+        {
+            return false;
+        }
+
+        if (layerIndex == 0)
+        {
+            layer = Pine::ColliderLayerDefault;
+
+            return true;
+        }
+
+        for (int i = 0; i < 31; i++)
+        {
+            if (Pine::Game::GetGameProperties().ColliderLayers[i] == namedLayers[layerIndex - 1])
+            {
+                layer = 1 << (i + 1);
+            }
+        }
+
+        return true;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------------
+
+    void RenderCollider(Pine::Collider* collider)
+    {
+        auto colliderType = static_cast<int>(collider->GetColliderType());
+        auto position = collider->GetPosition();
+        auto size = collider->GetSize();
+        auto isTrigger = collider->IsTrigger();
+        auto triggerMask = collider->GetTriggerMask();
+        auto layer = collider->GetLayer();
+        auto layerMask = collider->GetLayerMask();
 
         if (Widgets::DropDown("Collider Type", &colliderType, "Box\0Sphere\0Capsule\0Convex Mesh\0Concave Mesh\0Height Field\0"))
         {
@@ -312,36 +350,11 @@ namespace
             }
         }
 
-        if (Widgets::DropDown("Layer", &layerIndex, layerSelectionBuffer.data()))
+        if (LayerDropDown("Layer", layer))
         {
             CreateComponentCommand updateCmd(collider, CommandType::Update);
 
-            if (layerIndex == 0)
-            {
-                collider->SetLayer(Pine::ColliderLayerDefault);
-            }
-            else
-            {
-                std::vector<std::string> avLayers;
-
-                for (const auto& colliderLayer : Pine::Game::GetGameProperties().ColliderLayers)
-                {
-                    if (colliderLayer.empty())
-                    {
-                        continue;
-                    }
-
-                    avLayers.push_back(colliderLayer);
-                }
-
-                for (int i = 0; i < 31; i++)
-                {
-                    if (Pine::Game::GetGameProperties().ColliderLayers[i] == avLayers[layerIndex - 1])
-                    {
-                        collider->SetLayer(1 << (i + 1));
-                    }
-                }
-            }
+            collider->SetLayer(layer);
         }
 
         if (Widgets::LayerSelection("Layer Mask", layerMask))
@@ -440,6 +453,8 @@ namespace
         auto stepOffset = characterController->GetStepOffset();
         auto contactOffset = characterController->GetContactOffset();
         auto gravity = characterController->GetGravity();
+        auto layer = characterController->GetLayer();
+        auto layerMask = characterController->GetLayerMask();
 
         if (Widgets::InputFloat("Radius", &radius))
         {
@@ -481,6 +496,20 @@ namespace
             CreateComponentCommand updateCmd(characterController, CommandType::Update);
 
             characterController->SetGravity(gravity);
+        }
+
+        if (LayerDropDown("Layer", layer))
+        {
+            CreateComponentCommand updateCmd(characterController, CommandType::Update);
+
+            characterController->SetLayer(layer);
+        }
+
+        if (Widgets::LayerSelection("Layer Mask", layerMask))
+        {
+            CreateComponentCommand updateCmd(characterController, CommandType::Update);
+
+            characterController->SetLayerMask(layerMask);
         }
     }
 

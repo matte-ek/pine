@@ -41,6 +41,7 @@ namespace Pine
         void CreateController();
         void ApplyFilterData() const;
         void WriteBackTransform() const;
+        void SetTransformFromWorldPosition(const Vector3f& worldPosition) const;
 
         struct CharacterControllerSerializer : Serialization::Serializer
         {
@@ -50,6 +51,8 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(StepOffset, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(ContactOffset, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(Gravity, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(Layer, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(LayerMask, Serialization::DataType::Int32);
         };
     public:
         CharacterController();
@@ -58,6 +61,12 @@ namespace Pine
         // CharacterController.Move() - the argument is a displacement, not a velocity. Gravity is
         // applied by the controller itself, so callers only need to supply the intended movement.
         void Move(const Vector3f& motion);
+
+        // Teleport the controller to a world-space position (the entity origin, i.e. the capsule's
+        // feet). Use this rather than writing the Transform: the controller owns its position and
+        // overwrites the Transform every physics tick, so a Transform-only move is undone on the
+        // next tick. Clears any queued movement and resets the accumulated fall speed.
+        void SetPosition(const Vector3f& position);
 
         bool IsGrounded() const;
 
@@ -78,6 +87,14 @@ namespace Pine
 
         void SetGravity(float gravity);
         float GetGravity() const;
+
+        // The collision layer this controller occupies, and the mask of layers it collides with.
+        // Same layer space as Collider, so the two can be configured against each other.
+        void SetLayer(std::uint32_t layer);
+        std::uint32_t GetLayer() const;
+
+        void SetLayerMask(std::uint32_t layerMask);
+        std::uint32_t GetLayerMask() const;
 
         // Driven by Physics3D once per fixed physics tick, before the scene simulates.
         void Simulate(float elapsedTime);

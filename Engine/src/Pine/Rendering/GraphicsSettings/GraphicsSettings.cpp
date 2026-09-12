@@ -27,6 +27,9 @@ void Rendering::GraphicsSettings::ApplyPreset(const QualityPreset preset)
         s.AmbientOcclusionSamples = 8;
         s.AmbientOcclusionBlurPasses = 2;
         s.AmbientOcclusionResDivisor = 4;
+        s.Bloom = false;
+        s.BloomBlurPasses = 4;
+        s.BloomResDivisor = 4;
         s.ShadowAtlasResolution = 1024;
         s.LocalShadowTileBudget = 2;
         break;
@@ -36,6 +39,9 @@ void Rendering::GraphicsSettings::ApplyPreset(const QualityPreset preset)
         s.AmbientOcclusionSamples = 16;
         s.AmbientOcclusionBlurPasses = 3;
         s.AmbientOcclusionResDivisor = 2;
+        s.Bloom = true;
+        s.BloomBlurPasses = 5;
+        s.BloomResDivisor = 2;
         s.ShadowAtlasResolution = 2048;
         s.LocalShadowTileBudget = 6;
         break;
@@ -45,6 +51,9 @@ void Rendering::GraphicsSettings::ApplyPreset(const QualityPreset preset)
         s.AmbientOcclusionSamples = 24;
         s.AmbientOcclusionBlurPasses = 4;
         s.AmbientOcclusionResDivisor = 2;
+        s.Bloom = true;
+        s.BloomBlurPasses = 6;
+        s.BloomResDivisor = 2;
         s.ShadowAtlasResolution = 4096;
         s.LocalShadowTileBudget = 12;
         break;
@@ -54,6 +63,9 @@ void Rendering::GraphicsSettings::ApplyPreset(const QualityPreset preset)
         s.AmbientOcclusionSamples = 48;
         s.AmbientOcclusionBlurPasses = 4;
         s.AmbientOcclusionResDivisor = 1;
+        s.Bloom = true;
+        s.BloomBlurPasses = 8;
+        s.BloomResDivisor = 2;
         s.ShadowAtlasResolution = 8192;
         s.LocalShadowTileBudget = 16;
         break;
@@ -91,6 +103,9 @@ void Rendering::GraphicsSettings::Setup()
     SerializationJson::LoadValue(j, "shadowAtlasResolution", m_Settings.ShadowAtlasResolution);
     SerializationJson::LoadValue(j, "localShadowTileBudget", m_Settings.LocalShadowTileBudget);
     SerializationJson::LoadValue(j, "ambientOcclusionResDivisor", m_Settings.AmbientOcclusionResDivisor);
+    SerializationJson::LoadValue(j, "bloom", m_Settings.Bloom);
+    SerializationJson::LoadValue(j, "bloomBlurPasses", m_Settings.BloomBlurPasses);
+    SerializationJson::LoadValue(j, "bloomResDivisor", m_Settings.BloomResDivisor);
 }
 
 const Rendering::GraphicsSettings::Settings& Rendering::GraphicsSettings::Get()
@@ -115,6 +130,9 @@ void Rendering::GraphicsSettings::Save()
     j["shadowAtlasResolution"] = m_Settings.ShadowAtlasResolution;
     j["localShadowTileBudget"] = m_Settings.LocalShadowTileBudget;
     j["ambientOcclusionResDivisor"] = m_Settings.AmbientOcclusionResDivisor;
+    j["bloom"] = m_Settings.Bloom;
+    j["bloomBlurPasses"] = m_Settings.BloomBlurPasses;
+    j["bloomResDivisor"] = m_Settings.BloomResDivisor;
 
     SerializationJson::SaveToFile(SETTINGS_FILE, j);
 }
@@ -125,6 +143,7 @@ void Rendering::GraphicsSettings::ApplyRuntime()
 
     config.RenderShadows = m_Settings.Shadows;
     config.RenderAmbientOcclusion = m_Settings.AmbientOcclusion;
+    config.RenderBloom = m_Settings.Bloom;
 }
 
 int Rendering::GraphicsSettings::GetShadowAtlasResolution()
@@ -140,6 +159,18 @@ int Rendering::GraphicsSettings::GetLocalShadowTileBudget()
 int Rendering::GraphicsSettings::GetAmbientOcclusionResDivisor()
 {
     return std::max(1, m_Settings.AmbientOcclusionResDivisor);
+}
+
+int Rendering::GraphicsSettings::GetBloomResDivisor()
+{
+    return std::max(1, m_Settings.BloomResDivisor);
+}
+
+int Rendering::GraphicsSettings::GetBloomBlurPasses()
+{
+    // At least one pass: Blur::Run does nothing with zero, which would leave the glow buffer
+    // holding whatever was in it last frame.
+    return std::max(1, m_Settings.BloomBlurPasses);
 }
 
 int Rendering::GraphicsSettings::GetAmbientOcclusionBlurPasses()

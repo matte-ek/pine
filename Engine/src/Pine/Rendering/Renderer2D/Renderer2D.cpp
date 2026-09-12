@@ -5,6 +5,7 @@
 #include "Pine/Graphics/Interfaces/IGraphicsAPI.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
+#include "Pine/Core/Math/Math.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include <stdexcept>
 #include <vector>
@@ -246,10 +247,14 @@ namespace
                         rectUvTransformData[vertexBufferIndex].z = rect.m_UvScale.x;
                         rectUvTransformData[vertexBufferIndex].w = rect.m_UvScale.y;
 
-                        rectColorData[vertexBufferIndex] = Vector4f(static_cast<float>(rect.m_Color.r) / 255.f,
-                                                                    static_cast<float>(rect.m_Color.g) / 255.f,
-                                                                    static_cast<float>(rect.m_Color.b) / 255.f,
-                                                                    static_cast<float>(rect.m_Color.a) / 255.f);
+                        // 2D draws into the same linear HDR scene buffer as the 3D pass, so an
+                        // authored sRGB colour has to be decoded here for the same reason Renderer3D
+                        // decodes material and light colours. Alpha is coverage, not colour, and
+                        // SrgbToLinear leaves it alone.
+                        rectColorData[vertexBufferIndex] = SrgbToLinear(Vector4f(static_cast<float>(rect.m_Color.r) / 255.f,
+                                                                                 static_cast<float>(rect.m_Color.g) / 255.f,
+                                                                                 static_cast<float>(rect.m_Color.b) / 255.f,
+                                                                                 static_cast<float>(rect.m_Color.a) / 255.f));
 
                         rectTextureIndexRadiusData[vertexBufferIndex].y = rect.m_Radius;
                         rectTextureIndexRadiusData[vertexBufferIndex].z = -rect.m_Rotation;

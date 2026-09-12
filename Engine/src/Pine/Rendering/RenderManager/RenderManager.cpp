@@ -172,10 +172,16 @@ void Pine::RenderManager::Run()
 
         Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), renderingContext->Size);
 
-        Graphics::GetGraphicsAPI()->ClearColor(Color(static_cast<int>(renderingContext->ClearColor.r * 255.f),
-                                                     static_cast<int>(renderingContext->ClearColor.g * 255.f),
-                                                     static_cast<int>(renderingContext->ClearColor.b * 255.f),
-                                                     static_cast<int>(renderingContext->ClearColor.a * 255.f)));
+        // This clear fills the linear HDR scene buffer, so the authored sRGB colour is decoded
+        // first - otherwise the post-process resolve encodes a background that was never decoded
+        // and it comes out too light. (Color is 8-bit, so very dark backgrounds band a little; that
+        // is inherited from the ClearColor API rather than introduced here.)
+        const auto linearClearColor = SrgbToLinear(renderingContext->ClearColor);
+
+        Graphics::GetGraphicsAPI()->ClearColor(Color(static_cast<int>(linearClearColor.r * 255.f),
+                                                     static_cast<int>(linearClearColor.g * 255.f),
+                                                     static_cast<int>(linearClearColor.b * 255.f),
+                                                     static_cast<int>(linearClearColor.a * 255.f)));
 
         Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer | Graphics::StencilBuffer);
 
@@ -205,7 +211,16 @@ void Pine::RenderManager::Run()
             CallRenderCallback(renderingContext, RenderStage::PostProcessing, fDeltaTime);
 
             // Bloom reads the finished HDR scene and produces the glow the resolve pass composites.
-            Rendering::Bloom::Run(*renderingContext, m_InternalFrameBuffer);
+            // When disabled its output buffer is blacked out, so the composite becomes a no-op -
+            // the same trick ambient occlusion uses (see Pipeline3D).
+            if (Pipeline3D::GetPipelineConfiguration().RenderBloom)
+            {
+                Rendering::Bloom::Run(*renderingContext, m_InternalFrameBuffer);
+            }
+            else
+            {
+                Rendering::Bloom::ClearOutput();
+            }
 
             Rendering::PostProcessing::Render(renderingContext, m_InternalFrameBuffer);
         }

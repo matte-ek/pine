@@ -167,6 +167,13 @@ namespace
         Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->Move(*motion);
     }
 
+    void CharacterControllerSetPosition(const std::uint32_t internalId, const Pine::Vector3f* position)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->SetPosition(*position);
+    }
+
     bool CharacterControllerIsGrounded(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
@@ -209,6 +216,7 @@ void Pine::Script::Interfaces::Component::Setup()
     mono_add_internal_call("Pine.World.Components.RigidBody::ApplyForce", reinterpret_cast<void *>(RigidBodyApplyForce));
 
     mono_add_internal_call("Pine.World.Components.CharacterController::PineMove", reinterpret_cast<void *>(CharacterControllerMove));
+    mono_add_internal_call("Pine.World.Components.CharacterController::PineSetPosition", reinterpret_cast<void *>(CharacterControllerSetPosition));
     mono_add_internal_call("Pine.World.Components.CharacterController::PineIsGrounded", reinterpret_cast<void *>(CharacterControllerIsGrounded));
 
     mono_add_internal_call("Pine.World.Components.Transform::GetPosition", reinterpret_cast<void *>(TransformGetPosition));

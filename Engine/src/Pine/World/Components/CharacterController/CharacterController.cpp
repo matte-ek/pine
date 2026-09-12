@@ -142,23 +142,47 @@ void Pine::CharacterController::Simulate(const float elapsedTime)
 
 void Pine::CharacterController::WriteBackTransform() const
 {
-    const auto transform = m_Parent->GetTransform();
     const auto foot = m_Controller->getFootPosition();
 
-    Vector3f worldPosition(
+    SetTransformFromWorldPosition(Vector3f(
         static_cast<float>(foot.x),
         static_cast<float>(foot.y),
         static_cast<float>(foot.z)
-    );
+    ));
+}
+
+void Pine::CharacterController::SetTransformFromWorldPosition(const Vector3f& worldPosition) const
+{
+    Vector3f localPosition = worldPosition;
 
     // Transform only exposes a local setter; convert world -> local by subtracting the parent's
     // world position (mirroring how Transform::GetPosition() sums parent positions).
     if (const auto parentEntity = m_Parent->GetParent())
     {
-        worldPosition = worldPosition - parentEntity->GetTransform()->GetPosition();
+        localPosition = localPosition - parentEntity->GetTransform()->GetPosition();
     }
 
-    transform->SetLocalPosition(worldPosition);
+    m_Parent->GetTransform()->SetLocalPosition(localPosition);
+}
+
+void Pine::CharacterController::SetPosition(const Vector3f& position)
+{
+    // A teleport is not movement: drop anything queued and stop the fall, so the controller doesn't
+    // arrive carrying the speed it built up somewhere else.
+    m_PendingMovement = Vector3f(0.0f);
+    m_VerticalVelocity = 0.0f;
+
+    // Before the first physics tick there is no PhysX controller yet, and CreateController() reads
+    // the transform - so writing the transform is enough, the controller starts in the right place.
+    if (m_Controller == nullptr)
+    {
+        SetTransformFromWorldPosition(position);
+        return;
+    }
+
+    m_Controller->setFootPosition(physx::PxExtendedVec3(position.x, position.y, position.z));
+
+    WriteBackTransform();
 }
 
 void Pine::CharacterController::SetRadius(const float radius)
@@ -190,6 +214,10 @@ float Pine::CharacterController::GetHeight() const
 void Pine::CharacterController::SetSlopeLimit(const float degrees)
 {
     m_SlopeLimit = degrees;
+
+    // PhysX stores the slope limit as a cosine, same conversion as CreateController().
+    if (m_Controller)
+        m_Controller->setSlopeLimit(std::cos(glm::radians(degrees)));
 }
 
 float Pine::CharacterController::GetSlopeLimit() const
@@ -233,6 +261,30 @@ float Pine::CharacterController::GetGravity() const
     return m_Gravity;
 }
 
+void Pine::CharacterController::SetLayer(const std::uint32_t layer)
+{
+    m_Layer = layer;
+
+    ApplyFilterData();
+}
+
+std::uint32_t Pine::CharacterController::GetLayer() const
+{
+    return m_Layer;
+}
+
+void Pine::CharacterController::SetLayerMask(const std::uint32_t layerMask)
+{
+    m_LayerMask = layerMask;
+
+    ApplyFilterData();
+}
+
+std::uint32_t Pine::CharacterController::GetLayerMask() const
+{
+    return m_LayerMask;
+}
+
 void Pine::CharacterController::OnCopied()
 {
     Component::OnCopied();
@@ -268,6 +320,8 @@ void Pine::CharacterController::LoadData(const ByteSpan& span)
     serializer.StepOffset.Read(m_StepOffset);
     serializer.ContactOffset.Read(m_ContactOffset);
     serializer.Gravity.Read(m_Gravity);
+    serializer.Layer.Read(m_Layer);
+    serializer.LayerMask.Read(m_LayerMask);
 }
 
 Pine::ByteSpan Pine::CharacterController::SaveData()
@@ -280,6 +334,8 @@ Pine::ByteSpan Pine::CharacterController::SaveData()
     serializer.StepOffset.Write(m_StepOffset);
     serializer.ContactOffset.Write(m_ContactOffset);
     serializer.Gravity.Write(m_Gravity);
+    serializer.Layer.Write(m_Layer);
+    serializer.LayerMask.Write(m_LayerMask);
 
     return serializer.Write();
 }

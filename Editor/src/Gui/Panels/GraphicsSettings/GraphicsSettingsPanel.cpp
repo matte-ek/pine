@@ -72,6 +72,8 @@ void Panels::GraphicsSettings::Render()
         changed |= Widgets::Checkbox("Ambient Occlusion", &m_Settings.AmbientOcclusion);
         changed |= Widgets::SliderInt("AO Samples", &m_Settings.AmbientOcclusionSamples, 1, 64);
         changed |= Widgets::SliderInt("AO Blur Passes", &m_Settings.AmbientOcclusionBlurPasses, 0, 6);
+        changed |= Widgets::Checkbox("Bloom", &m_Settings.Bloom);
+        changed |= Widgets::SliderInt("Bloom Blur Passes", &m_Settings.BloomBlurPasses, 1, 10);
 
         ImGui::SeparatorText("Applied on restart");
 
@@ -95,6 +97,8 @@ void Panels::GraphicsSettings::Render()
 
         changed |= Widgets::SliderInt("AO Resolution Divisor", &m_Settings.AmbientOcclusionResDivisor, 1, 4);
 
+        changed |= Widgets::SliderInt("Bloom Resolution Divisor", &m_Settings.BloomResDivisor, 1, 4);
+
         // Any manual field edit means we no longer match a named preset.
         if (changed)
         {
@@ -102,7 +106,7 @@ void Panels::GraphicsSettings::Render()
         }
 
         ImGui::Spacing();
-        ImGui::TextDisabled("Shadow atlas size and AO resolution divisor take effect after a restart.");
+        ImGui::TextDisabled("Shadow atlas size and the AO/bloom resolution divisors take effect after a restart.");
         ImGui::Spacing();
 
         if (ImGui::Button("Save & Apply", ImVec2(150, 40)))

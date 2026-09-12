@@ -15,8 +15,15 @@ namespace Pine.World.Components
         // Gravity is applied internally, so you only supply the intended horizontal movement.
         public void Move(Vector3 motion) => PineMove(InternalId, ref motion);
 
+        // Teleport the controller to a world-space position (its feet). Setting the entity's
+        // Transform directly does not work - the controller overwrites it every physics tick.
+        // Any queued movement and the accumulated fall speed are cleared.
+        public void SetPosition(Vector3 position) => PineSetPosition(InternalId, ref position);
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void PineMove(uint id, ref Vector3 motion);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void PineSetPosition(uint id, ref Vector3 position);
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool PineIsGrounded(uint id);
     }
