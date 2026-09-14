@@ -77,10 +77,10 @@ namespace Pine::Renderer3D::ShaderStorages
             // 1 for a spot, 6 for a point light's cube faces.
             int ShadowViewCount = 0;
 
-            // Multiplier on the shadow term, faded 0..1 when a light gains or loses a shadow tile.
-            // Lives here from the start on purpose: retrofitting a factor the shader must multiply
-            // by, after the lookup already works, means finding every place that forgot to.
-            float ShadowFade = 0.f;
+            // Held, not spare: std140 rounds this struct to an 80-byte array stride regardless, so
+            // removing the slot instead of padding it would leave this side at 76 and misalign
+            // every light after the first.
+            float Pad3 = 0;
         }Lights[Specifications::General::DYNAMIC_LIGHT_COUNT];
     };
 

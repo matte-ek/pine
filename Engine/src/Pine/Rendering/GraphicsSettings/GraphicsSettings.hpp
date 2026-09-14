@@ -49,7 +49,9 @@ namespace Pine::Rendering::GraphicsSettings
         // at once.
         //
         // A point light costs six of these, so anything under 6 silently means "point lights never
-        // cast" - which is why the presets step 6 / 12 / 16 rather than 2 / 4 / 8.
+        // cast" - which is why the presets that have shadows on step 6 / 12 / 16 rather than
+        // 2 / 4 / 8. Low is the exception and not a fourth step: it turns Shadows off outright, so
+        // its budget is never read and the 2 it carries is only what Custom starts from.
         int LocalShadowTileBudget = 12;
 
         // --- Allocation-class settings (applied at Setup(), restart to change) ---

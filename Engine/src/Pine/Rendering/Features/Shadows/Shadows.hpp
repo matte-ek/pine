@@ -21,10 +21,6 @@ namespace Pine
 
 namespace Pine::Rendering::Shadows
 {
-    struct ShadowConfiguration
-    {
-    };
-
     void Setup();
     void Shutdown();
 
@@ -35,6 +31,11 @@ namespace Pine::Rendering::Shadows
     struct Statistics
     {
         int LocalViewCount = 0;
+
+        // Local only, so that this and TilesCached partition LocalViewCount and the two can be read
+        // against each other. Cascades are counted by CascadeViewCount instead: they render per
+        // rendering context rather than per frame, so folding them in here would make a local cache
+        // hit rate rise and fall with how many viewports happen to be open.
         int TilesRendered = 0;
 
         // Views that were live and sampled but cost nothing, because what was already in their tile
@@ -44,7 +45,8 @@ namespace Pine::Rendering::Shadows
         int CastersDrawn = 0;
 
         // Cascades render inside each rendering context's prepass, so with an editor viewport and a
-        // game camera both live these count every cascade rendered this frame, not per viewer.
+        // game camera both live these count every cascade rendered this frame, not per viewer. Every
+        // cascade view always renders, so this is a tile count as well as a view count.
         int CascadeViewCount = 0;
         int CascadeCastersDrawn = 0;
 

@@ -31,7 +31,6 @@ namespace Pine::Graphics
 
        void AttachTexture(ITexture* texture, BufferAttachment attachment, int attachmentOffset = 0) override;
 
-       void AttachTextureLayer(ITexture* texture, BufferAttachment attachment, int layer, int attachmentOffset = 0) override;
 
        bool Finish() override;
 

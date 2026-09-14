@@ -46,6 +46,51 @@ namespace Pine::Serialization
         Count
     };
 
+    // The on-disk layout. Lives here rather than inside Serialization.cpp so that a reader which
+    // walks a buffer *without* knowing which Serializer wrote it (Serialization/Dump/) shares one
+    // definition of the format instead of keeping a second copy that can drift.
+    namespace Internal
+    {
+        constexpr std::uint32_t Magic = 0x7143;
+        constexpr std::uint16_t Version = 0x1;
+
+        enum class FileHeaderFlags : std::uint16_t
+        {
+            FlexibleMode = (1 << 0) // File was encoded with flexible mode enabled.
+        };
+
+#pragma pack(push, 1)
+        struct FileHeader
+        {
+            std::uint32_t Magic;
+
+            // The version number of this file, if the file was encoded
+            // in compact mode, this has to match, otherwise it's probably fine.
+            std::uint16_t Version;
+
+            // Optional flags for this file
+            std::uint8_t Flags;
+
+            // The amount of data fields in this file
+            std::uint16_t DataCount;
+        };
+
+        struct DataHeader
+        {
+            std::uint8_t Type;
+        };
+
+        struct DataHeaderFlexible : DataHeader
+        {
+            std::uint8_t DataNameLength;
+        };
+#pragma pack(pop)
+
+        // Byte size of a fixed-size primitive. Only meaningful for types ordered before
+        // DataType::String; throws otherwise.
+        std::size_t PrimitiveDataTypeToSize(DataType type);
+    }
+
     class Serializer;
 
     class Data

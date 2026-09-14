@@ -8,6 +8,7 @@
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Core/File/File.hpp"
+#include "Pine/Core/Serialization/Dump/SerializationDump.hpp"
 #include "Pine/Core/String/String.hpp"
 
 namespace
@@ -44,7 +45,46 @@ int main(int argc, const char* argv[])
         std::cout << "Usage:" << std::endl;
         std::cout << "  EngineCli --import <output> <input file>..." << std::endl;
         std::cout << "  EngineCli --batch-import <directory> [<map-root>]" << std::endl;
+        std::cout << "  EngineCli --dump <file>" << std::endl;
         return 1;
+    }
+
+    // Prints any Pine binary file as JSON. Needs no graphics context and no project, so it is the
+    // quickest way to see what is actually inside a .passet.
+    if (strcmp(argv[1], "--dump") == 0)
+    {
+        if (argc < 3)
+        {
+            std::cout << "Usage: EngineCli --dump <file>" << std::endl;
+            return 1;
+        }
+
+        const std::filesystem::path path = argv[2];
+
+        if (!std::filesystem::exists(path))
+        {
+            std::cout << "No such file: " << path << std::endl;
+            return 1;
+        }
+
+        // .passet files are zlib-compressed containers; a bare serializer buffer is not. Try
+        // compressed first, then raw, so both can be inspected with the same command.
+        auto json = Pine::Serialization::Dump::ToJson(Pine::File::ReadCompressed(path));
+
+        if (!json.has_value())
+        {
+            json = Pine::Serialization::Dump::ToJson(Pine::File::ReadRaw(path));
+        }
+
+        if (!json.has_value())
+        {
+            std::cout << "Not a Pine serialized file (or not written in flexible mode)." << std::endl;
+            return 1;
+        }
+
+        std::cout << json->dump(2) << std::endl;
+
+        return 0;
     }
 
     if (strcmp(argv[1], "--batch-import") == 0)

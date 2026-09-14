@@ -5,71 +5,43 @@
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Log/Log.hpp"
 
+// The format layout (magic, version, headers) now lives in Serialization.hpp under
+// Serialization::Internal, so the generic reader in Serialization/Dump/ shares one definition of it.
+using namespace Pine::Serialization::Internal;
+
 namespace
 {
-    constexpr std::uint32_t PINE_MAGIC = 0x7143;
-    constexpr std::uint16_t PINE_VERSION = 0x1;
+    constexpr std::uint32_t PINE_MAGIC = Magic;
+    constexpr std::uint16_t PINE_VERSION = Version;
 
     constexpr bool PINE_COMPACT_MODE = false;
+}
 
-    enum class FileHeaderFlags : std::uint16_t
+std::size_t Pine::Serialization::Internal::PrimitiveDataTypeToSize(const DataType type)
+{
+    switch (type)
     {
-        FlexibleMode = (1 << 0) // File was encoded with flexible mode enabled.
-    };
-
-    size_t PrimitiveDataTypeToSize(const Pine::Serialization::DataType type)
-    {
-        switch (type)
-        {
-        case Pine::Serialization::DataType::Boolean:
-            return sizeof(bool);
-        case Pine::Serialization::DataType::Int32:
-            return sizeof(std::int32_t);
-        case Pine::Serialization::DataType::Int64:
-            return sizeof(std::int64_t);
-        case Pine::Serialization::DataType::Float32:
-            return sizeof(float);
-        case Pine::Serialization::DataType::Vec2:
-            return sizeof(Pine::Vector2f);
-        case Pine::Serialization::DataType::Vec3:
-            return sizeof(Pine::Vector3f);
-        case Pine::Serialization::DataType::Vec4:
-            return sizeof(Pine::Vector4f);
-        case Pine::Serialization::DataType::Quaternion:
-            return sizeof(Pine::Quaternion);
-        case Pine::Serialization::DataType::UId:
-            return sizeof(Pine::UId);
-        default:
-            throw std::logic_error("Data type not primitive or invalid.");
-        }
+    case DataType::Boolean:
+        return sizeof(bool);
+    case DataType::Int32:
+        return sizeof(std::int32_t);
+    case DataType::Int64:
+        return sizeof(std::int64_t);
+    case DataType::Float32:
+        return sizeof(float);
+    case DataType::Vec2:
+        return sizeof(Pine::Vector2f);
+    case DataType::Vec3:
+        return sizeof(Pine::Vector3f);
+    case DataType::Vec4:
+        return sizeof(Pine::Vector4f);
+    case DataType::Quaternion:
+        return sizeof(Pine::Quaternion);
+    case DataType::UId:
+        return sizeof(Pine::UId);
+    default:
+        throw std::logic_error("Data type not primitive or invalid.");
     }
-
-#pragma pack(push, 1)
-    struct FileHeader
-    {
-        std::uint32_t Magic;
-
-        // The version number of this file, if the file was encoded
-        // in compact mode, this has to match, otherwise it's probably fine.
-        std::uint16_t Version;
-
-        // Optional flags for this file
-        std::uint8_t Flags;
-
-        // The amount of data fields in this file
-        std::uint16_t DataCount;
-    };
-
-    struct DataHeader
-    {
-        std::uint8_t Type;
-    };
-
-    struct DataHeaderFlexible : DataHeader
-    {
-        std::uint8_t DataNameLength;
-    };
-#pragma pack(pop)
 }
 
 Pine::Serialization::Data::Data(
@@ -381,7 +353,15 @@ Pine::ByteSpan Pine::Serialization::Serializer::Write() const
 
     auto data = Write(size);
 
-    return {data, size};
+    // Take ownership of the buffer rather than constructing the span from it: ByteSpan's
+    // (data, size) constructor copies, which would leave this allocation unreachable. Assigning the
+    // fields directly is how DataFixed::Read() hands out an owning span too.
+    ByteSpan span;
+
+    span.data = data;
+    span.size = size;
+
+    return span;
 }
 
 bool Pine::Serialization::Serializer::Read(const void* data, const size_t size) const

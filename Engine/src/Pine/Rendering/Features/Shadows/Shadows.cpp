@@ -440,6 +440,47 @@ namespace
         return size;
     }
 
+    // Claims a candidate's group of tiles, demoting it to the smallest class if the class it asked
+    // for has no room left this frame. Writes the size actually granted to 'outSize', and returns
+    // false only when nothing could be granted at all.
+    //
+    // The clamp in SelectTileSize is not enough on its own: it answers whether a class could ever
+    // hold a group this size, which is a property of the layout, and says nothing about what is free
+    // right now. There are four Quarter tiles, so the fifth spot light above the promotion threshold
+    // asks for a class that is simply full.
+    //
+    // Holding nothing is what would make that permanent. LightShadowState only exists for a light
+    // with tiles, so a light that failed outright has no recorded size to be demoted from next
+    // frame: SelectTileSize sees no state, applies the undropped threshold, picks Quarter again, and
+    // fails again for as long as the incumbents hold - with sixteen Eighth tiles sitting empty. A
+    // contest for the high-resolution class has to cost a light its resolution, not its shadow.
+    bool AcquireTiles(const ShadowCandidate& candidate, Rendering::ShadowAtlas::TileSize* outSize, int* outSlots)
+    {
+        if (Rendering::ShadowAtlas::Acquire(candidate.Size, candidate.LightPtr, candidate.TileCount, outSlots))
+        {
+            *outSize = candidate.Size;
+
+            return true;
+        }
+
+        // Eighth is the smallest class there is, so there is exactly one demotion to try and a
+        // candidate already asking for it has nowhere left to go.
+        if (candidate.Size == Rendering::ShadowAtlas::TileSize::Eighth)
+        {
+            return false;
+        }
+
+        if (!Rendering::ShadowAtlas::Acquire(Rendering::ShadowAtlas::TileSize::Eighth, candidate.LightPtr,
+                                             candidate.TileCount, outSlots))
+        {
+            return false;
+        }
+
+        *outSize = Rendering::ShadowAtlas::TileSize::Eighth;
+
+        return true;
+    }
+
     void SelectShadowCandidates(const std::vector<Light*>& lights)
     {
         PINE_PF_SCOPE();
@@ -585,8 +626,6 @@ namespace
         view.ViewFrustum = Frustum::FromViewProjection(view.ViewProjection);
         const auto viewport = Rendering::ShadowAtlas::GetViewport(atlasSlot);
 
-        view.Target = Rendering::ShadowAtlas::GetFrameBuffer();
-        view.TargetLayer = -1;
         view.Viewport = viewport;
         view.TexelWorldScale = 2.f * std::tan(fov * 0.5f) / static_cast<float>(viewport.z);
 
@@ -594,6 +633,12 @@ namespace
         // offset is applied by the shader when sampling it.
         view.SlopeBias = 2.f;
         view.DepthBias = 4.f;
+
+        // Stated rather than left at the struct default. These views are filled in place and their
+        // slots are reused across frames by different lights, so every field a view is rendered with
+        // has to be written by whoever builds it - and cascades, which want Front, are one merge of
+        // the two view vectors away from landing in these same slots.
+        view.FaceCulling = Graphics::FaceCullMode::Back;
     }
 
     // One face of a point light's cube.
@@ -647,13 +692,14 @@ namespace
 
         view.ViewProjection = projectionMatrix * viewMatrix;
         view.ViewFrustum = Frustum::FromViewProjection(view.ViewProjection);
-        view.Target = Rendering::ShadowAtlas::GetFrameBuffer();
-        view.TargetLayer = -1;
         view.Viewport = viewport;
         view.TexelWorldScale = 2.f * std::tan(fov * 0.5f) / static_cast<float>(viewport.z);
 
         view.SlopeBias = 2.f;
         view.DepthBias = 4.f;
+
+        // See BuildSpotView: written rather than inherited from the struct default.
+        view.FaceCulling = Graphics::FaceCullMode::Back;
     }
 
     // Fills the visible set of every stale view in one light's group.
@@ -735,8 +781,6 @@ namespace
 
             view.ViewProjection = viewProjection;
             view.ViewFrustum = Frustum::FromViewProjection(viewProjection);
-            view.Target = Rendering::ShadowAtlas::GetFrameBuffer();
-            view.TargetLayer = -1;
             view.Viewport = viewport;
             view.AtlasSlot = atlasSlot;
 
@@ -843,8 +887,6 @@ namespace
 
                 Rendering::ShadowAtlas::MarkRendered(view.AtlasSlot);
             }
-
-            m_Statistics.TilesRendered++;
         }
 
         graphicsApi->SetScissorEnabled(false);
@@ -1005,10 +1047,11 @@ void Rendering::Shadows::PrepareLocalViews(const SceneProcessor::SceneProcessorC
         }
 
         int atlasSlots[MAX_LIGHT_TILE_COUNT];
+        auto grantedSize = candidate.Size;
 
         // All or nothing. Four faces of six is not two-thirds of a point light shadow, it is a hard
         // discontinuity along every edge between a face that got a tile and one that did not.
-        if (!ShadowAtlas::Acquire(candidate.Size, candidate.LightPtr, candidate.TileCount, atlasSlots))
+        if (!AcquireTiles(candidate, &grantedSize, atlasSlots))
         {
             continue;
         }
@@ -1025,10 +1068,11 @@ void Rendering::Shadows::PrepareLocalViews(const SceneProcessor::SceneProcessorC
         lightState.Fade = std::clamp(lightState.Fade + (wins ? fadeStep : -fadeStep), 0.f, 1.f);
         lightState.TileCount = candidate.TileCount;
 
-        // Recorded after the acquire, so it is what the light actually got. A size change means the
-        // incumbency scan in Acquire matched nothing (it matches on size too), so the old tiles went
-        // unclaimed and the sweep frees them - the move costs one cold re-render and no bookkeeping.
-        lightState.Size = candidate.Size;
+        // Recorded after the acquire, so it is what the light actually got, demotion included. A
+        // size change means the incumbency scan in Acquire matched nothing (it matches on size too),
+        // so the old tiles went unclaimed and the sweep frees them - the move costs one cold
+        // re-render and no bookkeeping.
+        lightState.Size = grantedSize;
 
         const bool isPointLight = candidate.LightPtr->GetLightType() == LightType::PointLight;
 
@@ -1116,6 +1160,7 @@ void Rendering::Shadows::RenderLocalViews(const ObjectBatchData& batchData)
     }
 
     m_Statistics.TilesCached = m_LocalViewCount - staleViews;
+    m_Statistics.TilesRendered = staleViews;
 
     // The whole point of the cache: in a static scene this is the common case and the local shadow
     // pass costs nothing at all - not even the framebuffer bind and render state.
@@ -1199,6 +1244,18 @@ const Rendering::Shadows::Statistics& Rendering::Shadows::GetStatistics()
 void Rendering::Shadows::RenderPassLight(Light* light, const SceneProcessor::SceneProcessorContext& sceneContext)
 {
     Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
+
+    // Honoured here as well as in SelectShadowCandidates, which only ever sees spot and point
+    // lights - this is the only path a directional light takes, so without this the checkbox did
+    // nothing at all for the sun.
+    //
+    // Turning the cascades off needs nothing beyond not building them: PrepareLocalViews clears
+    // every light's ShadowViewIndex once per frame, before any context reaches its prepass, so a
+    // light that never gets to BuildCascadeViews keeps the -1 that tells the shader it has no views.
+    if (!light->GetCastShadows())
+    {
+        return;
+    }
 
     if (light->GetLightType() == LightType::Directional && m_CascadeSlotsReserved)
     {

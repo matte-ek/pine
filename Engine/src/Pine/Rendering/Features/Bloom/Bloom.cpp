@@ -68,6 +68,10 @@ void Rendering::Bloom::Setup()
 
     assert(m_BloomExtractShader != nullptr);
 
+    // Uniform lookups assert that their program is the bound one, so bind before querying - the
+    // same order PostProcessing::Render() uses.
+    m_BloomExtractShader->GetProgram()->Use();
+
     m_BloomThreshold = m_BloomExtractShader->GetProgram()->GetUniformVariable("threshold");
     m_BloomViewportScale = m_BloomExtractShader->GetProgram()->GetUniformVariable("viewportScale");
 

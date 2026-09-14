@@ -4,11 +4,6 @@
 #include "Pine/Graphics/Interfaces/IGraphicsAPI.hpp"
 #include "Pine/Rendering/Features/RenderCulling/RenderCulling.hpp"
 
-namespace Pine::Graphics
-{
-    class IFrameBuffer;
-}
-
 namespace Pine::Rendering
 {
     // One depth render of the scene from one projection, into one region of one render target.
@@ -31,14 +26,6 @@ namespace Pine::Rendering
         // because culling asks for it once per view per frame and extraction is not free.
         Frustum ViewFrustum;
 
-        // Where this view renders. A (framebuffer, layer, rect) triple rather than an "atlas tile":
-        // cascades render into a layer of their own array texture, an atlas is many rects in one
-        // framebuffer, and an offline bake would be a third target shape. All three are this.
-        //
-        // TargetLayer is -1 for a non-array target, in which case the whole texture is attached.
-        Graphics::IFrameBuffer* Target = nullptr;
-        int TargetLayer = -1;
-
         // x, y, width, height in target texels.
         Vector4i Viewport = Vector4i(0);
 
@@ -52,8 +39,8 @@ namespace Pine::Rendering
         // that go into it are not separable again afterwards.
         float TexelWorldScale = 0.f;
 
-        // Atlas slot backing this view, or -1 for a view that renders somewhere else (the cascades
-        // render into their own array texture). Kept so a view can report back to the allocator.
+        // Atlas slot backing this view, or -1 for a view that renders somewhere else. Kept so a view
+        // can report back to the allocator.
         int AtlasSlot = -1;
 
         // Constant and slope-scaled depth offset applied while rendering this view. Zero for the

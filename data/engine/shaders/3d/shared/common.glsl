@@ -35,8 +35,10 @@ struct Light
 	// 1 for a spot, 6 for a point light's cube faces.
 	int shadowViewCount;
 
-	// Multiplier on the shadow term, faded while a light gains or loses its shadow tile.
-	float shadowFade;
+	// Not free space: std140 rounds this struct's array stride up to 80 bytes either way, so the
+	// slot exists whether or not it is named. Dropping it here without dropping it on the C++ side
+	// would shrink that side to 76 and misalign every light after the first.
+	float pad3;
 };
 
 // Mirrors ShaderStorages::ShadowViewData::View. Every member is 16-byte aligned in std140, so

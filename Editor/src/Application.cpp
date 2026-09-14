@@ -7,6 +7,7 @@
 #include "Pine/Script/ScriptManager.hpp"
 #include "Pine/World/World.hpp"
 
+#include "DebugServer/DebugServer.hpp"
 #include "Gui/Gui.hpp"
 #include "Other/EditorEntity/EditorEntity.hpp"
 #include "Pine/Utilities/HotReload/HotReload.hpp"
@@ -66,10 +67,15 @@ int main(int argc, const char* argv[])
     Editor::Gui::Setup();
     Editor::Utilities::Script::Setup();
 
+    // Last, so its endpoints can assume the project and every editor subsystem are up. No-op
+    // unless PINE_DEBUG_SERVER is set.
+    Editor::DebugServer::Setup();
+
     // Enter main loop
     Pine::Engine::Run();
 
     // Editor clean up
+    Editor::DebugServer::Shutdown();
     Editor::Gui::Shutdown();
     Editor::RenderHandler::Shutdown();
     Editor::LevelEntity::Dispose();

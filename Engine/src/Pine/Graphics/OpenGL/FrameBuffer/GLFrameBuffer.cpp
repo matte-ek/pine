@@ -255,40 +255,6 @@ void Pine::Graphics::GLFrameBuffer::AttachTexture(ITexture *texture, const Buffe
     }
 }
 
-void Pine::Graphics::GLFrameBuffer::AttachTextureLayer(ITexture* texture, const BufferAttachment attachment, const int layer, const int attachmentOffset)
-{
-    const auto glTexture = dynamic_cast<GLTexture*>(texture);
-
-    assert(glTexture != nullptr);
-    assert(texture->GetArraySize() > 0 && "AttachTextureLayer is only meaningful for array textures");
-    assert(layer >= 0 && layer < texture->GetArraySize());
-
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, TranslateAttachmentType(attachment) + attachmentOffset, glTexture->GetId(), 0, layer);
-
-    if (attachment == BufferAttachment::Color)
-    {
-        m_AttachedDrawBuffers.push_back(TranslateAttachmentType(attachment) + attachmentOffset);
-    }
-
-    switch (attachment)
-    {
-        case BufferAttachment::Color:
-            if (attachmentOffset == 0)
-                m_ColorBuffer = glTexture;
-            else
-                m_NormalBuffer = glTexture;
-            break;
-        case BufferAttachment::Depth:
-            m_DepthBuffer = glTexture;
-            break;
-        case BufferAttachment::DepthStencil:
-            m_DepthStencilBuffer = glTexture;
-            break;
-        default:
-            break;
-    }
-}
-
 bool Pine::Graphics::GLFrameBuffer::Finish()
 {
     // Tell OpenGL about the newly created draw attachments

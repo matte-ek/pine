@@ -20,6 +20,7 @@ sudo pacman -S --needed \
     glm \
     freetype2 \
     nlohmann-json \
+    stb \
 
 echo Building PhysX 5.9.0
 

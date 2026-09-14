@@ -7,6 +7,11 @@ add_library(imgui STATIC ${IMGUI_SOURCES})
 
 target_include_directories(imgui PUBLIC imgui /usr/include/freetype2)
 
+# cpp-httplib
+add_library(cpp-httplib INTERFACE)
+
+target_include_directories(cpp-httplib INTERFACE cpp-httplib)
+
 # Material Icons
 add_library(material-icons INTERFACE)
 

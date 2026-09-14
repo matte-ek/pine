@@ -137,18 +137,24 @@ void Panels::Debug::Render()
         {
             const auto& statistics = Pine::Rendering::Shadows::GetStatistics();
 
-            ImGui::Text("Local views: %d (%d cached), casters drawn: %d",
+            // Rendered and cached are both local and both sum to the view count, so the pair reads
+            // as the cache hit rate it is meant to be. They used to be counted over different sets -
+            // cached local-only, rendered whole-frame - which made them silently fail to add up as
+            // soon as a second viewport opened.
+            ImGui::Text("Local views: %d (%d rendered, %d cached), casters drawn: %d",
                 statistics.LocalViewCount,
+                statistics.TilesRendered,
                 statistics.TilesCached,
                 statistics.CastersDrawn);
-
-            // Every tile drawn this frame, cascades included - they share the atlas and the render
-            // path now, so a single number is the honest one.
-            ImGui::Text("Tiles rendered: %d", statistics.TilesRendered);
 
             ImGui::Text("Cascade views: %d, casters drawn: %d",
                 statistics.CascadeViewCount,
                 statistics.CascadeCastersDrawn);
+
+            // The whole frame's atlas cost across both kinds. Cascades always render, so their view
+            // count is their tile count. Counted per rendering context, so two live viewports draw
+            // two sets of cascades and this says so.
+            ImGui::Text("Tiles rendered: %d", statistics.TilesRendered + statistics.CascadeViewCount);
 
             ImGui::Text("Atlas: %dx%d", Pine::Rendering::ShadowAtlas::GetResolution(),
                                         Pine::Rendering::ShadowAtlas::GetResolution());

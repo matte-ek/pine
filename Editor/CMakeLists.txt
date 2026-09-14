@@ -12,4 +12,7 @@ add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 
 add_executable(Editor ${SOURCES})
 
-target_link_libraries(Editor Engine mono-2.0 freetype imgui material-icons)
+# cpp-httplib runs its listener and every request handler on threads of its own.
+find_package(Threads REQUIRED)
+
+target_link_libraries(Editor Engine mono-2.0 freetype imgui material-icons cpp-httplib Threads::Threads)

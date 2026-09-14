@@ -438,7 +438,6 @@ void Renderer3D::AddLight(Light *light)
     // when this light is not casting, which the shader treats as fully lit.
     lightData.ShadowViewIndex = light->GetLightHintData().ShadowViewIndex;
     lightData.ShadowViewCount = light->GetLightHintData().ShadowViewCount;
-    lightData.ShadowFade = lightData.ShadowViewIndex >= 0 ? 1.f : 0.f;
     lightData.CutOffOuter = cutOffOuter;
     lightData.CutOffInner = cutOffInner;
 
