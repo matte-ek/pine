@@ -40,6 +40,7 @@ namespace Pine
         std::vector<Blueprint*> m_Blueprints;
 
         LevelSettings m_LevelSettings;
+        bool m_CameraUsesSerializedOrder = true;
 
         bool LoadAssetData(const ByteSpan& span) override;
         ByteSpan SaveAssetData() override;
@@ -59,6 +60,7 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(GrainStrength, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(VignetteStrength, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(Camera, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(CameraUsesSerializedOrder, Serialization::DataType::Boolean);
         };
     public:
         explicit Level();

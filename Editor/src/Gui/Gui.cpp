@@ -235,6 +235,7 @@ void Editor::Gui::Setup()
     Pine::WindowManager::AddWindowDropCallback(OnWindowDrop);
 
     Commands::Setup();
+    Actions::Setup();
     Gizmo::Gizmo2D::Setup();
     Gizmo::Gizmo3D::Setup();
     EntitySelection::Setup();
@@ -249,6 +250,7 @@ void Editor::Gui::Setup()
 void Editor::Gui::Shutdown()
 {
     Commands::Dispose();
+    Actions::Shutdown();
     EntitySelection::Dispose();
     IconStorage::Dispose();
 

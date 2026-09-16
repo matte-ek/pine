@@ -6,18 +6,15 @@
 //
 // Every Pine subsystem is global mutable state in an anonymous namespace with no locking, and
 // OpenGL is main-thread-only. httplib runs each handler on its own thread. So an HTTP worker only
-// parses its request, hands a job to the main thread, blocks, and serializes whatever comes back.
+// parses its request, hands a job to Requests, blocks, and serializes whatever comes back.
+// Request status and cancellation only inspect synchronized queue state on the HTTP thread.
 //
 // Pine's own Threading system is not usable for this: PumpMainThreadTasks() is only ever called
 // from inside AwaitTaskResult/AwaitTaskPool, and Engine::Run() never pumps, so a background thread
-// queueing a MainThread task and awaiting it would wait forever. Hence the small queue below,
+// queueing a MainThread task and awaiting it would wait forever. Hence Requests' separate queue,
 // drained once per frame from a render callback.
 
-#include <chrono>
-#include <condition_variable>
 #include <cstdlib>
-#include <memory>
-#include <mutex>
 #include <optional>
 #include <thread>
 #include <vector>
@@ -28,6 +25,8 @@
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
 #include "Endpoints/Endpoints.hpp"
+#include "Observation/Observation.hpp"
+#include "Requests/Requests.hpp"
 
 namespace
 {
@@ -35,34 +34,8 @@ namespace
     constexpr const char* m_ListenAddress = "127.0.0.1";
     constexpr int m_DefaultPort = 9002;
 
-    // How long an HTTP thread waits for the main thread to pick its request up. The editor can
-    // legitimately stall - a modal dialog, a long asset import - and a debug tool that hangs a
-    // client forever is worse than one that admits it timed out.
-    constexpr auto m_RequestTimeout = std::chrono::seconds(5);
-
-    // One in-flight request, handed from an HTTP worker to the main thread and back. Held by
-    // shared_ptr because on timeout the worker walks away while the main thread may still own it.
-    struct PendingRequest
-    {
-        Editor::DebugServer::Handler Invoke;
-        std::string Path;
-
-        Editor::DebugServer::Request RequestData;
-        Editor::DebugServer::Response ResponseData;
-
-        bool Completed = false;
-    };
-
     httplib::Server m_Server;
     std::thread m_ListenerThread;
-
-    // Guards m_RequestQueue and every PendingRequest::Completed flag.
-    std::mutex m_QueueMutex;
-    std::condition_variable m_CompletionSignal;
-
-    std::vector<std::shared_ptr<PendingRequest>> m_RequestQueue;
-
-    bool m_Running = false;
 
     // PINE_DEBUG_SERVER both enables the server and picks its port, so there is one knob rather than
     // two: unset means off, "1" means on at the default port, "9100" means on at 9100.
@@ -110,53 +83,13 @@ namespace
                              "application/json");
     }
 
-    Editor::DebugServer::Response InvokeHandler(const PendingRequest& pending)
+    void ObserveRenderedFrame(Pine::RenderingContext* context, const Pine::RenderStage stage, float)
     {
-        try
+        Editor::DebugServer::Observation::OnRender(context, stage);
+        if (stage == Pine::RenderStage::PostRender)
         {
-            return pending.Invoke(pending.RequestData);
+            Editor::DebugServer::Requests::ResumeReads();
         }
-        catch (const std::exception& exception)
-        {
-            // A debug endpoint must never take the editor down with it.
-            PError(fmt::format("Debug server endpoint '{}' threw: {}", pending.Path, exception.what()));
-
-            return Editor::DebugServer::Error(500, exception.what());
-        }
-    }
-
-    void DrainRequestQueue()
-    {
-        std::vector<std::shared_ptr<PendingRequest>> batch;
-
-        {
-            std::lock_guard lock(m_QueueMutex);
-
-            if (m_RequestQueue.empty())
-            {
-                return;
-            }
-
-            batch.swap(m_RequestQueue);
-        }
-
-        // Handlers run outside the lock. They may be slow, and holding the queue mutex here would
-        // stall every other HTTP worker trying to queue its own request.
-        for (const auto& pending : batch)
-        {
-            pending->ResponseData = InvokeHandler(*pending);
-        }
-
-        {
-            std::lock_guard lock(m_QueueMutex);
-
-            for (const auto& pending : batch)
-            {
-                pending->Completed = true;
-            }
-        }
-
-        m_CompletionSignal.notify_all();
     }
 
     void OnPineRender(Pine::RenderingContext*, const Pine::RenderStage stage, float)
@@ -168,84 +101,91 @@ namespace
             return;
         }
 
-        DrainRequestQueue();
+        Editor::DebugServer::Requests::Drain();
     }
 
-    void DispatchToMainThread(const std::string& path,
-                              const Editor::DebugServer::Handler& handler,
-                              const httplib::Request& request,
-                              httplib::Response& response)
+    void RegisterRoute(Editor::DebugServer::Method method, const std::string& path,
+                       Editor::DebugServer::Handler handler, bool mutation)
     {
-        auto pending = std::make_shared<PendingRequest>();
-
-        pending->Invoke = handler;
-        pending->Path = path;
-        pending->RequestData.Body = request.body;
-
-        for (const auto& [name, value] : request.params)
+        auto dispatch = [path, handler, mutation](const httplib::Request& request, httplib::Response& response)
         {
-            pending->RequestData.Parameters[name] = value;
+            // Duplicate query/header values are ambiguous and must not alias another
+            // payload in the retry registry. Identity comparison uses decoded query values.
+            Editor::DebugServer::Request input;
+            for (const auto& [name, value] : request.params)
+            {
+                if (!input.Parameters.emplace(name, value).second)
+                {
+                    WriteResponse(response, Editor::DebugServer::Error(400, "Duplicate query parameter."));
+                    return;
+                }
+            }
+            for (const auto* header : { "Idempotency-Key", "X-Pine-Session" })
+            {
+                if (request.has_header(header) &&
+                    (request.get_header_value_count(header) != 1 || request.get_header_value(header).empty()))
+                {
+                    WriteResponse(response, Editor::DebugServer::Error(400, "Retry headers must have one nonempty value."));
+                    return;
+                }
+            }
+            input.Body = request.body;
+            WriteResponse(response, Editor::DebugServer::Requests::Dispatch(
+                path, handler, std::move(input), mutation,
+                request.get_header_value("Idempotency-Key"), request.get_header_value("X-Pine-Session")));
+        };
+
+        if (method == Editor::DebugServer::Method::Get)
+        {
+            m_Server.Get(path, dispatch);
         }
-
-        std::unique_lock lock(m_QueueMutex);
-
-        if (!m_Running)
+        else
         {
-            lock.unlock();
-
-            WriteResponse(response, Editor::DebugServer::Error(503, "Debug server is shutting down."));
-
-            return;
+            m_Server.Post(path, dispatch);
         }
+    }
 
-        m_RequestQueue.push_back(pending);
-
-        m_CompletionSignal.wait_for(lock, m_RequestTimeout, [&]
+    void RegisterRequestRoutes()
+    {
+        // These handlers deliberately bypass the main-thread queue. Status and
+        // cancellation must remain available while the editor is stalled.
+        auto control = [](bool cancel, const httplib::Request& request, httplib::Response& response)
         {
-            return pending->Completed || !m_Running;
+            if (request.params.size() > 1 ||
+                (!request.params.empty() && !request.has_param("id")) ||
+                request.get_header_value_count("X-Pine-Session") > 1 ||
+                request.has_header("Idempotency-Key") || !request.body.empty() ||
+                (request.has_param("id") && request.get_param_value("id").empty()))
+            {
+                WriteResponse(response, Editor::DebugServer::Error(400,
+                    "Expected only ?id= and X-Pine-Session, without a body or retry key."));
+                return;
+            }
+            const auto id = request.get_param_value("id");
+            const auto session = request.get_header_value("X-Pine-Session");
+            WriteResponse(response, cancel
+                ? Editor::DebugServer::Requests::Cancel(id, session)
+                : Editor::DebugServer::Requests::Status(id, session));
+        };
+        m_Server.Get("/requests", [control](const auto& request, auto& response)
+        {
+            control(false, request, response);
         });
-
-        if (!pending->Completed)
+        m_Server.Post("/requests/cancel", [control](const auto& request, auto& response)
         {
-            const bool shuttingDown = !m_Running;
-
-            lock.unlock();
-
-            // The main thread may still be holding this request, so nothing here touches
-            // ResponseData. It will be filled in for nobody and dropped, which is harmless.
-            WriteResponse(response, shuttingDown
-                ? Editor::DebugServer::Error(503, "Debug server is shutting down.")
-                : Editor::DebugServer::Error(504, "Timed out waiting for the editor's main thread."));
-
-            return;
-        }
-
-        // The main thread wrote ResponseData before setting Completed under this same mutex, so the
-        // value is visible here.
-        const auto result = pending->ResponseData;
-
-        lock.unlock();
-
-        WriteResponse(response, result);
+            control(true, request, response);
+        });
     }
 }
 
 void Editor::DebugServer::AddRoute(const Method method, const std::string& path, Handler handler)
 {
-    auto dispatch = [path, handler](const httplib::Request& request, httplib::Response& response)
-    {
-        DispatchToMainThread(path, handler, request, response);
-    };
+    RegisterRoute(method, path, std::move(handler), false);
+}
 
-    switch (method)
-    {
-    case Method::Get:
-        m_Server.Get(path, dispatch);
-        break;
-    case Method::Post:
-        m_Server.Post(path, dispatch);
-        break;
-    }
+void Editor::DebugServer::AddMutationRoute(const std::string& path, Handler handler)
+{
+    RegisterRoute(Method::Post, path, Observation::TrackMutation(std::move(handler)), true);
 }
 
 Editor::DebugServer::Response Editor::DebugServer::Error(const int statusCode, const std::string& message)
@@ -257,6 +197,14 @@ Editor::DebugServer::Response Editor::DebugServer::Error(const int statusCode, c
     return { statusCode, body };
 }
 
+void Editor::DebugServer::SetupRenderObservation()
+{
+    if (ResolveListenPort().has_value())
+    {
+        Pine::RenderManager::AddRenderCallback(ObserveRenderedFrame);
+    }
+}
+
 void Editor::DebugServer::Setup()
 {
     const auto port = ResolveListenPort();
@@ -266,7 +214,8 @@ void Editor::DebugServer::Setup()
         return;
     }
 
-    m_Running = true;
+    Requests::Setup();
+    RegisterRequestRoutes();
 
     Endpoints::Register();
 
@@ -290,7 +239,7 @@ void Editor::DebugServer::Setup()
         // Shutdown(), which would report a stop that never happened.
         m_ListenerThread.join();
 
-        m_Running = false;
+        Requests::Shutdown();
 
         return;
     }
@@ -305,17 +254,8 @@ void Editor::DebugServer::Shutdown()
         return;
     }
 
-    // Order matters here. httplib's stop() waits for in-flight handlers to return, and those
-    // handlers are parked on m_CompletionSignal waiting for a main thread that will never drain the
-    // queue again. Release them first, or stop() deadlocks against them.
-    {
-        std::lock_guard lock(m_QueueMutex);
-
-        m_Running = false;
-        m_RequestQueue.clear();
-    }
-
-    m_CompletionSignal.notify_all();
+    // Release waiting workers before stop() joins them.
+    Requests::Shutdown();
 
     m_Server.stop();
 

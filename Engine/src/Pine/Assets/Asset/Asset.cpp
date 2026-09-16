@@ -120,6 +120,11 @@ bool Pine::Asset::HasBeenModified() const
     return m_HasBeenModified;
 }
 
+void Pine::Asset::MarkAsSaved()
+{
+    m_HasBeenModified = false;
+}
+
 void Pine::Asset::MarkPendingDelete()
 {
     m_IsPendingDelete = true;
@@ -189,7 +194,7 @@ Pine::Asset::~Asset()
 
 void Pine::Asset::SaveToFile()
 {
-    m_HasBeenModified = false;
+    MarkAsSaved();
 
     File::WriteCompressed(m_FilePath, Save());
 }

@@ -64,6 +64,8 @@ int main(int argc, const char* argv[])
     // Setup Editor
     Editor::LevelEntity::Setup();
     Editor::RenderHandler::Setup();
+    // Observe completed viewport pixels before ImGui can change scene or camera state.
+    Editor::DebugServer::SetupRenderObservation();
     Editor::Gui::Setup();
     Editor::Utilities::Script::Setup();
 

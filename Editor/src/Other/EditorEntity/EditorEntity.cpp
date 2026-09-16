@@ -19,7 +19,7 @@ namespace
 	Pine::Entity* m_Entity = nullptr;
 
     bool m_CaptureMouse = false;
-    Pine::Vector2f m_ViewAngles = Pine::Vector2f(0.f);
+    Pine::Vector3f m_ViewAngles = Pine::Vector3f(0.f);
 
     bool m_Perspective2D = false;
 
@@ -58,10 +58,16 @@ namespace
         			}
         		}
 
-        		m_ViewAngles.x += m_Pitch->GetAxisValue() * sensitivity * deltaTime;
-        		m_ViewAngles.y += m_Yaw->GetAxisValue() * sensitivity * deltaTime;
+        		const auto pitch = m_Pitch->GetAxisValue() * sensitivity * deltaTime;
+        		const auto yaw = m_Yaw->GetAxisValue() * sensitivity * deltaTime;
 
-        		transform->SetEulerAngles(Pine::Vector3f(m_ViewAngles, 0.f));
+        		if (pitch != 0.f || yaw != 0.f)
+        		{
+        			m_ViewAngles.x += pitch;
+        			m_ViewAngles.y += yaw;
+
+        			transform->SetEulerAngles(m_ViewAngles);
+        		}
 			}
         	else
         	{
@@ -176,6 +182,18 @@ void Editor::LevelEntity::SetPerspective2D(bool value)
     {
         m_Entity->GetComponent<Pine::Camera>()->SetCameraType(value ? Pine::CameraType::Orthographic : Pine::CameraType::Perspective);
     }
+}
+
+void Editor::LevelEntity::SetView(const Pine::Vector3f& position, const Pine::Quaternion& rotation)
+{
+    const auto transform = m_Entity->GetTransform();
+    transform->SetLocalPosition(position);
+    transform->SetLocalRotation(rotation);
+
+    // Preserve roll for views supplied by editor tools, and start mouse navigation from that
+    // orientation rather than the angles from the last interactive movement.
+    m_ViewAngles = transform->GetEulerAngles();
+    m_Velocity = Pine::Vector3f(0.f);
 }
 
 float Editor::LevelEntity::GetSpeedMultiplier()

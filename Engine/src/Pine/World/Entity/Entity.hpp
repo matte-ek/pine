@@ -150,6 +150,9 @@ namespace Pine
         // Returns a list of all attached components to the entity.
         const std::vector<Component*>& GetComponents() const;
 
+        // Reorder an attached component without recreating it. Transform must remain first.
+        void MoveComponent(Component* component, std::size_t index);
+
         // Creates a new entity and marks it as a child to this entity.
         Entity* CreateChild();
 

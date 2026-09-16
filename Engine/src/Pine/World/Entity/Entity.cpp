@@ -1,4 +1,5 @@
 #include "Entity.hpp"
+#include <algorithm>
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
@@ -223,6 +224,19 @@ const std::vector<Pine::Component*>& Pine::Entity::GetComponents() const
     return m_Components;
 }
 
+void Pine::Entity::MoveComponent(Component* component, const std::size_t index)
+{
+    const auto found = std::find(m_Components.begin(), m_Components.end(), component);
+    if (found == m_Components.end() || index >= m_Components.size()
+        || (component->GetType() == ComponentType::Transform) != (index == 0))
+    {
+        throw std::runtime_error("Invalid component order: Transform must remain first.");
+    }
+
+    m_Components.erase(found);
+    m_Components.insert(m_Components.begin() + index, component);
+}
+
 Pine::Entity* Pine::Entity::CreateChild()
 {
     const auto entity = Entities::Create();
@@ -290,7 +304,7 @@ Pine::Entity* Pine::EntityHandle::Get()
 
     const auto entity = Entities::GetByInternalId(m_InternalId);
 
-    if (entity->GetId() != m_Id)
+    if (entity == nullptr || entity->GetId() != m_Id)
     {
         // As of right now, pine internal entities does not move
         // therefore we won't bother finding the new internal id, as it does not exist.

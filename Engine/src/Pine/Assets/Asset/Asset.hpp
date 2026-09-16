@@ -169,6 +169,8 @@ namespace Pine
         const std::vector<AssetSource>& GetSources() const;
 
         void MarkAsModified();
+        // Acknowledge a successful write of the current asset contents.
+        void MarkAsSaved();
         bool HasBeenModified() const;
 
         void MarkPendingDelete();

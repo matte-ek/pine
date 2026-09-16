@@ -47,6 +47,11 @@ read and changed *before* anything compiles; that is how `ModelImporter` tells a
 normal map, and it is what the editor's import dialog
 (`Editor/src/Gui/Dialogs/AssetImport/`) edits.
 
+The editor utility `Utilities::Asset::CreateImportContext()` sets up source copying into the
+project's `content/` folder. Its explicit destination-directory overload is also used by
+[`POST /assets/import`](debug-server-import.md), which executes synchronously and returns the
+registered asset IDs. Copying a source already at its content destination preserves that file.
+
 **Progress counters must not use `Imports.size()`.** Importing a model appends the textures it
 discovers to the queue, so the list grows as the import runs; count the entries that were there
 when the plan was shown instead, or "3/58" becomes "3/2400" halfway through a folder of models.
@@ -125,6 +130,8 @@ One folder per type under `Assets/`, each subclassing `Asset`: `Blueprint`, `Lev
 ## Scenes: Level & Blueprint
 - **`Level`** (`Assets/Level/`) is the scene: settings (skybox `Texture3D`, ambient/fog, camera entity) + a list of `Blueprint`s. `World::SetActiveLevel(Level*)` loads it.
 - **`Blueprint`** (`Assets/Blueprint/`) is a serialized entity + its components. `Spawn()` instantiates it into the world; `CreateFromEntity()` captures one.
+- Blueprint copying preserves entity tags and component active flags. Component
+  active flags are serialized; older files without the field default to active.
 
 ## Serialization
 Declare a `struct XSerializer : Serialization::Serializer` and list fields with macros:
@@ -134,3 +141,12 @@ mechanism serializes assets, component `LoadData/SaveData`, and scenes. A JSON v
 in `Core/Serialization/Json/`.
 
 Related: [world-ecs.md](world-ecs.md) · [rendering.md](rendering.md) (materials/shaders/meshes are assets)
+
+### Level camera identity
+
+Newly captured Levels store the selected game camera as a one-based index in
+serialized root/descendant order, marked by `CameraUsesSerializedOrder`. Zero clears
+the camera. This survives reparenting and differences in editor-only entity counts.
+Files without the flag are read as the legacy live-list index, which counted the editor's own
+temporary entity ahead of the scene; re-saving migrates them.
+See [scene camera persistence](debug-server-scene-camera.md#observe-and-persist).

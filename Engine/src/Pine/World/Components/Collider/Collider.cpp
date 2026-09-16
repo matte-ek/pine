@@ -51,6 +51,8 @@ void Pine::Collider::UpdateBody()
         if (!collisionShape)
         {
             PError("Collider::UpdateBody(): Failed to create collision body, no shape available.");
+            m_CollisionRigidBody->release();
+            m_CollisionRigidBody = nullptr;
             return;
         }
 
@@ -223,8 +225,9 @@ physx::PxShape * Pine::Collider::CreateCollisionShape() const
         shape->setSimulationFilterData(GetFilterData());
         shape->setQueryFilterData(GetFilterData());
 
-        shape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, m_IsTrigger);
+        // PhysX forbids a shape from being both a trigger and a simulation shape.
         shape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, !m_IsTrigger);
+        shape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, m_IsTrigger);
 
         if (m_ColliderType == ColliderType::Capsule)
         {

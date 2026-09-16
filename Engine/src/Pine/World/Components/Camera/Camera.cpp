@@ -152,6 +152,11 @@ void Pine::Camera::SetOverrideAspectRatio(const float value)
     m_OverrideAspectRatio = value;
 }
 
+float Pine::Camera::GetOverrideAspectRatio() const
+{
+    return m_OverrideAspectRatio;
+}
+
 Pine::Vector3f Pine::Camera::WorldToScreenPoint(const Vector3f &position) const
 {
     const auto renderingContext = RenderManager::GetCurrentRenderingContext();

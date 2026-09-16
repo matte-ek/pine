@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "imgui.h"
+#include "Other/PlayHandler/PlayHandler.hpp"
 
 #include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Components.hpp"
@@ -19,7 +20,8 @@ namespace
     bool m_ItemUpdated = false;
 
     bool m_IsSavingHeldState = false;
-    EditorCommand* m_HeldStateCommand = nullptr;
+    std::unique_ptr<EditorCommand> m_HeldStateCommand;
+    std::uint64_t m_HistoryGeneration = 0;
 
     // Standard undo stack: index 0 is the oldest command, the back is the newest. m_CommandIndex is the number
     // of commands currently "applied" - the next undo targets m_CommandHistory[m_CommandIndex - 1], the next
@@ -28,7 +30,15 @@ namespace
     std::size_t m_CommandIndex = 0;
     std::vector<std::unique_ptr<EditorCommand>> m_CommandHistory;
 
-    void RegisterCommand(EditorCommand* editorCommand)
+    void SynchronizeScene()
+    {
+        if (m_HistoryGeneration != Pine::Entities::GetSceneGeneration())
+        {
+            ClearHistory();
+        }
+    }
+
+    void AppendCommand(std::unique_ptr<EditorCommand> editorCommand)
     {
         // Anything that was undone can no longer be redone once new history is written, so discard it.
         if (m_CommandIndex < m_CommandHistory.size())
@@ -38,7 +48,7 @@ namespace
             m_CommandHistory.erase(m_CommandHistory.begin() + m_CommandIndex, m_CommandHistory.end());
         }
 
-        m_CommandHistory.emplace_back(editorCommand);
+        m_CommandHistory.push_back(std::move(editorCommand));
         m_CommandIndex = m_CommandHistory.size();
 
         if (m_CommandHistory.size() > MaxHistorySize)
@@ -76,7 +86,16 @@ void UpdateComponentCommand::SaveState(const CommandState commandState)
         return;
     }
 
-    (commandState == CommandState::PreCommand ? m_PreCommand : m_PostCommand) = component->SaveData();
+    if (commandState == CommandState::PreCommand)
+    {
+        m_PreCommand = component->SaveData();
+        m_PreActive = component->GetActive();
+    }
+    else
+    {
+        m_PostCommand = component->SaveData();
+        m_PostActive = component->GetActive();
+    }
 }
 
 void UpdateComponentCommand::Apply(const CommandState commandState)
@@ -89,7 +108,10 @@ void UpdateComponentCommand::Apply(const CommandState commandState)
         return;
     }
 
-    component->LoadData(commandState == CommandState::PreCommand ? m_PreCommand : m_PostCommand);
+    const bool isPreCommand = commandState == CommandState::PreCommand;
+
+    component->LoadData(isPreCommand ? m_PreCommand : m_PostCommand);
+    component->SetActive(isPreCommand ? m_PreActive : m_PostActive);
 }
 
 CreateDeleteComponentCommand::CreateDeleteComponentCommand(Pine::Component* component, const CommandType type)
@@ -100,6 +122,7 @@ CreateDeleteComponentCommand::CreateDeleteComponentCommand(Pine::Component* comp
 
     m_ComponentType = component->GetType();
     m_ComponentData = component->SaveData();
+    m_ComponentActive = component->GetActive();
 }
 
 void CreateDeleteComponentCommand::Apply(const CommandState commandState)
@@ -119,6 +142,7 @@ void CreateDeleteComponentCommand::Apply(const CommandState commandState)
 
         component->SetId(m_ComponentId);
         component->LoadData(m_ComponentData);
+        component->SetActive(m_ComponentActive);
     }
     else if ((commandState == CommandState::PostCommand && m_CommandType == CommandType::Delete) ||
              (commandState == CommandState::PreCommand && m_CommandType == CommandType::Create))
@@ -163,7 +187,7 @@ CreateComponentCommand::CreateComponentCommand(Pine::Component* component, Comma
         if (!m_IsSavingHeldState)
         {
             m_IsSavingHeldState = true;
-            m_HeldStateCommand = CreateCommand();
+            m_HeldStateCommand.reset(CreateCommand());
         }
 
         return;
@@ -191,7 +215,7 @@ CreateComponentCommand::~CreateComponentCommand()
     // (For create/delete commands SaveState is a no-op; their data is captured in the constructor.)
     m_Command->SaveState(CommandState::PostCommand);
 
-    RegisterCommand(m_Command);
+    RegisterCommand(std::unique_ptr<EditorCommand>(m_Command));
 }
 
 bool Editor::Actions::HasItemUpdated()
@@ -204,41 +228,109 @@ void Editor::Actions::ClearItemUpdated()
     m_ItemUpdated = false;
 }
 
-void Editor::Actions::ExecuteUndo()
+void Editor::Actions::ClearHistory()
 {
-    if (m_CommandIndex == 0)
-    {
-        return;
-    }
+    m_CommandHistory.clear();
+    m_CommandIndex = 0;
 
-    PVerbose(fmt::format("Executing undo, index: {}, size: {}", m_CommandIndex, m_CommandHistory.size()));
+    m_HeldStateCommand.reset();
+    m_IsSavingHeldState = false;
 
-    m_CommandIndex--;
-    m_CommandHistory[m_CommandIndex]->Apply(CommandState::PreCommand);
+    m_HistoryGeneration = Pine::Entities::GetSceneGeneration();
 }
 
-void Editor::Actions::ExecuteRedo()
+void Editor::Actions::FinishHeldCommand()
 {
-    if (m_CommandIndex >= m_CommandHistory.size())
+    SynchronizeScene();
+
+    if (m_HeldStateCommand != nullptr)
     {
-        return;
+        m_HeldStateCommand->SaveState(CommandState::PostCommand);
+
+        AppendCommand(std::move(m_HeldStateCommand));
     }
 
-    PVerbose(fmt::format("Executing redo, index: {}, size: {}", m_CommandIndex, m_CommandHistory.size()));
+    m_IsSavingHeldState = false;
+}
 
-    m_CommandHistory[m_CommandIndex]->Apply(CommandState::PostCommand);
-    m_CommandIndex++;
+void Editor::Actions::RegisterCommand(std::unique_ptr<EditorCommand> command)
+{
+    FinishHeldCommand();
+    AppendCommand(std::move(command));
+}
+
+Editor::Actions::HistoryState Editor::Actions::GetHistoryState()
+{
+    SynchronizeScene();
+    return { m_CommandIndex, m_CommandHistory.size() - m_CommandIndex };
+}
+
+namespace
+{
+    HistoryResult ApplyHistory(const bool redo)
+    {
+        if (PlayHandler::GetGameState() != PlayHandler::EditorGameState::Stopped)
+        {
+            PWarning("Stop play mode before undo or redo.");
+            return { false, "Stop play mode before undo or redo." };
+        }
+
+        try
+        {
+            FinishHeldCommand();
+
+            if (redo ? m_CommandIndex == m_CommandHistory.size() : m_CommandIndex == 0)
+            {
+                return {};
+            }
+
+            const auto index = redo ? m_CommandIndex : m_CommandIndex - 1;
+
+            m_CommandHistory[index]->Apply(redo ? CommandState::PostCommand : CommandState::PreCommand);
+
+            m_CommandIndex = redo ? index + 1 : index;
+
+            return { true, {} };
+        }
+        catch (const std::exception& exception)
+        {
+            // Application may have stopped midway. Do not offer earlier commands against that state.
+            const std::string error = exception.what();
+            ClearHistory();
+            PError(fmt::format("History restoration failed; history cleared: {}", error));
+            return { false, error };
+        }
+    }
+}
+
+Editor::Actions::HistoryResult Editor::Actions::ExecuteUndo()
+{
+    return ApplyHistory(false);
+}
+
+Editor::Actions::HistoryResult Editor::Actions::ExecuteRedo()
+{
+    return ApplyHistory(true);
 }
 
 void Editor::Actions::Update()
 {
+    SynchronizeScene();
+
     if (m_IsSavingHeldState && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
     {
-        m_IsSavingHeldState = false;
-        m_HeldStateCommand->SaveState(CommandState::PostCommand);
-
-        RegisterCommand(m_HeldStateCommand);
+        FinishHeldCommand();
     }
 
     m_ItemUpdated = false;
+}
+
+void Editor::Actions::Setup()
+{
+    ClearHistory();
+}
+
+void Editor::Actions::Shutdown()
+{
+    ClearHistory();
 }

@@ -48,7 +48,7 @@ void Panels::Console::Render()
 
     if (ImGui::Begin(ICON_MD_TERMINAL "  Console", &m_Active))
     {
-        const auto& messages = Pine::Log::GetLogMessages();
+        const auto messages = Pine::Log::GetLogSnapshot();
 
         ImGui::Checkbox("View Verbose", &m_ViewVerbose);
         ImGui::SameLine(0.f, 10.f);

@@ -8,7 +8,7 @@ everywhere; skim them before writing new low-level code so you reuse rather than
 - **`File/`** — file IO, including `File::ReadCompressed` / `File::WriteCompressed`, which back the `.passet` format (see [assets.md](assets.md)).
 - **`Serialization/`** — the reflective binary serializer (`Serializer` + `PINE_SERIALIZE_*` macros) plus a JSON variant under `Serialization/Json/`. Documented in [assets.md](assets.md) since it's mostly used for assets/components.
 - **`UId/`** — unique IDs used to reference entities, components and assets across (de)serialization.
-- **`Log/`** — logging. Use the macros `PInfo/PWarning/PError/PFatal/PVerbose(msg)` (fmt-formatted), not the functions directly.
+- **`Log/`** — logging. Use the macros `PInfo/PWarning/PError/PFatal/PVerbose(msg)` (fmt-formatted), not the functions directly. To read the history back (the console panel, the debug server) call `Log::GetLogSnapshot()`: background threads log too, so it hands out a copy taken under the log's lock.
 - **`WindowManager/`** — the GLFW window + graphics context (`WindowManager::Internal::CreateWindow`, `IsWindowOpen`).
 - **`Color/`**, **`String/`**, **`Timer/`**, **`Span/`** (`ByteSpan` for raw asset payloads), **`Assert/`**.
 

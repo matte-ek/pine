@@ -511,6 +511,11 @@ namespace
     }
 }
 
+bool Dialog::AssetImport::IsPending()
+{
+    return m_State != DialogState::Idle || !m_QueuedPaths.empty();
+}
+
 void Dialog::AssetImport::Queue(const std::vector<std::string>& paths)
 {
     m_QueuedPaths.insert(m_QueuedPaths.end(), paths.begin(), paths.end());

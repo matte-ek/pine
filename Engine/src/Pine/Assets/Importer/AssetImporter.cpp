@@ -157,6 +157,14 @@ namespace
                     std::filesystem::create_directories(context->ContentPath);
                 }
 
+                // Re-importing the project's own content file must not remove its source.
+                if (std::filesystem::exists(contentFilePath) &&
+                    std::filesystem::equivalent(sourceFile, contentFilePath))
+                {
+                    asset->AddSource(contentFilePath);
+                    continue;
+                }
+
                 // Remove previous content file, if it exists.
                 if (std::filesystem::exists(contentFilePath))
                 {

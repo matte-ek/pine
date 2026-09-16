@@ -1,4 +1,7 @@
 #include "RigidBody.hpp"
+
+#include <algorithm>
+
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
@@ -111,7 +114,6 @@ void Pine::RigidBody::UpdateBody()
     if (m_RigidBodyType == RigidBodyType::Kinematic)
     {
         dynamicActor->setKinematicTarget(m_RigidBodyTransform);
-        dynamicActor->setMass(m_Mass);
     }
     else
     {
@@ -176,6 +178,18 @@ void Pine::RigidBody::CreateActor(const bool isStatic)
     m_Actor->userData = m_Parent;
 
     shape->release();
+
+    if (!isStatic)
+    {
+        // Derive the inertia tensor from the shape, so rotation responds to the body's mass and
+        // size instead of keeping PhysX's default (1,1,1). Both need the shape, hence the placement
+        // after attachShape(). A trigger shape takes no part in simulation, so it has to be opted
+        // in explicitly - otherwise PhysX finds no shape to compute from.
+        const auto mass = std::max(m_Mass, MinimumMass);
+
+        physx::PxRigidBodyExt::setMassAndUpdateInertia(*static_cast<physx::PxRigidDynamic*>(m_Actor),
+            mass, nullptr, m_EngineCollider->IsTrigger());
+    }
 
     Physics3D::GetScene()->addActor(*m_Actor);
 }

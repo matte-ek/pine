@@ -400,7 +400,7 @@ namespace
             rigidBody->SetRigidBodyType(static_cast<Pine::RigidBodyType>(type));
         }
 
-        if (Widgets::SliderFloat("Mass", &mass, 0, 1000))
+        if (Widgets::SliderFloat("Mass", &mass, Pine::RigidBody::MinimumMass, 1000.f))
         {
             CreateComponentCommand updateCmd(rigidBody, CommandType::Update);
 

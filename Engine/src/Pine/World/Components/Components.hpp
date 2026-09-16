@@ -258,6 +258,13 @@ namespace Pine
                 return nullptr;
             }
 
+            const auto& block = Components::GetData(m_Type);
+            if (m_InternalId >= block.m_ComponentOccupationArraySize || !block.ComponentIndexValid(m_InternalId))
+            {
+                m_Valid = false;
+                return nullptr;
+            }
+
             const auto component = Components::GetByInternalId(m_Type, m_InternalId);
             if (!component || component->GetId() != m_UniqueId)
             {

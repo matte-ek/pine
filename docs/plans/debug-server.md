@@ -1,5 +1,16 @@
 # Plan: Editor debug server
 
+For the current route reference and operating workflow, start with the
+[Editor API guide](../debug-server.md). This page records the original design.
+
+The subsequent editing PoC is documented in [debug-server-editing.md](../debug-server-editing.md).
+It uses debug-server-specific component adapters; the binary dump remains one-way.
+Rendered observations and incremental logs are documented in
+[debug-server-observation.md](../debug-server-observation.md).
+Mutation identities, request status, cancellation and deadlines are documented in
+[debug-server-requests.md](../debug-server-requests.md).
+Current priorities and completed capabilities are tracked in [debug-server-todo.md](../debug-server-todo.md).
+
 An HTTP server inside the Editor that exposes engine state over localhost, so an agent (or a
 human with `curl`) can look at a running Pine instance without going through the ImGui UI.
 Paths are relative to the repo root.
@@ -72,7 +83,7 @@ on glfw/mono to drag pthreads in.
 
 | Endpoint | Source |
 |---|---|
-| `GET /logs` | `Pine::Log::GetLogMessages()` (`Core/Log/Log.hpp:51`) — a deque that already exists. Highest value of the set. |
+| `GET /logs` | `Pine::Log::GetLogSnapshot()` (`Core/Log/Log.hpp`) — a copy of the deque that already exists. Highest value of the set. |
 | `GET /status` | play state (`PlayHandler::GetGameState()`), active level, frame time, project |
 | `GET /entities` | `Entities::GetList()` + hierarchy + component **types only** — see below |
 | `GET /viewport.png` | `?view=level\|game&width=640`; `RenderHandler` framebuffer + `ReadPixels` |

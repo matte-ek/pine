@@ -8,6 +8,7 @@ namespace
     // Incremental counter each time an entity is created, to make sure
     // each entity will have a unique id.
     std::uint32_t m_EntityId = 1;
+    std::uint64_t m_SceneGeneration = 0;
 
     // The current set engine configuration for the maximum number of entities in the scene.
     // Currently, stays constant during the lifespan of the application.
@@ -61,6 +62,29 @@ namespace
             std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
     }
 
+    // Places a new entity in the first free slot. The caller is responsible for the id being unused.
+    Entity* PlaceEntity(const UId id)
+    {
+        const auto availableEntityIndex = GetAvailableEntityIndex();
+
+        if (availableEntityIndex == m_MaxEntityCount)
+        {
+            throw std::runtime_error("Maximum entity count reached.");
+        }
+
+        const auto entityPtr = &m_Entities[availableEntityIndex];
+
+        // Call constructor on the entity
+        new(entityPtr) Entity(id, availableEntityIndex);
+
+        // Mark the slot as occupied
+        m_EntityOccupationArray[availableEntityIndex] = true;
+
+        m_EntityPointerList.push_back(entityPtr);
+
+        return entityPtr;
+    }
+
 }
 
 void Entities::Setup()
@@ -91,24 +115,19 @@ void Entities::Shutdown()
 
 Entity* Entities::Create()
 {
-    const auto availableEntityIndex = GetAvailableEntityIndex();
+    // A fresh UId is a nanosecond timestamp plus 64 random bits, so it does not need the uniqueness
+    // scan CreateWithId() runs - which would make creating n entities cost O(n^2).
+    return PlaceEntity(UId::New());
+}
 
-    if (availableEntityIndex == m_MaxEntityCount)
+Entity* Entities::CreateWithId(const UId id)
+{
+    if (!id.IsValid() || Find(id) != nullptr)
     {
-        throw std::runtime_error("Maximum entity count reached.");
+        throw std::runtime_error("Entity restoration requires a valid, unused ID.");
     }
 
-    const auto entityPtr = &m_Entities[availableEntityIndex];
-
-    // Call constructor on the entity
-    new(entityPtr) Entity(UId::New(), availableEntityIndex);
-
-    // Mark the slot as occupied
-    m_EntityOccupationArray[availableEntityIndex] = true;
-
-    m_EntityPointerList.push_back(entityPtr);
-
-    return entityPtr;
+    return PlaceEntity(id);
 }
 
 Entity* Entities::Create(const std::string& name)
@@ -187,6 +206,8 @@ bool Entities::Delete(const Entity* entity)
 
 void Entities::DeleteAll(const bool includeTemporary)
 {
+    ++m_SceneGeneration;
+
     if (includeTemporary)
     {
         for (std::uint32_t i = 0; i < GetHighestEntityIndex();i++)
@@ -239,6 +260,11 @@ void Entities::DeleteAll(const bool includeTemporary)
 const std::vector<Entity*>& Entities::GetList()
 {
     return m_EntityPointerList;
+}
+
+std::uint64_t Entities::GetSceneGeneration()
+{
+    return m_SceneGeneration;
 }
 
 void Entities::MoveEntity(const Entity* entity, const std::size_t newIndex)

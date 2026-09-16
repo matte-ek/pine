@@ -16,6 +16,12 @@ relative to `Engine/src/Pine/`.
 - **`Entity`** owns a `vector<Component*>`, a parent/child hierarchy, a `UId`, flags, and a paired managed (C#) object. Always has a `Transform`. Use `AddComponent<T>()` / `GetComponent<T>()` / `RemoveComponent<T>()`.
 - **"Systems" are not objects.** Behavior lives either in the component virtuals or in subsystem `Update()` functions. `World::Update()` drives physics and (unless paused) script updates; the renderer iterates component blocks directly (see [rendering.md](rendering.md)).
 - Access storage via `Components::Get<T>()` (typed block for iteration), `Components::Create<T>()`, `GetType<T>()`, `FindById`, `GetByInternalId`.
+- **`SaveData()/LoadData()` cover a component's own fields only** - not the base `Component`
+  state such as the active flag. Anything that round-trips a component through them (blueprint
+  serialization and copying, the editor's undo/redo commands) has to carry that flag itself.
+- Editor history recreates removed identities with `Entities::CreateWithId()`
+  (valid unused IDs only), and restores component order with `Entity::MoveComponent()`
+  while keeping Transform first. Restored objects can occupy different pool slots.
 
 ## ⚠️ Gotcha: adding a component
 The `ComponentType` enum order (`Component/Component.hpp`) **must** match the

@@ -1,5 +1,6 @@
 #pragma once
 #include <string_view>
+#include <cstdint>
 #include <deque>
 #include <fmt/format.h>
 
@@ -24,6 +25,8 @@ namespace Pine
         std::string Message;
 
         LogSeverity Type;
+
+        std::uint64_t Sequence = 0;
     };
 
 }
@@ -48,5 +51,7 @@ namespace Pine::Log
     void LogError(const char* fileName, int fileLine, std::string_view str);
     void LogFatal(const char* fileName, int fileLine, std::string_view str);
 
-    const std::deque<LogMessage>& GetLogMessages();
+    // A consistent copy of the message history. Returns a copy rather than a reference because
+    // background tasks log too, and the deque is mutated under a lock this leaves held.
+    std::deque<LogMessage> GetLogSnapshot();
 }

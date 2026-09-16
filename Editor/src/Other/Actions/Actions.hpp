@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Pine/World/Components/Component/Component.hpp"
+#include <memory>
 
 namespace Editor::Actions
 {
@@ -43,6 +44,12 @@ namespace Editor::Actions
 
         Pine::ByteSpan m_PreCommand;
         Pine::ByteSpan m_PostCommand;
+
+        // A component's SaveData() only covers the fields of its own type, so the active flag has
+        // to be captured next to it - otherwise undoing "disable component" restores identical data
+        // and appears to do nothing.
+        bool m_PreActive = true;
+        bool m_PostActive = true;
     public:
         explicit UpdateComponentCommand(const Pine::Component* component, bool savePreState = true);
 
@@ -62,6 +69,9 @@ namespace Editor::Actions
         Pine::UId m_ComponentId;
 
         Pine::ByteSpan m_ComponentData;
+
+        // See the note in UpdateComponentCommand: a re-created component would come back enabled.
+        bool m_ComponentActive = true;
     public:
         explicit CreateDeleteComponentCommand(Pine::Component* component, CommandType type);
         void Apply(CommandState commandState) override;
@@ -97,8 +107,26 @@ namespace Editor::Actions
     bool HasItemUpdated();
     void ClearItemUpdated();
 
-    void ExecuteUndo();
-    void ExecuteRedo();
+    struct HistoryState
+    {
+        std::size_t UndoCount = 0;
+        std::size_t RedoCount = 0;
+    };
+
+    struct HistoryResult
+    {
+        bool Applied = false;
+        std::string Error;
+    };
+
+    // Finish any held UI edit before an external batch samples its pre-state.
+    void FinishHeldCommand();
+    void RegisterCommand(std::unique_ptr<EditorCommand> command);
+    void ClearHistory();
+    HistoryState GetHistoryState();
+
+    HistoryResult ExecuteUndo();
+    HistoryResult ExecuteRedo();
 
     void Setup();
     void Update();

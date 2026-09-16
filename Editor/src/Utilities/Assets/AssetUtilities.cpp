@@ -74,8 +74,13 @@ Pine::Asset* Editor::Utilities::Asset::CreateEmptyAsset(const std::filesystem::p
 
 Pine::Importer::ImportContext* Editor::Utilities::Asset::CreateImportContext(const std::vector<std::string>& paths)
 {
+    return CreateImportContext(paths, Panels::AssetBrowser::GetOpenDirectoryNode()->Path);
+}
+
+Pine::Importer::ImportContext* Editor::Utilities::Asset::CreateImportContext(
+    const std::vector<std::string>& paths, const std::filesystem::path& destinationDirectory)
+{
     auto importContext = Pine::Importer::CreateContext();
-    auto currentDirectory = Panels::AssetBrowser::GetOpenDirectoryNode();
 
     importContext->CopySourceFiles = true;
     importContext->ContentPath = Projects::GetProjectPath() + "/content";
@@ -84,9 +89,9 @@ Pine::Importer::ImportContext* Editor::Utilities::Asset::CreateImportContext(con
     {
         if (std::filesystem::is_regular_file(path))
         {
-            auto relativePath = path.substr(std::filesystem::path(path).parent_path().string().length() + 1);
+            const auto relativePath = std::filesystem::path(path).filename();
 
-            Pine::Importer::AddFile(importContext, path, currentDirectory->Path.string() + "/" + relativePath);
+            Pine::Importer::AddFile(importContext, path, (destinationDirectory / relativePath).string());
 
             continue;
         }
@@ -100,7 +105,7 @@ Pine::Importer::ImportContext* Editor::Utilities::Asset::CreateImportContext(con
 
             auto relativePath = iter.path().string().substr(std::filesystem::path(path).parent_path().string().length() + 1);
 
-            Pine::Importer::AddFile(importContext, iter.path().string(), currentDirectory->Path.string() + "/" + relativePath);
+            Pine::Importer::AddFile(importContext, iter.path().string(), (destinationDirectory / relativePath).string());
         }
     }
 

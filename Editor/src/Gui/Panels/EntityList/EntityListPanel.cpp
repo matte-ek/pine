@@ -6,6 +6,7 @@
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
@@ -172,7 +173,7 @@ namespace
 
         if (const auto payload = ImGui::GetDragDropPayload())
         {
-            if (std::string(payload->DataType).find("Entity") != std::string::npos)
+            if (payload->IsDataType("Entity"))
             {
                 isDragDroppingEntity = true;
             }
@@ -197,6 +198,25 @@ namespace
 void Panels::EntityList::SetActive(bool value)
 {
     m_Active = value;
+}
+
+void Panels::EntityList::CancelEntityDrag(Pine::Entity* entity)
+{
+    if (m_DroppedEntity == entity)
+    {
+        m_DroppedEntity = nullptr;
+        m_IsDragDroppingEntity = false;
+        m_DidDropEntity = false;
+    }
+
+    if (const auto payload = ImGui::GetDragDropPayload())
+    {
+        if (payload->IsDataType("Entity") && payload->DataSize == sizeof(Pine::Entity*)
+            && *static_cast<Pine::Entity* const*>(payload->Data) == entity)
+        {
+            ImGui::ClearDragDrop();
+        }
+    }
 }
 
 bool Panels::EntityList::GetActive()

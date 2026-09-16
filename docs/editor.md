@@ -4,12 +4,23 @@ The `Editor` executable — an ImGui-based scene/asset editor that links the `En
 library. Source is under `Editor/src/` (namespace `Editor`). It is a *host* for the engine:
 it boots the engine, then adds its own UI, rendering contexts and tooling on top.
 
+To operate a running Editor through HTTP, start with the
+[Editor API guide](debug-server.md): route reference, scene-building workflow,
+asset discovery, captures, request recovery and saving.
+
 ## Start here
 - `Editor/src/Application.cpp` — `main()`. The whole editor boot sequence in one file.
 - `Editor/src/Gui/Gui.{hpp,cpp}` — ImGui setup + the panel loop (`Gui::Setup/Shutdown`).
 - `Editor/src/Rendering/RenderHandler.hpp` — owns the editor's two `RenderingContext`s and their framebuffers.
 - `Editor/src/Projects/Projects.hpp` — project selection + asset loading.
 - `Editor/src/Other/PlayHandler/PlayHandler.hpp` — play/pause/stop of the simulation.
+- `Editor/src/DebugServer/Editing/Editing.hpp` — debug-server scene writes; protocol and limits in [debug-server-editing.md](debug-server-editing.md).
+- `Editor/src/DebugServer/Editing/History/History.hpp` and `Persistence/Persistence.hpp` — batch undo/redo and explicit level saving; see [history and persistence](debug-server-history.md).
+- `Editor/src/DebugServer/LevelCamera/LevelCamera.hpp` — scene Camera selection; see [scene cameras](debug-server-scene-camera.md).
+- `Editor/src/DebugServer/Camera/Camera.hpp` — editor-camera look-at, framing and read/restore; see [debug-server-camera.md](debug-server-camera.md).
+- `Editor/src/DebugServer/Requests/Requests.hpp` — synchronized queue, mutation retry identities, status and cancellation; see [request lifecycle](debug-server-requests.md).
+- `Editor/src/DebugServer/Observation/Observation.hpp` — frame-aware captures and combined observations; see [debug-server-observation.md](debug-server-observation.md).
+- `Editor/src/DebugServer/Import/Import.hpp` — synchronous local-file imports through the shared editor utility; see [asset import](debug-server-import.md).
 
 ## Boot sequence (`Application.cpp`)
 1. `Pine::Engine::Setup(...)` with `m_ProductionMode = false` (editor behavior, not game).

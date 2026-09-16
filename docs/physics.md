@@ -17,6 +17,7 @@ relative to `Engine/src/Pine/`.
 
 ## Notes
 - 3D and 2D are independent worlds; a given entity uses one or the other via its component set.
+- Component properties are **applied when the PhysX actor is created**, not when the setter runs — `RigidBody::CreateActor()` reads mass, gravity, locks and limits once, and mass goes through `PxRigidBodyExt::setMassAndUpdateInertia` so the inertia tensor follows the collider's shape. Changing a property on a live actor means recreating it.
 - Terrain colliders are driven from the `Terrain` asset + `TerrainRenderer` component through `PhysicsTerrain`.
 
 Related: [world-ecs.md](world-ecs.md)

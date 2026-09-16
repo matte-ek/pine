@@ -15,6 +15,7 @@ namespace
 {
     std::deque<Pine::LogMessage> m_LogMessages;
     std::mutex m_LogMutex;
+    std::uint64_t m_LogSequence = 0;
 
 #ifdef _WIN32
     enum class ConsoleColor
@@ -79,6 +80,7 @@ namespace
     void AddLogMessage(const Pine::LogMessage& message)
     {
         m_LogMessages.push_back(message);
+        m_LogMessages.back().Sequence = ++m_LogSequence;
 
         if (m_LogMessages.size() > 256)
         {
@@ -127,7 +129,8 @@ void Pine::Log::LogFatal(const char* fileName, const int fileLine, const std::st
     AddLogMessage({fileName, fileLine, std::string(str), LogSeverity::Fatal});
 }
 
-const std::deque<Pine::LogMessage> &Pine::Log::GetLogMessages()
+std::deque<Pine::LogMessage> Pine::Log::GetLogSnapshot()
 {
+    std::lock_guard lock(m_LogMutex);
     return m_LogMessages;
 }

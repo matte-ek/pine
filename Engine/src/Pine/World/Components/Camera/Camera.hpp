@@ -49,6 +49,7 @@ namespace Pine
         CameraType GetCameraType() const;
 
         void SetOverrideAspectRatio(float value);
+        float GetOverrideAspectRatio() const;
 
         void SetNearPlane(float value);
         float GetNearPlane() const;

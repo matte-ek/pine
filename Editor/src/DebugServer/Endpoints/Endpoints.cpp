@@ -1,4 +1,12 @@
 #include "Endpoints.hpp"
+#include "../Camera/Camera.hpp"
+#include "../Editing/Editing.hpp"
+#include "../Editing/History/History.hpp"
+#include "../Observation/Observation.hpp"
+#include "../LogHistory/LogHistory.hpp"
+#include "../Persistence/Persistence.hpp"
+#include "../LevelCamera/LevelCamera.hpp"
+#include "../Import/Import.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -83,25 +91,6 @@ namespace
         return "unknown";
     }
 
-    const char* LogSeverityToString(const Pine::LogSeverity severity)
-    {
-        switch (severity)
-        {
-        case Pine::LogSeverity::Verbose:
-            return "verbose";
-        case Pine::LogSeverity::Info:
-            return "info";
-        case Pine::LogSeverity::Warning:
-            return "warning";
-        case Pine::LogSeverity::Error:
-            return "error";
-        case Pine::LogSeverity::Fatal:
-            return "fatal";
-        }
-
-        return "unknown";
-    }
-
     /* GET /status */
 
     Editor::DebugServer::Response GetStatus(const Editor::DebugServer::Request&)
@@ -124,50 +113,6 @@ namespace
         {
             body["activeLevel"] = nullptr;
         }
-
-        return { 200, body };
-    }
-
-    /* GET /logs */
-
-    Editor::DebugServer::Response GetLogs(const Editor::DebugServer::Request& request)
-    {
-        const auto limit = ReadIntParameter(request, "limit");
-
-        if (limit.Present && (!limit.Valid || limit.Value < 1))
-        {
-            return Editor::DebugServer::Error(400, "Parameter 'limit' must be a positive integer.");
-        }
-
-        const auto& messages = Pine::Log::GetLogMessages();
-
-        // The engine caps its buffer at 256, so returning all of it is a sane default. ?limit= takes
-        // the most recent N instead, which is what you want right after reproducing something.
-        std::size_t offset = 0;
-
-        if (limit.Present && static_cast<std::size_t>(limit.Value) < messages.size())
-        {
-            offset = messages.size() - static_cast<std::size_t>(limit.Value);
-        }
-
-        nlohmann::json entries = nlohmann::json::array();
-
-        for (auto message = messages.begin() + static_cast<long>(offset); message != messages.end(); ++message)
-        {
-            nlohmann::json entry;
-
-            entry["severity"] = LogSeverityToString(message->Type);
-            entry["message"] = message->Message;
-            entry["file"] = message->FileName;
-            entry["line"] = message->FileLine;
-
-            entries.push_back(entry);
-        }
-
-        nlohmann::json body;
-
-        body["totalBuffered"] = messages.size();
-        body["messages"] = entries;
 
         return { 200, body };
     }
@@ -323,6 +268,7 @@ namespace
         const auto translated = Pine::Serialization::Dump::ToJson(data);
 
         json["data"] = translated.has_value() ? *translated : nlohmann::json(nullptr);
+        json["properties"] = Editor::DebugServer::Editing::ReadComponentProperties(component);
 
         return json;
     }
@@ -383,6 +329,7 @@ namespace
         auto body = StoreEntityIdentity(entity);
 
         body["tags"] = entity->GetTags();
+        body["properties"] = Editor::DebugServer::Editing::ReadEntityProperties(entity);
 
         if (const auto parent = entity->GetParent())
         {
@@ -736,13 +683,33 @@ namespace
 void Editor::DebugServer::Endpoints::Register()
 {
     AddRoute(Method::Get, "/status", GetStatus);
-    AddRoute(Method::Get, "/logs", GetLogs);
+    AddRoute(Method::Get, "/logs", LogHistory::Get);
     AddRoute(Method::Get, "/entities", GetEntities);
     AddRoute(Method::Get, "/entity", GetEntity);
     AddRoute(Method::Get, "/stats", GetStats);
     AddRoute(Method::Get, "/assets", GetAssets);
+    AddMutationRoute("/assets/import", Import::Execute);
     AddRoute(Method::Get, "/asset", GetAsset);
     AddRoute(Method::Get, "/viewport.png", GetViewportPng);
 
-    AddRoute(Method::Post, "/level/load", PostLevelLoad);
+    AddRoute(Method::Post, "/observe", Observation::Begin);
+    AddMutationRoute("/level/load", PostLevelLoad);
+    AddRoute(Method::Get, "/level/status", Persistence::Get);
+    AddMutationRoute("/level/save", Persistence::Save);
+    AddMutationRoute("/level/save-as", Persistence::SaveAs);
+    AddRoute(Method::Get, "/level/camera", LevelCamera::Get);
+    AddMutationRoute("/level/camera", LevelCamera::Set);
+    AddRoute(Method::Get, "/edit/schema", Editing::GetSchema);
+    AddMutationRoute("/edit", Editing::Edit);
+    AddRoute(Method::Get, "/history", Editing::History::Get);
+    AddMutationRoute("/history/undo", Editing::History::Undo);
+    AddMutationRoute("/history/redo", Editing::History::Redo);
+    AddRoute(Method::Get, "/camera", Camera::Get);
+    AddMutationRoute("/camera", Camera::Set);
+    AddMutationRoute("/camera/frame", Camera::Frame);
+}
+
+Editor::DebugServer::Response Editor::DebugServer::Endpoints::ReadEntity(const Request& request)
+{
+    return GetEntity(request);
 }

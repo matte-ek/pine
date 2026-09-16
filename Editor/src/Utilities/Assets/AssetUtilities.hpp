@@ -20,6 +20,10 @@ namespace Editor::Utilities::Asset
     // Pine::Importer::DeleteContext().
     Pine::Importer::ImportContext* CreateImportContext(const std::vector<std::string>& paths);
 
+    // Same import flow with an explicit filesystem destination instead of the browser selection.
+    Pine::Importer::ImportContext* CreateImportContext(const std::vector<std::string>& paths,
+        const std::filesystem::path& destinationDirectory);
+
     // Utilities to delete both assets and directories
     void DeletePath(const std::filesystem::path& path);
 

@@ -237,9 +237,12 @@ void Pine::Graphics::GLTexture::CopyTextureData(ITexture *texture,
 
         glGetCompressedTextureImage(static_cast<int>(srcId), 0, bufferSize, buffer);
 
-        if (glGetError() != GL_NO_ERROR)
+        const auto error = glGetError();
+        if (error != GL_NO_ERROR)
         {
-            PError(std::to_string(glGetError()));
+            PError(fmt::format("Failed to read compressed texture {}: OpenGL error {:#x}", srcId, error));
+            free(buffer);
+            return;
         }
 
         glCompressedTexImage2D(cubeMapTextureType,
@@ -310,8 +313,6 @@ void Pine::Graphics::GLTexture::UploadTextureData(
         glTexImage3D(openglType, level, openglInternalFormat, width, height, m_ArraySize, 0, openglFormat, TranslateTextureDataFormatType(dataFormat), data);
     }
 
-    m_Size = width * height * (format == TextureFormat::RGBA ? 4 : 3);
-
     if (!m_IsMultiSampled)
     {
         glTexParameteri(openglType, GL_TEXTURE_MIN_FILTER, m_FilteringMode == TextureFilteringMode::Linear ? GL_LINEAR : GL_NEAREST);
@@ -328,10 +329,16 @@ void Pine::Graphics::GLTexture::UploadTextureData(
         UpdateSwizzleMask();
     }
 
-    m_Width = width;
-    m_Height = height;
-    m_TextureFormat = format;
-    m_TextureDataFormat = dataFormat;
+    // Texture metadata describes level zero, which CopyTextureData reads when building cube maps.
+    if (level == 0)
+    {
+        m_Width = width;
+        m_Height = height;
+        m_TextureFormat = format;
+        m_TextureDataFormat = dataFormat;
+        m_TextureCompressionFormat = TextureCompressionFormat::Raw;
+        m_Size = width * height * (format == TextureFormat::RGBA ? 4 : 3);
+    }
 }
 
 void Pine::Graphics::GLTexture::UploadTextureDataCompressed(
@@ -360,12 +367,16 @@ void Pine::Graphics::GLTexture::UploadTextureDataCompressed(
         UpdateSwizzleMask();
     }
 
-    m_Width = width;
-    m_Height = height;
-    m_TextureFormat = textureFormat;
-    m_TextureCompressionFormat = compressionFormat;
-    m_TextureDataFormat = TextureDataFormat::UnsignedByte;
-    m_Size = size;
+    // Uploading smaller mip levels must not replace the base image's dimensions or byte size.
+    if (level == 0)
+    {
+        m_Width = width;
+        m_Height = height;
+        m_TextureFormat = textureFormat;
+        m_TextureCompressionFormat = compressionFormat;
+        m_TextureDataFormat = TextureDataFormat::UnsignedByte;
+        m_Size = size;
+    }
 }
 
 Pine::Graphics::TextureType Pine::Graphics::GLTexture::GetType()

@@ -21,6 +21,11 @@ namespace Pine
 
     class RigidBody final : public Component
     {
+    public:
+        // PhysX reads a mass of zero as infinite mass, which stops the body from reacting to
+        // gravity and forces at all. Whatever is authored stays above this.
+        static constexpr float MinimumMass = 0.001f;
+
     private:
         RigidBodyType m_RigidBodyType = RigidBodyType::Dynamic;
 

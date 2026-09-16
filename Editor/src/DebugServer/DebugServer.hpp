@@ -36,10 +36,16 @@ namespace Editor::DebugServer
         // non-empty it is sent verbatim as ContentType and Body is ignored.
         std::vector<std::uint8_t> Binary;
         std::string ContentType = "application/json";
+
+        // A deferred read is resumed at the next completed frame, before UI mutations.
+        // Only the main thread invokes this continuation; HTTP workers continue waiting.
+        std::function<Response()> Resume;
     };
 
     using Handler = std::function<Response(const Request&)>;
 
+    // Register before Gui::Setup(), then call Setup() after editor initialization.
+    void SetupRenderObservation();
     void Setup();
     void Shutdown();
 
@@ -49,6 +55,11 @@ namespace Editor::DebugServer
     // Only valid during Endpoints::Register(); routes are handed to the HTTP library as they are
     // added, and the listener starts immediately afterwards.
     void AddRoute(Method method, const std::string& path, Handler handler);
+
+    // Registers a synchronous mutation, with retry tracking and an
+    // observation token. HTTP 4xx must mean rejection before any side effects;
+    // failures after execution starts use HTTP 5xx and may report partial changes.
+    void AddMutationRoute(const std::string& path, Handler handler);
 
     // The common "that request didn't work" reply, so every endpoint words it the same way.
     Response Error(int statusCode, const std::string& message);

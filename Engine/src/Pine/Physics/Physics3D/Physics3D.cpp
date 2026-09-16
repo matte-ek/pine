@@ -38,22 +38,24 @@ namespace
     {
         if(PxFilterObjectIsTrigger(attributes0) || PxFilterObjectIsTrigger(attributes1))
         {
-            // Handle the trigger layer mask, word3.
-            if ((filterData0.word3 & filterData1.word0) || (filterData1.word3 & filterData0.word0))
+            // Collider::GetFilterData stores trigger masks in word2.
+            if ((filterData0.word2 & filterData1.word0) || (filterData1.word2 & filterData0.word0))
             {
-                pairFlags |= PxPairFlag::eTRIGGER_DEFAULT;
+                pairFlags = PxPairFlag::eTRIGGER_DEFAULT;
+                return PxFilterFlag::eDEFAULT;
             }
 
-            return PxFilterFlag::eDEFAULT;
+            return PxFilterFlag::eSUPPRESS;
         }
 
         // Make sure the layer mask of each object allow these objects to collide.
         if ((filterData0.word0 & filterData1.word1) && (filterData1.word0 & filterData0.word1))
         {
             pairFlags = PxPairFlag::eCONTACT_DEFAULT;
+            return PxFilterFlag::eDEFAULT;
         }
 
-        return PxFilterFlag::eDEFAULT;
+        return PxFilterFlag::eSUPPRESS;
     }
 }
 

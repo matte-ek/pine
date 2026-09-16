@@ -10,6 +10,9 @@ namespace Pine::Entities
     Entity* Create();
     Entity* Create(const std::string& name);
 
+    // Restore a previously removed identity. Rejects empty or already-live IDs.
+    Entity* CreateWithId(UId id);
+
     Entity* Find(const std::string& name);
     Entity* Find(UId id);
 
@@ -17,6 +20,9 @@ namespace Pine::Entities
 
     bool Delete(const Entity* entity);
     void DeleteAll(bool includeTemporary = false);
+
+    // Changes whenever DeleteAll resets the scene, even when the scene was already empty.
+    std::uint64_t GetSceneGeneration();
 
     const std::vector<Entity*>& GetList();
 

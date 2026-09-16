@@ -18,6 +18,7 @@ namespace
     struct ComponentSerializer : Pine::Serialization::Serializer
     {
         PINE_SERIALIZE_PRIMITIVE(Type, Pine::Serialization::DataType::Int32);
+        PINE_SERIALIZE_PRIMITIVE(Active, Pine::Serialization::DataType::Boolean);
         PINE_SERIALIZE_DATA(Data);
     };
 
@@ -35,6 +36,7 @@ namespace
             ComponentSerializer componentSerializer;
 
             componentSerializer.Type.Write(component->GetType());
+            componentSerializer.Active.Write(component->GetActive());
             componentSerializer.Data.Write(component->SaveData());
 
             entitySerializer.Components.AddData(componentSerializer.Write());
@@ -76,6 +78,13 @@ namespace
 
             component->LoadData(componentSerializer.Data.Read());
 
+            // The active flag lives next to the component's own data rather than inside it, and
+            // files written before it existed simply leave the default in place.
+            bool active = true;
+
+            componentSerializer.Active.Read(active);
+            component->SetActive(active);
+
             entity->AddComponent(component);
         }
 
@@ -100,6 +109,7 @@ void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, const bool crea
     dst->SetName(src->GetName());
     dst->SetActive(src->GetActive());
     dst->SetStatic(src->GetStatic());
+    dst->SetTags(src->GetTags());
 
     dst->ClearComponents();
 
@@ -108,7 +118,9 @@ void Pine::Blueprint::CopyEntity(Entity* dst, const Entity* src, const bool crea
         if (component->GetType() == ComponentType::NativeScript) // this might be a bad idea.
             continue;
 
-        dst->AddComponent(Components::Copy(component, !createInstance));
+        const auto copy = Components::Copy(component, !createInstance);
+        copy->SetActive(component->GetActive());
+        dst->AddComponent(copy);
     }
 
     for (auto child : src->GetChildren())
