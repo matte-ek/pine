@@ -108,17 +108,21 @@ bool Shader::LoadAssetData(const ByteSpan& span)
     m_ShaderSources[static_cast<std::uint32_t>(Graphics::ShaderType::Geometry)] = geometrySource;
     m_ShaderSources[static_cast<std::uint32_t>(Graphics::ShaderType::Compute)] = computeSource;
 
-    auto task = Threading::QueueTask<void>([this]()
+    bool compiled = false;
+
+    auto task = Threading::QueueTask<void>([this, &compiled]()
     {
         // Make sure "main" version of the shader is compiled.
-        CompileShaderVersion(0);
+        compiled = CompileShaderVersion(0);
     },
     TaskThreadingMode::MainThread);
 
     // Wait for the main one to compile
     Threading::AwaitTaskResult(task);
 
-    return true;
+    // Without a program there is nothing usable here, and every GetProgram() caller would fault on
+    // it. CompileShader() has already logged which stage failed.
+    return compiled;
 }
 
 Graphics::IShaderProgram* Shader::GetProgram(const ShaderVersion version) const
@@ -139,18 +143,6 @@ bool Shader::HasShaderVersion(const ShaderVersion version) const
 
 bool Shader::CompileShaderVersion(const ShaderVersion version)
 {
-    if (HasShaderVersion(version))
-    {
-        const auto shaderProgramIndex = m_ShaderVersionsMap[version];
-
-        auto shaderProgram = m_ShaderPrograms[shaderProgramIndex];
-        Graphics::GetGraphicsAPI()->DestroyShaderProgram(shaderProgram);
-
-        m_ShaderVersionsMap.erase(version);
-        m_ShaderPrograms.erase(m_ShaderPrograms.begin() + shaderProgramIndex);
-        m_ShaderRendererReady.erase(m_ShaderRendererReady.begin() + shaderProgramIndex);
-    }
-
     // Figure out what version macros to use
     std::vector<std::string> versionMacros;
     for (const auto& [Name, Bit] : m_ShaderVersions)
@@ -161,7 +153,10 @@ bool Shader::CompileShaderVersion(const ShaderVersion version)
         }
     }
 
-    // Prepare a new program
+    // Prepare a new program. A version that is already compiled stays untouched until this one has
+    // linked, so re-compiling a shader that no longer builds (a typo saved while the editor is
+    // open, for instance) keeps rendering with the last working program instead of leaving the
+    // asset without one - which every GetProgram() caller would then fault on.
     auto shaderProgram = Graphics::GetGraphicsAPI()->CreateShaderProgram();
 
     // Compile all the shaders
@@ -197,6 +192,23 @@ bool Shader::CompileShaderVersion(const ShaderVersion version)
         }
 
         uniform->LoadInteger(sampler.Binding);
+    }
+
+    const auto existingVersion = m_ShaderVersionsMap.find(version);
+
+    if (existingVersion != m_ShaderVersionsMap.end())
+    {
+        // Replace the program in its existing slot rather than erasing it: the map holds indices
+        // into m_ShaderPrograms, so removing an element would leave every version compiled after
+        // this one pointing at its neighbour.
+        const auto shaderProgramIndex = existingVersion->second;
+
+        Graphics::GetGraphicsAPI()->DestroyShaderProgram(m_ShaderPrograms[shaderProgramIndex]);
+
+        m_ShaderPrograms[shaderProgramIndex] = shaderProgram;
+        m_ShaderRendererReady[shaderProgramIndex] = false;
+
+        return true;
     }
 
     m_ShaderPrograms.push_back(shaderProgram);

@@ -211,17 +211,24 @@ void Pine::Asset::ReLoad()
     // Get the new ready pine asset data
     const auto newData = Save();
 
+    const AssetSerializer assetSerializer;
+
+    assetSerializer.Read(newData);
+
+    // Apply the new data before storing it. A source that no longer loads - a shader that stopped
+    // compiling, say - must not replace the last good '.passet', or the next start would have
+    // nothing usable to load and the asset would be broken until the source is fixed.
+    if (!LoadAssetData(assetSerializer.Data.Read()))
+    {
+        PWarning(fmt::format("Failed to re-load asset '{}', keeping the previously stored data.", m_Path));
+        return;
+    }
+
     // Write this new data to disk, if possible.
     if (!m_FilePath.empty())
     {
         File::WriteCompressed(m_FilePath, newData);
     }
-
-    const AssetSerializer assetSerializer;
-
-    assetSerializer.Read(newData);
-
-    LoadAssetData(assetSerializer.Data.Read());
 }
 
 Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const bool ignoreAssetData)
@@ -241,7 +248,9 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
     Asset* asset = nullptr;
 
     // First try to just load the id to determine if this asset has been loaded already.
-    if (const auto prevAsset = Assets::GetAssetByUId(aSerializer.UId.Read<UId>()))
+    const auto prevAsset = Assets::GetAssetByUId(aSerializer.UId.Read<UId>());
+
+    if (prevAsset)
     {
         // If so, check if this is the same version.
         if (prevAsset->m_CreatedTime == aSerializer.Time.Read<std::uint64_t>())
@@ -295,7 +304,13 @@ Pine::Asset* Pine::Asset::Load(const ByteSpan& data, const std::string& filePath
 
     if (!asset->LoadAssetData(aSerializer.Data.Read()))
     {
-        delete asset;
+        // Only an instance created here is ours to destroy. One that was already registered is
+        // still owned by the asset manager, and by everything holding a handle to it.
+        if (asset != prevAsset)
+        {
+            delete asset;
+        }
+
         return nullptr;
     }
 
