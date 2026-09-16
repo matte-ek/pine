@@ -68,15 +68,7 @@ void Rendering::Bloom::Setup()
 
     assert(m_BloomExtractShader != nullptr);
 
-    // Uniform lookups assert that their program is the bound one, so bind before querying - the
-    // same order PostProcessing::Render() uses.
-    m_BloomExtractShader->GetProgram()->Use();
-
-    m_BloomThreshold = m_BloomExtractShader->GetProgram()->GetUniformVariable("threshold");
-    m_BloomViewportScale = m_BloomExtractShader->GetProgram()->GetUniformVariable("viewportScale");
-
-    assert(m_BloomThreshold != nullptr);
-    assert(m_BloomViewportScale != nullptr);
+    // The uniforms are resolved in Run(), which also has to re-resolve them after a hot-reload.
 
     m_ResDivisor = Rendering::GraphicsSettings::GetBloomResDivisor();
 
@@ -107,6 +99,31 @@ void Rendering::Bloom::Run(const RenderingContext& context, Graphics::IFrameBuff
 {
     PINE_PF_SCOPE();
 
+    const auto shaderProgram = m_BloomExtractShader->GetProgram();
+
+    // Uniform lookups assert that their program is the bound one, so bind before querying.
+    shaderProgram->Use();
+
+    // A hot-reload compiles a new program and deletes the uniform variables the old one handed out,
+    // which leaves the cached pointers dangling. "Renderer ready" is false for every freshly built
+    // program, so it's the signal to resolve them again - the same hook Skybox and AmbientOcclusion
+    // use for their per-program setup.
+    if (!m_BloomExtractShader->IsRendererReady())
+    {
+        m_BloomThreshold = shaderProgram->GetUniformVariable("threshold");
+        m_BloomViewportScale = shaderProgram->GetUniformVariable("viewportScale");
+
+        m_BloomExtractShader->SetRendererReady(true);
+    }
+
+    // An edited shader that no longer declares them can't run the bright pass. GetUniformVariable()
+    // has already logged which one is missing, so leave the last output in place instead of
+    // rendering with a dangling or absent uniform.
+    if (m_BloomThreshold == nullptr || m_BloomViewportScale == nullptr)
+    {
+        return;
+    }
+
     float threshold = 1.0f;
 
     if (const auto level = World::GetActiveLevel())
@@ -123,8 +140,6 @@ void Rendering::Bloom::Run(const RenderingContext& context, Graphics::IFrameBuff
     Graphics::GetGraphicsAPI()->ClearColor(Color(0.0f, 0.0f, 0.0f, 1.0f));
     Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer);
     Graphics::GetGraphicsAPI()->SetDepthTestEnabled(false);
-
-    m_BloomExtractShader->GetProgram()->Use();
 
     m_BloomThreshold->LoadFloat(threshold);
 

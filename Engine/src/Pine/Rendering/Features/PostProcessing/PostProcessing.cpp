@@ -63,37 +63,33 @@ void Pine::Rendering::PostProcessing::Render(const RenderingContext *renderingCo
     // We don't want any depth testing here as we're just rendering a 2D plane
     Graphics::GetGraphicsAPI()->SetDepthTestEnabled(false);
 
-    m_PostProcessingShader->GetProgram()->Use();
+    const auto shaderProgram = m_PostProcessingShader->GetProgram();
 
-    // Grab the viewport scale if we haven't
+    shaderProgram->Use();
+
+    // A hot-reload compiles a new program and deletes the uniform variables the old one handed out,
+    // which leaves the cached pointers dangling. "Renderer ready" is false for every freshly built
+    // program, so it's the signal to resolve them again - the same hook Skybox and AmbientOcclusion
+    // use for their per-program setup. The film-look uniforms stay optional: an older shader simply
+    // doesn't declare them, and the loads below skip a null.
+    if (!m_PostProcessingShader->IsRendererReady())
+    {
+        m_PostProcessingViewportScale = shaderProgram->GetUniformVariable("viewportScale");
+        m_PostProcessingTime = shaderProgram->GetUniformVariable("time");
+        m_PostProcessingGrainStrength = shaderProgram->GetUniformVariable("grainStrength");
+        m_PostProcessingVignetteStrength = shaderProgram->GetUniformVariable("vignetteStrength");
+        m_PostProcessingExposure = shaderProgram->GetUniformVariable("exposure");
+        m_PostProcessingBloomIntensity = shaderProgram->GetUniformVariable("bloomIntensity");
+
+        m_PostProcessingShader->SetRendererReady(true);
+    }
+
+    // Without the viewport scale the scene would be sampled at the wrong coordinates, so skip the
+    // composite entirely rather than draw a garbled frame. GetUniformVariable() has already logged
+    // it; an edited shader that restores the uniform recovers on its next reload.
     if (m_PostProcessingViewportScale == nullptr)
     {
-        m_PostProcessingViewportScale = m_PostProcessingShader->GetProgram()->GetUniformVariable("viewportScale");
-    }
-
-    // Shader is probably wrong for whatever reason
-    assert(m_PostProcessingViewportScale != nullptr);
-
-    // Grab the film-grain / vignette uniforms if we haven't (guarded - may be absent in older shaders).
-    if (m_PostProcessingTime == nullptr)
-    {
-        m_PostProcessingTime = m_PostProcessingShader->GetProgram()->GetUniformVariable("time");
-    }
-    if (m_PostProcessingGrainStrength == nullptr)
-    {
-        m_PostProcessingGrainStrength = m_PostProcessingShader->GetProgram()->GetUniformVariable("grainStrength");
-    }
-    if (m_PostProcessingVignetteStrength == nullptr)
-    {
-        m_PostProcessingVignetteStrength = m_PostProcessingShader->GetProgram()->GetUniformVariable("vignetteStrength");
-    }
-    if (m_PostProcessingExposure == nullptr)
-    {
-        m_PostProcessingExposure = m_PostProcessingShader->GetProgram()->GetUniformVariable("exposure");
-    }
-    if (m_PostProcessingBloomIntensity == nullptr)
-    {
-        m_PostProcessingBloomIntensity = m_PostProcessingShader->GetProgram()->GetUniformVariable("bloomIntensity");
+        return;
     }
 
     sceneFrameBuffer->GetColorBuffer()->Bind(0);
