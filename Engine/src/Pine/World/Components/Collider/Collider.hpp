@@ -42,7 +42,15 @@ namespace Pine
         bool m_IsTrigger = false;
         std::uint32_t m_TriggerMask = 0xFFFFFFFF;
 
+        // Keeps the "no shape available" report to once per streak of failures - UpdateBody retries
+        // every physics update, and a collider waiting on a terrain would otherwise fill the log.
+        bool m_ReportedMissingShape = false;
+
         void UpdateBody();
+
+        // The shape for ColliderType::HeightField, sourced from the sibling TerrainRenderer's
+        // terrain. Null when the entity carries no terrain to take geometry from.
+        physx::PxShape* CreateHeightFieldShape() const;
 
         struct ColliderSerializer : Serialization::Serializer
         {

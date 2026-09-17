@@ -2,8 +2,11 @@
 
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Mesh/Mesh.hpp"
+#include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
+
+#include <array>
 
 namespace Pine
 {
@@ -12,7 +15,7 @@ namespace Pine
 
 namespace Pine::Renderer3D
 {
-    struct ModelRendererHintData;
+    struct LightSlotData;
 
     struct RenderConfiguration
     {
@@ -43,11 +46,44 @@ namespace Pine::Renderer3D
     // If includeMaterial is set to false, the renderer won't set up the material for rendering.
     void PrepareMesh(Mesh* mesh, Material* overrideMaterial = nullptr);
 
-    // Adds the transform to the ongoing instance batch, returns true if flushing is required, i.e. rendering via RenderMeshInstanced.
-    bool AddInstance(const Matrix4f& transformationMatrix, ModelRendererHintData* data = nullptr);
+    // Prepares one chunk of a terrain, which blends several materials through a splat map rather
+    // than drawing one.
+    //
+    // A sibling of PrepareMesh instead of an option on it: a terrain binds four of every texture
+    // type and fills four of the material buffer's property slots, none of which the
+    // single-material path has anywhere to put. It honours OverrideShader and
+    // SkipMaterialInitialization exactly as PrepareMesh does, so the depth pre-pass and the shadow
+    // passes draw terrain through their own shader without knowing it is terrain.
+    //
+    // A null layer draws as an untextured white surface, and 'splatTransform' is what maps the
+    // chunk mesh's terrain-local uv onto the splat texture - see Terrain::GetSplatTransform.
+    // 'brushRing' tints the ground under the editor's sculpting brush: xy its centre in
+    // terrain-local units, z its radius, w the width of the band drawn at the rim. Null - which is
+    // every caller outside the editor - draws the terrain through the plain shader, and the variant
+    // that carries the overlay is never compiled.
+    void PrepareTerrainChunk(Mesh* mesh,
+                             const std::array<Material*, Specifications::TerrainLayers::COUNT>& layers,
+                             Graphics::ITexture* splatMap,
+                             const Vector4f& splatTransform,
+                             const Vector4f* brushRing = nullptr);
 
-    // Renders the prepared mesh with a single transform
-    void RenderMesh(const Matrix4f& transformationMatrix, ModelRendererHintData* data = nullptr, int writeStencilBuffer = 0x00);
+    // Adds the transform to the ongoing instance batch, returns true if flushing is required, i.e. rendering via RenderMeshInstanced.
+    //
+    // 'lightSlots' is the lights that reach whatever is being drawn; a null one leaves the
+    // instance's light indices at whatever the previous draw wrote, so anything that wants to be
+    // lit has to pass its own.
+    bool AddInstance(const Matrix4f& transformationMatrix, LightSlotData* lightSlots = nullptr);
+
+    // Renders the prepared mesh with a single transform.
+    //
+    // 'indexCount' draws only the first that many indices, or the whole mesh when it is zero. That
+    // exists for terrain: a chunk's skirt sits after its ground in the index buffer, so a pass that
+    // must not let the skirt occlude anything simply draws fewer indices rather than needing a
+    // second mesh without one.
+    void RenderMesh(const Matrix4f& transformationMatrix,
+                    LightSlotData* lightSlots = nullptr,
+                    int writeStencilBuffer = 0x00,
+                    std::uint32_t indexCount = 0);
 
     // Renders the prepared mesh with the current instance batch, see Renderer3D::AddInstance(...)
     void RenderMeshInstanced();

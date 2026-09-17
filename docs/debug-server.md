@@ -59,8 +59,9 @@ Examples below use placeholders where a live ID or project asset is required.
 | `GET /entity` | `?id=<entity-id>` or `?internalId=<pool-slot>` | Entity identity, parent/children, flags, tags, component IDs, serialized `data` and writable `properties`. Prefer persistent IDs over pool slots. |
 | `GET /assets` | Optional `?type=Model` (case-insensitive type name) | Loaded assets sorted by virtual path: `path`, `type`, `uid`, `modified`. Includes engine/editor assets. No server-side name search or pagination. |
 | `GET /asset` | `?path=<virtual-path>` or `?id=<asset-id>` | Stored asset JSON under `content`, plus `file`, identity and `modified`. Reads the compressed file; requires an existing readable file. |
+| `GET /terrain` | `?path=<virtual-path>` or `?id=<asset-id>`, optional `?x=&z=` | Terrain layout (chunk grid, origin, sample field, height range, detail level count) and per-chunk coordinate, terrain-local bounds, dirty state and the lights occupying the chunk's slots (`lights.point` / `lights.spot`, by entity name, nearest first, empty slots omitted). `layers` is one entry per splat channel, the material's virtual path or `null` for an unassigned slot, and `splatMapReady` says whether the render path has uploaded the weight field yet. With `?x=&z=` also the interpolated height at that terrain-local point, `null` when the point is off the terrain, and `layerWeights` — the four stored weights at the nearest `sample` to it, nearest rather than interpolated because what a caller asserts on is what was painted. |
 | `GET /logs` | Optional `?limit=N`, `?since=<cursor>` | Messages, sequence cursors, `hasMore` and `historyLost`. See [log paging](debug-server-observation.md#incremental-logs). |
-| `GET /stats` | None | Level/Game context counters, sizes, render times and tracked profiling scopes. |
+| `GET /stats` | None | Level/Game context counters, sizes, render times and tracked profiling scopes. Counters include `drawCalls` and `vertexCount` (vertices submitted, so index count per indexed draw), `visible/culledObjects` for the model batch, and `visible/culledTerrainChunks` for terrain, which culls per chunk rather than per component. |
 | `GET /edit/schema` | None | Versioned edit envelopes, operations, components, references, limits, history and scene-camera discovery. |
 
 ### Scene and asset writes
@@ -76,6 +77,38 @@ Examples below use placeholders where a live ID or project asset is required.
 | `POST /level/save` | `{}` or empty | Save the active Level at its current project destination. |
 | `POST /level/save-as` | `{"path":"levels/prototype","overwrite":false}` | Save the current scene to that project-relative virtual path and make it active. Omit `.passet`; use lowercase paths. |
 | `POST /level/load` | `{"path":"levels/prototype"}`; alternatively `?path=...` | Load an already loaded Level asset, replacing scene entities. Does **not** guard against unsaved changes. |
+| `POST /terrain/sculpt` | `?path=` or `?id=` names the terrain; body `{"mode":"raise","x":32,"z":32,"radius":10,"strength":20,"falloff":1,"duration":0.5}` | Apply one brush stroke to a terrain as a single undo step — moving its height field, or painting a layer onto it with `"mode":"paint"`. See [sculpting](#sculpting-a-terrain). |
+
+### Sculpting a terrain
+
+`POST /terrain/sculpt` drives the same brush the editor's terrain tools use, and records the result
+as **one undo step** that `/history/undo` reverses exactly. The mode decides which of the terrain's
+two fields the stroke writes: four of them move the height field, and `paint` writes layer weights
+without moving the ground at all.
+The terrain is named by `?path=` or `?id=`, as on `GET /terrain`; everything else is the JSON body.
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `mode` | `raise` | `raise`, `lower`, `smooth` (towards the average of the neighbouring samples), `flatten` (towards one height) or `paint` (towards one layer). |
+| `x`, `z` | — | One terrain-local point, for a single dab. Mutually exclusive with `points`. |
+| `points` | — | `[{"x":…,"z":…}, …]`, up to 256, for a drag. Every point gets a full `duration`, so a longer stroke moves the ground further — exactly as holding the brush still for more frames would. |
+| `radius` | `8` | World units. Samples further out are untouched; the brush is round, not square. |
+| `strength` | `8` | Per second. For the height modes that is world units, and it means the same in all four: `smooth` and `flatten` move a sample *towards* their target by at most this much. For `paint` it is the share of the layer handed over, which approaches full coverage rather than reaching it. |
+| `falloff` | `0.5` | How much of the radius is soft edge, measured **inwards from the rim**. `0` is a hard-edged stamp with a flat top, `1` a dome peaking under the point. |
+| `duration` | `0.1` | Seconds of brush time per point, standing in for the frame time a dragged stroke accumulates. |
+| `height` | — | The reference height for `flatten`. Left out, the stroke levels to the ground under its first point. |
+| `layer` | `0` | The splat channel `paint` writes into, `0` to `3`. Rejected outside that range whatever the mode is, rather than clamped into it. |
+
+The reply carries the terrain path, the resolved `mode` (plus `layer`, when painting),
+`requestedPoints`/`appliedPoints` and the resulting `history` counts. **Fewer applied points than
+requested is a normal answer** — it means part of the stroke fell outside the terrain — and zero
+means none of it landed, which is how a caller learns its coordinates are not on that terrain. A
+stroke that changes nothing records no undo step, so it cannot consume the next undo.
+
+Sculpting requires stopped play mode, for the reason undo does. Read the result back through
+`GET /terrain?x=&z=`: the heights it reports are interpolated across the same triangle the mesh is
+built from, so they are exact rather than approximate, and `layerWeights` carries what a paint
+stroke stored at the nearest sample.
 
 Scene writes, imports, undo/redo, saving and loading require stopped play mode.
 Saving does not save other modified assets. Import is not undoable. See

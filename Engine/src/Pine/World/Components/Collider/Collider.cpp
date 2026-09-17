@@ -4,6 +4,7 @@
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
+#include "Pine/Physics/Physics3D/TerrainCollision/TerrainCollision.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "../../../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/World/Components/TerrainRenderer/TerrainRendererComponent.hpp"
@@ -34,7 +35,15 @@ void Pine::Collider::UpdateBody()
     {
         const auto transform = GetParent()->GetTransform();
         const auto position = transform->GetPosition() + m_Position;
-        const auto rotation = transform->GetRotation();
+
+        // A height field has one surface per column by construction, so a rotated terrain is not
+        // something either the asset or the renderer can represent - Rendering::TerrainRenderer
+        // places its chunks by position alone. Rotating the collision would make the ground you
+        // walk on disagree with the ground you see, which is the one thing terrain collision has to
+        // get right, so this ignores the rotation for exactly the same reason.
+        const auto rotation = m_ColliderType == ColliderType::HeightField
+            ? Quaternion(1.f, 0.f, 0.f, 0.f)
+            : transform->GetRotation();
 
         m_Transform.p.x = position.x;
         m_Transform.p.y = position.y;
@@ -50,11 +59,23 @@ void Pine::Collider::UpdateBody()
         const auto collisionShape = CreateCollisionShape();
         if (!collisionShape)
         {
-            PError("Collider::UpdateBody(): Failed to create collision body, no shape available.");
+            // Reported once rather than on every physics update. A height field collider whose
+            // terrain has not been assigned yet is a normal editing state, and it is retried every
+            // update on purpose - so that the collider starts working the moment a terrain appears
+            // - but saying so 120 times a second would bury everything else in the log.
+            if (!m_ReportedMissingShape)
+            {
+                PError("Collider::UpdateBody(): Failed to create collision body, no shape available.");
+
+                m_ReportedMissingShape = true;
+            }
+
             m_CollisionRigidBody->release();
             m_CollisionRigidBody = nullptr;
             return;
         }
+
+        m_ReportedMissingShape = false;
 
         m_CollisionRigidBody->attachShape(*collisionShape);
         m_CollisionRigidBody->userData = m_Parent;
@@ -178,6 +199,21 @@ void Pine::Collider::Reset()
     m_CollisionRigidBody = nullptr;
 }
 
+// Geometry from a sibling component rather than from this collider's own fields. That is not a
+// terrain special case: ColliderType::ConvexMesh and ConcaveMesh will have to read their mesh off
+// the sibling ModelRenderer in exactly this way, which is why Collider.cpp already includes it.
+physx::PxShape * Pine::Collider::CreateHeightFieldShape() const
+{
+    const auto terrainRenderer = m_Parent->GetComponent<TerrainRendererComponent>();
+
+    if (terrainRenderer == nullptr || terrainRenderer->GetTerrain() == nullptr)
+    {
+        return nullptr;
+    }
+
+    return Physics3D::TerrainCollision::CreateShape(*terrainRenderer->GetTerrain(), *Physics3D::GetDefaultMaterial());
+}
+
 physx::PxShape * Pine::Collider::CreateCollisionShape() const
 {
     auto size = m_Size * GetParent()->GetTransform()->GetScale();
@@ -194,30 +230,12 @@ physx::PxShape * Pine::Collider::CreateCollisionShape() const
         break;
     case ColliderType::Capsule:
         shape = Physics3D::GetPhysics()->createShape(physx::PxCapsuleGeometry(size.x, size.y), *Physics3D::GetDefaultMaterial());
+        break;
+    case ColliderType::HeightField:
+        shape = CreateHeightFieldShape();
+        break;
     default:
         break;
-    }
-
-    if (m_ColliderType == ColliderType::HeightField)
-    {
-        physx::PxHeightFieldGeometry geometry;
-
-        auto terrainRenderer = m_Parent->GetComponent<TerrainRendererComponent>();
-        if (terrainRenderer && terrainRenderer->GetTerrain())
-        {
-            const auto& terrainChunks = terrainRenderer->GetTerrain()->GetChunks();
-
-            for (const auto& chunk : terrainChunks)
-            {
-                geometry.heightField = static_cast<physx::PxHeightField*>(chunk.PhysicsData.PhysicsHeightField);
-            }
-        }
-
-        geometry.heightScale = 0.01;
-        geometry.columnScale = static_cast<float>(TERRAIN_CHUNK_SIZE) / static_cast<float>(TERRAIN_CHUNK_VERTEX_COUNT);
-        geometry.rowScale = static_cast<float>(TERRAIN_CHUNK_SIZE) / static_cast<float>(TERRAIN_CHUNK_VERTEX_COUNT);
-
-        shape = Physics3D::GetPhysics()->createShape(geometry, *Physics3D::GetDefaultMaterial());
     }
 
     if (shape)
@@ -234,15 +252,6 @@ physx::PxShape * Pine::Collider::CreateCollisionShape() const
             physx::PxTransform relativePose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0, 0, 1)));
 
             shape->setLocalPose(relativePose);
-        }
-        else if (m_ColliderType == ColliderType::HeightField)
-        {
-            physx::PxTransform transform;
-
-            transform.p = physx::PxVec3(-(TERRAIN_CHUNK_SIZE * 0.5f), 0.f, -(TERRAIN_CHUNK_SIZE * 0.5f));
-            transform.q = physx::PxQuat(physx::PxIdentity);
-
-            shape->setLocalPose(transform);
         }
     }
 

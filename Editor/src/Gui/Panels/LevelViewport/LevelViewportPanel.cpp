@@ -20,7 +20,11 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include "Other/Actions/Actions.hpp"
+#include "Other/TerrainSculpting/TerrainSculpting.hpp"
+#include "Gui/Panels/TerrainTools/TerrainToolsPanel.hpp"
 #include "Pine/Assets/Model/Model.hpp"
+#include "Pine/Assets/Terrain/Terrain.hpp"
+#include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
@@ -62,6 +66,92 @@ namespace
     auto m_SnapMode = SnapMode::OnKey;
 
     float m_SnapRange = 1.f;
+
+    // True from a click on the viewport image until the button comes back up. A stroke needs this
+    // rather than "the button is down": a drag that began on a slider in the tools panel and
+    // wandered over the ground must not start sculpting, and a drag that began on the ground and
+    // crossed a patch of sky must not end there.
+    bool m_SculptDragging = false;
+
+    // The cursor's position inside the viewport image, in its own pixels.
+    Pine::Vector2f GetCursorInViewport(const ImVec2 viewportPosition)
+    {
+        const auto cursor = ImGui::GetMousePos();
+
+        return { cursor.x - viewportPosition.x, cursor.y - viewportPosition.y };
+    }
+
+    // Runs the sculpting brush for this frame: the overlay under the cursor, and a stroke while the
+    // button is held. Called instead of the gizmo and entity picking, never alongside them.
+    void UpdateTerrainSculpting(const ImVec2 viewportPosition, const bool hovered, const bool clicked)
+    {
+        namespace Sculpting = Editor::TerrainSculpting;
+
+        if (clicked)
+        {
+            m_SculptDragging = true;
+        }
+
+        // Ended on the button coming up wherever the cursor is by then, so releasing outside the
+        // viewport cannot leave a stroke open and merge the next one into it.
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            m_SculptDragging = false;
+
+            Sculpting::EndStroke();
+        }
+
+        const auto clearOverlay = []
+        {
+            Pine::Rendering::TerrainRenderer::SetBrushOverlay(std::nullopt);
+        };
+
+        // m_CaptureMouse is the right-button camera fly, which hides the cursor - there is nothing
+        // to put a ring under.
+        if (!hovered || m_CaptureMouse)
+        {
+            clearOverlay();
+            return;
+        }
+
+        const auto ray = Sculpting::BuildCursorRay(Editor::LevelEntity::Get()->GetComponent<Pine::Camera>(),
+                                                   GetCursorInViewport(viewportPosition),
+                                                   m_Size);
+
+        if (!ray.has_value())
+        {
+            clearOverlay();
+            return;
+        }
+
+        const auto pick = Sculpting::PickTerrain(ray->Origin, ray->Direction);
+
+        if (!pick.has_value())
+        {
+            clearOverlay();
+            return;
+        }
+
+        const auto& brush = Panels::TerrainTools::GetBrush();
+        const Pine::Vector2f point = { pick->LocalPosition.x, pick->LocalPosition.z };
+
+        Pine::Rendering::TerrainRenderer::BrushOverlay overlay;
+
+        overlay.Terrain = pick->Terrain->GetUId();
+        overlay.Centre = point;
+        overlay.Radius = brush.Radius;
+
+        // Proportional to the brush, with a floor so a small one still reads as a ring rather than
+        // as a solid disc.
+        overlay.RingWidth = std::max(brush.Radius * 0.08f, 0.2f);
+
+        Pine::Rendering::TerrainRenderer::SetBrushOverlay(overlay);
+
+        if (m_SculptDragging)
+        {
+            Sculpting::Apply(pick->Terrain, brush, point, ImGui::GetIO().DeltaTime);
+        }
+    }
 
     void RenderTranslationGizmo(ImVec2 viewportPosition)
     {
@@ -410,7 +500,30 @@ void Panels::LevelViewport::Render()
 
     Editor::LevelEntity::SetCaptureMouse(m_CaptureMouse);
 
-    RenderTranslationGizmo(position);
+    // Terrain editing takes the left button over: dragging has to sculpt rather than drag a gizmo
+    // handle or re-select whatever is under the cursor. 2D is excluded because a top-down
+    // orthographic view has no meaningful ray into a height field.
+    const bool sculpting = Panels::TerrainTools::IsEditing() && !Editor::LevelEntity::GetPerspective2D();
+
+    if (sculpting)
+    {
+        UpdateTerrainSculpting(position, viewportHovered, viewportClicked);
+    }
+    else
+    {
+        // Leaving edit mode - or starting play - mid-drag still has to close the stroke, or the
+        // next one would be recorded as a continuation of it.
+        m_SculptDragging = false;
+
+        Editor::TerrainSculpting::EndStroke();
+
+        if (Pine::Rendering::TerrainRenderer::GetBrushOverlay().has_value())
+        {
+            Pine::Rendering::TerrainRenderer::SetBrushOverlay(std::nullopt);
+        }
+
+        RenderTranslationGizmo(position);
+    }
 
     if (Editor::LevelEntity::GetPerspective2D())
     {
@@ -451,7 +564,7 @@ void Panels::LevelViewport::Render()
         ImGui::GetWindowDrawList()->AddText({position.x + 15.f, position.y + 15.f}, ImColor(255, 255, 255, 255), buff);
     }
 
-    if (viewportClicked && !ImGuizmo::IsUsing())
+    if (viewportClicked && !ImGuizmo::IsUsing() && !sculpting)
     {
         // Convert the mouse coordinates to the frame buffer position to pass onto
         // the entity selection system.

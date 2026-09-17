@@ -53,6 +53,14 @@ design:
 Shadow passes use the same mechanism: every `ShadowView` owns a `VisibilitySet` and is culled
 against its own frustum, so there is no second visibility concept to keep in sync.
 
+**`RenderingContext` also owns its `ViewFrustum`**, built in the prepass and read by both stages.
+The set answers "is *this component* visible"; the frustum is there for anything that culls at a
+finer grain than a component. Terrain is the reason it exists: a terrain has hundreds of chunks
+under one component id, which a bitset indexed by that id cannot represent, so `TerrainRenderer`
+tests chunk bounds against this frustum inline instead. Anything else needing the viewer's frustum
+should read it here rather than rebuild it — a second `FromViewProjection` call is a second
+expression that has to keep agreeing with the first.
+
 ## Shadows
 
 Everything decomposes into **`ShadowView`** (`Rendering/ShadowView/`): one projection, its frustum,
@@ -73,6 +81,30 @@ possible, and a tile whose contents are still correct is not re-rendered.
   a game camera both live.
 - **Cascades** are built from the camera frustum, so they stay **per context**, inside that
   context's prepass — `Shadows::NewFrame(camera)` then `RenderPassLight(light, ...)` per light.
+
+**Terrain is drawn into every view** alongside the object batch, inside `RenderViews`. It is not in
+the batch, so it needs its own call, and it culls its own chunks against the view's frustum rather
+than reading the view's `VisibilitySet` — which cannot hold them (see
+[Visibility & culling](#visibility--culling)). Each view carries an `Origin` for this: the light for
+a spot or point view, and the *scene camera* for a cascade, which has no origin of its own. That is
+what makes a chunk cast the shadow of the silhouette it is actually drawn with, rather than of a
+coarser level the main pass never shows.
+
+⚠ **Terrain overrides the view's face culling and bias while it draws.** A height field is
+single-sided — one surface per column, no far side — so the front-face culling a cascade uses to buy
+its separation for free would discard the ground itself and leave only the chunk skirts writing
+depth. Terrain draws with back faces culled and an explicit bias pair instead, which is the trade a
+local view already makes for everything.
+
+A cached tile is also invalidated when a terrain moves, is reshaped, or is added or removed
+(`SceneProcessorContext::TerrainChanged`, written by `TerrainRenderer::Prepare`). Coarser than the
+per-caster `MovedCasters` test next to it, deliberately: terrain changes are rare, and a chunk is
+not something that list can hold. Without it, a tile drawn before a terrain was assigned to its
+component would stay cached and the ground would never appear in it.
+
+The cascades' near plane is fitted to the casters that can reach the cascade box (`FitCasterNearZ`),
+and **terrain chunks are part of that fit**. Terrain is usually the tallest thing in a level, and a
+ridge outside the box still throws a shadow across ground inside it.
 
 With shadows switched off, `Pipeline3D` calls `Shadows::ClearLocalViews` rather than simply
 skipping the work: a light still pointing at the tile it held would otherwise keep sampling a tile
@@ -120,10 +152,242 @@ escape both attenuation and the cone mask.
 returns garbage on some drivers (seen on NVIDIA), silently zeroing N·L. The loops in
 `generic.fragment.glsl` are hand-unrolled with literal subscripts for this reason.
 
-⚠ **Terrain and editor gizmos draw with no light hint data**, so they fall back to whatever
-`AddLight` left in `Instances[0]` — an arbitrary global subset (first five point lights in pool
-order, last two spots), and now its arbitrary shadow views with it, identical across the whole
-terrain. Terrain needs real per-chunk slots.
+Slots live in a **`Renderer3D::LightSlotData`** (`Renderer3D/LightSlotData.hpp`), which is what
+`AddInstance`/`RenderMesh` take and all that they read. A `ModelRenderer` carries one inside its
+hint data; a terrain chunk carries one of its own. `SceneLightsProcessor::AssignSlots(context,
+position, slots)` is the shared rule — it takes a point rather than the thing at that point, because
+a chunk is not a component and has no transform to be lit at.
+
+⚠ **Editor gizmos draw with no light hint data**, so they fall back to whatever `AddLight` left in
+`Instances[0]` — an arbitrary global subset (first five point lights in pool order, last two spots)
+and its shadow views with it. Terrain no longer does; see below.
+
+## Terrain
+
+Terrain does **not** go through the object batch. `Rendering/Features/TerrainRenderer/` draws it
+directly, and `Pipeline3D` calls that feature from inside both `RenderDepthPrepass` and
+`RenderScene` rather than from `RenderBatch`. The reason is the shader override: a shadow or depth
+view renders the batch with `OverrideShader` set, and terrain has to honour that override the same
+way, which it can only do if it is submitted while the override is in place.
+
+`TerrainRenderer::Render` takes a **`TerrainView`** — a frustum, a point to measure detail from, and
+somewhere to put the chunk counters — rather than a `RenderingContext`, because a shadow view is not
+one. A context passes its camera and its own statistics; a shadow view passes its `Origin` and none.
+
+The chunk meshes themselves are built by `TerrainRenderer::Prepare()`, called once per frame from
+`Pipeline3D::Prepare()` — not from a draw pass, and not per context. A chunk mesh is derived from
+the terrain's height field and from nothing about the viewer, so building it per context would
+repeat identical work for every viewport, and building it mid-pass (as the old implementation did)
+puts an unbounded amount of work inside the depth prepass. `Terrain` owns the meshes and rebuilds
+only the chunks it has marked dirty; a terrain that no component references is never built at all.
+
+A rebuild **re-uploads the existing mesh** rather than replacing it, whenever the vertex count is
+unchanged — which it is for every rebuild a sculpting stroke causes, since a level's vertex and
+index counts follow from the chunk's quad count alone. That is what `Mesh::UpdateVertices` and its
+siblings are for, and it matters because a stroke redirties chunks every frame it is dragged:
+building a fresh `Mesh` allocates a vertex array and five GPU buffers, and `IVertexArray` only frees
+those when it is disposed. The index buffer is never re-uploaded at all — the triangles of a level
+are fixed, so the same indices describe the moved vertices.
+
+Every chunk carries **one mesh per detail level** (`Terrain::MaximumLodCount`, four at the default
+64 quads per chunk). Level *l* keeps every 2^*l*-th sample, so a coarse mesh is a *subset* of the
+fine one rather than a resampling of it — the chunk's edge samples survive to the coarsest level,
+and two neighbours drawn at the same level meet exactly. Normals still come from the neighbouring
+samples rather than from the level's own vertices, so ground does not change shade as it crosses a
+switch distance. `TerrainRenderer::Render` picks the level from the distance to the chunk's bounds,
+with the switch distances derived from `GetChunkSize()` so that coarse and fine terrains switch at
+the same apparent size.
+
+Neighbours at *different* levels do not meet, and the gap is closed with a **skirt**: a vertical rim
+around each chunk hanging down by that chunk's own height range, carrying the edge vertices' normals
+and uvs so it reads as a continuation of the ground rather than as a wall. The chunk's height range
+is a provable bound — a coarse neighbour can only miss the shared edge by as much as that edge rises
+and falls. The skirt is deliberately *not* included in the mesh AABB: bounds are what culling tests,
+and a chunk whose rim is visible but whose ground is not has nothing worth drawing.
+
+⚠ Terrain chunks are counted in `RenderingStatistics` as `Visible/CulledTerrainChunkCount`, separate
+from the object counts — a whole terrain is one object, and folding its chunks in would make
+"visible objects" mean something different for a level that has terrain in it. Both are cleared per
+pass by `TerrainRenderer::BeginPass`, because terrain culls in each pass rather than once per frame.
+
+**Lighting is per chunk.** `TerrainRenderer::Prepare` gives every chunk its own `LightSlotData`,
+assigned from the centre of the chunk's box by the same `SceneLightsProcessor::AssignSlots` that
+lights a model renderer. Per chunk rather than per terrain because a terrain is far too large to be
+lit at one point — the whole ground would take the five lights nearest its middle and nothing else.
+Chunk granularity is still coarse: a 64-unit chunk gets one set of five point and two spot lights.
+
+The slots survive between frames and are recomputed when the light set changes
+(`SceneProcessorContext::LightSetChanged`), when the terrain moves, or when a chunk's box moves —
+the last raised from `Terrain::UpdateChunkBounds`, so the sculpting brush gets it without having to
+remember. Terrain movement is compared against the position the slots were assigned at
+(`TerrainRendererComponent::GetLightSlotOrigin`) rather than read off `Transform::IsDirty()`: no
+pass calls `OnRender` on a terrain's transform, so that flag is never cleared.
+
+⚠ The slots live on the chunk, which lives on the **asset**. Two entities sharing one terrain asset
+would therefore light it from whichever placement was processed last. One terrain per placement is
+the assumed case; `m_LightSlotOrigin` is on the component so that assumption is visible.
+
+**The surface is four blended layers, not one material.** Every sample of the height field also
+carries four weights (`Terrain::GetSampleWeights`), normalized so they sum to one, and each weight
+belongs to one of `Terrain::MaximumLayerCount` layer slots holding an ordinary `Material`.
+`Renderer3D::PrepareTerrainChunk` binds all four layers' diffuse, specular and normal maps at once —
+`Specifications::Samplers` already reserves four units per texture type — writes their colours,
+shininess and uv scale into `Properties[0..3]` of the material buffer, and selects
+`engine/shaders/3d/terrain`, whose `CreateSurface()` is the only thing about it that differs from
+`generic`. A layer with no material bound draws as plain white, and one with no normal map is bound
+a flat default normal texture rather than being branched around.
+
+The weights reach the shader as **one RGBA8 texture for the whole terrain**, one texel per sample,
+rebuilt by `Terrain::RebuildDirtySplatMap()` from the same `Prepare()` that rebuilds the chunk
+meshes. One texture rather than one per chunk for the same reason the height field is shared: two
+neighbouring chunks read the same edge samples, so the blend filters across a chunk edge exactly as
+it filters anywhere else, with no duplicated border texels to keep in step. `GetSplatTransform()` is
+what maps a chunk mesh's terrain-local uv onto it, and it lands a sample on the centre of its own
+texel — half a texel out and the ground shows a blend of the wrong two samples.
+
+⚠ Repainting a terrain does **not** set `SceneProcessorContext::TerrainChanged`. That signal exists
+to invalidate cached shadow tiles, which hold depth; weights change what the ground looks like and
+not what shape it is.
+
+See [`plans/terrain-system.md`](plans/terrain-system.md) for what the remaining units add — physics,
+layer blending and the sculpting brush are done, layer painting is not.
+
+### Verification
+
+After building Editor with Ninja, run (requires Xvfb):
+
+```sh
+python3 Editor/src/DebugServer/Verification/verify-terrain-render.py --build build
+python3 Editor/src/DebugServer/Verification/verify-terrain-lighting.py --build build
+python3 Editor/src/DebugServer/Verification/verify-terrain-layers.py --build build
+python3 Editor/src/DebugServer/Verification/verify-terrain-sculpt.py --build build
+```
+
+`/edit` has no TerrainRenderer operation and nothing creates an asset over HTTP, so this builds a
+probe out of the Editor's own boot sequence — the `verify-physics-native.py` pattern — puts a
+noise-filled terrain in a scene and then hands over to the normal main loop, so the rest of the
+checks run over the debug server. In process it checks the chunk meshes, their index counts and
+bounds, that an edited sample dirties the chunks on *both* sides of a chunk edge, and that
+`GetHeightAt` interpolates across the same triangle the mesh generator builds. Over HTTP it checks
+that the render path built the meshes, that the terrain fills the frame with no sky showing through
+it, that its shading actually varies, and that every chunk draws in both passes.
+
+The LOD and culling checks are numeric rather than visual. Terrain is the only thing drawing in that
+scene, so `/stats` dividing `vertexCount` by `drawCalls` says which level the chunks were drawn at:
+backed off past the last switch distance every draw has to cost exactly the coarsest level, and
+standing on the terrain the frame has to cost more than an entirely level-1 one. Culling is checked
+in both directions — every chunk visible looking at the terrain, every chunk culled and *zero draw
+calls* looking away, which is what separates real culling from a counter that is merely reported.
+A second script, `verify-terrain-lighting.py`, covers the lighting and the shadows. It builds the
+same kind of probe over a *flat* terrain with one square plateau on it — flat because the shadow it
+looks for has to be attributable, and on noise a dark patch could just as easily be shading. It puts
+eight lamps over five point slots, then checks that every chunk kept exactly the five nearest to its
+own box and that moving a lamp moves the slots with it. The shadows are checked by turning the sun's
+`CastShadows` off and counting the pixels that brighten: terrain is the only thing in that scene, so
+a frame that does not change is a terrain that never reached the shadow pass. The count has an upper
+bound as well as a lower one — ground that comes back uniformly darker is acne, not a shadow. The
+same A/B then runs for a point light, which reaches the atlas through the cached local-view path.
+
+The skirts are checked by looking for sky below the skyline in a ground-level frame: a height field
+seen from above its surface has ground under every pixel once a column has hit it, so a sky pixel
+down there is a chunk edge showing through. Removing the skirt makes that frame fail, which is the
+control that keeps the check from being vacuous.
+
+It uses the engine's default material and no project assets, so it runs against a bare project
+directory. The shading check is a block-averaged local contrast rather than a brightness range:
+per-pixel grain hides a gradient and the vignette imitates one, and flat normals — the bug this
+whole rewrite starts from — sit comfortably inside a naive threshold.
+
+A third script, `verify-terrain-layers.py`, covers the blending. It paints the weight field as a
+*bilinear* function of position — layer 0 owning one corner, 1, 2 and 3 the other three — over
+**flat** ground lit straight down, so that the only thing varying anywhere in the frame is the
+blend. A gradient rather than four painted quadrants, deliberately: four blocks would still look
+plausible if the splat lookup were scaled, offset or mirrored, because the blocks would simply land
+elsewhere and nothing in the picture would say so. A field that varies everywhere cannot survive
+that, and the script re-derives the expected colour at a point rather than looking for a shape.
+
+It projects its probe points with the `viewMatrix`/`projectionMatrix` that `/observe` reports for
+the very frame it decoded, rather than guessing the mapping from where the camera was put — the
+point of naming positions is to catch a lookup landing in the wrong place, which a hand-guessed
+mapping could hide. The pixels are compared as an *ordering* of channels rather than as colours:
+everything between the blend and the pixel (the light, the ambient term, the sRGB encode, the
+vignette) is monotonic per channel, so which channel is brighter survives it all while the values do
+not. The control that keeps this from passing on any picture at all: a terrain that ignored the
+splat map would carry all four layers evenly and come out grey, failing every comparison. Two
+further probes sit inside a *single* chunk and must disagree, which is what "four layers blend
+across a chunk" actually asks for.
+
+### Skirts and shadow views
+
+A chunk's skirt is drawn in every pass that has to agree with what is on screen, and in **no** pass
+that decides what light reaches the ground. `TerrainView::DrawSkirts` is what says which, and the
+shadow views are the only caller that turns it off; the draw then covers
+`Terrain::GetChunkGroundIndexCount(level)` indices instead of the whole mesh, which works because
+the skirt is appended *after* the ground in the index buffer.
+
+The reason is that a skirt is a vertical rim hanging below a chunk's edge, as deep as that chunk's
+own height range, whose only job is to hide the crack between two neighbours drawn at different
+detail levels. It is not ground. Letting it write depth turns every chunk boundary into a wall, and
+a terrain lit from a low angle then shows a hard dark band along every chunk edge — a cross over a
+2x2 terrain — which is exactly what it looked like in practice before this was fixed.
+
+What that costs is the crack the skirt was hiding, now in the shadow map rather than on screen: a
+thin seam where two neighbours at different levels meet, letting a little light through. Shadow
+views pick their detail levels from the same origin the main pass does, so neighbours differ by at
+most one level and the seam is correspondingly small. A seam is a far better trade than a wall.
+
+### The brush overlay
+
+The ring under the editor's sculpting brush is drawn by the terrain's own fragment shader, behind
+`VERSION_BRUSH` — a shader version nothing in a built game ever requests, so it is never compiled
+there. `TerrainRenderer::SetBrushOverlay` names the terrain, a terrain-local centre and a radius;
+`PrepareTerrainChunk` picks the variant and uploads them. The distance is measured in the xz plane,
+which is the same thing the brush uses to decide which samples it covers — so what is highlighted is
+what will move, and it follows uneven ground because the ground's own fragments are what draw it.
+
+One overlay for the whole renderer rather than one per `RenderingContext`, because there is one
+cursor. A Game viewport open beside the Level viewport therefore shows the ring too: a cosmetic
+oddity in an editor-only path, and not worth a field on every context.
+
+A fourth script, `verify-terrain-sculpt.py`, covers the brush. Its native half is the part with no
+HTTP surface: `Terrain::Raycast` against `GetHeightAt` straight down over the whole field, obliquely
+from a ring of thirty-two directions, and aimed exactly at grid vertices — the case where a triangle
+test with no edge tolerance is rejected by all eight triangles sharing the corner and the ray falls
+through the ground. It also round-trips a height rectangle, because "undo restores the ground
+exactly" is that round trip and nothing else.
+
+Its HTTP half sculpts **flat** ground, so that how far the brush moved something is measured against
+zero rather than against noise that already varies by more than the stroke does. It checks the
+brush's shape (falling off from the centre at full falloff, flat topped with none, radially
+symmetric, and nothing outside the radius including the corners of the rectangle the brush reads),
+each of the four modes, and that one stroke is one undo step whose undo restores the probed heights
+*identically* rather than approximately. A twenty-four point drag checks the part most likely to be
+wrong — a stroke growing its recorded region must keep the heights it first recorded, not re-read
+ground it has already moved — and a stroke off the terrain has to record nothing at all, or it would
+swallow the author's next undo. Smoothing is checked on a one-sample spike in an untouched corner,
+and has to *both* bring the peak down and raise the ground beside it: a brush that only pushed
+samples down would pass half of that.
+
+The overlay gets its own pair of frames: one over the ring and one over ground far from it,
+counting strongly warm pixels in each. On this scene the ring reaches a red-blue difference of 38
+while the brightest thing anywhere else reaches 5, so the threshold sits clear of both and the
+second frame is the control that stops it passing on a merely warm picture. Before that, natively,
+the check that actually pins the shader machinery down: the `brushRing` uniform has to exist in the
+variant and **not** exist in the default one. A version that was never registered still compiles —
+into a second program built from unchanged source — so a shader that silently lost `VERSION_BRUSH`
+would draw a perfectly good terrain and no ring, which no screenshot would obviously fail on.
+
+The cursor ray gets a native check too, since nothing over HTTP can move a mouse: a camera is aimed
+at a raised half of the terrain, and the ray through the centre of the viewport has to land where
+the camera's own forward meets the step — position and height, not just height. Rays right of and
+below centre have to move the hit the way the cursor moved. Together those catch a flipped y or a
+transposed matrix, which otherwise show up only as the brush landing somewhere other than under the
+cursor.
+
+The last check is that the drawn mesh followed the field. A sculpted terrain and a flat one have
+identical vertex counts, so what says the meshes were rebuilt is that no chunk is still marked
+dirty — `Prepare` clears that only once it has rebuilt the chunk — and that some chunk's bounding
+box has grown taller.
 
 ## Notes
 - Shaders, materials, meshes and models are all **assets** (see [assets.md](assets.md)); the renderer pulls them from the asset system rather than owning GPU resources directly.

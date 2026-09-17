@@ -9,6 +9,7 @@
 #include "Gui/Panels/GamePanel/GamePanel.hpp"
 #include "Gui/Panels/GameViewport/GameViewportPanel.hpp"
 #include "Gui/Panels/GraphicsSettings/GraphicsSettingsPanel.hpp"
+#include "Gui/Panels/TerrainTools/TerrainToolsPanel.hpp"
 #include "Gui/Panels/LevelViewport/LevelViewportPanel.hpp"
 #include "Gui/Panels/Profiler/ProfilerPanel.hpp"
 #include "Gui/Panels/Properties/PropertiesPanel.hpp"
@@ -154,6 +155,11 @@ void MenuBar::Render()
             if (ImGui::MenuItem("Graphics Settings", nullptr, Panels::GraphicsSettings::GetActive()))
             {
                 Panels::GraphicsSettings::SetActive(!Panels::GraphicsSettings::GetActive());
+            }
+
+            if (ImGui::MenuItem("Terrain Tools", nullptr, Panels::TerrainTools::GetActive()))
+            {
+                Panels::TerrainTools::SetActive(!Panels::TerrainTools::GetActive());
             }
 
             ImGui::EndMenu();

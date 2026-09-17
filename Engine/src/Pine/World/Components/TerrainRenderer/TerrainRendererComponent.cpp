@@ -17,6 +17,16 @@ Pine::Terrain* Pine::TerrainRendererComponent::GetTerrain() const
     return m_Terrain.Get();
 }
 
+const std::optional<Pine::Vector3f>& Pine::TerrainRendererComponent::GetLightSlotOrigin() const
+{
+    return m_LightSlotOrigin;
+}
+
+void Pine::TerrainRendererComponent::SetLightSlotOrigin(const Vector3f& position)
+{
+    m_LightSlotOrigin = position;
+}
+
 void Pine::TerrainRendererComponent::LoadData(const ByteSpan& span)
 {
     TerrainSerializer terrainSerializer;

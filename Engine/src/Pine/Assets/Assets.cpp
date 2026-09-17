@@ -36,9 +36,26 @@ namespace
     std::unordered_map<UId, Asset*> m_AssetsMapUId;
     std::unordered_map<std::string, Asset*> m_AssetsMapPath;
 
+    // This list does two jobs, and only one of them is about importing:
+    //
+    //   m_FileExtensions -> m_Type     maps a source file onto the asset type that imports it.
+    //   m_Type -> m_Factory            constructs the asset, for Assets::CreateAsset and for
+    //                                  Asset::Load reading any '.passet'.
+    //
+    // So an asset type that is authored in the editor rather than imported from a source file
+    // still needs an entry here - with no extensions. Removing its row would stop its '.passet'
+    // from loading at all.
+    //
+    // Levels, blueprints, tilesets, tilemaps, terrains and 3D textures are all of that kind: they
+    // are created through the editor's New Asset menu, which goes through Assets::CreateAsset, and
+    // they only ever exist as a '.passet'. They used to claim invented extensions ('.lvl', '.bpt',
+    // '.tset', '.tmap', '.ter', '.cmap') that nothing wrote, nothing read and no file in the tree
+    // ever used - importing one would have produced a default-constructed asset, because none of
+    // those types overrides Asset::Import().
     struct AssetImportFactory
     {
-        // The file extension(s) for this asset type
+        // The source file extension(s) this asset type is imported from. Empty for an asset type
+        // that has no source format and only ever exists as a '.passet'.
         std::vector<std::string> m_FileExtensions;
 
         AssetType m_Type;
@@ -50,16 +67,16 @@ namespace
     std::vector m_AssetImportFactories =
     {
         AssetImportFactory( { { "png", "jpg", "jpeg", "tga", "bmp", "gif" }, AssetType::Texture2D, [](){ return new Texture2D(); } } ),
-        AssetImportFactory( { { "cmap" }, AssetType::Texture3D, [](){ return new Texture3D(); } } ),
+        AssetImportFactory( { { }, AssetType::Texture3D, [](){ return new Texture3D(); } } ),
         AssetImportFactory( { { "obj", "fbx", "glb", "dae", "gltf" }, AssetType::Model, [](){ return new Model(); } } ),
         AssetImportFactory( { { "mat" }, AssetType::Material, [](){ return new Material(); } } ),
         AssetImportFactory( { { "ttf" }, AssetType::Font, [](){ return new Font(); } } ),
         AssetImportFactory( { { "glsl" }, AssetType::Shader, [](){ return new Shader(); } } ),
-        AssetImportFactory( { { "bpt" }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
-        AssetImportFactory( { { "lvl" }, AssetType::Level, [](){ return new Level(); } } ),
-        AssetImportFactory( { { "tset" }, AssetType::Tileset, [](){ return new Tileset(); } } ),
-        AssetImportFactory( { { "tmap" }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
-        AssetImportFactory( { { "ter" }, AssetType::Terrain, [](){ return new Terrain(); } } ),
+        AssetImportFactory( { { }, AssetType::Blueprint, [](){ return new Blueprint(); } } ),
+        AssetImportFactory( { { }, AssetType::Level, [](){ return new Level(); } } ),
+        AssetImportFactory( { { }, AssetType::Tileset, [](){ return new Tileset(); } } ),
+        AssetImportFactory( { { }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
+        AssetImportFactory( { { }, AssetType::Terrain, [](){ return new Terrain(); } } ),
         AssetImportFactory( { { "wav", "wave", "flac", "ogg", "oga", "spx" }, AssetType::Audio, [](){ return new AudioFile(); } } ),
         AssetImportFactory( { { "cs" }, AssetType::CSharpScript, [](){ return new CSharpScript(); } } )
     };

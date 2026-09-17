@@ -108,31 +108,27 @@ void Pine::Rendering::SceneProcessor::Lights::Prepare(SceneProcessorContext& con
 {
     PINE_PF_SCOPE();
 
-    if (!CollectWorldLights(context.Lights))
+    context.LightSetChanged = CollectWorldLights(context.Lights);
+
+    if (!context.LightSetChanged)
     {
         return;
     }
 
+    // Only the model renderers are invalidated here. Terrain chunks are lit by the same rule but
+    // are not components, and the terrains holding them are reached through the renderer rather
+    // than through a component block - so they read the flag above and clear their own.
     for (auto& modelRenderer : Components::Get<ModelRenderer>())
     {
-        modelRenderer.GetRenderingHintData().HasComputedData = false;
+        modelRenderer.GetRenderingHintData().Lights.HasComputedData = false;
     }
 }
 
-void Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(const SceneProcessorContext& context, ModelRenderer* modelRenderer)
+void Pine::Rendering::SceneProcessor::Lights::AssignSlots(const SceneProcessorContext& context,
+                                                          const Vector3f& position,
+                                                          Renderer3D::LightSlotData& slots)
 {
     PINE_PF_SCOPE();
-
-    auto& data = modelRenderer->GetRenderingHintData();
-
-    // Which lights an object ends up with only depends on where it and the lights are, so unless one
-    // of them moved (Prepare clears HasComputedData then) the previous frame's slots still hold.
-    if (data.HasComputedData && !HasSlotInputChanged(*modelRenderer))
-    {
-        return;
-    }
-
-    const auto objectPosition = modelRenderer->GetTransform()->GetPosition();
 
     NearestLights<Slots::POINT_LIGHT_COUNT> pointLights;
     NearestLights<Slots::SPOT_LIGHT_COUNT> spotLights;
@@ -147,7 +143,7 @@ void Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(const ScenePr
             continue;
         }
 
-        const auto distanceSqr = glm::distance2(objectPosition, light->GetTransform()->GetPosition());
+        const auto distanceSqr = glm::distance2(position, light->GetTransform()->GetPosition());
 
         if (lightType == LightType::SpotLight)
         {
@@ -162,13 +158,27 @@ void Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(const ScenePr
     // Slots without a light are assigned nullptr, which invalidates the handle.
     for (int i = 0; i < Slots::POINT_LIGHT_COUNT; i++)
     {
-        data.LightSlotIndex[Slots::POINT_LIGHT_OFFSET + i] = pointLights.Get(i);
+        slots.Index[Slots::POINT_LIGHT_OFFSET + i] = pointLights.Get(i);
     }
 
     for (int i = 0; i < Slots::SPOT_LIGHT_COUNT; i++)
     {
-        data.LightSlotIndex[Slots::SPOT_LIGHT_OFFSET + i] = spotLights.Get(i);
+        slots.Index[Slots::SPOT_LIGHT_OFFSET + i] = spotLights.Get(i);
     }
 
-    data.HasComputedData = true;
+    slots.HasComputedData = true;
+}
+
+void Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(const SceneProcessorContext& context, ModelRenderer* modelRenderer)
+{
+    auto& slots = modelRenderer->GetRenderingHintData().Lights;
+
+    // Which lights an object ends up with only depends on where it and the lights are, so unless one
+    // of them moved (Prepare clears HasComputedData then) the previous frame's slots still hold.
+    if (slots.HasComputedData && !HasSlotInputChanged(*modelRenderer))
+    {
+        return;
+    }
+
+    AssignSlots(context, modelRenderer->GetTransform()->GetPosition(), slots);
 }

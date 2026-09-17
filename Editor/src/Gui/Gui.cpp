@@ -27,6 +27,7 @@
 #include "Panels/LevelViewport/LevelViewportPanel.hpp"
 #include "Panels/Profiler/ProfilerPanel.hpp"
 #include "Panels/Properties/PropertiesPanel.hpp"
+#include "Panels/TerrainTools/TerrainToolsPanel.hpp"
 #include "Pine/Performance/Performance.hpp"
 #include "Utilities/Assets/AssetUtilities.hpp"
 
@@ -198,6 +199,12 @@ namespace
         ImGui::ShowDemoWindow();
 
         Panels::GameViewport::Render();
+
+        // Before the Level viewport, which reads whether terrain editing is on and what the brush
+        // is set to. Rendered after, the viewport would spend a frame acting on the previous
+        // settings every time one changed.
+        Panels::TerrainTools::Render();
+
         Panels::LevelViewport::Render();
         Panels::EntityList::Render();
         Panels::AssetBrowser::Render();

@@ -1,5 +1,6 @@
 #pragma once
 #include "Pine/Assets/Model/Model.hpp"
+#include "Pine/Rendering/Renderer3D/LightSlotData.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Components/Components.hpp"
@@ -13,8 +14,9 @@ namespace Pine
     {
         struct ModelRendererHintData
         {
-            bool HasComputedData = false;
-            std::array<ComponentHandle<Light>, Specifications::ObjectLightSlots::COUNT> LightSlotIndex = {};
+            // Which lights reach this object. Held as the shared type rather than as loose fields
+            // because terrain chunks are lit by the same rule and the same code assigns both.
+            LightSlotData Lights;
 
             // World-space bounds, recomputed once per frame by the scene processor.
             //

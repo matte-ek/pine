@@ -6,20 +6,8 @@
 
 layout(location = 0) out vec4 m_OutputColor;
 
-in VertexData
-{
-	vec2 uv;
-	vec3 worldPosition;
-    vec3 cameraPos;
-	vec3 cameraDir;
-	float cameraDistance;
-	vec3 normalDir;
-	vec3 worldNormal;
-	vec3 lightDir[8];
-    flat int lightIndices[8];
-}vIn;
-
 #include "shared/common.glsl"
+#include "shared/vertex-data.glsl"
 #include "shared/lightning/lightning.glsl"
 
 uniform MaterialSamplers matSamplers;

@@ -505,60 +505,147 @@ namespace
 
     void RenderTerrain(Pine::Terrain *terrain)
     {
-        ImGui::Text("Chunk count: %d", terrain->GetChunks().size());
+        // Every field in this block reshapes stored samples: shrinking the grid drops the rows it
+        // removes, changing the resolution resets the terrain to flat, and narrowing the height
+        // range clamps whatever falls outside it. The widgets underneath report a change per drag
+        // step and per keystroke, and a layout change has no undo even now that sculpting does - so
+        // the edits are collected and applied on a button, rather than every value the author
+        // passes through on the way to the one they wanted destroying ground.
+        static const Pine::Terrain* pendingTerrain = nullptr;
+        static Pine::Vector2i pendingChunkCount;
+        static Pine::Vector2i pendingChunkOrigin;
+        static int pendingChunkQuads;
+        static float pendingChunkSize;
+        static float pendingHeightMin;
+        static float pendingHeightMax;
 
-        const auto HeightMap =
-            Widgets::AssetPicker("Height Map", terrain->m_HeightMap.Get(),
-                                 Pine::AssetType::Texture2D);
+        const auto readPendingFromTerrain = [&]
+        {
+            pendingTerrain = terrain;
+            pendingChunkCount = terrain->GetChunkCount();
+            pendingChunkOrigin = terrain->GetChunkOrigin();
+            pendingChunkQuads = terrain->GetChunkQuads();
+            pendingChunkSize = terrain->GetChunkSize();
+            pendingHeightMin = terrain->GetHeightMin();
+            pendingHeightMax = terrain->GetHeightMax();
+        };
+
+        if (pendingTerrain != terrain)
+        {
+            readPendingFromTerrain();
+        }
+
+        Widgets::Vector2i("Chunk Count", pendingChunkCount, 0.05f);
+        Widgets::Vector2i("Chunk Origin", pendingChunkOrigin, 0.05f);
+        Widgets::InputInt("Chunk Quads", &pendingChunkQuads);
+        Widgets::InputFloat("Chunk Size", &pendingChunkSize);
+        Widgets::InputFloat("Height Min", &pendingHeightMin);
+        Widgets::InputFloat("Height Max", &pendingHeightMax);
+
+        const bool layoutChanged =
+            pendingChunkCount != terrain->GetChunkCount() ||
+            pendingChunkOrigin != terrain->GetChunkOrigin() ||
+            pendingChunkQuads != terrain->GetChunkQuads() ||
+            pendingChunkSize != terrain->GetChunkSize() ||
+            pendingHeightMin != terrain->GetHeightMin() ||
+            pendingHeightMax != terrain->GetHeightMax();
+
+        ImGui::BeginDisabled(!layoutChanged);
+
+        if (ImGui::Button("Apply Layout"))
+        {
+            // Resolution first: it resets the field, so anything it would have thrown away is gone
+            // before the grid and the range are applied to what remains.
+            terrain->SetChunkQuads(pendingChunkQuads);
+            terrain->SetChunkSize(pendingChunkSize);
+            terrain->Resize(pendingChunkOrigin, pendingChunkCount);
+            terrain->SetHeightRange(pendingHeightMin, pendingHeightMax);
+            terrain->MarkAsModified();
+
+            // The setters reject values they cannot honour, so read back what was actually taken
+            // rather than leaving a rejected value sitting in the fields.
+            readPendingFromTerrain();
+        }
+
+        ImGui::EndDisabled();
+
+        if (layoutChanged)
+        {
+            ImGui::SameLine();
+
+            if (ImGui::Button("Revert"))
+            {
+                readPendingFromTerrain();
+            }
+        }
+
+        const auto fieldSize = terrain->GetFieldSize();
 
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
-        bool generateAll = false;
-
-        if (ImGui::Button(fmt::format("Generate All").c_str()))
+        // The four layers the surface blends between, one per splat channel. Every slot is shown
+        // whether or not it is filled: a channel is a fixed place in the weight field rather than
+        // an entry in a list, so hiding the empty ones would renumber what the brush paints into.
+        for (int layer = 0; layer < Pine::Terrain::MaximumLayerCount; layer++)
         {
-            generateAll = true;
-            terrain->MarkAsModified();
-        }
+            const auto newLayer = Widgets::AssetPicker(fmt::format("Layer {}", layer),
+                                                       terrain->GetLayer(layer),
+                                                       Pine::AssetType::Material);
 
-        int index = 0;
-        for (auto& chunk : terrain->GetChunks())
-        {
-            index++;
-
-            if (generateAll)
+            if (newLayer.hasResult)
             {
-                //terrain->LoadHeightMapData();
-            }
-
-            if (ImGui::CollapsingHeader(fmt::format("Chunk #{}", index).c_str()))
-            {
-                Widgets::Vector2i(fmt::format("Position##{}", index), chunk.Position);
-
-                const auto newMaterial = Widgets::AssetPicker("Material", std::to_string(index), chunk.ChunkMaterial.Get(), Pine::AssetType::Material);
-                if (newMaterial.hasResult)
-                {
-                    chunk.ChunkMaterial = dynamic_cast<Pine::Material*>(newMaterial.asset);
-                    terrain->MarkAsModified();
-                }
+                terrain->SetLayer(layer, dynamic_cast<Pine::Material*>(newLayer.asset));
+                terrain->MarkAsModified();
             }
         }
+
+        ImGui::Spacing();
+        ImGui::TextDisabled("Height field: %d x %d samples, %.3f units apart",
+                            fieldSize.x, fieldSize.y, terrain->GetSampleSpacing());
+        ImGui::TextDisabled("Chunks: %d, each at %d detail levels",
+                            static_cast<int>(terrain->GetChunks().size()), terrain->GetLodCount());
 
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
-        if (ImGui::Button("Add chunk"))
+        // Seeding the terrain with noise is a debugging convenience rather than a generation
+        // feature - it is what gives a fresh terrain some shape to look at before the sculpting
+        // brush exists. Regenerating discards sculpted edits.
+        auto noise = terrain->GetNoiseSettings();
+        bool noiseChanged = false;
+
+        if (ImGui::CollapsingHeader("Noise"))
         {
-            terrain->CreateChunk({0, 0});
+            noiseChanged |= Widgets::InputInt("Seed", &noise.Seed);
+
+            // One block per band, in the order the generator sums them: the first lays down the
+            // shape of the ground and each one after it works on what the bands before it left.
+            for (int index = 0; index < Pine::TerrainNoiseSettings::BandCount; index++)
+            {
+                auto& band = noise.Bands[index];
+
+                ImGui::SeparatorText(fmt::format("Band {}", index).c_str());
+
+                noiseChanged |= Widgets::InputFloat(fmt::format("Band {} Coordinate Scale", index), &band.CoordinateScale);
+                noiseChanged |= Widgets::InputInt(fmt::format("Band {} Octaves", index), &band.Octaves);
+                noiseChanged |= Widgets::InputFloat(fmt::format("Band {} Scale", index), &band.Scale);
+                noiseChanged |= Widgets::InputFloat(fmt::format("Band {} Cutoff", index), &band.Cutoff);
+            }
+        }
+
+        if (noiseChanged)
+        {
+            terrain->SetNoiseSettings(noise);
             terrain->MarkAsModified();
         }
 
-        if (ImGui::Button("Generate mesh"))
+        if (ImGui::Button("Generate From Noise"))
         {
-            terrain->GenerateMesh();
+            terrain->GenerateFromNoise();
+            terrain->MarkAsModified();
         }
     }
 }

@@ -1,5 +1,7 @@
 #include "Shader.hpp"
 
+#include <cstring>
+
 #include <string>
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -250,6 +252,22 @@ void Shader::AddVersion(const std::string& name, const std::uint32_t bit)
     std::snprintf(entry.Name, sizeof(entry.Name), "%s", name.c_str());
 
     entry.Bit = bit;
+
+    // Replaced rather than appended, because this is called again every time the shader is
+    // re-imported - which a source file saved while the editor is open does. Appending would put
+    // the same name in the list twice, and CompileShaderVersion turns each entry into a #define, so
+    // the second copy would make the shader fail to compile on a macro redefinition. Re-import does
+    // not clear the list first, deliberately: versions may have come from an .ih file that a
+    // source-only re-import never reads.
+    for (auto& existing : m_ShaderVersions)
+    {
+        if (std::strcmp(existing.Name, entry.Name) == 0)
+        {
+            existing = entry;
+
+            return;
+        }
+    }
 
     m_ShaderVersions.push_back(entry);
 }

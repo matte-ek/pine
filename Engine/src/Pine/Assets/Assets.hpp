@@ -42,7 +42,7 @@ namespace Pine::Assets
     template<typename TAsset>
     TAsset* Get(const UId id)
     {
-        return GetAssetByUId(id);
+        return dynamic_cast<TAsset*>(GetAssetByUId(id));
     }
 
     template<typename TAsset>

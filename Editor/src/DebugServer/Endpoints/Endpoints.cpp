@@ -9,6 +9,7 @@
 #include "../Import/Import.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -24,6 +25,9 @@
 
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Level/Level.hpp"
+#include "Pine/Assets/Terrain/Terrain.hpp"
+#include "Other/Actions/Actions.hpp"
+#include "Other/TerrainSculpting/TerrainSculpting.hpp"
 #include "Pine/Core/File/File.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Core/Log/Log.hpp"
@@ -31,6 +35,8 @@
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/Rendering/Renderer3D/Specifications.hpp"
+#include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 #include "Pine/World/World.hpp"
@@ -66,6 +72,41 @@ namespace
             std::size_t consumed = 0;
 
             result.Value = std::stoi(parameter->second, &consumed);
+            result.Valid = consumed == parameter->second.size();
+        }
+        catch (const std::exception&)
+        {
+            result.Valid = false;
+        }
+
+        return result;
+    }
+
+    struct FloatParameter
+    {
+        bool Present = false;
+        bool Valid = false;
+        float Value = 0.f;
+    };
+
+    FloatParameter ReadFloatParameter(const Editor::DebugServer::Request& request, const std::string& name)
+    {
+        const auto parameter = request.Parameters.find(name);
+
+        if (parameter == request.Parameters.end())
+        {
+            return {};
+        }
+
+        FloatParameter result;
+
+        result.Present = true;
+
+        try
+        {
+            std::size_t consumed = 0;
+
+            result.Value = std::stof(parameter->second, &consumed);
             result.Valid = consumed == parameter->second.size();
         }
         catch (const std::exception&)
@@ -217,6 +258,8 @@ namespace
         json["lightCount"] = statistics.LightCount;
         json["visibleObjects"] = statistics.VisibleObjectCount;
         json["culledObjects"] = statistics.CulledObjectCount;
+        json["visibleTerrainChunks"] = statistics.VisibleTerrainChunkCount;
+        json["culledTerrainChunks"] = statistics.CulledTerrainChunkCount;
         json["renderTime"] = statistics.RenderTime;
 
         return json;
@@ -476,43 +519,63 @@ namespace
 
     /* GET /asset */
 
-    Editor::DebugServer::Response GetAsset(const Editor::DebugServer::Request& request)
+    // Resolves the ?path= / ?id= pair every asset endpoint accepts. Returns nullptr and fills
+    // `error` with the reply to send, so the caller only has to forward it.
+    Pine::Asset* ResolveRequestedAsset(const Editor::DebugServer::Request& request,
+                                       Editor::DebugServer::Response& error)
     {
         const auto pathParameter = request.Parameters.find("path");
         const auto idParameter = request.Parameters.find("id");
 
-        Pine::Asset* asset = nullptr;
-
         if (pathParameter != request.Parameters.end())
         {
-            asset = Pine::Assets::GetAssetByPath(pathParameter->second);
+            const auto asset = Pine::Assets::GetAssetByPath(pathParameter->second);
 
             if (asset == nullptr)
             {
-                return Editor::DebugServer::Error(404, fmt::format("No asset at path '{}'.", pathParameter->second));
+                error = Editor::DebugServer::Error(404, fmt::format("No asset at path '{}'.", pathParameter->second));
             }
+
+            return asset;
         }
-        else if (idParameter != request.Parameters.end())
+
+        if (idParameter != request.Parameters.end())
         {
             const Pine::UId id{ std::string(idParameter->second) };
 
             if (!id.IsValid())
             {
-                return Editor::DebugServer::Error(400, fmt::format(
+                error = Editor::DebugServer::Error(400, fmt::format(
                     "'{}' is not a valid asset id. Ids look like '18d4ae6bff2fd8c6-213ebd6dcd8f0b73'.",
                     idParameter->second));
+
+                return nullptr;
             }
 
-            asset = Pine::Assets::GetAssetByUId(id);
+            const auto asset = Pine::Assets::GetAssetByUId(id);
 
             if (asset == nullptr)
             {
-                return Editor::DebugServer::Error(404, fmt::format("No asset with id '{}'.", idParameter->second));
+                error = Editor::DebugServer::Error(404, fmt::format("No asset with id '{}'.", idParameter->second));
             }
+
+            return asset;
         }
-        else
+
+        error = Editor::DebugServer::Error(400, "Expected a ?path= or ?id= parameter. /assets lists both.");
+
+        return nullptr;
+    }
+
+    Editor::DebugServer::Response GetAsset(const Editor::DebugServer::Request& request)
+    {
+        Editor::DebugServer::Response error;
+
+        const auto asset = ResolveRequestedAsset(request, error);
+
+        if (asset == nullptr)
         {
-            return Editor::DebugServer::Error(400, "Expected a ?path= or ?id= parameter. /assets lists both.");
+            return error;
         }
 
         const auto& filePath = asset->GetFilePath();
@@ -545,6 +608,465 @@ namespace
         body["content"] = *content;
 
         return { 200, body };
+    }
+
+    /* GET /terrain */
+
+    nlohmann::json StoreGridCoordinate(const Pine::Vector2i coordinate)
+    {
+        nlohmann::json value;
+
+        value["x"] = coordinate.x;
+        value["z"] = coordinate.y;
+
+        return value;
+    }
+
+    nlohmann::json StorePoint(const Pine::Vector3f point)
+    {
+        nlohmann::json value;
+
+        value["x"] = point.x;
+        value["y"] = point.y;
+        value["z"] = point.z;
+
+        return value;
+    }
+
+    // The lights occupying one chunk's slots, by the name of the entity each one is on, nearest
+    // first - which is the order the scene processor fills the slots in.
+    //
+    // Split by kind because the two compete for separate slots: a chunk keeps the nearest five
+    // point lights and the nearest two spot lights, and a flat list would make "the sixth lamp was
+    // dropped" and "the third spot was dropped" look like the same answer. Empty slots are left
+    // out rather than reported as null, so the length of each array is how many lights reach the
+    // chunk at all.
+    nlohmann::json StoreChunkLights(Pine::TerrainChunk& chunk)
+    {
+        namespace Slots = Pine::Renderer3D::Specifications::ObjectLightSlots;
+
+        const auto storeRange = [&chunk](const int offset, const int count)
+        {
+            auto names = nlohmann::json::array();
+
+            for (int i = 0; i < count; i++)
+            {
+                if (const auto light = chunk.LightSlots.Index[offset + i].Get())
+                {
+                    names.push_back(light->GetParent()->GetName());
+                }
+            }
+
+            return names;
+        };
+
+        nlohmann::json lights;
+
+        lights["point"] = storeRange(Slots::POINT_LIGHT_OFFSET, Slots::POINT_LIGHT_COUNT);
+        lights["spot"] = storeRange(Slots::SPOT_LIGHT_OFFSET, Slots::SPOT_LIGHT_COUNT);
+
+        return lights;
+    }
+
+    // Reports the terrain's layout and its chunk views, and optionally samples a height. The height
+    // field itself is deliberately not included - it is tens of thousands of samples, and what a
+    // caller actually wants to assert on is a height at a coordinate.
+    Editor::DebugServer::Response GetTerrain(const Editor::DebugServer::Request& request)
+    {
+        Editor::DebugServer::Response error;
+
+        const auto asset = ResolveRequestedAsset(request, error);
+
+        if (asset == nullptr)
+        {
+            return error;
+        }
+
+        const auto terrain = dynamic_cast<Pine::Terrain*>(asset);
+
+        if (terrain == nullptr)
+        {
+            return Editor::DebugServer::Error(400, fmt::format("Asset '{}' is a {}, not a Terrain.",
+                asset->GetPath(), Pine::AssetTypeToString(asset->GetType())));
+        }
+
+        nlohmann::json layout;
+
+        layout["chunkCount"] = StoreGridCoordinate(terrain->GetChunkCount());
+        layout["chunkOrigin"] = StoreGridCoordinate(terrain->GetChunkOrigin());
+        layout["chunkQuads"] = terrain->GetChunkQuads();
+        layout["chunkSize"] = terrain->GetChunkSize();
+        layout["sampleSpacing"] = terrain->GetSampleSpacing();
+        layout["fieldSize"] = StoreGridCoordinate(terrain->GetFieldSize());
+        layout["sampleMin"] = StoreGridCoordinate(terrain->GetSampleMin());
+        layout["sampleMax"] = StoreGridCoordinate(terrain->GetSampleMax());
+        layout["heightMin"] = terrain->GetHeightMin();
+        layout["heightMax"] = terrain->GetHeightMax();
+        layout["lodCount"] = terrain->GetLodCount();
+
+        nlohmann::json chunks = nlohmann::json::array();
+
+        for (auto& chunk : terrain->GetChunks())
+        {
+            nlohmann::json entry;
+
+            entry["coordinate"] = StoreGridCoordinate(chunk.Coordinate);
+            entry["boundsMin"] = StorePoint(chunk.BoundsMin);
+            entry["boundsMax"] = StorePoint(chunk.BoundsMax);
+            entry["dirty"] = chunk.IsDirty;
+            entry["lights"] = StoreChunkLights(chunk);
+
+            chunks.push_back(entry);
+        }
+
+        nlohmann::json body;
+
+        body["path"] = terrain->GetPath();
+        body["uid"] = terrain->GetUId().ToString();
+        body["modified"] = terrain->HasBeenModified();
+        body["layout"] = layout;
+        body["chunkCount"] = chunks.size();
+        body["chunks"] = chunks;
+
+        // Every slot, filled or not, so that the index a caller reads here is the splat channel it
+        // paints into. An empty slot is null rather than being left out.
+        auto layers = nlohmann::json::array();
+
+        for (int layer = 0; layer < Pine::Terrain::MaximumLayerCount; layer++)
+        {
+            const auto material = terrain->GetLayer(layer);
+
+            layers.push_back(material != nullptr ? nlohmann::json(material->GetPath()) : nlohmann::json(nullptr));
+        }
+
+        body["layers"] = layers;
+        body["splatMapReady"] = terrain->GetSplatMap() != nullptr;
+
+        // ?x= and ?z= sample a terrain-local point, which is what the later units assert against:
+        // where a dropped body should land, what a brush stroke moved.
+        const auto x = ReadFloatParameter(request, "x");
+        const auto z = ReadFloatParameter(request, "z");
+
+        if (x.Present != z.Present)
+        {
+            return Editor::DebugServer::Error(400, "A height query needs both ?x= and ?z=.");
+        }
+
+        if (x.Present)
+        {
+            if (!x.Valid || !z.Valid)
+            {
+                return Editor::DebugServer::Error(400, "?x= and ?z= have to be numbers.");
+            }
+
+            nlohmann::json height;
+
+            height["x"] = x.Value;
+            height["z"] = z.Value;
+
+            // Absent rather than clamped when the point is off the terrain - out of bounds is a
+            // normal answer here, and a number would be a wrong one.
+            const auto value = terrain->GetHeightAt(x.Value, z.Value);
+
+            if (value.has_value())
+            {
+                height["y"] = *value;
+            }
+            else
+            {
+                height["y"] = nullptr;
+            }
+
+            body["height"] = height;
+
+            // The layer weights at the nearest sample to the same point. Nearest rather than
+            // interpolated because what a caller wants to assert on is what a brush stored, and
+            // the interpolation between two stored samples is the shader's business.
+            const auto spacing = terrain->GetSampleSpacing();
+
+            const Pine::Vector2i sample = {
+                static_cast<int>(std::lround(x.Value / spacing)),
+                static_cast<int>(std::lround(z.Value / spacing))
+            };
+
+            if (const auto weights = terrain->GetSampleWeights(sample))
+            {
+                nlohmann::json entry;
+
+                entry["sample"] = StoreGridCoordinate(sample);
+                entry["weights"] = { weights->x, weights->y, weights->z, weights->w };
+
+                body["layerWeights"] = entry;
+            }
+        }
+
+        return { 200, body };
+    }
+
+    /* POST /terrain/sculpt */
+
+    // One point of a stroke. Terrain-local, like every coordinate the terrain endpoints deal in.
+    struct SculptPoint
+    {
+        float X = 0.f;
+        float Z = 0.f;
+    };
+
+    // Reads a required finite number out of a JSON object, or leaves `error` set. Separate from the
+    // query-parameter reader above because a sculpt request arrives as a body: a stroke carries a
+    // list of points, which a query string has no good way to express.
+    bool ReadNumber(const nlohmann::json& body,
+                    const char* name,
+                    float& value,
+                    Editor::DebugServer::Response& error)
+    {
+        if (!body.contains(name))
+        {
+            return true;
+        }
+
+        if (!body[name].is_number())
+        {
+            error = Editor::DebugServer::Error(400, fmt::format("\"{}\" has to be a number.", name));
+
+            return false;
+        }
+
+        const auto read = body[name].get<float>();
+
+        if (!std::isfinite(read))
+        {
+            error = Editor::DebugServer::Error(400, fmt::format("\"{}\" has to be a finite number.", name));
+
+            return false;
+        }
+
+        value = read;
+
+        return true;
+    }
+
+    // How many points one request may carry. A stroke is applied synchronously between frames, so
+    // this is what stops a single request from stalling the editor for an unbounded time.
+    constexpr std::size_t MaximumSculptPoints = 256;
+
+    // Applies a brush stroke to a terrain, as one undo step. The stroke either moves the ground or
+    // paints a layer onto it, which is what its mode says.
+    //
+    // The whole stroke arrives in one request rather than one request per point, because a stroke
+    // is the unit of undo: splitting it across requests would either record one step per point or
+    // need the server to hold a stroke open between them, and a client that died mid-drag would
+    // leave it open forever.
+    Editor::DebugServer::Response PostTerrainSculpt(const Editor::DebugServer::Request& request)
+    {
+        // Sculpting writes to an asset, and undo is refused while playing - so a stroke applied now
+        // would be one the author could not take back. PlayHandler also restores a world snapshot
+        // on Stop(), and a terrain edited underneath it is not part of that snapshot.
+        if (PlayHandler::GetGameState() != PlayHandler::EditorGameState::Stopped)
+        {
+            return Editor::DebugServer::Error(409, fmt::format(
+                "Cannot sculpt while the editor is {}. Stop play mode first.",
+                GameStateToString(PlayHandler::GetGameState())));
+        }
+
+        Editor::DebugServer::Response error;
+
+        const auto asset = ResolveRequestedAsset(request, error);
+
+        if (asset == nullptr)
+        {
+            return error;
+        }
+
+        const auto terrain = dynamic_cast<Pine::Terrain*>(asset);
+
+        if (terrain == nullptr)
+        {
+            return Editor::DebugServer::Error(400, fmt::format("Asset '{}' is a {}, not a Terrain.",
+                asset->GetPath(), Pine::AssetTypeToString(asset->GetType())));
+        }
+
+        const auto body = request.Body.empty() ? nlohmann::json::object()
+                                               : nlohmann::json::parse(request.Body, nullptr, false);
+
+        if (body.is_discarded() || !body.is_object())
+        {
+            return Editor::DebugServer::Error(400, "Request body has to be a JSON object.");
+        }
+
+        Editor::TerrainSculpting::Brush brush;
+
+        if (body.contains("mode"))
+        {
+            if (!body["mode"].is_string())
+            {
+                return Editor::DebugServer::Error(400, "\"mode\" has to be a string.");
+            }
+
+            const auto mode = Editor::TerrainSculpting::BrushModeFromString(body["mode"].get<std::string>());
+
+            if (!mode.has_value())
+            {
+                return Editor::DebugServer::Error(400, fmt::format(
+                    "'{}' is not a brush mode. Use raise, lower, smooth, flatten or paint.",
+                    body["mode"].get<std::string>()));
+            }
+
+            brush.Mode = *mode;
+        }
+
+        // Which splat channel a paint stroke writes into. Read whatever the mode is, so that a
+        // request naming a layer the mode ignores is rejected rather than silently accepted.
+        if (body.contains("layer"))
+        {
+            if (!body["layer"].is_number_integer())
+            {
+                return Editor::DebugServer::Error(400, "\"layer\" has to be a whole number.");
+            }
+
+            brush.Layer = body["layer"].get<int>();
+
+            if (brush.Layer < 0 || brush.Layer >= Pine::Terrain::MaximumLayerCount)
+            {
+                return Editor::DebugServer::Error(400, fmt::format(
+                    "\"layer\" has to be between 0 and {}; this one is {}.",
+                    Pine::Terrain::MaximumLayerCount - 1, brush.Layer));
+            }
+        }
+
+        // Brush time in seconds, standing in for the frame time a dragged stroke would accumulate.
+        // Every point of the stroke gets this much, so a five-point stroke moves the ground five
+        // times as far - exactly as holding the brush still for five frames would.
+        float duration = 0.1f;
+
+        if (!ReadNumber(body, "radius", brush.Radius, error) ||
+            !ReadNumber(body, "strength", brush.Strength, error) ||
+            !ReadNumber(body, "falloff", brush.Falloff, error) ||
+            !ReadNumber(body, "duration", duration, error))
+        {
+            return error;
+        }
+
+        if (brush.Radius <= 0.f)
+        {
+            return Editor::DebugServer::Error(400, "\"radius\" has to be above zero.");
+        }
+
+        if (duration <= 0.f)
+        {
+            return Editor::DebugServer::Error(400, "\"duration\" has to be above zero.");
+        }
+
+        if (body.contains("height"))
+        {
+            float flattenHeight = 0.f;
+
+            if (!ReadNumber(body, "height", flattenHeight, error))
+            {
+                return error;
+            }
+
+            brush.FlattenHeight = flattenHeight;
+        }
+
+        // Either one point, which is a dab, or a list of them, which is a drag. Both are one stroke
+        // and so one undo step.
+        std::vector<SculptPoint> points;
+
+        if (body.contains("points"))
+        {
+            if (!body["points"].is_array() || body["points"].empty())
+            {
+                return Editor::DebugServer::Error(400, "\"points\" has to be a non-empty array.");
+            }
+
+            if (body["points"].size() > MaximumSculptPoints)
+            {
+                return Editor::DebugServer::Error(400, fmt::format(
+                    "A stroke carries at most {} points; this one has {}.",
+                    MaximumSculptPoints, body["points"].size()));
+            }
+
+            for (const auto& entry : body["points"])
+            {
+                if (!entry.is_object())
+                {
+                    return Editor::DebugServer::Error(400, "Every entry of \"points\" has to be an object {\"x\", \"z\"}.");
+                }
+
+                SculptPoint point;
+
+                if (!ReadNumber(entry, "x", point.X, error) || !ReadNumber(entry, "z", point.Z, error))
+                {
+                    return error;
+                }
+
+                points.push_back(point);
+            }
+        }
+        else
+        {
+            SculptPoint point;
+
+            if (!ReadNumber(body, "x", point.X, error) || !ReadNumber(body, "z", point.Z, error))
+            {
+                return error;
+            }
+
+            if (!body.contains("x") || !body.contains("z"))
+            {
+                return Editor::DebugServer::Error(400,
+                    "Expected a point as \"x\" and \"z\", or a stroke as \"points\": [{\"x\", \"z\"}].");
+            }
+
+            points.push_back(point);
+        }
+
+        // Any UI edit still being held has to close before this stroke is written, or the two land
+        // in the history in the wrong order. RegisterCommand does this too, but a stroke that moves
+        // nothing never gets that far.
+        Editor::Actions::FinishHeldCommand();
+
+        std::size_t applied = 0;
+
+        for (const auto& point : points)
+        {
+            if (Editor::TerrainSculpting::Apply(terrain, brush, { point.X, point.Z }, duration))
+            {
+                applied++;
+            }
+        }
+
+        // Ends the stroke whether or not anything was applied: a stroke entirely off the terrain
+        // leaves nothing open, and one that did move ground is recorded here as a single step.
+        Editor::TerrainSculpting::EndStroke();
+
+        nlohmann::json result;
+
+        result["terrain"] = terrain->GetPath();
+        result["mode"] = Editor::TerrainSculpting::BrushModeToString(brush.Mode);
+
+        if (brush.Mode == Editor::TerrainSculpting::BrushMode::Paint)
+        {
+            result["layer"] = brush.Layer;
+        }
+
+        // How many of the points actually reached the terrain. Fewer than were sent is a normal
+        // answer for a stroke dragged over the edge, and zero is how a caller learns that the
+        // coordinates it is using are not on this terrain at all.
+        result["appliedPoints"] = applied;
+        result["requestedPoints"] = points.size();
+
+        const auto state = Editor::Actions::GetHistoryState();
+
+        nlohmann::json history;
+
+        history["undoCount"] = state.UndoCount;
+        history["redoCount"] = state.RedoCount;
+
+        result["history"] = history;
+
+        return { 200, result };
     }
 
     /* GET /viewport.png */
@@ -690,6 +1212,8 @@ void Editor::DebugServer::Endpoints::Register()
     AddRoute(Method::Get, "/assets", GetAssets);
     AddMutationRoute("/assets/import", Import::Execute);
     AddRoute(Method::Get, "/asset", GetAsset);
+    AddRoute(Method::Get, "/terrain", GetTerrain);
+    AddMutationRoute("/terrain/sculpt", PostTerrainSculpt);
     AddRoute(Method::Get, "/viewport.png", GetViewportPng);
 
     AddRoute(Method::Post, "/observe", Observation::Begin);

@@ -30,20 +30,26 @@ namespace
 
 	PipelineConfiguration m_Configuration;
 
-	// Terrain is not part of the object batch - it renders through its own path, with its own shader
-	// and its own camera state, and therefore ignores Renderer3D's shader override. That is exactly
-	// why it cannot stay inside RenderBatch: a shadow view renders the batch with an override
-	// shader, and a terrain that ignores the override would draw itself lit into the depth target.
-	// Both existing callers still call this, so what they draw is unchanged.
-	void RenderTerrain()
+	// Terrain is not part of the object batch - it renders through its own path, with its own mesh
+	// per chunk and its own detail level per viewer, so it cannot be expressed as a model group.
+	//
+	// The view it is handed is this context's: its frustum culls the chunks, and its camera picks
+	// their detail levels. Without a camera there is no frustum to cull against this frame, and the
+	// one left over from the last camera this context had would hide arbitrary chunks.
+	void RenderTerrain(RenderingContext& renderingContext)
 	{
-	    for (const auto& terrainRenderer : Components::Get<TerrainRendererComponent>())
+	    if (renderingContext.SceneCamera == nullptr)
 	    {
-	        if (terrainRenderer.GetTerrain() == nullptr)
-	            continue;
-
-	        Rendering::TerrainRenderer::Render(&terrainRenderer);
+	        return;
 	    }
+
+	    Rendering::TerrainRenderer::BeginPass(renderingContext);
+
+	    Rendering::TerrainRenderer::Render({
+	        renderingContext.ViewFrustum,
+	        renderingContext.SceneCamera->GetParent()->GetTransform()->GetPosition(),
+	        &renderingContext.Statistics
+	    });
 	}
 
 	void RenderDepthPrepass(RenderingContext& renderingContext)
@@ -71,7 +77,7 @@ namespace
 		renderSettings.IgnoreShaderVersions = true;
 		renderSettings.SkipMaterialInitialization = true;
 
-		RenderTerrain();
+		RenderTerrain(renderingContext);
 		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque, renderingContext.Visibility);
 
 		renderSettings.OverrideShader = nullptr;
@@ -116,7 +122,7 @@ namespace
 
 		Renderer3D::UploadLights();
 
-		RenderTerrain();
+		RenderTerrain(context);
 
 		// Render fully opaque objects.
 		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque, context.Visibility);
@@ -220,7 +226,7 @@ void Pipeline3D::RenderBatch(const Rendering::ObjectBatchMap& mapBatch,
 
 				if (Renderer3D::AddInstance(
 				    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),
-				    &modelRenderer->GetRenderingHintData()))
+				    &modelRenderer->GetRenderingHintData().Lights))
 				{
 					Renderer3D::RenderMeshInstanced();
 				}
@@ -247,7 +253,7 @@ void Pipeline3D::RenderBatch(const Rendering::ObjectBatchMap& mapBatch,
 
 						Renderer3D::RenderMesh(
 						    renderer->GetParent()->GetTransform()->GetTransformationMatrix(),
-						    &renderer->GetRenderingHintData(),
+						    &renderer->GetRenderingHintData().Lights,
 						    renderer->GetStencilBufferValue());
 					}
 				}
@@ -284,6 +290,12 @@ void Pipeline3D::Prepare()
 
     Rendering::SceneProcessor::Prepare(m_SceneContext);
 
+	// Before any context draws, and once for all of them - a terrain's meshes depend on its height
+	// field, and its chunk light slots on where the lights are, neither of which is about the viewer.
+	//
+	// After SceneProcessor::Prepare, which is what gathered the lights the chunks are assigned from.
+	Rendering::TerrainRenderer::Prepare(m_SceneContext);
+
 	// Local light shadows are viewer-independent, so they are built and rendered once here rather
 	// than inside each rendering context's prepass. With an editor viewport and a game camera both
 	// live, doing it per context would render every spot light's shadow map twice per frame for an
@@ -316,10 +328,13 @@ void Pipeline3D::Run(RenderingContext& context, const PipelineStage stage)
 		// overwriting each other's results.
 		if (context.SceneCamera != nullptr)
 		{
-			const auto frustum = Frustum::FromViewProjection(
+			// Kept on the context rather than local to this block: terrain culls its chunks
+			// against the same frustum in both stages, and rebuilding it there would be a second
+			// expression that has to agree with this one.
+			context.ViewFrustum = Frustum::FromViewProjection(
 				context.SceneCamera->GetProjectionMatrix() * context.SceneCamera->GetViewMatrix());
 
-			const auto cullingResult = Rendering::RenderCulling::Cull(frustum, context.Visibility);
+			const auto cullingResult = Rendering::RenderCulling::Cull(context.ViewFrustum, context.Visibility);
 
 			context.Statistics.VisibleObjectCount = cullingResult.VisibleObjectCount;
 			context.Statistics.CulledObjectCount = cullingResult.CulledObjectCount;
@@ -329,7 +344,6 @@ void Pipeline3D::Run(RenderingContext& context, const PipelineStage stage)
 		if (m_Configuration.RenderShadows)
 		{
 			Rendering::Shadows::NewFrame(context.SceneCamera);
-		    Rendering::TerrainRenderer::NewFrame(context.SceneCamera);
 
 			for (const auto light : m_SceneContext.Lights)
 			{

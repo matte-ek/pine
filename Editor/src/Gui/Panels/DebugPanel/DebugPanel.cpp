@@ -81,7 +81,7 @@ void Panels::Debug::Render()
 
                 if (auto modelRenderer = selectedEntity->GetComponent<Pine::ModelRenderer>())
                 {
-                    auto& lightData = modelRenderer->GetRenderingHintData();
+                    auto& lightData = modelRenderer->GetRenderingHintData().Lights;
 
                     ImGui::Text("Has Computed Light Data: %d", lightData.HasComputedData);
 
@@ -90,7 +90,7 @@ void Panels::Debug::Render()
                     // Point Lights
                     for (int i = 0; i < Slots::POINT_LIGHT_COUNT;i++)
                     {
-                        if (auto light = lightData.LightSlotIndex[Slots::POINT_LIGHT_OFFSET + i].Get())
+                        if (auto light = lightData.Index[Slots::POINT_LIGHT_OFFSET + i].Get())
                         {
                             ImGui::Text("Point Light #%d: %s", i, light->GetParent()->GetName().c_str());
                         }
@@ -103,7 +103,7 @@ void Panels::Debug::Render()
                     // Spotlights
                     for (int i = 0; i < Slots::SPOT_LIGHT_COUNT;i++)
                     {
-                        if (auto light = lightData.LightSlotIndex[Slots::SPOT_LIGHT_OFFSET + i].Get())
+                        if (auto light = lightData.Index[Slots::SPOT_LIGHT_OFFSET + i].Get())
                         {
                             ImGui::Text("Spot Light #%d: %s", i, light->GetParent()->GetName().c_str());
                         }

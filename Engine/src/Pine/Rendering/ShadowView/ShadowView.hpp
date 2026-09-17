@@ -29,6 +29,15 @@ namespace Pine::Rendering
         // x, y, width, height in target texels.
         Vector4i Viewport = Vector4i(0);
 
+        // Where this view looks from, in world space. Read by anything whose level of detail is a
+        // distance - terrain chunks today.
+        //
+        // A spot or point view sits at its light and says so. A cascade is orthographic and has no
+        // single origin, and carries the scene camera's position instead: that is the point its box
+        // is built around, and the point the main pass picks its terrain levels from, so a chunk
+        // casts the shadow of the silhouette it is actually drawn with rather than a coarser one.
+        Vector3f Origin = Vector3f(0.f);
+
         // World size of one of this view's texels, per unit distance from the view origin:
         // 2 * tan(fov/2) / Viewport.z. Multiply by a point's distance from the origin and you have
         // the world footprint of the texel covering it.

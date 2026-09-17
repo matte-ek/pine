@@ -66,9 +66,22 @@ namespace Pine::Renderer3D::Specifications
         constexpr int BASE_SPECULAR = COUNT;
         constexpr int BASE_NORMAL = COUNT * 2;
 
+        // A terrain's layer weights, one texel per height sample over the whole terrain. The first
+        // unit after the three texture bases above, which reach 11.
+        constexpr int SPLAT_MAP = COUNT * 3;
+
         // One sampler for every shadow in the engine. There used to be a second at 16 for the
         // directional cascades' own texture array; folding them into the atlas deleted it.
         constexpr int SHADOW_ATLAS = 17;
+    }
+
+    // How many material layers a terrain chunk blends through its splat map. Capped twice over:
+    // Samplers reserves four texture units per texture type, and four weights are exactly one
+    // RGBA8 splat texel. Terrain::MaximumLayerCount is the asset-side half of the same number, and
+    // Renderer3D asserts the two agree.
+    namespace TerrainLayers
+    {
+        constexpr int COUNT = Samplers::COUNT;
     }
 
     namespace Buffers
@@ -86,6 +99,15 @@ namespace Pine::Renderer3D::Specifications
             Default = 0,
             Discard = (1 << 0),
             PerformanceFast = (1 << 1)
+        };
+
+        enum class Terrain
+        {
+            Default = 0,
+
+            // Tints the ground under the editor's sculpting brush. Editor-only: nothing in a built
+            // game asks for this version, so the shader is never compiled with it.
+            Brush = (1 << 0)
         };
     }
 

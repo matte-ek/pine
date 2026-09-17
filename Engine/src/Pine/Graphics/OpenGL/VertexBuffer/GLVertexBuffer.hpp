@@ -11,11 +11,14 @@ namespace Pine::Graphics
     private:
         std::uint32_t m_Id = 0;
         std::uint32_t m_Binding = 0;
+        std::size_t m_Size = 0;
     public:
-        explicit GLVertexBuffer(std::uint32_t id, std::uint32_t bindingIndex);
+        GLVertexBuffer(std::uint32_t id, std::uint32_t bindingIndex, std::size_t size);
 
         void Bind() override;
         void UploadData(const void* data, std::size_t size, std::size_t offset) override;
+
+        std::size_t GetSize() const override;
 
         void SetDivisor(VertexBufferDivisor mode, int instanceCount) override;
     };

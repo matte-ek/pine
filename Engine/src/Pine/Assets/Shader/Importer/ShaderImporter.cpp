@@ -76,9 +76,31 @@ std::string Pine::Importer::ShaderImporter::ProcessShaderLine(Shader* shader, co
         return "";
     }
 
+    // A compile-time variant of this shader, and the bit that selects it. Declared in the source
+    // next to the #ifdef it guards, so that the two cannot drift apart and so a re-import picks it
+    // up - the .ih file is only read by EngineCli's batch import, which re-mints the asset's UId.
+    if (String::StartsWith(line, "#shader version "))
+    {
+        const auto data = String::Split(line, " ");
+
+        if (data.size() != 4)
+        {
+            PWarning(fmt::format("Ignoring malformed directive '{}'. Expected '#shader version <NAME> <bit>'.", line));
+
+            return "";
+        }
+
+        shader->AddVersion(data[2], std::stoi(data[3]));
+
+        return "";
+    }
+
+    // Anything else starting with #shader is a typo or a directive this importer does not know.
+    // Left unreported it would be stripped in silence, and the feature it was meant to turn on
+    // would simply never happen.
     if (String::StartsWith(line, "#shader "))
     {
-
+        PWarning(fmt::format("Ignoring unknown shader directive '{}'.", line));
 
         return "";
     }

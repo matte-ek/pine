@@ -19,6 +19,12 @@ UId+time, then hands the payload to the subclass. Raw sources (`.png`, models, `
 *imported* into `.passet` through `Assets/Importer/` (with per-type `Importer/` subfolders
 under `Texture2D/`, `Model/`, `Shader/`).
 
+Not every asset type has a source format. A `Terrain` is authored in the editor and only ever
+exists as a `.passet`, so its row in `m_AssetImportFactories` (`Assets.cpp`) carries no file
+extensions. The row itself still has to be there: that list is also the `AssetType` -> constructor
+lookup `Asset::Load()` and `Assets::CreateAsset()` both go through, so deleting it would stop the
+type from loading at all.
+
 ### The import phases
 
 `Assets/Importer/AssetImporter.hpp` splits an import into phases, and a caller can stop between
@@ -85,9 +91,19 @@ An `.ih` is small JSON, e.g. `data/engine/shaders/post-processing/ambient-occlus
 - **`SourceFiles`** — the raw GLSL stages (vertex/fragment) this shader is built from.
 - **`Data.TextureSamplers`** — sampler name → binding unit (mirrors the `#shader bind <name> <unit>`
   directives at the top of the GLSL).
-- **`Data.Versions`** (optional) — preprocessor `#define` variants (e.g. `VERSION_TERRAIN`) the
-  shader can be compiled with. The `.ih` is the **only** place these can be declared: a
-  `#shader <anything>` line in GLSL is stripped and ignored by the importer.
+- **`Data.Versions`** (optional) — preprocessor `#define` variants (e.g. `VERSION_DISCARD`) the
+  shader can be compiled with. **Only `EngineCli --batch-import` reads this**, and that reminting
+  every UId it touches (below) makes it unusable on an existing shader — so declare a *new* version
+  in the GLSL instead, with `#shader version <NAME> <bit>` next to the `#ifdef` it guards
+  (`terrain.fragment.glsl` does). That goes through the ordinary importer, so a re-import picks it
+  up and writes it into the `.passet` like any other source change. Any other `#shader <anything>`
+  line is stripped, and the importer warns that it did.
+
+  A version that is declared nowhere still *compiles*: `CompileShaderVersion` builds its `#define`
+  list from the registered entries, so an unregistered bit yields a second program built from
+  unchanged source. The `#ifdef` body is then silently absent, which is why it is worth asserting
+  that a variant's own uniforms exist rather than assuming the variant did anything —
+  `verify-terrain-sculpt.py` does exactly that for `VERSION_BRUSH`.
 
 The same source→`.passet` relationship holds for other imported assets (textures, models);
 shaders just expose it as editable text with a sidecar hint.
@@ -115,7 +131,18 @@ Two things that bite:
   corrupted project — but it still means there is no CLI path for re-importing. It also never
   reads the `.ih`, so `Data.Versions` is lost. `--batch-import` does read the `.ih`, but its "already imported" dedup scan is a
   non-recursive `directory_iterator("data")`, so it never finds the nested engine shaders and
-  remints their UIds too. `--import` is for **first-time** imports of new assets only.
+  remints their UIds too. `--import` is for **first-time** imports of new assets only. This is the
+  reason a new shader version belongs in the GLSL rather than in the `.ih`.
+- **Run `--import` from inside `data/`, with paths relative to it.** The virtual path is the
+  engine path with the asset working directory stripped off, and headless there is no working
+  directory to strip — so `EngineCli --import data/engine/shaders/3d/x ...` from the repo root
+  gives the asset the path `data/engine/shaders/3d/x`, which is not where anything looks for it.
+- **Without a window there is still a way to re-import.** `Asset::ReImport()` does the whole job
+  in process, so a throwaway probe built the way
+  `Editor/src/DebugServer/Verification/verify-*.py` build theirs — same compile and link commands,
+  with the `Engine::Run()` call replaced — can regenerate a `.passet` against a copy of `data/` and
+  have the result copied back. That is worth knowing when a shared `#include` changed and the
+  editor is not to hand.
 
 **Scripts are the exception.** A `CSharpScript` `.passet` is *not* built from its `.cs` — the
 `.cs` compiles into the project's `Game.dll` separately, and the `.passet` just stores the

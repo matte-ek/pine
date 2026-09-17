@@ -260,6 +260,14 @@ namespace Pine
             return Get();
         }
 
+        // The asset this handle points at, whether or not it is currently loaded. Anything
+        // serializing a handle writes this rather than the pointer - a UId survives a reload and
+        // an address does not.
+        const UId &GetUId() const
+        {
+            return m_UId;
+        }
+
         AssetHandle &operator=(Asset *asset)
         {
             // Decrease the ref count on the asset we might already have

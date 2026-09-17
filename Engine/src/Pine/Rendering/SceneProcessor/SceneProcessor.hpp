@@ -82,6 +82,19 @@ namespace Pine::Rendering::SceneProcessor
 
         // How many renderers were gathered, which is what CasterSetChanged is derived from.
         std::size_t CasterCount = 0;
+
+        // A light moved, changed type, or was created or destroyed this frame, so every cached
+        // light slot in the scene is suspect. Lights::Prepare acts on it for the model renderers
+        // itself; terrain reads it for its chunks.
+        bool LightSetChanged = false;
+
+        // A terrain was moved, reshaped, added or removed this frame. Written by
+        // TerrainRenderer::Prepare rather than by the scene processor, which does not walk terrain:
+        // its chunks are not components and so are in none of the lists above.
+        //
+        // Coarse on purpose. The consumer is the shadow tile cache, and a terrain changing at all
+        // is rare enough that narrowing it to the chunks that moved would buy nothing.
+        bool TerrainChanged = false;
     };
 
     void Prepare(SceneProcessorContext& context);

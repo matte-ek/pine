@@ -109,7 +109,7 @@ Pine::Graphics::GLVertexBuffer* Pine::Graphics::GLVertexArray::CreateArrayBuffer
     // OpenGL remembers the current enabled buffers, so we'll just enable it once and leave it.
     glEnableVertexAttribArray(binding);
 
-    auto vertexBuffer = new GLVertexBuffer(buffer, binding);
+    auto vertexBuffer = new GLVertexBuffer(buffer, binding, size);
 
     m_Buffers.push_back(vertexBuffer);
 

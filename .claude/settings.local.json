@@ -1,0 +1,8 @@
+{
+  "skillOverrides": {
+    "anthropic-skills:docs": "off",
+    "anthropic-skills:docx": "user-invocable-only",
+    "anthropic-skills:pptx": "off",
+    "anthropic-skills:xlsx": "off"
+  }
+}

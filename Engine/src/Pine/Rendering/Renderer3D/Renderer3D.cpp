@@ -3,9 +3,11 @@
 #include "../RenderingContext.hpp"
 #include "Specifications.hpp"
 #include "ShaderStorages.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/Terrain/Terrain.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Rendering/Features/Shadows/ShadowAtlas/ShadowAtlas.hpp"
-#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
+#include "Pine/Rendering/Renderer3D/LightSlotData.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
 #include <algorithm>
@@ -24,10 +26,26 @@ namespace
     // This default texture is a solid white pixel that we treat as a "no-texture" texture.
     Graphics::ITexture* m_DefaultTexture = nullptr;
 
+    // The "no-normal-map" texture: a single pixel holding the encoded form of (0, 0, 1), which
+    // decodes to the surface normal itself and so leaves shading exactly as it would be without a
+    // normal map. The white default above would decode to a normal pointing out of the corner of
+    // the tangent frame instead.
+    //
+    // It exists for the terrain path, which blends four normal maps unconditionally rather than
+    // branching on whether a material has one.
+    Graphics::ITexture* m_DefaultNormalTexture = nullptr;
+
+    // The shader a terrain draws with, kept here because PrepareTerrainChunk is what selects it -
+    // the same way PrepareMesh takes a mesh's shader off its material. Terrain has no single
+    // material to carry one.
+    Shader* m_TerrainShader = nullptr;
+
     Graphics::IShaderProgram* m_Shader = nullptr;
     ShaderVersion m_ShaderVersion = 0;
 
     Graphics::IUniformVariable* m_HasTangentData = nullptr;
+    Graphics::IUniformVariable* m_SplatTransform = nullptr;
+    Graphics::IUniformVariable* m_BrushRing = nullptr;
 
     Mesh* m_Mesh = nullptr;
 
@@ -38,6 +56,72 @@ namespace
     Camera* m_Camera = nullptr;
 
     int m_CurrentLightIndex = 0;
+
+    // Resolves one drawn thing's light slots into the light-buffer indices the shader reads, and
+    // writes them onto an instance.
+    //
+    // A slot whose light is gone resolves to index 0, the same as an empty one: the handle has
+    // already invalidated itself by then, so a destroyed light cannot leave a live index behind.
+    // Null slots leave the instance's indices alone - see AddInstance.
+    void WriteInstanceLightIndices(const int instanceId, Renderer3D::LightSlotData* lightSlots)
+    {
+        if (lightSlots == nullptr)
+        {
+            return;
+        }
+
+        auto& lightIndices = Renderer3D::ShaderStorages::Instance.Data().Instances[instanceId].LightIndices;
+
+        for (int i = 0; i < Renderer3D::Specifications::ObjectLightSlots::COUNT; i++)
+        {
+            const auto light = lightSlots->Index[i].Get();
+
+            lightIndices[i] = light != nullptr ? light->GetLightHintData().LightIndex : 0;
+        }
+    }
+
+    // Binds one terrain layer's textures and writes its properties into the material buffer slot
+    // the terrain shader reads that layer from.
+    //
+    // A layer with no material assigned still gets a full slot rather than being skipped: it can
+    // carry weight in the splat map, and an unwritten slot would show it as whatever the previous
+    // draw happened to leave there. The values it gets are the ones an untextured Material
+    // default-constructs with, so an unassigned channel reads as plain white.
+    void BindTerrainLayer(const int layer, Material* material)
+    {
+        const auto diffuse = material != nullptr ? material->GetDiffuse() : nullptr;
+        const auto specular = material != nullptr ? material->GetSpecular() : nullptr;
+        const auto normal = material != nullptr ? material->GetNormal() : nullptr;
+
+        (diffuse != nullptr ? diffuse->GetGraphicsTexture() : m_DefaultTexture)
+            ->Bind(Renderer3D::Specifications::Samplers::BASE_DIFFUSE + layer);
+
+        (specular != nullptr ? specular->GetGraphicsTexture() : m_DefaultTexture)
+            ->Bind(Renderer3D::Specifications::Samplers::BASE_SPECULAR + layer);
+
+        (normal != nullptr ? normal->GetGraphicsTexture() : m_DefaultNormalTexture)
+            ->Bind(Renderer3D::Specifications::Samplers::BASE_NORMAL + layer);
+
+        auto& materialData = Renderer3D::ShaderStorages::Material.Data().Properties[layer];
+
+        if (material == nullptr)
+        {
+            materialData.DiffuseColor = Vector3f(1.f);
+            materialData.SpecularColor = Vector3f(0.f);
+            materialData.AmbientColor = Vector3f(0.f);
+            materialData.Shininess = 16.f;
+            materialData.UVScale = 1.f;
+
+            return;
+        }
+
+        // Authored colors are sRGB; decode to linear here so the shader receives linear data.
+        materialData.DiffuseColor = SrgbToLinear(material->GetDiffuseColor());
+        materialData.SpecularColor = SrgbToLinear(material->GetSpecularColor());
+        materialData.AmbientColor = SrgbToLinear(material->GetAmbientColor());
+        materialData.Shininess = material->GetShininess();
+        materialData.UVScale = material->GetTextureScale();
+    }
 }
 
 void Renderer3D::Setup()
@@ -57,6 +141,17 @@ void Renderer3D::Setup()
 
     free(textureData);
 
+    // (0, 0, 1) in the usual tangent-space encoding, so sampling it is the same as having no
+    // normal map at all.
+    std::uint8_t flatNormal[4] = { 128, 128, 255, 255 };
+
+    m_DefaultNormalTexture = m_GraphicsAPI->CreateTexture();
+
+    m_DefaultNormalTexture->Bind();
+    m_DefaultNormalTexture->UploadTextureData(1, 1, 0, Graphics::TextureFormat::RGBA, Graphics::TextureDataFormat::UnsignedByte, flatNormal);
+
+    m_TerrainShader = Assets::Get<Shader>("engine/shaders/3d/terrain");
+
     ShaderStorages::Matrix.Create();
     ShaderStorages::Instance.Create();
     ShaderStorages::Material.Create();
@@ -67,6 +162,13 @@ void Renderer3D::Setup()
 
 void Renderer3D::Shutdown()
 {
+    m_GraphicsAPI->DestroyTexture(m_DefaultTexture);
+    m_GraphicsAPI->DestroyTexture(m_DefaultNormalTexture);
+
+    m_DefaultTexture = nullptr;
+    m_DefaultNormalTexture = nullptr;
+    m_TerrainShader = nullptr;
+
     ShaderStorages::Matrix.Dispose();
     ShaderStorages::Instance.Dispose();
     ShaderStorages::Material.Dispose();
@@ -182,51 +284,117 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     }
 }
 
-bool Renderer3D::AddInstance(const Matrix4f& transformationMatrix, ModelRendererHintData* data)
+// The renderer and the asset each carry their own half of the layer count; they describe the same
+// four channels, so a change to one without the other would silently drop or duplicate a layer.
+static_assert(Renderer3D::Specifications::TerrainLayers::COUNT == Terrain::MaximumLayerCount,
+    "The terrain layer count in Specifications.hpp and on the Terrain asset have drifted apart.");
+
+void Renderer3D::PrepareTerrainChunk(Mesh* mesh,
+                                     const std::array<Material*, Specifications::TerrainLayers::COUNT>& layers,
+                                     Graphics::ITexture* splatMap,
+                                     const Vector4f& splatTransform,
+                                     const Vector4f* brushRing)
+{
+    mesh->GetVertexArray()->Bind();
+
+    m_CurrentInstanceIndex = 0;
+    m_Mesh = mesh;
+
+    // The depth pre-pass and the shadow passes draw with their own shader and read nothing off the
+    // surface, so there is no blend for them to set up - same early exit PrepareMesh takes.
+    if (m_RenderingConfiguration.SkipMaterialInitialization)
+    {
+        if (m_RenderingConfiguration.OverrideShader)
+        {
+            SetShader(m_RenderingConfiguration.OverrideShader);
+        }
+
+        return;
+    }
+
+    const auto shader = m_RenderingConfiguration.OverrideShader ? m_RenderingConfiguration.OverrideShader : m_TerrainShader;
+
+    if (shader == nullptr || !shader->HasShaderVersion(0))
+    {
+        return;
+    }
+
+    // The brush overlay is the terrain shader's only variant, and only the editor ever asks for it.
+    // The cached version has to be compared either way, because the last draw may have left a
+    // generic shader's variant selected.
+    const auto version = static_cast<ShaderVersion>(brushRing != nullptr
+        ? Specifications::ShaderVersions::Terrain::Brush
+        : Specifications::ShaderVersions::Terrain::Default);
+
+    if (shader->GetProgram(shader->HasShaderVersion(version) ? version : 0) != m_Shader ||
+        m_ShaderVersion != version ||
+        !shader->IsRendererReady(version))
+    {
+        SetShader(shader, version);
+    }
+
+    if (!m_Shader)
+    {
+        return;
+    }
+
+    // Nothing that follows goes through m_Material, and leaving the previous draw's material in it
+    // would describe this one wrongly to anything that reads it later.
+    m_Material = nullptr;
+
+    if (auto* shadowAtlas = Rendering::ShadowAtlas::GetTexture())
+    {
+        shadowAtlas->Bind(Specifications::Samplers::SHADOW_ATLAS);
+    }
+
+    for (int layer = 0; layer < Specifications::TerrainLayers::COUNT; layer++)
+    {
+        BindTerrainLayer(layer, layers[layer]);
+    }
+
+    // Null only before the terrain's first Prepare has run, which the caller already skips over.
+    // The white default blends every layer evenly rather than leaving an unbound sampler behind.
+    if (splatMap != nullptr)
+    {
+        splatMap->Bind(Specifications::Samplers::SPLAT_MAP);
+    }
+    else
+    {
+        m_DefaultTexture->Bind(Specifications::Samplers::SPLAT_MAP);
+    }
+
+    ShaderStorages::Material.Upload();
+
+    if (m_SplatTransform != nullptr)
+    {
+        m_SplatTransform->LoadVector4(splatTransform);
+    }
+
+    // Null whenever the plain version is bound, which is every draw that passed no ring.
+    if (m_BrushRing != nullptr && brushRing != nullptr)
+    {
+        m_BrushRing->LoadVector4(*brushRing);
+    }
+}
+
+bool Renderer3D::AddInstance(const Matrix4f& transformationMatrix, LightSlotData* lightSlots)
 {
     const bool isFull = m_CurrentInstanceIndex == Specifications::General::MAX_INSTANCE_COUNT - 1;
     const int instanceId = m_CurrentInstanceIndex++;
 
     ShaderStorages::Instance.Data().Instances[instanceId].TransformationMatrix = transformationMatrix;
 
-    if (data != nullptr)
-    {
-        auto& lightIndices = ShaderStorages::Instance.Data().Instances[instanceId].LightIndices;
-
-        for (int i = 0; i < Specifications::ObjectLightSlots::COUNT;i++)
-        {
-            if (auto light = data->LightSlotIndex[i].Get())
-            {
-                lightIndices[i] = light->GetLightHintData().LightIndex;
-            }
-            else
-            {
-                lightIndices[i] = 0;
-            }
-        }
-    }
+    WriteInstanceLightIndices(instanceId, lightSlots);
 
     return isFull;
 }
 
-void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, ModelRendererHintData* data, const int writeStencilBuffer)
+void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix,
+                            LightSlotData* lightSlots,
+                            const int writeStencilBuffer,
+                            const std::uint32_t indexCount)
 {
-    if (data != nullptr)
-    {
-        auto& lightIndices = ShaderStorages::Instance.Data().Instances[0].LightIndices;
-
-        for (int i = 0; i < Specifications::ObjectLightSlots::COUNT;i++)
-        {
-            if (auto light = data->LightSlotIndex[i].Get())
-            {
-                lightIndices[i] = light->GetLightHintData().LightIndex;
-            }
-            else
-            {
-                lightIndices[i] = 0;
-            }
-        }
-    }
+    WriteInstanceLightIndices(0, lightSlots);
 
     ShaderStorages::Instance.Data().Instances[0].TransformationMatrix = transformationMatrix;
     ShaderStorages::Instance.Upload(sizeof(ShaderStorages::InstanceData::Instance));
@@ -237,18 +405,25 @@ void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix, ModelRendererH
         m_GraphicsAPI->SetStencilFunction(Graphics::TestFunction::Always, writeStencilBuffer, 0x0);
     }
 
+    // Clamped rather than trusted, so a caller asking for more than the mesh holds draws the mesh
+    // instead of reading past the end of its index buffer.
+    const auto drawCount = indexCount == 0
+        ? m_Mesh->GetRenderCount()
+        : std::min(indexCount, m_Mesh->GetRenderCount());
+
     if (m_Mesh->HasElementBuffer())
     {
-        m_GraphicsAPI->DrawElements(Graphics::RenderMode::Triangles, m_Mesh->GetRenderCount());
+        m_GraphicsAPI->DrawElements(Graphics::RenderMode::Triangles, drawCount);
     }
     else
     {
-        m_GraphicsAPI->DrawArrays(Graphics::RenderMode::Triangles, m_Mesh->GetRenderCount());
+        m_GraphicsAPI->DrawArrays(Graphics::RenderMode::Triangles, drawCount);
     }
 
     if (m_RenderingContext != nullptr)
     {
         m_RenderingContext->Statistics.DrawCalls++;
+        m_RenderingContext->Statistics.VertexCount += drawCount;
     }
 
     if (writeStencilBuffer != 0)
@@ -279,6 +454,8 @@ void Renderer3D::RenderMeshInstanced()
     if (m_RenderingContext != nullptr)
     {
         m_RenderingContext->Statistics.DrawCalls++;
+        m_RenderingContext->Statistics.VertexCount +=
+            static_cast<std::uint64_t>(m_Mesh->GetRenderCount()) * m_CurrentInstanceIndex;
     }
 
     m_CurrentInstanceIndex = 0;
@@ -350,6 +527,16 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     m_ShaderVersion = version;
 
     m_HasTangentData = m_Shader->GetUniformVariable("hasTangentData");
+
+    // Asked for only where it exists. A lookup that misses warns and then caches the miss, so
+    // asking every shader would put one warning per program in the log at startup and say nothing.
+    m_SplatTransform = shader == m_TerrainShader ? m_Shader->GetUniformVariable("splatTransform") : nullptr;
+
+    // Only exists in the terrain shader's brush version; every other program would report a miss,
+    // cache it, and leave one warning per program in the log.
+    m_BrushRing = shader == m_TerrainShader && version == static_cast<ShaderVersion>(Specifications::ShaderVersions::Terrain::Brush)
+        ? m_Shader->GetUniformVariable("brushRing")
+        : nullptr;
 }
 
 void Renderer3D::PrepareScene(const Vector3f ambientColor, const Vector4f fogColor, const float fogDistance, const float fogIntensity)

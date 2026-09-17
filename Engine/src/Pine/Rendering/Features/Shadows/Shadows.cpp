@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Model/Model.hpp"
@@ -12,6 +13,7 @@
 #include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
 #include "Pine/Rendering/ShadowView/ShadowView.hpp"
 #include "Pine/Rendering/Features/Shadows/ShadowAtlas/ShadowAtlas.hpp"
+#include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
@@ -35,6 +37,12 @@ namespace
     // there is nothing stable to point at here - a level can swap its sun, or have none, without the
     // reservation changing hands. Everything else in the atlas is owned by a Light, which is why
     // anything reading Slot::Owner has to ask before assuming.
+    // What terrain is drawn with in every shadow view, cascade or local. See the draw itself in
+    // RenderViews: a height field cannot use the cascades' front-face culling, so it pays for its
+    // separation the way a local light does.
+    constexpr float TERRAIN_SLOPE_BIAS = 2.f;
+    constexpr float TERRAIN_DEPTH_BIAS = 4.f;
+
     const char m_CascadeOwner = 0;
     int m_CascadeSlots[CASCADE_COUNT] = {};
     bool m_CascadeSlotsReserved = false;
@@ -204,6 +212,38 @@ namespace
     // one tall object on the far side of the level from stretching every cascade's depth range.
     // Ortho depth is linear, so a range that is somewhat too generous costs precision in proportion
     // rather than falling off a cliff the way a perspective near plane does.
+    // How far towards the light one caster's box reaches, or nothing when it sits outside the
+    // column of light above the cascade box - whatever that one casts lands somewhere else.
+    std::optional<float> FitBoxNearZ(const Matrix4f& viewMatrix,
+                                     const Vector3f& boundsMin, const Vector3f& boundsMax,
+                                     const float minX, const float maxX,
+                                     const float minY, const float maxY)
+    {
+        auto lightMin = Vector3f(std::numeric_limits<float>::max());
+        auto lightMax = Vector3f(std::numeric_limits<float>::lowest());
+
+        for (int corner = 0; corner < 8; corner++)
+        {
+            const auto worldCorner = Vector3f(
+                corner & 1 ? boundsMax.x : boundsMin.x,
+                corner & 2 ? boundsMax.y : boundsMin.y,
+                corner & 4 ? boundsMax.z : boundsMin.z);
+
+            const auto lightCorner = Vector3f(viewMatrix * Vector4f(worldCorner, 1.f));
+
+            lightMin = glm::min(lightMin, lightCorner);
+            lightMax = glm::max(lightMax, lightCorner);
+        }
+
+        if (lightMax.x < minX || lightMin.x > maxX ||
+            lightMax.y < minY || lightMin.y > maxY)
+        {
+            return std::nullopt;
+        }
+
+        return lightMax.z;
+    }
+
     float FitCasterNearZ(const Matrix4f& viewMatrix,
                          const float minX, const float maxX,
                          const float minY, const float maxY,
@@ -224,30 +264,39 @@ namespace
 
             const auto& data = modelRenderer.GetRenderingHintData();
 
-            auto lightMin = Vector3f(std::numeric_limits<float>::max());
-            auto lightMax = Vector3f(std::numeric_limits<float>::lowest());
-
-            for (int corner = 0; corner < 8; corner++)
+            if (const auto casterZ = FitBoxNearZ(viewMatrix, data.BoundsMin, data.BoundsMax, minX, maxX, minY, maxY))
             {
-                const auto worldCorner = Vector3f(
-                    corner & 1 ? data.BoundsMax.x : data.BoundsMin.x,
-                    corner & 2 ? data.BoundsMax.y : data.BoundsMin.y,
-                    corner & 4 ? data.BoundsMax.z : data.BoundsMin.z);
-
-                const auto lightCorner = Vector3f(viewMatrix * Vector4f(worldCorner, 1.f));
-
-                lightMin = glm::min(lightMin, lightCorner);
-                lightMax = glm::max(lightMax, lightCorner);
+                nearZ = std::max(nearZ, casterZ.value());
             }
+        }
 
-            // Outside the box's column of light: whatever it casts lands somewhere else.
-            if (lightMax.x < minX || lightMin.x > maxX ||
-                lightMax.y < minY || lightMin.y > maxY)
+        // Terrain casts as well, and is usually the tallest thing in the level. A ridge the cascade
+        // box does not contain still throws a shadow across the ground that it does, so leaving the
+        // chunks out here would crop exactly the shadow terrain exists to produce.
+        for (const auto& terrainRenderer : Components::Get<TerrainRendererComponent>())
+        {
+            const auto terrain = terrainRenderer.GetTerrain();
+
+            if (terrain == nullptr)
             {
                 continue;
             }
 
-            nearZ = std::max(nearZ, lightMax.z);
+            // Chunk bounds are terrain-local, and the terrain sits wherever its entity does.
+            const auto entityPosition = terrainRenderer.GetParent()->GetTransform()->GetPosition();
+
+            for (const auto& chunk : terrain->GetChunks())
+            {
+                const auto chunkZ = FitBoxNearZ(viewMatrix,
+                                                chunk.BoundsMin + entityPosition,
+                                                chunk.BoundsMax + entityPosition,
+                                                minX, maxX, minY, maxY);
+
+                if (chunkZ)
+                {
+                    nearZ = std::max(nearZ, chunkZ.value());
+                }
+            }
         }
 
         return nearZ;
@@ -576,6 +625,14 @@ namespace
             return true;
         }
 
+        // Terrain casts too, and a tile drawn before the ground changed shape is a picture of the
+        // old ground. Not narrowed to the chunks that moved, the way the casters below are: terrain
+        // changes are rare, and a chunk is not something MovedCasters can hold.
+        if (sceneContext.TerrainChanged)
+        {
+            return true;
+        }
+
         for (auto* caster : sceneContext.MovedCasters)
         {
             const auto& data = caster->GetRenderingHintData();
@@ -624,6 +681,7 @@ namespace
 
         view.ViewProjection = projectionMatrix * viewMatrix;
         view.ViewFrustum = Frustum::FromViewProjection(view.ViewProjection);
+        view.Origin = position;
         const auto viewport = Rendering::ShadowAtlas::GetViewport(atlasSlot);
 
         view.Viewport = viewport;
@@ -692,6 +750,7 @@ namespace
 
         view.ViewProjection = projectionMatrix * viewMatrix;
         view.ViewFrustum = Frustum::FromViewProjection(view.ViewProjection);
+        view.Origin = position;
         view.Viewport = viewport;
         view.TexelWorldScale = 2.f * std::tan(fov * 0.5f) / static_cast<float>(viewport.z);
 
@@ -781,6 +840,7 @@ namespace
 
             view.ViewProjection = viewProjection;
             view.ViewFrustum = Frustum::FromViewProjection(viewProjection);
+            view.Origin = m_SceneCamera->GetParent()->GetTransform()->GetPosition();
             view.Viewport = viewport;
             view.AtlasSlot = atlasSlot;
 
@@ -876,6 +936,28 @@ namespace
             // filters by mode, so leaving out the Discard pass would silently stop foliage casting.
             Pipeline3D::RenderBatch(batchData.OpaqueObjects, MaterialRenderingMode::Opaque, view.Visibility);
             Pipeline3D::RenderBatch(batchData.OpaqueObjects, MaterialRenderingMode::Discard, view.Visibility);
+
+            // Terrain is not in the batch, so it needs its own call or the ground casts nothing.
+            // It culls its own chunks against this view rather than reading view.Visibility, which
+            // cannot hold them - see RenderCulling::VisibilitySet. No statistics sink: the atlas is
+            // drawn once for the whole scene and belongs to no rendering context.
+            //
+            // Drawn with its own culling and bias rather than the view's, because a height field is
+            // single-sided: it has one surface per column and no far side at all. A cascade culls
+            // front faces to buy its separation for free, which for terrain would discard the
+            // ground itself and leave only the chunk skirts writing depth. Back faces culled and an
+            // explicit bias pair instead - the same trade a local view already makes, and for the
+            // same reason its comment gives.
+            graphicsApi->SetFaceCullingMode(Graphics::FaceCullMode::Back);
+            graphicsApi->SetDepthBias(TERRAIN_SLOPE_BIAS, TERRAIN_DEPTH_BIAS);
+
+            // Without skirts: they hang below the surface to hide a crack between detail levels,
+            // and a vertical rim at every chunk edge writing depth casts a wall's shadow across the
+            // ground next to it. See TerrainView::DrawSkirts.
+            Rendering::TerrainRenderer::Render({ view.ViewFrustum, view.Origin, nullptr, false });
+
+            graphicsApi->SetFaceCullingMode(view.FaceCulling);
+            graphicsApi->SetDepthBias(view.SlopeBias, view.DepthBias);
 
             if (view.AtlasSlot >= 0)
             {

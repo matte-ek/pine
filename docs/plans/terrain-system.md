@@ -1,6 +1,7 @@
 # Terrain system — current state and a plan for the rewrite
 
-Status: report / proposal. Nothing here is implemented.
+Status: report / proposal. **All eight units are implemented.** Part 1 below describes the code as
+it was before unit 1 and is kept as the record of what was replaced and why.
 
 **Recommendation up front: rewrite the implementation, keep the architecture.** The five seams the
 current terrain code occupies (a `Terrain` asset, a `TerrainRenderer` component, a
@@ -35,6 +36,17 @@ Registration is complete and correct: `AssetType::Terrain` with the `.ter` impor
 (`Assets.cpp:62`), `ComponentType::TerrainRenderer` with a data block of 32
 (`Components.cpp:121`), and the mirrored enum entry in `ScriptRuntime/World/Component.cs:10`. There
 is **no** debug-server support for terrain.
+
+> Since unit 1: the `.ter` extension has been dropped. Nothing ever parsed it — `Terrain` has no
+> `Import()` override, so the base `return true` ignored the source entirely and an empty `.ter`
+> imported to a default terrain. A terrain is authored in the editor and only ever exists as a
+> `.passet`. The factory row survives with an empty extension list, because it is also the
+> `AssetType` -> constructor lookup that loading any terrain `.passet` depends on.
+
+> Since unit 4: the cooker lives at `Engine/src/Pine/Physics/Physics3D/TerrainCollision/` rather
+> than `PhysicsTerrain/`, so the namespace mirrors the directory the way the rest of the engine
+> does and `Physics3D::TerrainCollision` does not read as the `Pine::Terrain` class. See
+> [`physics.md`](../physics.md#terrain-collision) for what it does now.
 
 ## The data model
 
@@ -561,14 +573,14 @@ Two consequences for the ordering:
 | # | Unit | Done when | Checked by |
 |---|---|---|---|
 | **0** | Data model in 2.1, plus the four decisions | Settled — see [Decisions](#decisions) | — |
-| **1** | Asset, storage, queries, noise fill, `/terrain` | A terrain saves, reloads, fills from noise and answers `GetHeightAt` | `EngineCli --dump` |
-| **2** | Mesh generation and the draw path, one LOD | Terrain is visible and correctly lit | `/viewport.png` |
-| **3** | LOD levels, skirts, culling | Cost drops with distance, no cracks at chunk edges | `/stats` visible/culled counts |
-| **4** | Physics | A body dropped from above lands at `GetHeightAt` | `verify-terrain-physics.py` |
-| **5** | Lighting and shadows | Terrain takes nearby lights and casts into the shadow atlas | `/viewport.png` |
-| **6** | Multiple materials | Four layers blend across a chunk | `/viewport.png` |
-| **7** | Sculpting | A stroke raises ground; undo restores it exactly | `verify-terrain-sculpt.py` |
-| **8** | Layer painting | The same brush writes weights | extends unit 7's script |
+| **1** | Asset, storage, queries, noise fill, `/terrain` | **Done.** A terrain saves, reloads, fills from noise and answers `GetHeightAt` | `EngineCli --dump` |
+| **2** | Mesh generation and the draw path, one LOD | **Done.** Terrain is visible and correctly lit, with no seam at a chunk edge | `verify-terrain-render.py` |
+| **3** | LOD levels, skirts, culling | **Done.** Cost drops with distance, no cracks at chunk edges | `/stats` visible/culled counts |
+| **4** | Physics | **Done.** A body dropped from above lands at `GetHeightAt` | `verify-terrain-physics.py` |
+| **5** | Lighting and shadows | **Done.** Terrain takes nearby lights and casts into the shadow atlas | `verify-terrain-lighting.py` |
+| **6** | Multiple materials | **Done.** Four layers blend across a chunk | `verify-terrain-layers.py` |
+| **7** | Sculpting | **Done.** A stroke raises ground; undo restores it exactly | `verify-terrain-sculpt.py` |
+| **8** | Layer painting | **Done.** The same brush writes weights | extends unit 7's script |
 
 ## Why the boundaries fall there
 
@@ -618,6 +630,128 @@ sculpting can proceed without touching each other's files.
 `SceneLightsProcessor::ProcessModelRenderer` to `(position, hintData)` changes a function
 `ModelRenderer` depends on. Everything else stays inside terrain's own files. Those two are worth
 agreeing on specifically before they are written.
+
+Unit 3 took the `RenderingContext::ViewFrustum` option, so that half is settled — see
+[`rendering.md`](../rendering.md#visibility--culling). It also filled in
+`RenderingStatistics::VertexCount`, which every `/stats` response already reported and nothing had
+ever written; that number is what makes a terrain's selected LOD observable over HTTP.
+
+Unit 5 settled the other half. `ProcessModelRenderer`'s core became
+`Lights::AssignSlots(context, position, slots)`, and the slot pair it writes was lifted out of
+`ModelRendererHintData` into `Renderer3D::LightSlotData` — which is all `AddInstance` and
+`RenderMesh` ever read, so both took the smaller type. A terrain chunk carries one of its own.
+See [`rendering.md`](../rendering.md#lighting).
+
+Three things in unit 5 turned out differently from 2.2:
+
+- **Shadow views select LOD by distance, not at a fixed low level.** A `ShadowView` carries an
+  `Origin` — the light for a spot or point view, the scene camera for a cascade — and terrain
+  measures from it exactly as the main pass does. A fixed coarse level would have a chunk cast the
+  shadow of a silhouette that is not the one on screen.
+- **Terrain cannot use the cascades' front-face culling.** A height field is single-sided, so
+  culling front faces discards the ground and leaves only the skirts writing depth. Terrain draws
+  with back faces culled and a bias pair, as a local view already does.
+- **Cached shadow tiles needed a terrain signal.** `SceneProcessorContext::TerrainChanged`, written
+  by `TerrainRenderer::Prepare`. Without it, a tile drawn before a terrain was assigned to its
+  component stays cached and the ground never appears in it.
+
+Unit 6 kept to the shape 2.3 describes, with four things worth recording:
+
+- **One splat texture for the whole terrain, not one per chunk.** 2.3(b) compares a texture against
+  a vertex attribute and says "per chunk" in passing; the decisive rows there are about the texture,
+  and a per-chunk one would need duplicated border texels to stop the blend seaming at a chunk edge.
+  A shared texture gets that for free, for the same reason the shared height field makes two
+  neighbours agree along the edge they share. The weight field mirrors `m_Heights` exactly - one
+  texel per sample, carried across a resize by coordinate - so there is one layout to understand
+  rather than two.
+
+- **A layer is a `Material`, and the slots are fixed rather than a list.** 2.3(d) suggests a
+  `std::vector<TerrainLayer>` so the cap is a shader limit. What is stored *is* a list (an array of
+  UIds, plus weights whose channel count is their length over the sample count), so a wider build
+  still reads a narrower file and the format is not the cap. The runtime is four slots, because a
+  splat channel is a fixed place in the weight field and not an entry that can be appended to:
+  slot 2 being empty while slot 3 is painted is a normal state, and renumbering on removal would
+  move what the brush paints into.
+
+- **The vertex stage is now shared code.** `shared/vertex-data.glsl` holds the varyings block,
+  `writeLightIndices()` and the light-direction write-out, and `generic.vertex`, `generic.fragment`
+  and both terrain stages include it. The alternative was a fourth hand-kept copy of the rule that
+  `vIn.lightDir[]` is never indexed with a variable - a rule whose violation is invisible (the
+  surface silently loses its dynamic lights), which is the worst kind to keep in four places.
+
+- **`VERSION_TERRAIN` in `generic.ih` is now definitively dead** and was left alone. A separate
+  shader was taken instead of a `generic` variant (2.3a), so nothing will ever request that bit -
+  but it is also recorded in `generic.passet`, and `ReImport()` does not clear versions while
+  `--batch-import` would remint the shader's UId. Removing it from the `.ih` alone would only make
+  the hint and the asset disagree.
+
+Unit 7 followed 2.5 closely - the analytic march in (a), the rectangle-shaped brush in (b) and (f),
+the in-place buffer update in (c), the shader-drawn ring in (d), the bounded-rect undo in (e) and
+the panel in (g) - with five things worth recording:
+
+- **The march intersects triangles, not bilinear cells.** 2.5(a) describes a "bilinear height test
+  per cell". A quad is two triangles and the bilinear patch is not the surface that gets rendered or
+  simulated, so the march tests the same two triangles `BuildChunkMesh` emits, split along the same
+  diagonal. It also needs an edge tolerance: every triangle of the ground shares each edge with a
+  neighbour, so a ray arriving exactly along one - which is what clicking a round coordinate on flat
+  ground does - is otherwise rejected by both and falls through.
+
+- **`Mesh` grew in-place attribute updates.** 2.5(c) predicted this and it landed as written:
+  `Mesh::UpdateVertices` and siblings write into the buffers `SetVertices` already created, and
+  `BuildChunkMesh` reuses a mesh whose vertex count is unchanged - which it is for every rebuild a
+  stroke causes. Mesh also gained `GetVertexCount()`, because `GetRenderCount()` becomes the *index*
+  count as soon as there is an element buffer and so cannot answer "is this the same layout".
+
+- **The brush is editor-side, and a stroke is the unit of everything.** `Editor::TerrainSculpting`
+  owns the brush, the stroke and the undo record; the asset only gained the rectangle accessors they
+  are built on. A stroke's snapshot *grows* and is never re-read, which is the one thing in 2.5(e)
+  that is easy to get wrong - re-reading the union would record half-sculpted ground as the state
+  undo returns to. `Strength` means world units per second in all four modes, with Smooth and
+  Flatten moving *towards* a target by at most that much, so one slider stays meaningful across the
+  mode switch.
+
+- **Falloff is measured inwards from the rim**, not outwards from the centre: 0 is a hard-edged
+  stamp with a flat top, 1 a dome peaking under the cursor. Turning it down therefore softens the
+  edge rather than weakening the whole brush.
+
+- **The ring's shader version had to be declared in the GLSL.** 2.5(d) says to put it behind a
+  version bit, and `Data.Versions` in the `.ih` is read only by `EngineCli --batch-import`, which
+  reminds every UId it touches. So `ShaderImporter` gained a `#shader version <NAME> <bit>`
+  directive beside the existing `#shader bind`, filling the branch that until now swallowed unknown
+  `#shader` lines in silence. Two things fell out of it: `Shader::AddVersion` had to become
+  idempotent, because a re-import would otherwise register the name twice and a duplicate `#define`
+  is a GLSL error - so a shader would survive the first save and fail the second; and an
+  unregistered version still *compiles*, into a program built from unchanged source, so the check
+  that means anything is that the variant's own uniform exists and the default's does not.
+
+Unit 8 was as small as 2.5(f) predicted - the brush shape, the stroke and the undo record all
+carried over untouched - with four things worth recording:
+
+- **Paint is a fifth `BrushMode`, not a second tool.** A stroke writes one field or the other and
+  never both, and which one it writes is a thing a mode already says. So there is one `Apply`, one
+  mode table shared by the panel and the request body, and one row of buttons. The `Brush` carries a
+  `Layer` the height modes ignore, exactly as it already carried a `FlattenHeight` the other three
+  do.
+
+- **The field is a policy, so the stroke and its undo command are written once.** `HeightField` and
+  `WeightField` name a sample type, a channel count and the rectangle accessor pair; `Stroke<Field>`
+  and `StrokeCommand<Field>` are built on them. Everything around that pair - growing the snapshot
+  without re-reading what the stroke already moved, refusing a restore onto ground a resize has
+  taken away, recording nothing when a stroke changed nothing - is the same story for both fields,
+  and it was the part most expensive to get wrong twice.
+
+- **Painting does not dirty a chunk.** `SetSampleWeightRect` marks only the splat map, because a
+  chunk mesh carries no weights and rebuilding one would produce the same vertices. That also keeps
+  a paint stroke out of `TerrainChanged`, so it neither re-cooks collision nor invalidates a cached
+  shadow tile - none of which can see a layer.
+
+- **Strength means a share per second while painting**, against world units per second for the
+  height modes, and the two are an order of magnitude apart. The `Brush` still carries one
+  `Strength`; it is the panel that remembers one value per half, so switching to Paint does not
+  bring a raise brush's 32 units along as a stamp that covers everything under the cursor at once.
+  The share is *added* to what the sample already gives the layer and the sample is then
+  renormalized, so coverage approaches full rather than overshooting it however long the brush is
+  held, and the layers giving way keep their proportions to one another.
 
 **Replace in place; do not build a parallel `Terrain2`.** There are no `.ter` files, no terrain
 `.passet`, and nothing under `data/` references `TerrainRenderer` — so there is no data and no user
