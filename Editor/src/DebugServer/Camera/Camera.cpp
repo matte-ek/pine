@@ -5,10 +5,10 @@
 #include <limits>
 
 #include "../Editing/Values/Values.hpp"
+#include "../Spatial/Spatial.hpp"
 #include "Other/EditorEntity/EditorEntity.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include "Pine/Core/Serialization/Json/SerializationJson.hpp"
-#include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
 namespace
@@ -17,21 +17,7 @@ namespace
     using namespace Editor::DebugServer;
     namespace Values = Editing::Values;
 
-    struct Bounds
-    {
-        glm::dvec3 Min = glm::dvec3(std::numeric_limits<double>::max());
-        glm::dvec3 Max = glm::dvec3(std::numeric_limits<double>::lowest());
-
-        void Include(const glm::dvec3& point)
-        {
-            for (int axis = 0; axis < 3; axis++)
-            {
-                Values::Require(std::isfinite(point[axis]), "/entities", "Entity bounds are not finite.");
-            }
-            Min = glm::min(Min, point);
-            Max = glm::max(Max, point);
-        }
-    };
+    using Spatial::Bounds;
 
     const json& StateSchema()
     {
@@ -177,49 +163,7 @@ namespace
 
     bool AddEntityBounds(Pine::Entity* entity, const bool includeChildren, Bounds& bounds)
     {
-        bool hasGeometry = false;
-        for (const auto component : entity->GetComponents())
-        {
-            if (component->GetType() != Pine::ComponentType::ModelRenderer)
-            {
-                continue;
-            }
-
-            const auto renderer = static_cast<Pine::ModelRenderer*>(component);
-            const auto model = renderer->GetModel();
-            if (model == nullptr || model->GetMeshes().empty())
-            {
-                continue;
-            }
-
-            auto localMin = model->GetBoundingBoxMin();
-            auto localMax = model->GetBoundingBoxMax();
-            const auto meshIndex = renderer->GetModelMeshIndex();
-            if (meshIndex != -1)
-            {
-                Values::Require(meshIndex >= 0 && static_cast<std::size_t>(meshIndex) < model->GetMeshes().size(),
-                    "/entities", "A selected ModelRenderer has an invalid mesh index.");
-                localMin = model->GetMeshes()[meshIndex]->GetBoundingBoxMin();
-                localMax = model->GetMeshes()[meshIndex]->GetBoundingBoxMax();
-            }
-
-            const auto transform = entity->GetTransform();
-            const glm::dvec3 position = transform->GetPosition();
-            const glm::dquat rotation = transform->GetRotation();
-            const glm::dvec3 scale = transform->GetScale();
-
-            // Match Pine's actual world transform accessors, including its parent semantics.
-            // Cached renderer bounds and matrices may still describe the frame before /edit.
-            for (int corner = 0; corner < 8; corner++)
-            {
-                const glm::dvec3 localCorner(
-                    corner & 1 ? localMax.x : localMin.x,
-                    corner & 2 ? localMax.y : localMin.y,
-                    corner & 4 ? localMax.z : localMin.z);
-                bounds.Include(position + rotation * (localCorner * scale));
-            }
-            hasGeometry = true;
-        }
+        bool hasGeometry = Spatial::AddModelBounds(entity, bounds);
 
         if (includeChildren)
         {
