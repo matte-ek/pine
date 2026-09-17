@@ -9,6 +9,8 @@
 #include "../LogHistory/LogHistory.hpp"
 #include "../Screenshot/Screenshot.hpp"
 #include "../Requests/Requests.hpp"
+#include "../Picking/Picking.hpp"
+#include "Other/PlayHandler/PlayHandler.hpp"
 #include "Rendering/RenderHandler.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/Serialization/Json/SerializationJson.hpp"
@@ -29,6 +31,7 @@ namespace
     {
         Pine::RenderingContext Context;
         json Camera;
+        Pine::Matrix4f ViewProjection;
     };
 
     std::optional<RenderedView> m_LevelView;
@@ -38,6 +41,7 @@ namespace
     {
         std::string View = "level";
         int Width = 0;
+        bool Picking = false;
         json After;
         std::uint64_t AcceptedFrame = 0;
         std::uint64_t LogsSince = 0;
@@ -161,12 +165,25 @@ namespace
         const auto width = options.Width > 0 ? std::min(options.Width, sourceWidth) : sourceWidth;
         const auto height = std::max(1, static_cast<int>(std::lround(static_cast<double>(sourceHeight) * width / sourceWidth)));
 
+        const json frame = {
+            { "session", Requests::GetSession() }, { "id", m_Frame },
+            { "sceneGeneration", m_RenderedGeneration }, { "revision", m_RenderedRevision }
+        };
+        json picking = nullptr;
+        if (options.Picking)
+        {
+            auto captured = Picking::Capture(view->Context, view->ViewProjection, width, height, frame);
+            if (captured.StatusCode != 200)
+            {
+                return captured;
+            }
+            picking = std::move(captured.Body);
+        }
+
         return { 200, {
             { "after", options.After },
-            { "frame", {
-                { "session", Requests::GetSession() }, { "id", m_Frame },
-                { "sceneGeneration", m_RenderedGeneration }, { "revision", m_RenderedRevision }
-            } },
+            { "frame", frame },
+            { "picking", picking },
             { "viewport", { { "view", options.View }, { "width", sourceWidth }, { "height", sourceHeight } } },
             { "camera", view->Camera },
             { "image", {
@@ -214,11 +231,13 @@ void Editor::DebugServer::Observation::OnRender(Pine::RenderingContext* context,
 
     if (context == Editor::RenderHandler::GetLevelRenderingContext())
     {
-        m_LevelView = RenderedView{ *context, DescribeCamera(context->SceneCamera) };
+        m_LevelView = RenderedView{ *context, DescribeCamera(context->SceneCamera),
+            context->SceneCamera->GetProjectionMatrix() * context->SceneCamera->GetViewMatrix() };
     }
     else if (context == Editor::RenderHandler::GetGameRenderingContext())
     {
-        m_GameView = RenderedView{ *context, DescribeCamera(context->SceneCamera) };
+        m_GameView = RenderedView{ *context, DescribeCamera(context->SceneCamera),
+            context->SceneCamera->GetProjectionMatrix() * context->SceneCamera->GetViewMatrix() };
     }
 }
 
@@ -252,9 +271,18 @@ Editor::DebugServer::Response Editor::DebugServer::Observation::Begin(const Requ
         };
         const auto body = json::parse(request.Body, depthLimit, false);
         Values::Require(!body.is_discarded(), "", "Request body is not valid JSON.");
-        Values::Object(body, "", { "after", "view", "width", "entities", "logsSince" });
+        Values::Object(body, "", { "after", "view", "width", "entities", "logsSince", "picking" });
 
         Options options;
+        if (body.contains("picking"))
+        {
+            Values::Require(body.at("picking").is_boolean(), "/picking", "Expected a boolean.");
+            options.Picking = body.at("picking").get<bool>();
+            if (options.Picking && PlayHandler::GetGameState() != PlayHandler::EditorGameState::Stopped)
+            {
+                return Error(409, "Picking captures require stopped edit mode.");
+            }
+        }
         options.AcceptedFrame = m_Frame;
         options.After = body.value("after", Token(LogCursor()));
         Values::Object(options.After, "/after", { "session", "sceneGeneration", "revision", "frame", "logsSince" },

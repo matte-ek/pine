@@ -58,6 +58,9 @@ The response contains:
   and `data` containing the base64 PNG. Decode it directly to a PNG file.
 - `entities`: the same entity descriptions as `GET /entity?id=...`, including
   serialized `data` and [writable `properties`](debug-server-editing.md#writable-state-readback).
+- `picking`: `null` by default. With `"picking": true`, a retained capture reference
+  and limits for [`POST /pick`](debug-server-picking.md). This requires stopped edit
+  mode and captures model surfaces at the returned image's resolution.
 - `logs`: the incremental `/logs` response described below.
 - `timing`: explicit sampling phases for the camera, image, entities, and logs.
 

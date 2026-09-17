@@ -135,27 +135,30 @@ it, then frame and capture it with the expected state intact.
 - [x] Add RigidBody support with validated mass, type, gravity and lock settings.
   Verify actual physics objects, including fresh creation after Stop/edit/Play.
 
+## Pick surfaces from captures — complete for model meshes
+
+Implemented through [surface picking](debug-server-picking.md). Request an
+observation with `picking: true`, then query its retained capture and PNG pixel.
+This first workflow covers solid ModelRenderer surfaces while stopped; terrain
+and material-accurate visibility remain follow-up work.
+
+- [x] Pick from a capture and pixel coordinate, returning the entity, mesh,
+  world position and surface normal where available.
+- [x] Define the pixel coordinate convention and tie the result to the referenced
+  capture's camera and scene state. Later camera or geometry changes preserve the
+  captured answer. Expired, evicted and scene-replaced captures explicitly fail.
+
+Verified: pick a rotated wall through a parent transform, move the camera and
+wall, and query the original surface unchanged. Also verifies misses, normals,
+resized images, mesh selection, occlusion, bounded retention and scene reload.
+
 ## Recommended next work, in priority order
 
 Add each adapter as a complete workflow: advertised properties, validation,
 application, readback and observable behavior. Declare units, enum names, asset
 types and related-field constraints in the same place as the adapter.
 
-### 1. Pick surfaces from captures
-
-Highest value for turning a visual instruction such as "put a lamp on this wall"
-into a precise scene target.
-
-- [ ] Pick from a capture and pixel coordinate, returning the entity, mesh,
-  world position and surface normal where available.
-- [ ] Define the pixel coordinate convention and tie the result to the referenced
-  capture's camera and scene state. A later camera move must not silently change
-  the target; reject captures whose required state is no longer available.
-
-Acceptance: pick a wall in a capture and identify the same surface after the editor
-camera moves, or explicitly report that the capture can no longer be queried.
-
-### 2. Spatial queries and placement
+### 1. Spatial queries and placement
 
 Makes placement reliable without estimating geometry from screenshots or treating
 an asset's pivot as its contact point. World-space inspection is also a useful
@@ -178,7 +181,7 @@ Acceptance: place a crate on uneven ground and a lamp against a rotated wall, th
 aim the lamp at a picked point. Read back the resulting transforms and inspect the
 contact and clearance; each placement must participate in undo.
 
-### 3. Lighting and shadow diagnostics
+### 2. Lighting and shadow diagnostics
 
 Most useful for explaining a rendering problem. Ravenholm's light conversion
 highlighted the need to distinguish cone boundaries, light-slot selection and
@@ -200,7 +203,7 @@ Acceptance: inspect a problematic lit surface, identify its assigned lights and
 their shadow allocations, and compare point/spot configurations from the same view
 with captures and shadow statistics.
 
-### 4. Filtered and batched scene inspection
+### 3. Filtered and batched scene inspection
 
 Reduces request overhead and makes level probing practical. The Ravenholm lamp
 change required a hierarchy read, twelve individual light reads, and parent reads
@@ -217,7 +220,7 @@ just to establish the reference settings and placement.
 Acceptance: fetch all lights and their world transforms in one request, then find
 nearby scene objects around a selected lamp without downloading the whole level.
 
-### 5. Independent inspection captures
+### 4. Independent inspection captures
 
 Allows an agent to inspect the scene while the user continues navigating the editor.
 
@@ -233,7 +236,7 @@ Acceptance: capture an object from several supplied poses while the user navigat
 another view; verify the editor camera is unchanged and each image has matching
 camera and frame metadata.
 
-### 6. Atmosphere, materials and reusable props
+### 5. Atmosphere, materials and reusable props
 
 Completes more of the visual authoring workflow after objects have been placed.
 
@@ -246,7 +249,7 @@ Completes more of the visual authoring workflow after objects have been placed.
 Acceptance: adjust a scene's atmosphere, edit and assign a prop material, spawn a
 Blueprint, and verify the intended scene and asset changes survive save/reload.
 
-### 7. Play controls and controlled simulation
+### 6. Play controls and controlled simulation
 
 Enables verification of placed objects and gameplay interactions after authoring.
 
@@ -263,6 +266,11 @@ its transform and contacts, then stop and verify restoration of the authored sce
 Use the same controls to check a traversable doorway when a suitable player exists.
 
 ## Later, driven by actual scene work
+
+- [ ] Extend capture picking to terrain and material-accurate visibility (alpha
+  cutouts, transparency and shader deformation). The current `model-surfaces`
+  contract deliberately reports solid model geometry and excludes other geometry
+  from occlusion; see [coverage](debug-server-picking.md#geometry-coverage).
 
 - [ ] Reuse existing project textures/materials when importing agent-authored GLBs.
   For the initial Blender sub-agent trial, duplicate imported materials/textures

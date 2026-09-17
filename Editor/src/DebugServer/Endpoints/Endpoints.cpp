@@ -4,6 +4,7 @@
 #include "../Editing/Editing.hpp"
 #include "../Editing/History/History.hpp"
 #include "../Observation/Observation.hpp"
+#include "../Picking/Picking.hpp"
 #include "../LogHistory/LogHistory.hpp"
 #include "../Persistence/Persistence.hpp"
 #include "../LevelCamera/LevelCamera.hpp"
@@ -1226,6 +1227,7 @@ void Editor::DebugServer::Endpoints::Register()
     AddRoute(Method::Get, "/viewport.png", GetViewportPng);
 
     AddRoute(Method::Post, "/observe", Observation::Begin);
+    AddRoute(Method::Post, "/pick", Picking::Pick);
     AddMutationRoute("/level/load", PostLevelLoad);
     AddRoute(Method::Get, "/level/status", Persistence::Get);
     AddMutationRoute("/level/save", Persistence::Save);

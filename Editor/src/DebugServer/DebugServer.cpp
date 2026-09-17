@@ -26,6 +26,7 @@
 
 #include "Endpoints/Endpoints.hpp"
 #include "Observation/Observation.hpp"
+#include "Picking/Picking.hpp"
 #include "Requests/Requests.hpp"
 
 namespace
@@ -260,6 +261,8 @@ void Editor::DebugServer::Shutdown()
     m_Server.stop();
 
     m_ListenerThread.join();
+
+    Picking::Shutdown();
 
     PInfo("Debug server stopped.");
 }

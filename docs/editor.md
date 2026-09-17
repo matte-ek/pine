@@ -21,6 +21,7 @@ asset discovery, captures, request recovery and saving.
 - `Editor/src/DebugServer/Camera/Camera.hpp` — editor-camera look-at, framing and read/restore; see [debug-server-camera.md](debug-server-camera.md).
 - `Editor/src/DebugServer/Requests/Requests.hpp` — synchronized queue, mutation retry identities, status and cancellation; see [request lifecycle](debug-server-requests.md).
 - `Editor/src/DebugServer/Observation/Observation.hpp` — frame-aware captures and combined observations; see [debug-server-observation.md](debug-server-observation.md).
+- `Editor/src/DebugServer/Picking/Picking.hpp` — retained model-surface picking from observations, with bounded capture lifetime; see [debug-server-picking.md](debug-server-picking.md).
 - `Editor/src/DebugServer/Import/Import.hpp` — synchronous local-file imports through the shared editor utility; see [asset import](debug-server-import.md).
 
 ## Boot sequence (`Application.cpp`)

@@ -126,6 +126,7 @@ Saving does not save other modified assets. Import is not undoable. See
 | `POST /level/camera` | `{"target":{"id":"<entity-id>"}}` or `{"target":null}` | Select/clear the scene camera used by Game view. Recorded in history and Level persistence. |
 | `GET /viewport.png` | Optional `?view=level&width=800`; view can be `game` | Immediate PNG from the active viewport. No ordering guarantee relative to an edit. |
 | `POST /observe` | `{}` or `{"after":<observationToken>,"view":"level","width":800,"entities":["<entity-id>"]}` | Capture a subsequent rendered frame with base64 PNG, camera metadata, requested entity state and incremental logs. |
+| `POST /pick` | `{"capture":"<observation.picking.capture>","pixel":{"x":400,"y":225}}` | Pick a retained model surface: entity, mesh index, world position and normal. First request `/observe` with `"picking":true` while stopped. [Picking contract and limits](debug-server-picking.md). |
 
 Editor-camera controls and `/observe` require 3D perspective mode. The requested
 viewport must be rendered for framing/capture: open its tab in the UI. A scene
@@ -143,7 +144,7 @@ Editor-camera movement does not change or save a scene Camera. Details:
 | `POST /requests/cancel?id=<key>` | `X-Pine-Session`; no body or idempotency key | Cancel pending work. Running work cannot be interrupted. |
 
 All scene/camera mutations, imports, saves and undo/redo support the two retry
-headers described below. `POST /observe` is a read and rejects retry headers.
+headers described below. `POST /observe` and `POST /pick` are reads and reject retry headers.
 
 ## Build a scene efficiently
 
@@ -371,6 +372,12 @@ request only the objects needed for the current check. `{}` requests a fresh vie
 but its default log cursor starts at acceptance and can miss errors from earlier edits.
 Tokens order captures after mutations; they do not freeze out later UI or API changes.
 
+For a precise target on a solid model, add `"picking": true` to the observation,
+then send its `picking.capture` and an integer PNG pixel to `POST /pick`. Pixels
+start at the top left. The returned surface belongs to that captured frame even
+after camera navigation; references expire or can be evicted. This first version
+excludes terrain and material cutouts. See [surface picking](debug-server-picking.md).
+
 Use an elevated overview to check layout and a walking-height view to check
 clearance, shelf contents, wall gaps and lighting. Framing a whole building does
 not guarantee a useful interior view. The warehouse's central column required an
@@ -477,7 +484,8 @@ authoring; it does not add interaction, animation or collision to the prop.
 | Dark/empty model | Check Model/MeshIndex, asset bounds and scale, camera/clipping, material references, active flags, light placement/intensity and rendered logs. |
 | Statistics disagree with the picture | Treat counters as diagnostics. The warehouse run reported zero `lightCount` and `vertexCount` despite visible lit geometry; this observation was not diagnosed or fixed. |
 | Physics appears unchanged while stopped | Actors/shapes are created on Play. Box Collider Size is half-extents, scaled with the entity; Position is an unscaled, unrotated world-axis offset. See [physics authoring](debug-server-physics.md). |
-| Need ambient/fog/skybox writes, Blueprint spawning, play/pause/stop, material authoring, picking or placement helpers | These are not currently exposed. Use the UI where available; track API work in [the TODO](debug-server-todo.md). |
+| HTTP 409 on picking | Capture expired, was evicted, or belongs to a replaced scene. Request `/observe` with `picking: true` while stopped. See [picking limits](debug-server-picking.md). |
+| Need ambient/fog/skybox writes, Blueprint spawning, play/pause/stop, material authoring or placement helpers | These are not currently exposed. Use the UI where available; track API work in [the TODO](debug-server-todo.md). |
 
 The API also does not yet expose 2D authoring, viewport-tab switching, general UI
 automation or arbitrary component writes. Reading serialized state does not imply
