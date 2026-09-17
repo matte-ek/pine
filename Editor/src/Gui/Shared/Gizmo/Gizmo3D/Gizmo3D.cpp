@@ -8,6 +8,7 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
+#include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
@@ -26,6 +27,16 @@ namespace
     // pixels thick on every model, regardless of shape, scale or distance.
     Pine::Shader* m_OutlineShader = nullptr;
     Pine::Graphics::IFrameBuffer* m_OutlineMaskBuffer = nullptr;
+
+    void CreateOutlineMaskBuffer()
+    {
+        const auto resolution = Pine::Rendering::InternalResolution::Get();
+
+        m_OutlineMaskBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
+        m_OutlineMaskBuffer->Prepare();
+        m_OutlineMaskBuffer->AttachTextures(resolution.x, resolution.y, Pine::Graphics::ColorBuffer);
+        m_OutlineMaskBuffer->Finish();
+    }
 
     // Outline appearance.
     constexpr int OUTLINE_WIDTH = 3; // thickness in pixels (must be <= MAX_RADIUS in the shader)
@@ -367,13 +378,14 @@ void Editor::Gui::Gizmo::Gizmo3D::Setup()
 
     // Silhouette mask for the selection outline. Sized to the internal render
     // resolution so its pixel space lines up with the scene framebuffer.
-    m_OutlineMaskBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_OutlineMaskBuffer->Prepare();
-    m_OutlineMaskBuffer->AttachTextures(
-        Pine::Renderer3D::Specifications::General::INTERNAL_WIDTH,
-        Pine::Renderer3D::Specifications::General::INTERNAL_HEIGHT,
-        Pine::Graphics::ColorBuffer);
-    m_OutlineMaskBuffer->Finish();
+    CreateOutlineMaskBuffer();
+
+    Pine::Rendering::InternalResolution::AddResizeCallback([]
+    {
+        Pine::Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_OutlineMaskBuffer);
+
+        CreateOutlineMaskBuffer();
+    });
 
     Pine::RenderManager::AddRenderCallback(OnRender);
 }

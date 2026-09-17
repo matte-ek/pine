@@ -18,6 +18,29 @@ relative to `Engine/src/Pine/`.
 - **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`), ordering in `Rendering/RenderGraph/`, and the quality presets in `Rendering/GraphicsSettings/`.
 - **`Renderer2D/`** mirrors `Renderer3D/` for sprites/tilemaps.
 
+## The shared scene buffers & internal resolution
+
+Contexts don't own scene buffers. There is **one** HDR scene target (`RenderManager`), **one**
+depth/normal pre-pass target (`Pipeline3D`), and one set of AO and bloom buffers, all allocated at
+the *internal resolution* (`Rendering/InternalResolution/`). A context renders the scene into the
+`Size`-sized corner of the shared target, and every pass that reads the scene back scales its
+texture coordinates by `Size / InternalResolution::Get()` — the `viewportScale` uniform in
+`post-process` and `bloom-extract`. The pre-pass, AO and bloom are the exception: they fill their
+buffers edge to edge and are composited at plain texture coordinates.
+
+That arithmetic only holds while a context fits inside the allocation. `RenderManager::Run` takes
+the largest active context each frame and calls `InternalResolution::Internal::GrowTo()`, which
+rebuilds every registered buffer if it has to. Features that allocate from the resolution register
+an `AddResizeCallback` to rebuild themselves.
+
+It only ever grows (a high-water mark for the session), it rounds growth up to a 128-pixel step so a
+window or splitter drag rebuilds a handful of times rather than per pixel, and it starts at the
+window size so the common one-context-filling-the-window case never reallocates. Memory scales with
+the square of the resolution — roughly 75 MB of buffers at 1080p, ~300 MB at 4K.
+
+Note the Editor caps itself separately: `RenderHandler`'s viewport target framebuffers are
+hardcoded 1920x1080, and its Game context is deliberately fixed at that size.
+
 ## Frame order within a context
 
 `RenderManager::Run` calls `Pipeline3D::Prepare()` once (building the draw batch and per-object

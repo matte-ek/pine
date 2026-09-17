@@ -19,6 +19,49 @@ relative to `Engine/src/Pine/`.
 - 3D and 2D are independent worlds; a given entity uses one or the other via its component set.
 - Component properties are **applied when the PhysX actor is created**, not when the setter runs — `RigidBody::CreateActor()` reads mass, gravity, locks and limits once, and mass goes through `PxRigidBodyExt::setMassAndUpdateInertia` so the inertia tensor follows the collider's shape. Changing a property on a live actor means recreating it.
 
+## Character controller
+
+`World/Components/CharacterController/` is a kinematic capsule walker on PhysX's `PxController`,
+outside the actor/`RigidBody` world above: it does not simulate, it sweeps. `Physics3D::Update`
+calls its `Simulate()` once per tick, *before* `m_Scene->simulate()`, and the controller writes the
+entity's Transform itself — so a Transform-only move is undone on the next tick and `SetPosition()`
+is the way to teleport one.
+
+**The split with gameplay is the thing to understand.** The component owns the *vertical* axis and
+the collision response; the script owns the *horizontal* walk.
+
+- `Move()` takes a **displacement**, not a velocity, and only accumulates it — the tick consumes and
+  clears it. How that displacement is arrived at (acceleration, sprint, air control) is per-character
+  policy and lives in the game's script, not in engine config. `data/projects/gm/assets/PlayerController.cs`
+  is the worked example.
+- Gravity, landing and ceiling contacts accumulate into `m_VerticalVelocity`, which the component
+  clears on both. A script jumps by assigning `SetVerticalVelocity()`; the verb ("jump", "double
+  jump", "cut the jump short") stays in the script, the integration stays here.
+- `GetVelocity()` reports the velocity the tick **actually achieved**, measured from the foot
+  position either side of the move, and `IsTouchingSides()` says whether something stopped it.
+  A script that integrates its own velocity needs both: collide-and-slide means a blocked tick
+  travels less than it was asked to, and keeping the difference banks speed against the wall that
+  is released the moment the player turns away from it.
+
+⚠ The tick is **not** the frame. `Physics3D::Update` gates on a 1/120 s accumulator and then steps
+by whatever has accumulated, while scripts run every frame, after physics. Queued displacements sum
+correctly across frames, but anything read back from the controller is from the last tick, which
+above 120 fps is not this frame.
+
+### Verification
+
+```sh
+python3 Editor/src/DebugServer/Verification/verify-character-controller.py --build build
+```
+
+A native probe (the `verify-physics-native.py` pattern) because `/edit` has no CharacterController
+operation. It walks the controller over open ground and into a wall and requires the reported
+velocity to match what was travelled rather than what was asked for, requires a teleport to leave no
+velocity behind, jumps from an assigned vertical velocity and checks the apex against the one
+gravity implies, then repeats that jump under a ceiling and requires both the apex and the airtime
+to come down — without the ceiling clamp the controller hangs there spending speed it cannot use.
+
+
 ## Terrain collision
 
 A terrain gets collision through an ordinary `Collider` of `ColliderType::HeightField`, which sources

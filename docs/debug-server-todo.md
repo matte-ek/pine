@@ -3,7 +3,9 @@
 For available routes and scene-authoring examples, see the [Editor API guide](debug-server.md).
 
 Track the work needed to author and inspect 3D scenes through Pine's editor.
-The order below is a recommendation, not a commitment to implement every item.
+The remaining work is ranked by usefulness for scene authoring and investigation,
+after the completed capabilities below. This is a recommendation, not a commitment
+to implement every item; shared prerequisites can be implemented together.
 Check an item off after its complete workflow has been verified, and link its
 protocol documentation when it adds a public operation.
 
@@ -37,7 +39,7 @@ Current contracts: [scene editing](debug-server-editing.md),
 [request retries and completion](debug-server-requests.md). The original transport/dump design is in
 [the debug-server plan](plans/debug-server.md).
 
-## 1. Reliable visual feedback — complete
+## Reliable visual feedback — complete
 
 Implemented and verified through [rendered observations](debug-server-observation.md).
 Edits and camera operations return tokens for a subsequent rendered capture.
@@ -59,7 +61,7 @@ Acceptance: create a model and light, frame them, capture the resulting view, mo
 the model, and capture again. Both captures must demonstrably include their
 requested changes without arbitrary client sleeps.
 
-## 2. Reliable retries and reusable verification — complete
+## Reliable retries and reusable verification — complete
 
 Implemented and verified through [request retries and completion](debug-server-requests.md).
 Identified mutations retain their original result; queued cancellation and deadlines
@@ -81,7 +83,7 @@ prevent later execution. The reusable HTTP recipes cover editing, retries and ca
 - [x] Add interrupted-reply, retry, scene-replacement and capture-ordering cases as
   the corresponding behavior becomes available.
 
-## 3. Everyday scene editing — complete
+## Everyday scene editing — complete
 
 - [x] Add supported components to existing entities and remove them by component
   ID. Preserve the required Transform and enforce component dependencies. See
@@ -103,7 +105,7 @@ prevent later execution. The reusable HTTP recipes cover editing, retries and ca
   so enums and asset references do not need to be inferred from the binary dump.
   See [writable-state readback](debug-server-editing.md#writable-state-readback).
 
-## 4. Undo and persistence — complete
+## Undo and persistence — complete
 
 Implemented and verified through [history and persistence](debug-server-history.md).
 
@@ -121,41 +123,144 @@ Implemented and verified through [history and persistence](debug-server-history.
 Acceptance: build a small scene, modify a group, undo and redo it, save it, reload
 it, then frame and capture it with the expected state intact.
 
-## 5. Expand useful 3D capabilities
+## Additional 3D capabilities — complete
 
 - [x] Add a scene Camera adapter for projection and clipping properties. See
   [scene cameras](debug-server-scene-camera.md).
 - [x] Add an explicit level operation to choose the active game camera; verify the
   result through the Game viewport. Includes history and save/reload verification;
   see [game camera selection](debug-server-scene-camera.md#select-the-game-camera).
-- [ ] Expose relevant level settings such as ambient light, fog and skybox through
-  typed operations.
-- [ ] Spawn an existing Blueprint asset, returning the created hierarchy's IDs.
 - [x] Add primitive Collider support with creation-on-play behavior and explicit
   interaction with RigidBody. See [3D physics authoring](debug-server-physics.md).
 - [x] Add RigidBody support with validated mass, type, gravity and lock settings.
   Verify actual physics objects, including fresh creation after Stop/edit/Play.
-- [ ] Add explicit play/pause/stop controls for checking the resulting scene.
-  Keep ordinary scene writes restricted to stopped mode until runtime mutation
-  semantics are deliberately supported.
+
+## Recommended next work, in priority order
 
 Add each adapter as a complete workflow: advertised properties, validation,
 application, readback and observable behavior. Declare units, enum names, asset
 types and related-field constraints in the same place as the adapter.
 
-## 6. Spatial tools and richer observation
+### 1. Pick surfaces from captures
 
-- [ ] Expose fresh world bounds, dimensions, world/local transforms and orientation
-  vectors for selected entities. Reuse framing calculations where appropriate.
-- [ ] Pick an entity and world position from a viewport coordinate, returning the
-  surface normal where available. Tie coordinates to the referenced capture.
-- [ ] Add placement helpers: place on a surface, align bounds, and offset relative
-  to another entity. Define the anchor, coordinate space and units explicitly.
-- [ ] Offer optional selection outlines or entity labels on captures, alongside
-  clean images for judging the scene's appearance.
-- [ ] Add useful rendering diagnostics on demand, such as depth, normals, bounds
-  or collider visualization, using existing rendering facilities where available.
-- [ ] Add camera orbit/dolly conveniences if repeated authoring work needs them.
+Highest value for turning a visual instruction such as "put a lamp on this wall"
+into a precise scene target.
+
+- [ ] Pick from a capture and pixel coordinate, returning the entity, mesh,
+  world position and surface normal where available.
+- [ ] Define the pixel coordinate convention and tie the result to the referenced
+  capture's camera and scene state. A later camera move must not silently change
+  the target; reject captures whose required state is no longer available.
+
+Acceptance: pick a wall in a capture and identify the same surface after the editor
+camera moves, or explicitly report that the capture can no longer be queried.
+
+### 2. Spatial queries and placement
+
+Makes placement reliable without estimating geometry from screenshots or treating
+an asset's pivot as its contact point. World-space inspection is also a useful
+foundation for picking and the filtered queries below.
+
+- [x] Expose fresh world bounds, dimensions, world/local transforms and orientation
+  vectors for selected entities, including terrain where applicable. Reuse framing
+  calculations where appropriate and declare which geometry the bounds cover. See
+  [spatial measurements](debug-server-spatial.md) for the read-only batched query.
+- [ ] Add raycasts and overlap queries usable in stopped edit mode, including
+  visible geometry without physics colliders. Distinguish bounds overlap from
+  actual geometry intersection in the query contract.
+- [ ] Add placement helpers: rest on a surface, mount flush against a wall, align
+  bounds, and offset relative to another entity. Define anchors, clearance,
+  coordinate space and units explicitly; account for parent transforms.
+- [ ] Aim an entity, such as a spotlight, at a world point with an explicit forward
+  axis and up direction.
+
+Acceptance: place a crate on uneven ground and a lamp against a rotated wall, then
+aim the lamp at a picked point. Read back the resulting transforms and inspect the
+contact and clearance; each placement must participate in undo.
+
+### 3. Lighting and shadow diagnostics
+
+Most useful for explaining a rendering problem. Ravenholm's light conversion
+highlighted the need to distinguish cone boundaries, light-slot selection and
+shadow allocation instead of inferring the cause from the final image.
+
+- [ ] Report the lights actually assigned to a selected model's lighting slots,
+  with entity IDs and names. Extend the existing terrain light-slot inspection
+  rather than introducing a different representation for the same concept.
+- [ ] Expose shadow statistics and per-light allocation: assigned views, tile
+  resolution, importance, cache reuse, rendered views, and reasons for denied or
+  downgraded shadows where the renderer can provide them. Start with the existing
+  `Shadows::GetStatistics()` and `GetTileDebugInfo()` facilities.
+- [ ] Capture the shadow atlas with tile-to-light identification and offer
+  optional light cone/range overlays.
+- [ ] Associate diagnostics with a rendered frame and context so comparisons
+  against captures describe the same state.
+
+Acceptance: inspect a problematic lit surface, identify its assigned lights and
+their shadow allocations, and compare point/spot configurations from the same view
+with captures and shadow statistics.
+
+### 4. Filtered and batched scene inspection
+
+Reduces request overhead and makes level probing practical. The Ravenholm lamp
+change required a hierarchy read, twelve individual light reads, and parent reads
+just to establish the reference settings and placement.
+
+- [ ] Query entities by component type, name and hierarchy, with optional component
+  properties and world transforms in the response.
+- [ ] Read a specified set of entities in one request without requiring a capture.
+- [ ] Query entities within a radius or bounds, explicitly defining whether the
+  test uses pivots or geometry bounds.
+- [ ] Bound response sizes and define truncation or pagination; sample each batch
+  coherently and identify its scene generation.
+
+Acceptance: fetch all lights and their world transforms in one request, then find
+nearby scene objects around a selected lamp without downloading the whole level.
+
+### 5. Independent inspection captures
+
+Allows an agent to inspect the scene while the user continues navigating the editor.
+
+- [ ] Render from a supplied camera pose and image size without moving the user's
+  editor camera or requiring a particular viewport tab to be visible. Preserve
+  the existing capture ordering and frame metadata guarantees.
+- [ ] Offer optional selection outlines or entity labels alongside clean captures.
+- [ ] Add depth, normals, bounds and collider visualization on demand, using
+  existing rendering facilities where available. Keep diagnostic modes scoped to
+  the requested capture.
+
+Acceptance: capture an object from several supplied poses while the user navigates
+another view; verify the editor camera is unchanged and each image has matching
+camera and frame metadata.
+
+### 6. Atmosphere, materials and reusable props
+
+Completes more of the visual authoring workflow after objects have been placed.
+
+- [ ] Expose ambient light, fog and skybox through typed read/write operations.
+- [ ] Add material parameter authoring and per-mesh material assignments. Make
+  shared-material effects explicit and provide the relevant asset persistence
+  workflow; saving a Level alone does not save other modified assets.
+- [ ] Spawn an existing Blueprint asset, returning the created hierarchy's IDs.
+
+Acceptance: adjust a scene's atmosphere, edit and assign a prop material, spawn a
+Blueprint, and verify the intended scene and asset changes survive save/reload.
+
+### 7. Play controls and controlled simulation
+
+Enables verification of placed objects and gameplay interactions after authoring.
+
+- [ ] Add explicit play/pause/stop controls. Keep ordinary scene writes restricted
+  to stopped mode until runtime mutation semantics are deliberately supported.
+- [ ] Expose runtime transforms, velocities and contact information for selected
+  objects, with the simulation step or frame that produced the readings.
+- [ ] Advance a specified number of simulation steps once physics and script
+  updates can be advanced coherently. Define the timestep and participating
+  systems rather than treating an arbitrary rendered frame as a simulation step.
+
+Acceptance: start a scene, pause and step a falling object until it settles, inspect
+its transform and contacts, then stop and verify restoration of the authored scene.
+Use the same controls to check a traversable doorway when a suitable player exists.
 
 ## Later, driven by actual scene work
 
@@ -164,14 +269,14 @@ types and related-field constraints in the same place as the adapter.
   are explicitly accepted. Later, investigate matching embedded resources to
   existing assets and preserving references across re-imports; do not block
   asset generation on deduplication.
-- [ ] Material authoring and assigning materials to individual model meshes.
+- [ ] Add camera orbit/dolly conveniences if repeated authoring work needs them.
 - [ ] AudioSource/AudioListener authoring and a way to verify playback behavior.
 - [ ] CharacterController support with explicit movement and physics semantics.
 - [ ] Script component authoring after assembly resolution, field types, references
   and lifecycle behavior have a defined editing contract.
-- [ ] Single-frame simulation stepping once timing and physics/script updates can
-  be advanced coherently.
-- [ ] Terrain authoring and bounds support when a concrete task requires it.
+- [ ] Expand terrain authoring beyond the existing inspection, sculpting and
+  painting routes when concrete scene work requires it, including terrain asset
+  creation and TerrainRenderer assignment.
 - [ ] Revisit automatic batch rollback once supported operations have a reliable
   restoration path; do not advertise atomic execution before then.
 

@@ -9,6 +9,7 @@
 #include "Pine/Rendering/Features/Shadows/Shadows.hpp"
 #include "Pine/Rendering/Features/Skybox/Skybox.hpp"
 #include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
+#include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
@@ -66,7 +67,7 @@ namespace
 		m_DepthBuffer->Bind();
 
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
-		Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Vector2i(1920, 1080));
+		Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Rendering::InternalResolution::Get());
 		Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer);
 
 		Renderer3D::FrameReset();
@@ -140,8 +141,14 @@ namespace
 		}
 	}
 
+    // Unlike the scene buffer, the pre-pass fills this one edge to edge: ambient occlusion reads it
+    // at plain texture coordinates and the resolve composites the result the same way. So it is
+    // sized to the whole internal resolution and rendered at it, and only the scene pass takes the
+    // context-sized corner that viewportScale compensates for.
     void CreateDepthBuffer()
 	{
+	    const auto resolution = Rendering::InternalResolution::Get();
+
 	    m_DepthBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
 	    m_DepthBuffer->Bind();
 	    m_DepthBuffer->Prepare();
@@ -150,8 +157,8 @@ namespace
 
 	    normalBuffer->Bind();
 	    normalBuffer->UploadTextureData(
-            Renderer3D::Specifications::General::INTERNAL_WIDTH,
-            Renderer3D::Specifications::General::INTERNAL_HEIGHT,
+            resolution.x,
+            resolution.y,
             0,
             Graphics::TextureFormat::RGBA16F,
             Graphics::TextureDataFormat::Float,
@@ -163,8 +170,8 @@ namespace
 
 	    depthBuffer->Bind();
 	    depthBuffer->UploadTextureData(
-            Renderer3D::Specifications::General::INTERNAL_WIDTH,
-            Renderer3D::Specifications::General::INTERNAL_HEIGHT,
+            resolution.x,
+            resolution.y,
             0,
             Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float,
             nullptr);
@@ -271,6 +278,16 @@ void Pipeline3D::Setup()
 	CreateDepthBuffer();
 
 	Rendering::AmbientOcclusion::UseDepthBuffer(m_DepthBuffer);
+
+	Rendering::InternalResolution::AddResizeCallback([]
+	{
+		Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_DepthBuffer);
+
+		CreateDepthBuffer();
+
+		// Ambient occlusion only borrows the buffer, so hand it the new one.
+		Rendering::AmbientOcclusion::UseDepthBuffer(m_DepthBuffer);
+	});
 
 	m_DepthShader = Assets::Get<Shader>("engine/shaders/3d/depth");
 }

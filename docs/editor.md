@@ -17,6 +17,7 @@ asset discovery, captures, request recovery and saving.
 - `Editor/src/DebugServer/Editing/Editing.hpp` — debug-server scene writes; protocol and limits in [debug-server-editing.md](debug-server-editing.md).
 - `Editor/src/DebugServer/Editing/History/History.hpp` and `Persistence/Persistence.hpp` — batch undo/redo and explicit level saving; see [history and persistence](debug-server-history.md).
 - `Editor/src/DebugServer/LevelCamera/LevelCamera.hpp` — scene Camera selection; see [scene cameras](debug-server-scene-camera.md).
+- `Editor/src/DebugServer/Spatial/Spatial.hpp` — read-only batched bounds, dimensions and transforms; shares model measurement with camera framing. See [spatial measurements](debug-server-spatial.md).
 - `Editor/src/DebugServer/Camera/Camera.hpp` — editor-camera look-at, framing and read/restore; see [debug-server-camera.md](debug-server-camera.md).
 - `Editor/src/DebugServer/Requests/Requests.hpp` — synchronized queue, mutation retry identities, status and cancellation; see [request lifecycle](debug-server-requests.md).
 - `Editor/src/DebugServer/Observation/Observation.hpp` — frame-aware captures and combined observations; see [debug-server-observation.md](debug-server-observation.md).

@@ -51,6 +51,14 @@ cd data
 ../cmake-build-debug/Editor/Editor <project_name>
 ```
 
+GameHost runs from the same directory but takes no project name — it reads `data/game/game.json`,
+which the Editor's Game Properties panel writes, to find the game's assets and startup level:
+
+```bash
+cd data
+../cmake-build-debug/GameHost/GameHost
+```
+
 Set `PINE_X11=1` to force GLFW onto X11/XWayland (useful on Wayland, e.g. for RenderDoc).
 
 ## Scripting runtime

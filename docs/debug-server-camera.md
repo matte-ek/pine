@@ -111,6 +111,9 @@ The response contains the same camera description as `/camera`, plus
 the bounds actually used. A pivot-only selection is viewed from one unit away when
 the clipping range allows it.
 
+For measurements without moving the view, use [`POST /spatial/query`](debug-server-spatial.md).
+It also supports terrain and reports null bounds for unsupported geometry.
+
 ## Errors and capture timing
 
 Invalid writes return HTTP 400 with `error` and a slash-separated `path`. All

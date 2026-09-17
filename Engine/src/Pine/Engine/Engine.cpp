@@ -10,6 +10,7 @@
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Rendering/GraphicsSettings/GraphicsSettings.hpp"
+#include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/Utilities/HotReload/HotReload.hpp"
@@ -121,6 +122,10 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     // values (resolution, shadow map size, AO resolution) are available when the
     // rendering features size their GPU buffers.
     Rendering::GraphicsSettings::Setup();
+
+    // Start the scene buffers off at the window's size, so the usual case of one context filling
+    // the window allocates once and never has to grow. Anything larger grows them per frame.
+    Rendering::InternalResolution::Internal::Setup(WindowManager::GetWindowSize());
 
     RenderManager::Setup();
     Renderer3D::Setup();

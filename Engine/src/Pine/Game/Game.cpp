@@ -53,6 +53,7 @@ void Pine::Game::Setup()
         SerializationJson::LoadValue(j, fmt::format("layer{}", i), m_GameProperties.ColliderLayers[i]);
     }
 
+    SerializationJson::LoadValue(j, "assetRoot", m_GameProperties.AssetRoot);
     SerializationJson::LoadValue(j, "startupLevel", m_GameProperties.StartupLevel);
 }
 
@@ -63,11 +64,14 @@ void Pine::Game::OnStart()
         return;
     }
 
-    auto asset = Pine::Assets::Get<Level>(m_GameProperties.StartupLevel);
-    if (!asset)
+    auto level = Pine::Assets::Get<Level>(m_GameProperties.StartupLevel);
+
+    if (!level)
     {
         PWarning(fmt::format("Referenced startup level {} could not be found.", m_GameProperties.StartupLevel));
+
+        return;
     }
 
-    World::SetActiveLevel(asset);
+    World::SetActiveLevel(level);
 }

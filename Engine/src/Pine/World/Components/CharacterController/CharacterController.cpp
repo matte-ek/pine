@@ -28,6 +28,26 @@ bool Pine::CharacterController::IsGrounded() const
     return m_Grounded;
 }
 
+bool Pine::CharacterController::IsTouchingSides() const
+{
+    return m_TouchingSides;
+}
+
+const Pine::Vector3f& Pine::CharacterController::GetVelocity() const
+{
+    return m_Velocity;
+}
+
+void Pine::CharacterController::SetVerticalVelocity(const float verticalVelocity)
+{
+    m_VerticalVelocity = verticalVelocity;
+}
+
+float Pine::CharacterController::GetVerticalVelocity() const
+{
+    return m_VerticalVelocity;
+}
+
 void Pine::CharacterController::CreateController()
 {
     const auto transform = m_Parent->GetTransform();
@@ -126,12 +146,31 @@ void Pine::CharacterController::Simulate(const float elapsedTime)
     physx::PxControllerFilters filters;
     filters.mFilterData = &controllerFilterData;
 
+    const auto positionBeforeMove = m_Controller->getFootPosition();
+
     const auto collisionFlags = m_Controller->move(displacement, 0.001f, elapsedTime, filters);
 
+    // What the controller managed to do, which is not what it was asked to do whenever it slid
+    // along a wall, stepped up or was stopped outright. Callers integrating their own velocity
+    // read this back so a blocked tick doesn't leave them holding speed they never travelled.
+    const auto positionAfterMove = m_Controller->getFootPosition();
+
+    m_Velocity = Vector3f(
+        static_cast<float>(positionAfterMove.x - positionBeforeMove.x),
+        static_cast<float>(positionAfterMove.y - positionBeforeMove.y),
+        static_cast<float>(positionAfterMove.z - positionBeforeMove.z)
+    ) / elapsedTime;
+
     m_Grounded = collisionFlags.isSet(physx::PxControllerCollisionFlag::eCOLLISION_DOWN);
+    m_TouchingSides = collisionFlags.isSet(physx::PxControllerCollisionFlag::eCOLLISION_SIDES);
 
     // Stop accumulating downward speed once resting on the ground.
     if (m_Grounded && m_VerticalVelocity < 0.0f)
+        m_VerticalVelocity = 0.0f;
+
+    // A ceiling ends the climb. Keeping the upward speed would leave the controller hanging under
+    // the ceiling, going nowhere, until gravity had eaten the speed it never got to use.
+    if (collisionFlags.isSet(physx::PxControllerCollisionFlag::eCOLLISION_UP) && m_VerticalVelocity > 0.0f)
         m_VerticalVelocity = 0.0f;
 
     // The queued movement has now been consumed.
@@ -170,7 +209,9 @@ void Pine::CharacterController::SetPosition(const Vector3f& position)
     // A teleport is not movement: drop anything queued and stop the fall, so the controller doesn't
     // arrive carrying the speed it built up somewhere else.
     m_PendingMovement = Vector3f(0.0f);
+    m_Velocity = Vector3f(0.0f);
     m_VerticalVelocity = 0.0f;
+    m_TouchingSides = false;
 
     // Before the first physics tick there is no PhysX controller yet, and CreateController() reads
     // the transform - so writing the transform is enough, the controller starts in the right place.
@@ -293,7 +334,9 @@ void Pine::CharacterController::OnCopied()
     m_Controller = nullptr;
     m_VerticalVelocity = 0.0f;
     m_Grounded = false;
+    m_TouchingSides = false;
     m_PendingMovement = Vector3f(0.0f);
+    m_Velocity = Vector3f(0.0f);
     m_StaticWarningIssued = false;
 }
 

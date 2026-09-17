@@ -8,7 +8,7 @@
 #include "Pine/Rendering/Common/Blur/Blur.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/GraphicsSettings/GraphicsSettings.hpp"
-#include "Pine/Rendering/Renderer3D/Specifications.hpp"
+#include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 
@@ -32,8 +32,10 @@ namespace
     // glow once instead of leaving it burned into every later frame.
     bool m_OutputCleared = false;
 
-    int BloomWidth() { return Renderer3D::Specifications::General::INTERNAL_WIDTH / m_ResDivisor; }
-    int BloomHeight() { return Renderer3D::Specifications::General::INTERNAL_HEIGHT / m_ResDivisor; }
+    // Like ambient occlusion, the bright pass covers the whole scene image rather than one
+    // context's corner of it, so it is sized from the internal resolution and divided down.
+    int BloomWidth() { return Rendering::InternalResolution::Get().x / m_ResDivisor; }
+    int BloomHeight() { return Rendering::InternalResolution::Get().y / m_ResDivisor; }
 
     void ClearOutputBuffer()
     {
@@ -60,6 +62,32 @@ namespace
         m_ExtractBuffer->AttachTexture(tex, Graphics::BufferAttachment::Color);
         m_ExtractBuffer->Finish();
     }
+
+    void CreateBuffers()
+    {
+        CreateExtractBuffer();
+
+        m_BlurContext.UseHDR = true;
+        m_BlurContext.PassCount = Rendering::GraphicsSettings::GetBloomBlurPasses();
+        m_BlurContext.Width = BloomWidth();
+        m_BlurContext.Height = BloomHeight();
+        m_BlurContext.Create();
+
+        m_BlurContext.TargetBuffer->GetColorBuffer()->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
+        m_BlurContext.IntermediateBuffer->GetColorBuffer()->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
+
+        // Clear the output so that before the first run (or a scene with nothing bright) bloom adds nothing.
+        ClearOutputBuffer();
+    }
+
+    void DestroyBuffers()
+    {
+        m_BlurContext.Destroy();
+
+        Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_ExtractBuffer);
+
+        m_ExtractBuffer = nullptr;
+    }
 }
 
 void Rendering::Bloom::Setup()
@@ -72,19 +100,13 @@ void Rendering::Bloom::Setup()
 
     m_ResDivisor = Rendering::GraphicsSettings::GetBloomResDivisor();
 
-    CreateExtractBuffer();
+    CreateBuffers();
 
-    m_BlurContext.UseHDR = true;
-    m_BlurContext.PassCount = Rendering::GraphicsSettings::GetBloomBlurPasses();
-    m_BlurContext.Width = BloomWidth();
-    m_BlurContext.Height = BloomHeight();
-    m_BlurContext.Create();
-
-    m_BlurContext.TargetBuffer->GetColorBuffer()->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
-    m_BlurContext.IntermediateBuffer->GetColorBuffer()->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
-
-    // Clear the output so that before the first run (or a scene with nothing bright) bloom adds nothing.
-    ClearOutputBuffer();
+    Rendering::InternalResolution::AddResizeCallback([]
+    {
+        DestroyBuffers();
+        CreateBuffers();
+    });
 }
 
 void Rendering::Bloom::ClearOutput()
@@ -166,7 +188,5 @@ Graphics::ITexture* Rendering::Bloom::GetOutputTexture()
 
 void Rendering::Bloom::Shutdown()
 {
-    m_BlurContext.Destroy();
-
-    Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_ExtractBuffer);
+    DestroyBuffers();
 }

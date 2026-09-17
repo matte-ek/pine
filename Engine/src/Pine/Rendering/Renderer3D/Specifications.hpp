@@ -6,10 +6,6 @@ namespace Pine::Renderer3D::Specifications
     {
         constexpr int DYNAMIC_LIGHT_COUNT = 32;
         constexpr int MAX_INSTANCE_COUNT = 512;
-
-        // TODO: Stop with this.
-        constexpr int INTERNAL_WIDTH = 1920;
-        constexpr int INTERNAL_HEIGHT = 1080;
     }
 
     // How the light slots of a single object are laid out. Each slot holds an index into the light

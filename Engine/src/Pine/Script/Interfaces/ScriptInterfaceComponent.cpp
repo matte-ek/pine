@@ -181,6 +181,34 @@ namespace
         return Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->IsGrounded();
     }
 
+    bool CharacterControllerIsTouchingSides(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->IsTouchingSides();
+    }
+
+    void CharacterControllerGetVelocity(const std::uint32_t internalId, Pine::Vector3f* velocity)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        *velocity = Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->GetVelocity();
+    }
+
+    void CharacterControllerSetVerticalVelocity(const std::uint32_t internalId, const float verticalVelocity)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->SetVerticalVelocity(verticalVelocity);
+    }
+
+    float CharacterControllerGetVerticalVelocity(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::CharacterController>(internalId)->GetVerticalVelocity();
+    }
+
     // -----------------------------------------------------
 
     MonoObject* ScriptGetCSharpScript(const std::uint32_t internalId)
@@ -218,6 +246,10 @@ void Pine::Script::Interfaces::Component::Setup()
     mono_add_internal_call("Pine.World.Components.CharacterController::PineMove", reinterpret_cast<void *>(CharacterControllerMove));
     mono_add_internal_call("Pine.World.Components.CharacterController::PineSetPosition", reinterpret_cast<void *>(CharacterControllerSetPosition));
     mono_add_internal_call("Pine.World.Components.CharacterController::PineIsGrounded", reinterpret_cast<void *>(CharacterControllerIsGrounded));
+    mono_add_internal_call("Pine.World.Components.CharacterController::PineIsTouchingSides", reinterpret_cast<void *>(CharacterControllerIsTouchingSides));
+    mono_add_internal_call("Pine.World.Components.CharacterController::PineGetVelocity", reinterpret_cast<void *>(CharacterControllerGetVelocity));
+    mono_add_internal_call("Pine.World.Components.CharacterController::PineSetVerticalVelocity", reinterpret_cast<void *>(CharacterControllerSetVerticalVelocity));
+    mono_add_internal_call("Pine.World.Components.CharacterController::PineGetVerticalVelocity", reinterpret_cast<void *>(CharacterControllerGetVerticalVelocity));
 
     mono_add_internal_call("Pine.World.Components.Transform::GetPosition", reinterpret_cast<void *>(TransformGetPosition));
     mono_add_internal_call("Pine.World.Components.Transform::GetRotation", reinterpret_cast<void *>(TransformGetRotation));

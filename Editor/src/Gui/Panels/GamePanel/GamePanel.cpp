@@ -9,6 +9,7 @@
 #include "Pine/Assets/Level/Level.hpp"
 #include "../../../../../Engine/src/Pine/Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Game/Game.hpp"
+#include "Projects/Projects.hpp"
 
 namespace
 {
@@ -139,6 +140,11 @@ void Panels::Game::Render()
                 j[fmt::format("layer{}", i)] = m_GameProperties.ColliderLayers[i];
             }
 
+            // The game file has to say where the assets its paths are relative to live, so the
+            // standalone host can resolve them without knowing anything about editor projects.
+            m_GameProperties.AssetRoot = Editor::Projects::GetProjectPath() + "/assets";
+
+            j["assetRoot"] = m_GameProperties.AssetRoot;
             j["startupLevel"] = m_GameProperties.StartupLevel;
 
             Pine::SerializationJson::SaveToFile("game/game.json", j);

@@ -34,8 +34,10 @@ namespace Pine
         // Runtime state (not serialized).
         physx::PxController* m_Controller = nullptr;
         Vector3f m_PendingMovement = Vector3f(0.f); // World-space displacement queued from script.
+        Vector3f m_Velocity = Vector3f(0.f);        // Velocity the last tick actually achieved.
         float m_VerticalVelocity = 0.f;
         bool m_Grounded = false;
+        bool m_TouchingSides = false;
         bool m_StaticWarningIssued = false; // So the static-entity warning is logged once, not per tick.
 
         void CreateController();
@@ -69,6 +71,22 @@ namespace Pine
         void SetPosition(const Vector3f& position);
 
         bool IsGrounded() const;
+
+        // True when the last tick ended with the capsule pressed against something to its side.
+        // A caller integrating its own velocity needs this: a blocked tick moves less than it was
+        // asked to, so the difference has to be dropped rather than kept as speed.
+        bool IsTouchingSides() const;
+
+        // The velocity the controller actually achieved on the last physics tick, derived from how
+        // far it really moved. This is not the motion that was requested - collide-and-slide,
+        // slope limits and step-ups all make the two differ.
+        const Vector3f& GetVelocity() const;
+
+        // The vertical speed the controller carries between ticks. Gravity accumulates into it, and
+        // landing or hitting a ceiling clears it. Assign to it to jump (or to be launched); the
+        // caller decides when that is allowed, e.g. only while IsGrounded().
+        void SetVerticalVelocity(float verticalVelocity);
+        float GetVerticalVelocity() const;
 
         void SetRadius(float radius);
         float GetRadius() const;

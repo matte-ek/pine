@@ -56,6 +56,7 @@ Examples below use placeholders where a live ID or project asset is required.
 | --- | --- | --- |
 | `GET /status` | None | Project, active Level, play state, world pause, entity count and frame delta. |
 | `GET /entities` | None | Recursive root `entities` tree and total `count`; components are type names only. |
+| `POST /spatial/query` | `{"entities":[{"id":"<entity-id>"}],"includeChildren":true}` | Fresh per-entity and combined world bounds, dimensions, local/world transforms and orientation axes. Read-only; supports models and terrain without moving the camera. [Spatial measurements](debug-server-spatial.md). |
 | `GET /entity` | `?id=<entity-id>` or `?internalId=<pool-slot>` | Entity identity, parent/children, flags, tags, component IDs, serialized `data` and writable `properties`. Prefer persistent IDs over pool slots. |
 | `GET /assets` | Optional `?type=Model` (case-insensitive type name) | Loaded assets sorted by virtual path: `path`, `type`, `uid`, `modified`. Includes engine/editor assets. No server-side name search or pagination. |
 | `GET /asset` | `?path=<virtual-path>` or `?id=<asset-id>` | Stored asset JSON under `content`, plus `file`, identity and `modified`. Reads the compressed file; requires an existing readable file. |
@@ -211,11 +212,11 @@ extended **below** its pivot, while the paving module extended upward by 0.4 uni
 The built-in cube spans `[-1, 1]` on each axis, so its scale is half its final size.
 
 These asset bounds describe the **stored** model. If `modified` is true, the live
-model may differ. `/camera/frame` measures live transformed geometry and returns
-`framedBounds`, but also moves the view. Save/restore `/camera.state` when using it
-as a measurement tool. There is no standalone live-bounds route yet. For rotated
-objects, transform all eight bounding-box corners; scaling the dimensions alone
-does not give the world-axis bounds. Respect `MeshIndex` when measuring one mesh.
+model may differ. For placed objects, use [`POST /spatial/query`](debug-server-spatial.md)
+to measure live world bounds and dimensions for up to 128 entities, optionally
+including their children, without moving the view. It accounts for rotation, scale,
+parent transforms and `MeshIndex`, and also covers terrain. Missing geometry returns
+null bounds. `/camera/frame` remains useful when you also want to frame the objects.
 
 Place one instance and inspect it before repeating it. Bounds alone cannot reveal
 door openings, shelf heights, the visible front face, or a column blocking an aisle.

@@ -4,6 +4,7 @@
 #include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
+#include <algorithm>
 #include <vector>
 #include <GLFW/glfw3.h>
 
@@ -13,6 +14,7 @@
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/PostProcessing/PostProcessing.hpp"
 #include "Pine/Rendering/Features/Bloom/Bloom.hpp"
+#include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 
 namespace
@@ -42,24 +44,58 @@ namespace
             func(context, stage, deltaTime);
         }
     }
+
+    void CreateInternalFrameBuffer()
+    {
+        m_InternalFrameBuffer = Pine::Graphics::GetGraphicsAPI()->CreateFrameBuffer();
+        m_InternalFrameBuffer->Prepare();
+
+        // The scene renders into this buffer in HDR: a float (RGBA16F) color target lets lighting
+        // accumulate values above 1.0 without clipping. Tone mapping + gamma in the post-process
+        // resolve pass bring it back down to the 8-bit output target for display.
+        const auto resolution = Pine::Rendering::InternalResolution::Get();
+
+        m_InternalFrameBuffer->AttachTextures(
+            resolution.x,
+            resolution.y,
+            Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::Buffers::DepthBuffer | Pine::Graphics::Buffers::StencilBuffer,
+            0,
+            Pine::Graphics::TextureFormat::RGBA16F);
+
+        m_InternalFrameBuffer->Finish();
+    }
+
+    // The largest context that will be drawn this frame, which is what the shared scene buffers
+    // have to be able to hold.
+    Pine::Vector2i LargestActiveContextSize()
+    {
+        Pine::Vector2i largest(0);
+
+        for (const auto context : m_RenderingContexts)
+        {
+            if (context == nullptr || !context->Active)
+            {
+                continue;
+            }
+
+            largest.x = std::max(largest.x, static_cast<int>(context->Size.x));
+            largest.y = std::max(largest.y, static_cast<int>(context->Size.y));
+        }
+
+        return largest;
+    }
 }
 
 void Pine::RenderManager::Setup()
 {
-    m_InternalFrameBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
-    m_InternalFrameBuffer->Prepare();
+    CreateInternalFrameBuffer();
 
-    // The scene renders into this buffer in HDR: a float (RGBA16F) color target lets lighting
-    // accumulate values above 1.0 without clipping. Tone mapping + gamma in the post-process
-    // resolve pass bring it back down to the 8-bit output target for display.
-    m_InternalFrameBuffer->AttachTextures(
-        Renderer3D::Specifications::General::INTERNAL_WIDTH,
-        Renderer3D::Specifications::General::INTERNAL_HEIGHT,
-        Graphics::Buffers::ColorBuffer | Graphics::Buffers::DepthBuffer | Graphics::Buffers::StencilBuffer,
-        0,
-        Graphics::TextureFormat::RGBA16F);
+    Rendering::InternalResolution::AddResizeCallback([]
+    {
+        Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_InternalFrameBuffer);
 
-    m_InternalFrameBuffer->Finish();
+        CreateInternalFrameBuffer();
+    });
 
     m_DefaultRenderingContext.Size = Vector2f(Engine::GetEngineConfiguration().m_WindowSize);
     
@@ -99,6 +135,10 @@ void Pine::RenderManager::Run()
     }
 
     static auto engineConfig = Engine::GetEngineConfiguration();
+
+    // Before anything binds a scene buffer: a context that grew past the current allocation (a
+    // resized window, a dragged viewport splitter) needs them rebuilt to fit first.
+    Rendering::InternalResolution::Internal::GrowTo(LargestActiveContextSize());
 
     double currentFrameTime = glfwGetTime();
 

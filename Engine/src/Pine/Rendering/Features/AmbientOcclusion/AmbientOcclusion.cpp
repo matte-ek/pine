@@ -11,6 +11,7 @@
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Common/Blur/Blur.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
+#include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 
@@ -35,6 +36,15 @@ namespace
 
     Graphics::ShaderStorage<KernelData> KernelDataStorage(Renderer3D::Specifications::ShaderStorages::AO_DATA, "KernelData");
 
+    // The AO pass covers the whole depth buffer, so it is sized from the internal resolution rather
+    // than from any one context, just divided down for speed.
+    Vector2i BufferResolution()
+    {
+        const int divisor = Rendering::GraphicsSettings::GetAmbientOcclusionResDivisor();
+
+        return Rendering::InternalResolution::Get() / divisor;
+    }
+
     void CreateRenderBuffer()
     {
         m_RenderBuffer = Graphics::GetGraphicsAPI()->CreateFrameBuffer();
@@ -42,12 +52,12 @@ namespace
 
         const auto renderTargetTexture = Graphics::GetGraphicsAPI()->CreateTexture();
 
-        const int divisor = Rendering::GraphicsSettings::GetAmbientOcclusionResDivisor();
+        const auto resolution = BufferResolution();
 
         renderTargetTexture->Bind();
         renderTargetTexture->UploadTextureData(
-            Renderer3D::Specifications::General::INTERNAL_WIDTH / divisor,
-            Renderer3D::Specifications::General::INTERNAL_HEIGHT / divisor,
+            resolution.x,
+            resolution.y,
             0,
             Graphics::TextureFormat::SingleChannel,
             Graphics::TextureDataFormat::Float,
@@ -116,6 +126,38 @@ namespace
         KernelDataStorage.Upload();
     }
 
+    void CreateBuffers()
+    {
+        CreateRenderBuffer();
+
+        const auto resolution = BufferResolution();
+
+        m_BlurContext.UseSingleChannel = true;
+        m_BlurContext.PassCount = Rendering::GraphicsSettings::GetAmbientOcclusionBlurPasses();
+        m_BlurContext.Width = resolution.x;
+        m_BlurContext.Height = resolution.y;
+
+        m_BlurContext.Create();
+
+        m_BlurContext.TargetBuffer->GetColorBuffer()->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
+
+        // Clear the output to white (1.0 = no occlusion) so that if the pass is
+        // disabled (or hasn't run yet) the post-process AO multiply is a no-op
+        // instead of darkening the whole scene to black.
+        m_BlurContext.TargetBuffer->Bind();
+        Graphics::GetGraphicsAPI()->ClearColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+        Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer);
+    }
+
+    void DestroyBuffers()
+    {
+        m_BlurContext.Destroy();
+
+        Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_RenderBuffer);
+
+        m_RenderBuffer = nullptr;
+    }
+
 }
 
 void Rendering::AmbientOcclusion::Run(const RenderingContext& context)
@@ -131,8 +173,7 @@ void Rendering::AmbientOcclusion::Run(const RenderingContext& context)
 
     m_RenderBuffer->Bind();
 
-    const int divisor = Rendering::GraphicsSettings::GetAmbientOcclusionResDivisor();
-    Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Vector2i(Renderer3D::Specifications::General::INTERNAL_WIDTH / divisor, Renderer3D::Specifications::General::INTERNAL_HEIGHT / divisor));
+    Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), BufferResolution());
 
     // Blur pass count is a live setting (no allocation), refresh it each frame.
     m_BlurContext.PassCount = Rendering::GraphicsSettings::GetAmbientOcclusionBlurPasses();
@@ -190,35 +231,22 @@ void Rendering::AmbientOcclusion::Setup()
 
     assert(m_AmbientOcclusionShader != nullptr);
 
-    CreateRenderBuffer();
+    CreateBuffers();
     CreateKernel();
     CreateKernelRandomnessTexture();
 
-    const int divisor = Rendering::GraphicsSettings::GetAmbientOcclusionResDivisor();
-
-    m_BlurContext.UseSingleChannel = true;
-    m_BlurContext.PassCount = Rendering::GraphicsSettings::GetAmbientOcclusionBlurPasses();
-    m_BlurContext.Width = Renderer3D::Specifications::General::INTERNAL_WIDTH / divisor;
-    m_BlurContext.Height = Renderer3D::Specifications::General::INTERNAL_HEIGHT / divisor;
-
-    m_BlurContext.Create();
-
-    m_BlurContext.TargetBuffer->GetColorBuffer()->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
-
-    // Clear the output to white (1.0 = no occlusion) so that if the pass is
-    // disabled (or hasn't run yet) the post-process AO multiply is a no-op
-    // instead of darkening the whole scene to black.
-    m_BlurContext.TargetBuffer->Bind();
-    Graphics::GetGraphicsAPI()->ClearColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
-    Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer);
+    Rendering::InternalResolution::AddResizeCallback([]
+    {
+        DestroyBuffers();
+        CreateBuffers();
+    });
 }
 
 void Rendering::AmbientOcclusion::Shutdown()
 {
-    m_BlurContext.Destroy();
+    DestroyBuffers();
 
     KernelDataStorage.Dispose();
 
-    Graphics::GetGraphicsAPI()->DestroyFrameBuffer(m_RenderBuffer);
     Graphics::GetGraphicsAPI()->DestroyTexture(m_KernelRandomnessTexture);
 }
