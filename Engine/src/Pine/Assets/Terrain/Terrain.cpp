@@ -1097,22 +1097,28 @@ std::optional<TerrainRayHit> Terrain::IntersectQuad(const Vector2i quad, const V
     // The same two triangles BuildChunkMesh emits, split along the same diagonal
     // IsInFirstQuadTriangle documents - a pick that used the other diagonal would miss the surface
     // by up to the height difference across the quad, and only on half of every quad.
-    auto nearest = IntersectTriangle(origin, direction, lowLow, lowHigh, highLow);
+    const auto first = IntersectTriangle(origin, direction, lowLow, lowHigh, highLow);
     const auto second = IntersectTriangle(origin, direction, highLow, lowHigh, highHigh);
 
     // A ray can meet both, along the diagonal they share or when it runs nearly flat across the
     // quad, so the two are compared rather than the first answer taken.
-    if (second.has_value() && (!nearest.has_value() || *second < *nearest))
-    {
-        nearest = second;
-    }
+    const bool secondIsNearer = second.has_value() && (!first.has_value() || *second < *first);
+
+    const auto nearest = secondIsNearer ? second : first;
 
     if (!nearest.has_value())
     {
         return std::nullopt;
     }
 
-    return TerrainRayHit{ origin + direction * *nearest, *nearest };
+    // The face normal of whichever of the two was hit. Both crosses take the triangle's edges in
+    // the winding used above, which is the winding BuildChunkMesh emits - so both come out of the
+    // top of the height field rather than one out of each side.
+    const auto normal = secondIsNearer
+        ? glm::cross(lowHigh - highLow, highHigh - highLow)
+        : glm::cross(lowHigh - lowLow, highLow - lowLow);
+
+    return TerrainRayHit{ origin + direction * *nearest, *nearest, glm::normalize(normal) };
 }
 
 float Terrain::GetClampedSampleHeight(const Vector2i sample) const

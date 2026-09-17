@@ -17,6 +17,7 @@ namespace Pine::Graphics
 
         void Bind() override;
         void UploadData(const void* data, std::size_t size, std::size_t offset) override;
+        bool ReadData(void* destination, std::size_t size, std::size_t offset = 0) const override;
 
         std::size_t GetSize() const override;
 

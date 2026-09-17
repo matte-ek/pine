@@ -40,6 +40,8 @@ void Pine::Graphics::GLVertexArray::Dispose()
     glDeleteVertexArrays(1, &m_Id);
 
     m_BuffersIndices.clear();
+    m_ElementBuffer = 0;
+    m_ElementBufferSize = 0;
 
     //for (auto buffer : m_Buffers)
     //    delete buffer;
@@ -64,6 +66,38 @@ void Pine::Graphics::GLVertexArray::StoreElementArrayBuffer(std::uint32_t *data,
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(size), reinterpret_cast<void*>(data), GL_STATIC_DRAW);
 
     // For element array buffers we don't have to do any binding stuff.
+
+    m_ElementBuffer = buffer;
+    m_ElementBufferSize = size;
+}
+
+bool Pine::Graphics::GLVertexArray::ReadElementArrayBuffer(void* destination, const std::size_t size, const std::size_t offset) const
+{
+    if (m_ElementBuffer == 0)
+    {
+        return false;
+    }
+
+    // As in GLVertexBuffer::ReadData: the subtraction cannot wrap, and the read goes through
+    // GL_COPY_READ_BUFFER so that the caller's own bindings survive it. Binding the buffer to
+    // GL_ELEMENT_ARRAY_BUFFER would be worse still, since that binding lives in whichever vertex
+    // array happens to be bound.
+    const bool rangeFitsBuffer = offset <= m_ElementBufferSize && size <= m_ElementBufferSize - offset;
+
+    if (!rangeFitsBuffer || (size != 0 && destination == nullptr))
+    {
+        return false;
+    }
+
+    GLint previousBuffer = 0;
+    glGetIntegerv(GL_COPY_READ_BUFFER_BINDING, &previousBuffer);
+
+    glBindBuffer(GL_COPY_READ_BUFFER, m_ElementBuffer);
+    glGetBufferSubData(GL_COPY_READ_BUFFER, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), destination);
+
+    glBindBuffer(GL_COPY_READ_BUFFER, previousBuffer);
+
+    return true;
 }
 
 std::uint32_t Pine::Graphics::GLVertexArray::CreateBuffer()

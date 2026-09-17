@@ -168,9 +168,11 @@ foundation for picking and the filtered queries below.
   vectors for selected entities, including terrain where applicable. Reuse framing
   calculations where appropriate and declare which geometry the bounds cover. See
   [spatial measurements](debug-server-spatial.md) for the read-only batched query.
-- [ ] Add raycasts and overlap queries usable in stopped edit mode, including
+- [x] Add raycasts and overlap queries usable in stopped edit mode, including
   visible geometry without physics colliders. Distinguish bounds overlap from
-  actual geometry intersection in the query contract.
+  actual geometry intersection in the query contract. Model/terrain surface
+  raycasts and bounds-only overlaps are verified; see
+  [spatial intersections](debug-server-spatial.md#raycasts-and-bounds-overlaps).
 - [ ] Add placement helpers: rest on a surface, mount flush against a wall, align
   bounds, and offset relative to another entity. Define anchors, clearance,
   coordinate space and units explicitly; account for parent transforms.

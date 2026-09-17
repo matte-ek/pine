@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Graphics/Interfaces/IVertexArray.hpp"
@@ -57,6 +59,13 @@ namespace Pine
         std::uint32_t GetVertexCount() const;
 
         bool HasElementBuffer() const;
+
+        // Reads the positions and indices back off the GPU, so what comes back includes whatever
+        // UpdateVertices last wrote. The mesh keeps no copy of its own, which is why this has to
+        // ask the graphics API for them: it needs the graphics context, and it stalls the thread
+        // until the readback lands. A mesh with no element buffer gives back an empty index
+        // vector. A mesh whose geometry cannot be read gives back false and clears both vectors.
+        bool ReadGeometry(std::vector<Vector3f>& vertices, std::vector<std::uint32_t>& indices) const;
 
         void SetMaterial(Material* material);
         void SetMaterial(UId id);

@@ -124,6 +124,9 @@ namespace Pine
         // candidates - the terrain and an entity picked out of the colour buffer, say - decide
         // which one is in front.
         float Distance = 0.f;
+
+        // Unit geometric face normal, pointing out of the top of the height field.
+        Vector3f Normal{};
     };
 
     // A rectangle of samples, inclusive on both corners - so a rectangle whose corners are equal

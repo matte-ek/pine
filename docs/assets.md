@@ -154,6 +154,18 @@ One folder per type under `Assets/`, each subclassing `Asset`: `Blueprint`, `Lev
 `Material`, `Mesh`, `Model`, `Shader`, `Texture2D`, `Texture3D`, `Font`, `Tileset`,
 `Tilemap`, `AudioFile`, `CSharpScript`, `Terrain` (+ `InvalidAsset`).
 
+**Reading geometry back out.** A `Mesh` keeps no CPU copy of what it uploaded, so
+`Mesh::ReadGeometry` asks the graphics API for it — positions, plus indices if the mesh has an
+element buffer. That means it needs the graphics context and stalls until the readback lands, which
+is fine for tooling and not for a frame. What comes back is current, including whatever
+`UpdateVertices` last wrote, so a procedurally rebuilt mesh reads back the geometry it is actually
+drawing. The debug server's stopped-mode raycasts are the caller, and they cap how much geometry
+they read per request.
+
+`Terrain` needs none of that. `Terrain::Raycast` walks the live height field rather than the
+rendered chunks, so what it returns — the contact point, the distance along the ray, and the
+upward face normal of the triangle it met — does not depend on which LOD a chunk is drawn at.
+
 ## Scenes: Level & Blueprint
 - **`Level`** (`Assets/Level/`) is the scene: settings (skybox `Texture3D`, ambient/fog, camera entity) + a list of `Blueprint`s. `World::SetActiveLevel(Level*)` loads it.
 - **`Blueprint`** (`Assets/Blueprint/`) is a serialized entity + its components. `Spawn()` instantiates it into the world; `CreateFromEntity()` captures one.

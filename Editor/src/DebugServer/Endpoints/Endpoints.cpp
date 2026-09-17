@@ -1,6 +1,7 @@
 #include "Endpoints.hpp"
 #include "../Camera/Camera.hpp"
 #include "../Spatial/Spatial.hpp"
+#include "../Spatial/Queries/Queries.hpp"
 #include "../Editing/Editing.hpp"
 #include "../Editing/History/History.hpp"
 #include "../Observation/Observation.hpp"
@@ -1218,6 +1219,8 @@ void Editor::DebugServer::Endpoints::Register()
     AddRoute(Method::Get, "/entities", GetEntities);
     AddRoute(Method::Get, "/entity", GetEntity);
     AddRoute(Method::Post, "/spatial/query", Spatial::Query);
+    AddRoute(Method::Post, "/spatial/overlap", Spatial::Queries::Overlap);
+    AddRoute(Method::Post, "/spatial/raycast", Spatial::Queries::Raycast);
     AddRoute(Method::Get, "/stats", GetStats);
     AddRoute(Method::Get, "/assets", GetAssets);
     AddMutationRoute("/assets/import", Import::Execute);

@@ -22,6 +22,7 @@ namespace Editor::DebugServer::Spatial
     };
 
     // Shared with camera framing. Measures only this entity's ModelRenderer geometry.
-    bool AddModelBounds(Pine::Entity* entity, Bounds& bounds);
+    bool AddModelBounds(Pine::Entity* entity, Bounds& bounds, bool includeInactive = true);
+    void AddTerrainBounds(Pine::Entity* entity, Bounds& bounds, bool includeInactive = true);
     Response Query(const Request& request);
 }

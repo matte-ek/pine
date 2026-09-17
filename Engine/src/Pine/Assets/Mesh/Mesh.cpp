@@ -48,6 +48,41 @@ bool Pine::Mesh::HasElementBuffer() const
     return m_HasElementBuffer;
 }
 
+bool Pine::Mesh::ReadGeometry(std::vector<Vector3f>& vertices, std::vector<std::uint32_t>& indices) const
+{
+    vertices.clear();
+    indices.clear();
+
+    if (m_VertexArray == nullptr || m_VertexBuffer == nullptr)
+    {
+        return false;
+    }
+
+    vertices.resize(m_VertexCount);
+
+    if (!m_VertexBuffer->ReadData(vertices.data(), vertices.size() * sizeof(Vector3f)))
+    {
+        vertices.clear();
+        return false;
+    }
+
+    if (!m_HasElementBuffer)
+    {
+        return true;
+    }
+
+    indices.resize(m_RenderCount);
+
+    if (!m_VertexArray->ReadElementArrayBuffer(indices.data(), indices.size() * sizeof(std::uint32_t)))
+    {
+        vertices.clear();
+        indices.clear();
+        return false;
+    }
+
+    return true;
+}
+
 void Pine::Mesh::SetMaterial(Material*material)
 {
     m_Material = material;

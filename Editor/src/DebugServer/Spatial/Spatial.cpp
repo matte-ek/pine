@@ -58,19 +58,7 @@ namespace
             }
 
             Spatial::AddModelBounds(entity, bounds);
-            const auto renderer = entity->GetComponent<Pine::TerrainRendererComponent>();
-            const auto terrain = renderer != nullptr ? renderer->GetTerrain() : nullptr;
-            if (terrain != nullptr)
-            {
-                // Terrain rendering applies translation only. Chunk bounds track the height
-                // field immediately after sculpting and exclude the visual crack-hiding skirts.
-                const glm::dvec3 position = entity->GetTransform()->GetPosition();
-                for (const auto& chunk : terrain->GetChunks())
-                {
-                    bounds.Include(position + glm::dvec3(chunk.BoundsMin));
-                    bounds.Include(position + glm::dvec3(chunk.BoundsMax));
-                }
-            }
+            Spatial::AddTerrainBounds(entity, bounds);
 
             if (includeChildren)
             {
@@ -93,12 +81,39 @@ void Editor::DebugServer::Spatial::Bounds::Include(const glm::dvec3& point)
     Empty = false;
 }
 
-bool Editor::DebugServer::Spatial::AddModelBounds(Pine::Entity* entity, Bounds& bounds)
+void Editor::DebugServer::Spatial::AddTerrainBounds(Pine::Entity* entity, Bounds& bounds, const bool includeInactive)
+{
+    for (const auto component : entity->GetComponents())
+    {
+        if (component->GetType() != Pine::ComponentType::TerrainRenderer ||
+            (!includeInactive && !component->IsWorldEnabled()))
+        {
+            continue;
+        }
+        const auto terrain = static_cast<Pine::TerrainRendererComponent*>(component)->GetTerrain();
+        if (terrain == nullptr)
+        {
+            continue;
+        }
+
+        // Terrain applies translation only. Live chunk bounds include fresh height
+        // edits and exclude the visual crack-hiding skirts.
+        const glm::dvec3 position = entity->GetTransform()->GetPosition();
+        for (const auto& chunk : terrain->GetChunks())
+        {
+            bounds.Include(position + glm::dvec3(chunk.BoundsMin));
+            bounds.Include(position + glm::dvec3(chunk.BoundsMax));
+        }
+    }
+}
+
+bool Editor::DebugServer::Spatial::AddModelBounds(Pine::Entity* entity, Bounds& bounds, const bool includeInactive)
 {
     bool hasGeometry = false;
     for (const auto component : entity->GetComponents())
     {
-        if (component->GetType() != Pine::ComponentType::ModelRenderer)
+        if (component->GetType() != Pine::ComponentType::ModelRenderer ||
+            (!includeInactive && !component->IsWorldEnabled()))
         {
             continue;
         }
