@@ -60,5 +60,12 @@ So: an editor needs a project name as `argv[1]`, and must run with `data/` as th
 ## Conventions
 - Panels are stateless-ish immediate-mode code: they read/write engine + selection state each frame rather than holding models. Add a panel by creating a `Gui/Panels/<Name>/` folder and registering it in the `Gui` panel loop.
 - Editor code never assumes production mode; keep editor-only behavior behind the editor, not in `Engine`.
+- **Editor icons (`data/editor/icons/`) are imported as `Uncompressed`, which means linear and
+  raw, and must stay that way.** ImGui composites straight into the non-sRGB backbuffer, so
+  everything it samples has to already be in display space. An albedo hint would upload them
+  with an sRGB internal format, the GPU would decode them to linear on sample, and nothing
+  would encode them back - they'd render about a 2.2 gamma too dark. This applies to the gizmo
+  icons too: `Gizmo3D` draws them through an ImGui draw list, not into the scene. Their usage
+  hint is recorded with `TextureUsageHintSource::User` so a re-import cannot quietly undo it.
 
 Related: [data-and-projects.md](data-and-projects.md) · [rendering.md](rendering.md) · [assets.md](assets.md) · [scripting.md](scripting.md)

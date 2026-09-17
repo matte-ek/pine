@@ -155,6 +155,10 @@ namespace
                 if (m_CurrentCreateDirectory)
                 {
                     std::filesystem::create_directory(targetPath);
+
+                    // Unlike CreateEmptyAsset, creating a directory doesn't touch the asset manager,
+                    // so the browser has to be told to pick the new folder up.
+                    Panels::AssetBrowser::BuildAssetHierarchy();
                 }
                 else
                 {
