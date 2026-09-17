@@ -88,7 +88,9 @@ void Pine::RenderManager::Shutdown()
 
 void Pine::RenderManager::Run()
 {
-    PINE_PF_SCOPE();
+    // Named by hand so that the editor's profiler can look the scope up without matching against a
+    // function signature that any refactor would change.
+    PINE_PF_SCOPE_MANUAL("Pine::RenderManager::Run");
 
     // Make sure we have at least one rendering context ready.
     if (m_RenderingContexts.empty() || m_RenderingContexts[0] == nullptr)

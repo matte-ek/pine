@@ -274,7 +274,14 @@ namespace
             nlohmann::json entry;
 
             entry["name"] = scope->Name;
+            entry["shortName"] = scope->ShortName;
+            entry["parent"] = scope->Parent != nullptr ? scope->Parent->Name : "";
+
+            // Summed over the frame rather than per call, so a scope that runs once per rendering
+            // context reports what the whole frame spent in it.
             entry["time"] = scope->Time;
+            entry["smoothedTime"] = scope->SmoothedTime;
+            entry["callCount"] = scope->CallCount;
 
             scopes.push_back(entry);
         }

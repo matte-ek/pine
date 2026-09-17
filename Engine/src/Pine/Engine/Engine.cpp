@@ -7,6 +7,7 @@
 #include "Pine/Audio/Audio.hpp"
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
 #include "Pine/Input/Input.hpp"
+#include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Rendering/GraphicsSettings/GraphicsSettings.hpp"
 #include "Pine/World/Components/Components.hpp"
@@ -188,6 +189,10 @@ void Pine::Engine::Run()
         RenderManager::Run();
 
         glfwSwapBuffers(windowPointer);
+
+        // Everything the frame did has been timed by now, so the profiler's scopes can total up
+        // what it cost and start collecting the next one.
+        Performance::EndFrame();
     }
 }
 
