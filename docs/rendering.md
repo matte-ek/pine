@@ -15,7 +15,7 @@ relative to `Engine/src/Pine/`.
 - **`RenderManager`** owns the contexts and the stage model — `RenderStage` (Pre/PostRender, RenderContext, Pre/PostRender2D, Pre/PostRender3D, PostProcessing) and `PipelineStage` (Prepass, Default). External code hooks in via `AddRenderCallback(fn(context, stage, dt))`.
 - Per context it runs **`Rendering/Pipeline/Pipeline3D/`** or **`Pipeline2D/`** depending on the context config.
 - **`Rendering/SceneProcessor/`** (incl. `SceneLightsProcessor/`) walks the ECS component blocks to gather what to draw and light — this is the bridge from the ECS to the renderer.
-- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`), ordering in `Rendering/RenderGraph/`, the quality presets in `Rendering/GraphicsSettings/`, and `Rendering/ShadowView/` holds the one type the shadow passes are built out of (see below).
+- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`), ordering in `Rendering/RenderGraph/`, and the quality presets in `Rendering/GraphicsSettings/`.
 - **`Renderer2D/`** mirrors `Renderer3D/` for sprites/tilemaps.
 
 ## Frame order within a context
@@ -63,7 +63,7 @@ expression that has to keep agreeing with the first.
 
 ## Shadows
 
-Everything decomposes into **`ShadowView`** (`Rendering/ShadowView/`): one projection, its frustum,
+Everything decomposes into **`ShadowView`** (`Features/Shadows/ShadowView/`): one projection, its frustum,
 a slice of a render target, and a `VisibilitySet`. A directional light is `CASCADE_COUNT` views, a
 spot is one, a point light is six cube faces — so the build/cull/render loop has no per-light-type
 branch left in it.
@@ -74,6 +74,19 @@ into tiles (`Half`/`Quarter`/`Eighth` of the atlas edge), handed out by importan
 (`Samplers::SHADOW_ATLAS`); a light keeping the *same* tile across frames is what makes caching
 possible, and a tile whose contents are still correct is not re-rendered.
 
+**The feature is split by what each part decides** (all under `Features/Shadows/`):
+
+- **`ShadowTileSelection/`** — which lights cast, at what size, and what it costs them: importance,
+  incumbency, the challenger margin, the minimum residency, the promotion/demotion thresholds and
+  the fade. Everything hysteretic is here, because those knobs are only correct read against each
+  other.
+- **`ShadowAtlas/`** — the allocator: tiles in, tiles out, mark-and-sweep. Knows nothing about lights.
+- **`ShadowCascades/`** — fits the directional cascades to the camera frustum, into its own pinned
+  tiles.
+- **`ShadowPass/`** — the one place shadow depth is drawn, for cascades and local views alike.
+- **`Shadows.cpp`** — the per-frame loop that drives them, plus the spot and point views, the tile
+  cache and the statistics.
+
 **Where each kind runs is not the same, deliberately** (`Pipeline3D`):
 - **Local views** (spot, point) are built and rendered in `Pipeline3D::Prepare()`, **once per
   frame** — `Shadows::PrepareLocalViews` / `RenderLocalViews`. Their maps do not depend on the
@@ -82,7 +95,7 @@ possible, and a tile whose contents are still correct is not re-rendered.
 - **Cascades** are built from the camera frustum, so they stay **per context**, inside that
   context's prepass — `Shadows::NewFrame(camera)` then `RenderPassLight(light, ...)` per light.
 
-**Terrain is drawn into every view** alongside the object batch, inside `RenderViews`. It is not in
+**Terrain is drawn into every view** alongside the object batch, inside `ShadowPass::Render`. It is not in
 the batch, so it needs its own call, and it culls its own chunks against the view's frustum rather
 than reading the view's `VisibilitySet` — which cannot hold them (see
 [Visibility & culling](#visibility--culling)). Each view carries an `Origin` for this: the light for

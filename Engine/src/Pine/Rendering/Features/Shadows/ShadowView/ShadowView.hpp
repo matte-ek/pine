@@ -13,11 +13,14 @@ namespace Pine::Rendering
     // point of the type - the build/cull/render loop has no per-light-type branch in it, because by
     // the time it runs there are no light types left, only views.
     //
-    // Deliberately not called a cascade, a face, or an atlas tile, and deliberately not living under
-    // Features/Shadows/: a reflection probe's six faces, a light probe bake or an offline lightmap
-    // rasteriser all want "a projection, its frustum, a slice of a render target, and who is visible
-    // in it", and none of them would want to rename this to use it. The bias pair is the only field
-    // that is shadow-specific, and it is ignorable.
+    // Deliberately not called a cascade, a face, or an atlas tile: those are the three things this
+    // one type replaced, and naming it after any of them would invite the branch back.
+    //
+    // The shape is more general than shadows - a reflection probe's six faces or an offline lightmap
+    // bake would want the same "a projection, its frustum, a slice of a render target, and who is
+    // visible in it", and the bias pair is the only field that is shadow-specific. It lives under
+    // Features/Shadows/ because shadows are its only user today. A second one is a reason to move it
+    // up to Rendering/, not a reason to have put it there first.
     struct ShadowView
     {
         Matrix4f ViewProjection = Matrix4f(1.f);
