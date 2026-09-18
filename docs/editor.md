@@ -4,9 +4,10 @@ The `Editor` executable — an ImGui-based scene/asset editor that links the `En
 library. Source is under `Editor/src/` (namespace `Editor`). It is a *host* for the engine:
 it boots the engine, then adds its own UI, rendering contexts and tooling on top.
 
-To operate a running Editor through HTTP, start with the
-[Editor API guide](debug-server.md): route reference, scene-building workflow,
-asset discovery, captures, request recovery and saving.
+To operate a running Editor through HTTP, read the
+[debug server HTTP reference](debug-server.md) for the routes and their contracts,
+and [building a scene through the debug server](debug-server-workflow.md) for the
+workflow that uses them.
 
 ## Start here
 - `Editor/src/Application.cpp` — `main()`. The whole editor boot sequence in one file.
@@ -14,18 +15,23 @@ asset discovery, captures, request recovery and saving.
 - `Editor/src/Rendering/RenderHandler.hpp` — owns the editor's two `RenderingContext`s and their framebuffers.
 - `Editor/src/Projects/Projects.hpp` — project selection + asset loading.
 - `Editor/src/Other/PlayHandler/PlayHandler.hpp` — play/pause/stop of the simulation.
-- `Editor/src/DebugServer/Editing/Editing.hpp` — debug-server scene writes; protocol and limits in [debug-server-editing.md](debug-server-editing.md).
-- `Editor/src/DebugServer/Editing/History/History.hpp` and `Persistence/Persistence.hpp` — batch undo/redo and explicit level saving; see [history and persistence](debug-server-history.md).
-- `Editor/src/DebugServer/LevelCamera/LevelCamera.hpp` — scene Camera selection; see [scene cameras](debug-server-scene-camera.md).
-- `Editor/src/DebugServer/Inspection/Inspection.hpp` — filtered and explicit-ID scene batches, optional properties/transforms, and pivot/bounds selection; see [scene inspection](debug-server-inspection.md).
-- `Editor/src/DebugServer/Spatial/Spatial.hpp` — read-only batched bounds, dimensions and transforms; shares model measurement with camera framing. See [spatial measurements](debug-server-spatial.md).
-- `Editor/src/DebugServer/Editing/Placement/Placement.hpp` — surface-plane placement, relative bounds alignment/offsets and entity aiming, with parent-aware transform planning; see [entity placement](debug-server-placement.md).
-- `Editor/src/DebugServer/Spatial/Queries/Queries.hpp` — stopped-mode model/terrain raycasts and bounds overlaps, with activation filters and hierarchy exclusions. See [spatial intersections](debug-server-spatial.md#raycasts-and-bounds-overlaps).
-- `Editor/src/DebugServer/Camera/Camera.hpp` — editor-camera look-at, framing and read/restore; see [debug-server-camera.md](debug-server-camera.md).
-- `Editor/src/DebugServer/Requests/Requests.hpp` — synchronized queue, mutation retry identities, status and cancellation; see [request lifecycle](debug-server-requests.md).
-- `Editor/src/DebugServer/Observation/Observation.hpp` — frame-aware captures and combined observations; see [debug-server-observation.md](debug-server-observation.md).
-- `Editor/src/DebugServer/Picking/Picking.hpp` — retained model-surface picking from observations, with bounded capture lifetime; see [debug-server-picking.md](debug-server-picking.md).
-- `Editor/src/DebugServer/Import/Import.hpp` — synchronous local-file imports through the shared editor utility; see [asset import](debug-server-import.md).
+- `Editor/src/DebugServer/` — the localhost HTTP control server. `DebugServer.cpp` owns the
+  transport and the threading rule (HTTP workers never touch engine state); `Requests/` is the
+  main-thread queue, retry identities and cancellation; `Endpoints/Endpoints.cpp` registers every
+  route. One folder per area below it:
+  - `Editing/` — the `POST /edit` batch: preparation and execution, `Schema/` for discovery,
+    `Values/` for shared validation, `Components/<Type>/` adapters that apply state through public
+    setters, plus `History/`, `Placement/` and `Duplication/`.
+  - `Inspection/`, `Spatial/` (with `Queries/` for raycasts and overlaps) — read-only scene
+    queries, bounds and transforms; `Spatial/` shares its model measurement with camera framing.
+  - `Observation/`, `Picking/`, `Screenshot/`, `Camera/` — frame-aware captures, retained
+    surface picking, PNG output and editor-camera control.
+  - `Persistence/`, `LevelCamera/`, `Import/`, `LogHistory/` — level save/load, game-camera
+    selection, asset import and incremental logs.
+  - `Verification/` — per-area Python recipes and native probes; see the
+    [workflow guide](debug-server-workflow.md#verifying-a-change-to-the-debug-server-itself).
+
+  Route contracts are in [debug-server.md](debug-server.md).
 
 ## Boot sequence (`Application.cpp`)
 1. `Pine::Engine::Setup(...)` with `m_ProductionMode = false` (editor behavior, not game).

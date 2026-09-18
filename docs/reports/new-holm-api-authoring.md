@@ -72,8 +72,8 @@ uneven-ground placement based on this deliberately flat scene.
 My recommendation is to prioritize **asset previews, atmosphere authoring and
 lighting diagnostics** for the next visual level-building pass. The existing
 creation, placement and persistence tools already handled the core job well.
-These recommendations complement the [API tracker](../debug-server-todo.md);
-they do not replace its broader investigation and gameplay priorities.
+These recommendations are point-in-time feedback from that authoring pass; the
+[HTTP reference](../debug-server.md) is authoritative for what the API does today.
 
 **Follow-up: fixture light types**
 

@@ -12,7 +12,7 @@ An explicit request lifts the restriction for that request and for the named act
 ## Running the application is fine here
 
 Pine is an exception to the usual "don't launch the app" rule, and deliberately so: the Editor
-carries a debug server (see [`docs/plans/debug-server.md`](../docs/plans/debug-server.md)) whose
+carries a debug server (see [`docs/debug-server.md`](../docs/debug-server.md)) whose
 whole purpose is to let an agent start the editor, look at engine state and inspect the viewport.
 Running it *is* the development loop, not a way of trying a change out on the user's behalf.
 

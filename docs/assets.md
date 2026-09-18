@@ -55,7 +55,7 @@ normal map, and it is what the editor's import dialog
 
 The editor utility `Utilities::Asset::CreateImportContext()` sets up source copying into the
 project's `content/` folder. Its explicit destination-directory overload is also used by
-[`POST /assets/import`](debug-server-import.md), which executes synchronously and returns the
+[`POST /assets/import`](debug-server.md#post-assetsimport), which executes synchronously and returns the
 registered asset IDs. Copying a source already at its content destination preserves that file.
 
 **Progress counters must not use `Imports.size()`.** Importing a model appends the textures it
@@ -217,4 +217,4 @@ serialized root/descendant order, marked by `CameraUsesSerializedOrder`. Zero cl
 the camera. This survives reparenting and differences in editor-only entity counts.
 Files without the flag are read as the legacy live-list index, which counted the editor's own
 temporary entity ahead of the scene; re-saving migrates them.
-See [scene camera persistence](debug-server-scene-camera.md#observe-and-persist).
+See [game camera selection](debug-server.md#get-levelcamera-post-levelcamera).
