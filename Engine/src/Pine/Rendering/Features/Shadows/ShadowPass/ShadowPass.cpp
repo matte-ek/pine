@@ -19,6 +19,10 @@ namespace
 {
     Shader* m_ShadowShader = nullptr;
 
+    // Scratch storage for the draw list built per view below. Shadow views are rendered one after
+    // another and each submits before the next builds, so one list serves them all.
+    Rendering::DrawList m_DrawList;
+
     // What terrain is drawn with in every shadow view, cascade or local. See the draw itself in
     // Render: a height field cannot use the cascades' front-face culling, so it pays for its
     // separation the way a local light does.
@@ -79,10 +83,17 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
         Renderer3D::SetViewProjection(view.ViewProjection);
 
         // Both modes, matching what the old whole-batch draw did: it ignored the material
-        // rendering mode entirely, so alpha-tested geometry cast a solid shadow. RenderBatch
-        // filters by mode, so leaving out the Discard pass would silently stop foliage casting.
-        Pipeline3D::RenderBatch(batchData.OpaqueObjects, MaterialRenderingMode::Opaque, view.Visibility);
-        Pipeline3D::RenderBatch(batchData.OpaqueObjects, MaterialRenderingMode::Discard, view.Visibility);
+        // rendering mode entirely, so alpha-tested geometry cast a solid shadow. A draw list is
+        // built per mode, so leaving out the Discard one would silently stop foliage casting.
+        //
+        // Batched rather than front to back, although this pass writes nothing but depth: a view
+        // is rendered once per frame at most and often reused from the cache, so the sort would be
+        // paid on every view for a saving on the one pass in the frame that does no shading.
+        m_DrawList.Build(batchData.OpaqueObjects, MaterialRenderingMode::Opaque, view.Visibility, { Rendering::DrawOrder::Batched });
+        Pipeline3D::RenderBatch(m_DrawList);
+
+        m_DrawList.Build(batchData.OpaqueObjects, MaterialRenderingMode::Discard, view.Visibility, { Rendering::DrawOrder::Batched });
+        Pipeline3D::RenderBatch(m_DrawList);
 
         // Terrain is not in the batch, so it needs its own call or the ground casts nothing.
         // It culls its own chunks against this view rather than reading view.Visibility, which

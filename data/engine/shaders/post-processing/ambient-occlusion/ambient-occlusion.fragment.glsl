@@ -23,6 +23,11 @@ layout(std140) uniform KernelData
 uniform mat4 projectionMatrix;
 uniform mat4 invProjectionMatrix;
 
+// The pre-pass buffers are allocated at the internal resolution but filled only in the corner this
+// context rendered into, so every lookup into them is scaled into that corner. The view coordinate
+// itself is not: position reconstruction works in the full [0,1] of the view, not of the texture.
+uniform vec2 viewportScale;
+
 const vec2 noiseScale = vec2(960.0 / 4.0, 540.0 / 4.0);
 
 const float radius = 0.8f;
@@ -66,7 +71,7 @@ float ReconstructViewZ(float depth, vec4 coeff)
 void main(void)
 {
 
-    float depth = texture(sceneDepthBuffer, vIn.uv).r;
+    float depth = texture(sceneDepthBuffer, vIn.uv * viewportScale).r;
 
     if (depth >= 1.f)
     {
@@ -75,7 +80,7 @@ void main(void)
     }
 
     vec3 position = ReconstructPosition(vIn.uv, depth);
-    vec3 normal = texture(sceneNormalBuffer, vIn.uv).xyz;
+    vec3 normal = texture(sceneNormalBuffer, vIn.uv * viewportScale).xyz;
     vec3 kernelRandomNoise = texture(kernelRandomnessTexture, vIn.uv * noiseScale).xyz;
 
     vec3 tangent = normalize(kernelRandomNoise - normal * dot(kernelRandomNoise, normal));
@@ -102,7 +107,7 @@ void main(void)
         // Convert from [-1, 1] to [0, 1] to sample
         vec2 screenOffset = offset.xy * 0.5 + 0.5;
 
-        depth = texture(sceneDepthBuffer, screenOffset).r;
+        depth = texture(sceneDepthBuffer, screenOffset * viewportScale).r;
 
         float sampleDepth = ReconstructViewZ(depth, viewZCoeff);
 

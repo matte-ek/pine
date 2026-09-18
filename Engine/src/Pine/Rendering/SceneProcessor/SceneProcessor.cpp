@@ -98,11 +98,18 @@ namespace
 
             Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(context, &modelRenderer);
 
-            // Find out if a mesh within this model has a transparent material
+            // Whether anything about this object needs blending, resolved exactly the way the draw
+            // list resolves it: an override material replaces every mesh's own, so asking the
+            // meshes alone would miss an object made transparent by its renderer - and the blend
+            // pass only ever sees what this test collects.
+            auto* overrideMaterial = modelRenderer.GetOverrideMaterial();
+
             bool hasTransparentMaterial = false;
             for (const auto& mesh : modelRenderer.GetModel()->GetMeshes())
             {
-                if (mesh->GetMaterial() && mesh->GetMaterial()->GetRenderingMode() == Pine::MaterialRenderingMode::Transparent)
+                const auto* material = overrideMaterial != nullptr ? overrideMaterial : mesh->GetMaterial();
+
+                if (material && material->GetRenderingMode() == Pine::MaterialRenderingMode::Transparent)
                 {
                     hasTransparentMaterial = true;
                 }
@@ -120,11 +127,11 @@ namespace
                 }
             }
 
-            context.RenderingBatch.OpaqueObjects[uniqueObject].push_back({&modelRenderer, 0.f});
+            context.RenderingBatch.OpaqueObjects[uniqueObject].push_back({&modelRenderer});
 
             if (hasTransparentMaterial)
             {
-                context.RenderingBatch.BlendObjects[uniqueObject].push_back({&modelRenderer, 0.f});
+                context.RenderingBatch.BlendObjects[uniqueObject].push_back({&modelRenderer});
             }
         }
 

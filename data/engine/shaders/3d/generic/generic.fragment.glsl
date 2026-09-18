@@ -13,6 +13,8 @@ layout(location = 0) out vec4 m_OutputColor;
 uniform MaterialSamplers matSamplers;
 uniform bool hasTangentData;
 
+#shader version VERSION_TRANSPARENT 4
+
 #shader hooks
 
 
@@ -91,6 +93,14 @@ void main(void)
     vec3 spotLights = CalculateSpotLights(surface);
 
     m_OutputColor = vec4(ambient + directionalLight + pointLights + spotLights, 1.0);
+
+#ifdef VERSION_TRANSPARENT
+    // The surface's opacity: the material's own alpha, scaled by whatever the diffuse texture
+    // carries in its alpha channel. Every other version leaves the 1.0 above alone - the resolve
+    // pass forwards this buffer's alpha to the final image, so solid geometry writing less than
+    // that would show through the composite.
+    m_OutputColor.a = matPropeties[0].alpha * texture(matSamplers.diffuse, vIn.uv * matPropeties[0].uvScale).w;
+#endif
 
     // Distance fog. fogSettings.x = view distance, fogSettings.y = intensity (0 disables it).
     // Classic linear fog: blends toward fogColor from the camera out to the view distance.

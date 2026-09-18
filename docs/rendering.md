@@ -53,6 +53,169 @@ and computes the context's visibility, and `Default` consumes both. Updating the
 prepass — as it once was — means shadows, the depth prepass and AO all run on the previous frame's
 viewpoint, which shows up as AO lagging behind geometry whenever the camera moves.
 
+## Draw order & batching
+
+What a pass draws is gathered once per frame into the scene batch (`SceneProcessor`), which is
+keyed by (model, override material) and knows nothing about any viewer. What *order* it draws in is
+a property of the viewer, so it lives in a `Rendering::DrawList` (`Rendering/DrawList/`) built per
+view and consumed by it, the same way a `VisibilitySet` is.
+
+`DrawList::Build` flattens the batch into one item per (mesh, object) that is in the requested
+rendering mode and passes the view's visibility, then orders it: `Batched` (the batch's own
+grouping, no sort), `FrontToBack` (nearest point of the world bounds first) or `BackToFront`
+(furthest centre first, what blending needs). `Pipeline3D::RenderBatch` then walks the ordered list
+and emits one instanced draw per **run** of consecutive items sharing a mesh and a material.
+
+**Batching is therefore derived from the order, not imposed on it** — which is the whole point, but
+it also means depth order and instancing are in direct competition. `DrawOrdering::DepthBuckets`
+is the dial between them: items are quantised into that many bands between the nearest and furthest
+of them, so within a band they re-group by mesh and material. Measured on `levels/new-holm` (gm
+project) framed from outside, 486 visible objects and 588,534 vertices submitted, counting every
+draw the level context issues:
+
+| Pre-pass order | Draw calls |
+| --- | --- |
+| `Batched` | 147 |
+| `FrontToBack`, 4 depth buckets | 254 |
+| `FrontToBack`, 16 depth buckets | 474 |
+| `FrontToBack`, exact | 1291 |
+
+A level built from a modular kit is the worst case for exact depth order: a few hundred copies of a
+few dozen models batch into almost nothing, and sorting them scatters every copy. The sort itself is
+not what costs — `DrawList::Build` measures ~0.2 ms for all seven lists in that frame.
+
+### What the order buys back
+
+The other half of the trade is how many fragments each order lets through the depth test, which is
+how many a forward pass shades. An occlusion query (`GL_SAMPLES_PASSED`) counts them, and unlike a
+clock the count is decided by the geometry and the submission order rather than by the GPU. Same
+level, camera at street level looking down the road, 421 visible objects, 1014x627:
+
+| Order | Draws | Fragments shaded |
+| --- | --- | --- |
+| `Batched` | 73 | 880,873 |
+| `FrontToBack`, 4 buckets | 177 | 707,016 (-19.7%) |
+| `FrontToBack`, 16 buckets | 380 | 671,168 (-23.8%) |
+| `FrontToBack`, exact | 951 | 673,062 (-23.6%) |
+| `BackToFront` | 950 | 1,208,285 (+37.2%) |
+
+Two things follow. **Exact depth order is strictly dominated** — 16 buckets shades the same number
+of fragments for 40% of the draw calls, so opaque geometry should never be sorted exactly. And the
+most the ordering can win is the gap between the 1.87x overdraw this view has and the 1.04x that
+perfect front-to-back leaves.
+
+**The shared depth buffer below wins that whole gap for no extra draw calls**, because the pre-pass
+already runs every frame. Measured the same way, through the engine's actual scene pass, it shades
+636,010 fragments for 635,778 pixels — one shade per pixel, better than a perfect sort and without
+touching the submission order. That is why the pre-pass stays `Batched`: ordering it is the more
+expensive way to buy a saving that is already taken. What is left to win by ordering is the
+pre-pass's own depth writes, where a coarse bucket count is the setting to try.
+
+Two caveats on the table. The figures cover the opaque model batch only — the probe renders it with
+the depth shader, without terrain or the discard pass. And the `Batched` row is not a stable
+number: the batch is an `unordered_map` keyed by pointer, so its iteration order changes between
+runs and with it the overdraw, which measured anywhere from 725k to 880k across runs of the same
+build. An unordered pass has no particular cost, it has an arbitrary one. The ordered rows and the
+`BackToFront` bound are stable to within a percent.
+
+### The depth pre-pass feeds the scene pass
+
+The pre-pass renders at the **context's viewport**, into the same corner of the shared buffers the
+scene pass uses, so the depth it writes lands in the pixels that pass will rasterize. At the top of
+`RenderScene` that depth is blitted into the scene framebuffer and the pass draws with
+`TestFunction::LessEqual`. Every opaque fragment behind another is then rejected before it is
+shaded, at no cost in draw calls.
+
+Three details that are load-bearing:
+
+- **`LessEqual`, not `Equal`.** `Equal` is the tighter test, but it only works for geometry the
+  pre-pass actually drew. The pre-pass draws `Opaque` only — it has no alpha test, so a `Discard`
+  material rendered there would write depth across its transparent parts and occlude what is behind
+  them. Those materials are therefore absent from the pre-pass depth and write their own in the
+  scene pass, which `LessEqual` allows and `Equal` would not. Depth writes stay on for the same
+  reason.
+- **A copy, not a shared attachment.** The scene buffer belongs to `RenderManager`, which clears it
+  *after* the pre-pass has run; sharing the texture would mean that clear wiping the depth. The
+  pre-pass buffer's depth is the packed `DepthStencil` format purely so the blit is legal — a depth
+  blit requires both buffers to hold depth in the same format, and the scene buffer packs a stencil
+  the editor's outlines use.
+- **Every shader that writes this depth computes `gl_Position` identically.** `depth`, `generic`
+  and `terrain` all use `projectionMatrix * viewMatrix * transformationMatrix * vertexPosition`.
+  Change one of them and the depth it writes stops matching what the scene pass computes, which
+  `LessEqual` turns into missing surfaces rather than an error.
+
+One consequence worth knowing: **ambient occlusion now reads a viewport-resolution buffer.** It used
+to read a pre-pass that filled the whole internal resolution — effectively supersampled relative to
+the viewport — and it now reads the same corner as everything else, scaling its lookups by a
+`viewportScale` uniform the way `post-process` does. Slightly less fine-scale occlusion is found;
+measured on the terrain verification scene, the ground came out 1.4% brighter.
+
+**The depth pre-pass is `Batched`**, despite being the pass that would most obviously want
+front-to-back: its depth is handed to the scene pass (below), so the shading that ordering would
+save has already been saved. Ordering it would only make the pre-pass's own depth writes cheaper,
+and on this content that costs more in draw calls than it returns.
+
+Timings in that comparison are not in the table on purpose: they were taken under a software
+rasterizer, where repeated runs of an identical build varied by more than the differences being
+measured. `GET /stats` on the debug server reports every profiler scope, so the same comparison is
+one request on real hardware.
+
+## Materials & transparency
+
+A material's `MaterialRenderingMode` decides which pass draws it, and a draw list is built per
+mode. The scene pass runs `Opaque`, then `Discard`, then the skybox, then `Transparent` in
+`RenderBlendedObjects`.
+
+**The blend pass** builds its list from `ObjectBatchData::BlendObjects` — the objects `SceneProcessor`
+saw carrying a transparent material, which is a much smaller set than the scene — ordered
+`BackToFront` with **`DepthBuckets` left at 0**. Blending is not commutative, so two surfaces that
+swap places composite differently; this is the one pass that has to pay the draw calls an exact sort
+costs, and it can afford to because a scene holds far less blended geometry than opaque. It draws
+with the depth test on and **depth writes off**: solid geometry still hides a blended surface, but a
+blended surface must not reject the ones drawn after it, which in this order are the ones in front
+of it.
+
+The skybox is drawn **before** this pass rather than last, because it is what a transparent surface
+with nothing solid behind it blends against.
+
+**The alpha itself** is carried by the material. `Material::GetAlpha()` reaches the shader through
+`ShaderStorages::MaterialProperties`, which mirrors `MaterialProperties` in
+`shaders/3d/shared/common.glsl` member for member — a field added to one has to be added to the
+other in the same position, or every member after it reads the wrong std140 offset. Only the
+generic shader's `VERSION_TRANSPARENT` variant writes that alpha out; every other version writes a
+constant 1, because `post-process.fragment.glsl` forwards the scene buffer's alpha to the final
+image and the editor composites that image with blending on.
+
+Three limits worth knowing:
+
+- **Sorting is per object-mesh, by centre distance.** Two transparent surfaces that interpenetrate,
+  or a single mesh that overlaps itself, composite in whatever order their centres imply. That is
+  the usual limitation of a sorted blend pass and the reason engines keep transparent geometry
+  simple.
+- **Transparent surfaces cast no shadows.** `ShadowPass` renders `Opaque` and `Discard` only.
+- **Membership is decided per object, in `SceneProcessor`.** It resolves each mesh's material the
+  same way the draw list does, override material included — a renderer made transparent by its
+  override is what the blend pass would otherwise silently miss.
+
+### Verification
+
+```sh
+python3 Editor/src/DebugServer/Verification/verify-blending.py --build build
+```
+
+Nothing creates a material over HTTP and `/edit` cannot make one transparent, so this builds a probe
+out of the Editor's boot sequence — the `verify-physics-native.py` pattern — and puts a red cube in
+front of a green one. It then reads the same centre pixel three times: with the near cube opaque,
+semi-transparent at alpha 0.5, and removed. A blend is the only thing that lands between the other
+two readings, and the reading is taken off the level viewport's own framebuffer rather than through
+a capture endpoint. The near cube is coloured through an **override material**, which is the path
+that decides blend membership and the one that was wrong when the pass was first written. The same
+run asserts a `DrawList` comes out descending for `BackToFront` and ascending for `FrontToBack`.
+
+The per-phase line it prints carries the draw-call count, which is the cheapest signature of the
+blend pass working: two objects cost four draws with both opaque (pre-pass and scene pass each), and
+three once the near one is blended, since the blend pass draws it and the pre-pass does not.
+
 ## Visibility & culling
 
 Visibility is a property of **(object, frustum)**, not of the object. That distinction is the whole

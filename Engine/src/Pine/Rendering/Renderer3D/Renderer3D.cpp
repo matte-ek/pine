@@ -111,6 +111,7 @@ namespace
             materialData.AmbientColor = Vector3f(0.f);
             materialData.Shininess = 16.f;
             materialData.UVScale = 1.f;
+            materialData.Alpha = 1.f;
 
             return;
         }
@@ -121,6 +122,7 @@ namespace
         materialData.AmbientColor = SrgbToLinear(material->GetAmbientColor());
         materialData.Shininess = material->GetShininess();
         materialData.UVScale = material->GetTextureScale();
+        materialData.Alpha = material->GetAlpha();
     }
 }
 
@@ -213,6 +215,10 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     {
         version = Specifications::ShaderVersions::Generic::Discard;
     }
+    else if (m_Material->GetRenderingMode() == MaterialRenderingMode::Transparent)
+    {
+        version = Specifications::ShaderVersions::Generic::Transparent;
+    }
 
     const auto shader = m_RenderingConfiguration.OverrideShader ? m_RenderingConfiguration.OverrideShader : m_Material->GetShader();
 
@@ -275,6 +281,7 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     materialData.AmbientColor = SrgbToLinear(m_Material->GetAmbientColor());
     materialData.Shininess = m_Material->GetShininess();
     materialData.UVScale = m_Material->GetTextureScale();
+    materialData.Alpha = m_Material->GetAlpha();
 
     ShaderStorages::Material.Upload();
 

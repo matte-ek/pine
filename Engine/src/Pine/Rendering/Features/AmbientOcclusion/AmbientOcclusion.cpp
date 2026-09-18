@@ -36,8 +36,9 @@ namespace
 
     Graphics::ShaderStorage<KernelData> KernelDataStorage(Renderer3D::Specifications::ShaderStorages::AO_DATA, "KernelData");
 
-    // The AO pass covers the whole depth buffer, so it is sized from the internal resolution rather
-    // than from any one context, just divided down for speed.
+    // The AO pass covers the whole of its own buffer, so it is sized from the internal resolution
+    // rather than from any one context, just divided down for speed. Its *input* is the corner of
+    // the pre-pass buffers that the context drew into, which is what viewportScale reaches.
     Vector2i BufferResolution()
     {
         const int divisor = Rendering::GraphicsSettings::GetAmbientOcclusionResDivisor();
@@ -202,8 +203,25 @@ void Rendering::AmbientOcclusion::Run(const RenderingContext& context)
         Rendering::GraphicsSettings::GetAmbientOcclusionSamples()
     );
 
+    // The pre-pass fills the context-sized corner of buffers allocated at the internal resolution,
+    // the same arrangement the scene buffer has, so every lookup into them is scaled the way
+    // PostProcessing scales its own.
+    //
+    // Against the internal resolution rather than the buffer's own reported size: the pre-pass
+    // buffer is built attachment by attachment, and IFrameBuffer::GetSize only knows the size of a
+    // buffer that allocated its attachments in one call, so it reports 0 here.
+    const auto allocatedResolution = Rendering::InternalResolution::Get();
+
+    m_AmbientOcclusionShader->GetProgram()->GetUniformVariable("viewportScale")->LoadVector2(
+        Vector2f(context.Size.x / static_cast<float>(allocatedResolution.x),
+                 context.Size.y / static_cast<float>(allocatedResolution.y))
+    );
+
     m_DepthBuffer->GetColorBuffer()->Bind(0);
-    m_DepthBuffer->GetDepthBuffer()->Bind(1);
+
+    // Depth-stencil, because the pre-pass buffer carries the packed format its depth has to be in
+    // to be blitted into the scene buffer. Sampling it reads the depth component.
+    m_DepthBuffer->GetDepthStencilBuffer()->Bind(1);
     m_KernelRandomnessTexture->Bind(2);
 
     Common::QuadTarget::Render();

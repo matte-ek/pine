@@ -81,6 +81,9 @@ struct BaseLightResult
     vec3 specular;
 };
 
+// Mirrors 'MaterialProperties' in Renderer3D/ShaderStorages.hpp - same members, same order. A
+// field added on one side has to be added on the other, or every member after it reads the wrong
+// offset out of the uniform buffer.
 struct MaterialProperties
 {
     vec3 diffuseColor;
@@ -88,6 +91,7 @@ struct MaterialProperties
     vec3 ambientColor;
     float shininess;
     float uvScale;
+    float alpha;
 };
 
 struct MaterialSamplers

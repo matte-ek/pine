@@ -218,6 +218,14 @@ namespace
             assetModified = true;
         }
 
+        // Only read in the Transparent rendering mode above.
+        auto alpha = material->GetAlpha();
+        if (Widgets::SliderFloat("Alpha", &alpha, 0.f, 1.f))
+        {
+            material->SetAlpha(alpha);
+            assetModified = true;
+        }
+
         if (material->IsMeshGenerated())
         {
             Widgets::PopDisabled();

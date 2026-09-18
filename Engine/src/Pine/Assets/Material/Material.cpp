@@ -21,6 +21,7 @@ bool Pine::Material::LoadAssetData(const ByteSpan& span)
     materialSerializer.Shader.Read(m_Shader);
 
     materialSerializer.RenderingMode.Read(m_RenderingMode);
+    materialSerializer.Alpha.Read(m_Alpha);
     materialSerializer.Shininess.Read(m_Shininess);
     materialSerializer.TextureScale.Read(m_TextureScale);
 
@@ -114,6 +115,26 @@ Pine::MaterialRenderingMode Pine::Material::GetRenderingMode() const
     return m_RenderingMode;
 }
 
+void Pine::Material::SetAlpha(float value)
+{
+    if (value < 0.f)
+    {
+        value = 0.f;
+    }
+
+    if (value > 1.f)
+    {
+        value = 1.f;
+    }
+
+    m_Alpha = value;
+}
+
+float Pine::Material::GetAlpha() const
+{
+    return m_Alpha;
+}
+
 void Pine::Material::SetShininess(float value)
 {
     if (value < 0.01f)
@@ -158,6 +179,7 @@ Pine::ByteSpan Pine::Material::SaveAssetData()
     materialSerializer.Shader.Write(m_Shader);
 
     materialSerializer.RenderingMode.Write(m_RenderingMode);
+    materialSerializer.Alpha.Write(m_Alpha);
     materialSerializer.Shininess.Write(m_Shininess);
     materialSerializer.TextureScale.Write(m_TextureScale);
 

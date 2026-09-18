@@ -32,6 +32,11 @@ namespace Pine
 
 		MaterialRenderingMode m_RenderingMode = MaterialRenderingMode::Opaque;
 
+		// Scales the surface's opacity, on top of whatever alpha the diffuse texture carries.
+		// Only the Transparent rendering mode reads it: the opaque and discard passes render
+		// with blending off, so their output alpha stays 1 whatever is set here.
+		float m_Alpha = 1.f;
+
 		float m_Shininess = 16.f;
 		float m_TextureScale = 1.f;
 
@@ -49,6 +54,7 @@ namespace Pine
 	        PINE_SERIALIZE_ASSET(Shader);
 
 	        PINE_SERIALIZE_PRIMITIVE(RenderingMode, Serialization::DataType::Int32);
+	        PINE_SERIALIZE_PRIMITIVE(Alpha, Serialization::DataType::Float32);
 	        PINE_SERIALIZE_PRIMITIVE(Shininess, Serialization::DataType::Float32);
 	        PINE_SERIALIZE_PRIMITIVE(TextureScale, Serialization::DataType::Float32);
 	    };
@@ -79,6 +85,9 @@ namespace Pine
 
 		void SetRenderingMode(MaterialRenderingMode mode);
 		MaterialRenderingMode GetRenderingMode() const;
+
+		void SetAlpha(float value);
+		float GetAlpha() const;
 
 		void SetShininess(float value);
 		float GetShininess() const;

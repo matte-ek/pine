@@ -15,10 +15,6 @@ namespace Pine::Rendering
     struct ObjectRenderInstance
     {
         ModelRenderer* renderer = nullptr;
-
-        // Note: This is not guaranteed to be computed! Will only be done for
-        // blend objects.
-        float distance = 0.f;
     };
 
     struct RenderObject
@@ -47,12 +43,13 @@ namespace Pine::Rendering
 
     struct ObjectBatchData
     {
+        // Everything in the scene, whatever its material's rendering mode - a draw list filters it
+        // down to the mode its pass wants.
         ObjectBatchMap OpaqueObjects;
 
-        // Objects which will require discarding
-        ObjectBatchMap DiscardObjects;
-
-        // Objects which will require blending
+        // Only the objects carrying a mesh with a Transparent material. The blend pass could filter
+        // those out of the map above, but it is the one pass that sorts, and sorting a list that
+        // had to be walked over the whole scene to build is the cost this map exists to avoid.
         ObjectBatchMap BlendObjects;
     };
 }

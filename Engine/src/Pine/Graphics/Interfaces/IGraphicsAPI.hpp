@@ -107,6 +107,12 @@ namespace Pine::Graphics
 
         virtual void SetBlendingEnabled(bool value) = 0;
         virtual void SetDepthTestEnabled(bool value) = 0;
+
+        // Whether depth-passing fragments update the depth buffer. Separate from the test: a pass
+        // that has to be occluded by the scene but must not occlude the rest of its own pass -
+        // blended geometry - tests depth and writes none.
+        virtual void SetDepthWriteEnabled(bool value) = 0;
+
         virtual void SetStencilTestEnabled(bool value) = 0;
         virtual void SetFaceCullingEnabled(bool value) = 0;
         virtual void SetMultiSampleEnabled(bool value) = 0;

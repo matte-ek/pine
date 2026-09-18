@@ -397,6 +397,11 @@ void Pine::Graphics::OpenGL::SetDepthTestEnabled(const bool value)
 	value ? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST);
 }
 
+void Pine::Graphics::OpenGL::SetDepthWriteEnabled(const bool value)
+{
+	glDepthMask(value ? GL_TRUE : GL_FALSE);
+}
+
 void Pine::Graphics::OpenGL::SetStencilTestEnabled(const bool value)
 {
 	value ? glEnable(GL_STENCIL_TEST) : glDisable(GL_STENCIL_TEST);

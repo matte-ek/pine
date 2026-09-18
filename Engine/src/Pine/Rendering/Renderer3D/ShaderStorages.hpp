@@ -22,6 +22,9 @@ namespace Pine::Renderer3D::ShaderStorages
         }Instances[Specifications::General::MAX_INSTANCE_COUNT];
     };
 
+    // Mirrors 'MaterialProperties' in shaders/3d/shared/common.glsl, laid out for std140: each
+    // Vector3f is followed by the padding the rule adds, so the two structs agree member for member.
+    // A field added here has to be added there as well, in the same position.
     struct MaterialProperties
     {
         Vector3f DiffuseColor;
@@ -31,7 +34,7 @@ namespace Pine::Renderer3D::ShaderStorages
         Vector3f AmbientColor;
         float Shininess;
         float UVScale;
-        float Pad3;
+        float Alpha;
         float Pad4;
         float Pad5;
     };

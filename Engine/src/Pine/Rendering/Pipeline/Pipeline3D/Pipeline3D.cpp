@@ -29,6 +29,12 @@ namespace
 
     Rendering::SceneProcessor::SceneProcessorContext m_SceneContext;
 
+	// Scratch storage for the draw list each pass below builds. One list serves all of them
+	// because every pass builds it and submits it before the next one builds: nothing here holds
+	// on to a list across passes, and reusing it is what keeps the per-frame rebuild from
+	// allocating. A pass that ever needs to keep its order alive past its own draw needs its own.
+	Rendering::DrawList m_DrawList;
+
 	PipelineConfiguration m_Configuration;
 
 	// Terrain is not part of the object batch - it renders through its own path, with its own mesh
@@ -67,7 +73,11 @@ namespace
 		m_DepthBuffer->Bind();
 
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
-		Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Rendering::InternalResolution::Get());
+
+		// The same corner of the shared buffers the scene pass draws into. The depth written here
+		// is what that pass tests against, so the two have to rasterize to the same pixels; the
+		// clear still covers the whole buffer, so nothing stale is left outside the corner.
+		Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Vector2i(renderingContext.Size));
 		Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer);
 
 		Renderer3D::FrameReset();
@@ -79,11 +89,68 @@ namespace
 		renderSettings.SkipMaterialInitialization = true;
 
 		RenderTerrain(renderingContext);
-		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque, renderingContext.Visibility);
+
+		// Batched, not front to back, although this is the pass that would most obviously want it.
+		//
+		// Two reasons, both measured on levels/new-holm - see docs/rendering.md. The depth filled
+		// here goes into this pass's own buffer, which only ambient occlusion reads, so ordering it
+		// cannot reject anything in the pass that does the shading; and the scene is a modular kit,
+		// so depth order takes its instancing apart - 147 draw calls become 1291 sorted exactly,
+		// or 254 in four depth buckets.
+		//
+		// The order to switch to is DrawOrder::FrontToBack with a small DepthBuckets count, and the
+		// change worth making first is giving the scene pass this buffer to test against.
+		m_DrawList.Build(m_SceneContext.RenderingBatch.OpaqueObjects,
+		    MaterialRenderingMode::Opaque,
+		    renderingContext.Visibility,
+		    { Rendering::DrawOrder::Batched });
+
+		RenderBatch(m_DrawList);
 
 		renderSettings.OverrideShader = nullptr;
 		renderSettings.IgnoreShaderVersions = false;
 		renderSettings.SkipMaterialInitialization = false;
+	}
+
+	// Everything with a Transparent material, blended over the scene that is already in the buffer.
+	//
+	// Exact back-to-front order, no depth buckets: blending is not commutative, so two surfaces
+	// that swap places composite differently. That is the one case where the draw calls the
+	// ordering costs have to be paid - see docs/rendering.md - and it is affordable here only
+	// because a scene holds far less blended geometry than opaque.
+	void RenderBlendedObjects(RenderingContext& context)
+	{
+		PINE_PF_SCOPE();
+
+		if (context.SceneCamera == nullptr)
+		{
+			return;
+		}
+
+		m_DrawList.Build(m_SceneContext.RenderingBatch.BlendObjects,
+		    MaterialRenderingMode::Transparent,
+		    context.Visibility,
+		    { Rendering::DrawOrder::BackToFront,
+		      context.SceneCamera->GetParent()->GetTransform()->GetPosition() });
+
+		if (m_DrawList.GetItems().empty())
+		{
+			return;
+		}
+
+		auto* graphicsApi = Graphics::GetGraphicsAPI();
+
+		// Tested against the scene's depth so solid geometry still hides these, but writing none of
+		// its own: a blended surface that wrote depth would reject the surfaces drawn after it,
+		// which in this order are the ones in front of it.
+		graphicsApi->SetDepthFunction(Graphics::TestFunction::LessEqual);
+		graphicsApi->SetDepthWriteEnabled(false);
+		graphicsApi->SetBlendingEnabled(true);
+
+		RenderBatch(m_DrawList);
+
+		graphicsApi->SetBlendingEnabled(false);
+		graphicsApi->SetDepthWriteEnabled(true);
 	}
 
 	void RenderScene(const std::vector<Light*>& lights, RenderingContext& context)
@@ -107,7 +174,33 @@ namespace
 		    levelSettings.FogDistance,
 		    levelSettings.FogIntensity);
 
+		// Hand the pre-pass's depth to this pass instead of shading against an empty buffer. Every
+		// opaque surface in front of another is then rejected before its fragments are shaded, and
+		// it costs nothing in draw calls - the ordering does not change, the depth simply arrives
+		// already filled. See docs/rendering.md for what that is worth on a real level.
+		//
+		// A copy rather than a shared attachment: the scene buffer is owned by RenderManager and
+		// cleared by it after the pre-pass has run, so sharing the texture would mean that clear
+		// wiping what this pass is here to read.
+		if (context.SceneCamera != nullptr && m_DepthBuffer != nullptr)
+		{
+			auto* sceneBuffer = RenderManager::GetInternalFrameBuffer();
+			const auto viewport = Vector4i(0, 0, static_cast<int>(context.Size.x), static_cast<int>(context.Size.y));
+
+			sceneBuffer->Blit(m_DepthBuffer, Graphics::DepthBuffer, viewport, viewport);
+
+			// Blit leaves the default framebuffer bound on both targets.
+			sceneBuffer->Bind();
+		}
+
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
+
+		// LessEqual, not Less: the surfaces this pass draws are the ones the pre-pass already wrote
+		// depth for, and at an equal depth Less rejects every one of them. Not Equal either, which
+		// would be the tighter test - anything the pre-pass did not draw (a discard material, which
+		// it has no alpha test to render correctly) has to be able to write its own depth here.
+		Graphics::GetGraphicsAPI()->SetDepthFunction(Graphics::TestFunction::LessEqual);
+
 		Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
 
 		Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
@@ -125,26 +218,41 @@ namespace
 
 		RenderTerrain(context);
 
-		// Render fully opaque objects.
-		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Opaque, context.Visibility);
+		// Render fully opaque objects. Batched rather than front to back: this pass writes into its
+		// own depth buffer rather than the pre-pass's, so ordering it buys nothing today - see
+		// docs/rendering.md.
+		m_DrawList.Build(m_SceneContext.RenderingBatch.OpaqueObjects,
+		    MaterialRenderingMode::Opaque,
+		    context.Visibility,
+		    { Rendering::DrawOrder::Batched });
+
+		RenderBatch(m_DrawList);
 
 		// Render objects which require discarding
-		RenderBatch(m_SceneContext.RenderingBatch.OpaqueObjects, MaterialRenderingMode::Discard, context.Visibility);
+		m_DrawList.Build(m_SceneContext.RenderingBatch.OpaqueObjects,
+		    MaterialRenderingMode::Discard,
+		    context.Visibility,
+		    { Rendering::DrawOrder::Batched });
 
-		// TODO: Render semi-transparent objects, we'll have to sort all objects by distance as well.
+		RenderBatch(m_DrawList);
 
-		// Skybox
+		// Skybox before the blended geometry, not after it. It is what a transparent surface with
+		// nothing solid behind it blends against, and it writes no alpha of its own - drawing it
+		// afterwards would either paint over what the blend produced or be rejected by the depth
+		// the blend wrote, depending on which of the two writes depth.
 		if (context.Skybox != nullptr)
 		{
 			Rendering::Skybox::Render(context.Skybox);
 			context.Statistics.DrawCalls++;
 		}
+
+		RenderBlendedObjects(context);
 	}
 
-    // Unlike the scene buffer, the pre-pass fills this one edge to edge: ambient occlusion reads it
-    // at plain texture coordinates and the resolve composites the result the same way. So it is
-    // sized to the whole internal resolution and rendered at it, and only the scene pass takes the
-    // context-sized corner that viewportScale compensates for.
+    // Allocated at the whole internal resolution, like every shared buffer, but filled only in the
+    // context-sized corner the scene pass uses - the depth in it is handed to that pass, and depth
+    // written under a different viewport would land in the wrong pixels. Ambient occlusion reads it
+    // with the same viewportScale the resolve uses on the scene buffer.
     void CreateDepthBuffer()
 	{
 	    const auto resolution = Rendering::InternalResolution::Get();
@@ -166,6 +274,10 @@ namespace
 
 	    m_DepthBuffer->AttachTexture(normalBuffer, Graphics::BufferAttachment::Color);
 
+	    // Depth-stencil rather than plain depth, although nothing here uses the stencil bits: this
+	    // depth is blitted into the scene buffer, and a blit of the depth component requires both
+	    // buffers to hold it in the same format. The scene buffer carries a stencil the editor's
+	    // outlines need, so its depth is the packed 24_8 format and this one has to match it.
 	    const auto depthBuffer = Graphics::GetGraphicsAPI()->CreateTexture();
 
 	    depthBuffer->Bind();
@@ -173,99 +285,83 @@ namespace
             resolution.x,
             resolution.y,
             0,
-            Graphics::TextureFormat::Depth, Graphics::TextureDataFormat::Float,
+            Graphics::TextureFormat::DepthStencil, Graphics::TextureDataFormat::UnsignedInt24_8,
             nullptr);
 
-	    m_DepthBuffer->AttachTexture(depthBuffer, Graphics::BufferAttachment::Depth);
+	    m_DepthBuffer->AttachTexture(depthBuffer, Graphics::BufferAttachment::DepthStencil);
 	    m_DepthBuffer->Finish();
 	}
 }
 
-void Pipeline3D::RenderBatch(const Rendering::ObjectBatchMap& mapBatch,
-                             const MaterialRenderingMode materialRenderingMode,
-                             const Rendering::RenderCulling::VisibilitySet& visibility)
+void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList)
 {
-	for (const auto& [modelGroup, objectRenderInstances] : mapBatch)
+	const auto& items = drawList.GetItems();
+
+	std::size_t index = 0;
+
+	while (index < items.size())
 	{
-		const auto model = modelGroup.ModelPtr;
+		// One run: the longest stretch of items that share a mesh and a material, and so can go to
+		// the GPU as a single instanced draw. In a batched list that is a whole model group; in a
+		// depth-ordered one it is however many neighbours happened to line up.
+		auto* mesh = items[index].MeshPtr;
+		auto* material = items[index].MaterialPtr;
 
-		int meshIndex = -1;
-		for (const auto mesh : model->GetMeshes())
+		std::size_t runEnd = index;
+		while (runEnd < items.size() && items[runEnd].MeshPtr == mesh && items[runEnd].MaterialPtr == material)
 		{
-			meshIndex++;
+			runEnd++;
+		}
 
-			// Make sure we're rendering materials with the correct mode
-			const auto material = modelGroup.OverrideMaterial != nullptr ? modelGroup.OverrideMaterial : mesh->GetMaterial();
-			if (material && material->GetRenderingMode() != materialRenderingMode)
+		Renderer3D::PrepareMesh(mesh, material);
+
+		bool hasStencilBufferOverride = false;
+
+		for (std::size_t i = index; i < runEnd; i++)
+		{
+			const auto modelRenderer = items[i].Renderer;
+
+			modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
+
+			if (modelRenderer->GetOverrideStencilBuffer())
 			{
+				hasStencilBufferOverride = true;
 				continue;
 			}
 
-			Renderer3D::PrepareMesh(mesh, modelGroup.OverrideMaterial);
-
-			bool hasStencilBufferOverride = false;
-
-			for (auto [renderer, distance] : objectRenderInstances)
+			if (Renderer3D::AddInstance(
+			    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),
+			    &modelRenderer->GetRenderingHintData().Lights))
 			{
-				const auto modelRenderer = renderer;
+				Renderer3D::RenderMeshInstanced();
+			}
+		}
 
-			    if (!visibility.IsVisible(modelRenderer->GetInternalId()))
-			    {
-			        continue;
-			    }
+		Renderer3D::RenderMeshInstanced();
+
+		// Anything writing its own stencil value cannot ride along in an instanced draw, so it is
+		// drawn on its own once the rest of the run has gone out.
+		if (hasStencilBufferOverride)
+		{
+			for (std::size_t i = index; i < runEnd; i++)
+			{
+				const auto modelRenderer = items[i].Renderer;
+
+				if (!modelRenderer->GetOverrideStencilBuffer())
+				{
+					continue;
+				}
 
 				modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
 
-				int modelMeshIndex = modelRenderer->GetModelMeshIndex();
-				if (modelMeshIndex >= 0)
-				{
-					if (modelMeshIndex != meshIndex)
-					{
-						continue;
-					}
-				}
-
-			    if (modelRenderer->GetOverrideStencilBuffer())
-			    {
-			        hasStencilBufferOverride = true;
-			        continue;
-			    }
-
-				if (Renderer3D::AddInstance(
+				Renderer3D::RenderMesh(
 				    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),
-				    &modelRenderer->GetRenderingHintData().Lights))
-				{
-					Renderer3D::RenderMeshInstanced();
-				}
-			}
-
-			Renderer3D::RenderMeshInstanced();
-
-			if (hasStencilBufferOverride)
-			{
-				for (const auto [renderer, distance] : objectRenderInstances)
-				{
-				    int modelMeshIndex = renderer->GetModelMeshIndex();
-				    if (modelMeshIndex >= 0)
-				    {
-				        if (modelMeshIndex != meshIndex)
-				        {
-				            continue;
-				        }
-				    }
-
-					if (renderer->GetOverrideStencilBuffer())
-					{
-						renderer->GetParent()->GetTransform()->OnRender(0.f);
-
-						Renderer3D::RenderMesh(
-						    renderer->GetParent()->GetTransform()->GetTransformationMatrix(),
-						    &renderer->GetRenderingHintData().Lights,
-						    renderer->GetStencilBufferValue());
-					}
-				}
+				    &modelRenderer->GetRenderingHintData().Lights,
+				    modelRenderer->GetStencilBufferValue());
 			}
 		}
+
+		index = runEnd;
 	}
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pine/Assets/Material/Material.hpp"
+#include "Pine/Rendering/DrawList/DrawList.hpp"
 #include "Pine/Rendering/RenderingContext.hpp"
 #include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
 
@@ -28,14 +29,17 @@ namespace Pine::Pipeline3D
     void Prepare();
     void Run(RenderingContext& context, PipelineStage stage);
 
-    // Draws one object batch, filtered to a material rendering mode and to a visibility set.
+    // Draws an already built and ordered draw list, one instanced draw per run of consecutive
+    // items sharing a mesh and a material.
     //
-    // Exposed because the shadow pass is a second caller: it renders the same batch, from a
-    // different projection, with a shader override and its own visibility. It previously kept a
-    // near-copy of this function, which is the thing worth deleting rather than extending.
-    void RenderBatch(const Rendering::ObjectBatchMap& mapBatch,
-                     MaterialRenderingMode materialRenderingMode,
-                     const Rendering::RenderCulling::VisibilitySet& visibility);
+    // Takes the list rather than the batch because ordering belongs to the view and this does not:
+    // the caller decides what its pass wants (see Rendering::DrawOrder) and this submits whatever
+    // order it is handed.
+    //
+    // Exposed because the shadow pass is a second caller: it draws the same scene from a different
+    // projection, with a shader override and its own visibility. It previously kept a near-copy of
+    // this function, which is the thing worth deleting rather than extending.
+    void RenderBatch(const Rendering::DrawList& drawList);
 
     PipelineConfiguration& GetPipelineConfiguration();
 

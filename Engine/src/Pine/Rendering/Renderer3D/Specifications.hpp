@@ -94,7 +94,12 @@ namespace Pine::Renderer3D::Specifications
         {
             Default = 0,
             Discard = (1 << 0),
-            PerformanceFast = (1 << 1)
+            PerformanceFast = (1 << 1),
+
+            // Writes the surface's real alpha instead of a constant 1. Only this version does:
+            // the resolve pass forwards the scene buffer's alpha to the final image, so an
+            // opaque surface writing anything below 1 would show through the composite.
+            Transparent = (1 << 2)
         };
 
         enum class Terrain
