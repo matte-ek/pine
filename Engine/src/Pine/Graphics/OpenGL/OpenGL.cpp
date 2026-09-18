@@ -13,6 +13,11 @@
 namespace
 {
 
+	// The 2D batcher's shaders declare `uniform sampler2D m_Textures[16]`, so this is how many
+	// textures one batch can bind. Changing it means changing that array in
+	// data/engine/shaders/2d/rect.fragment.glsl and rect-filled.fragment.glsl as well.
+	constexpr int BatchTextureSlots = 16;
+
 	std::uint32_t TranslateRenderMode(const Pine::Graphics::RenderMode mode)
 	{
 		switch (mode)
@@ -248,12 +253,12 @@ bool Pine::Graphics::OpenGL::Setup()
 	m_VersionString = reinterpret_cast<const char*>(glGetString(GL_VERSION));
 	m_GraphicsAdapter = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
 
-	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &m_SupportedTextureSlots);
-
-	// TODO: Figure out how this exactly works, using GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS doesn't work.
-	// Note this is only consumed by Renderer2D's batching; it does not gate sampler bindings, which
-	// is why the shadow map can sit at slot 16 and the shadow atlas at 17.
-	m_SupportedTextureSlots = 16;
+	// This is decided by the 2D batcher's sampler array rather than by what the device reports:
+	// GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS counts units across all shader stages, so it is far
+	// larger than a batch could ever use. LogDeviceLimits() reports the device's own numbers.
+	// It is only consumed by Renderer2D's batching and does not gate sampler bindings elsewhere,
+	// which is why the shadow map can sit at slot 16 and the shadow atlas at 17.
+	m_SupportedTextureSlots = BatchTextureSlots;
 
 	LogDeviceLimits();
 

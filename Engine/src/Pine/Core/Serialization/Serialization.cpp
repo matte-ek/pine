@@ -491,13 +491,6 @@ bool Pine::Serialization::Serializer::Read(const void* data, const size_t size) 
             dataPtr += sizeof(std::uint32_t);
             dataRemaining -= sizeof(std::uint32_t);
             dynamicSize = true;
-
-            // TODO: Remove me, used while testing.
-            if (dataSize >= 0x8000152)
-            {
-                PError("CHECK ME: Size big while reading data");
-                return false;
-            }
         }
 
         if (dataSize == 0)
@@ -620,13 +613,6 @@ bool Pine::Serialization::Serializer::Read(const void* data, const size_t size) 
                 if (dataRemaining < arrayElementSize)
                 {
                     PError("Ran out of data while reading array data.");
-                    return false;
-                }
-
-                // TODO: Remove me, used while testing.
-                if (arrayElementSize >= 0x8000152)
-                {
-                    PError("CHECK ME: Size big while reading data");
                     return false;
                 }
 
