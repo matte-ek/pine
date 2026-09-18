@@ -637,19 +637,19 @@ void Renderer3D::AddLight(Light *light)
 
     light->GetLightHintData().LightIndex = lightSlot;
 
-    auto& [_, LightIndices] = ShaderStorages::Instance.Data().Instances[0];
+    auto& lightIndices = ShaderStorages::Instance.Data().Instances[0].LightIndices;
 
     // Fills the first free slot of the light's class. Both branches scan rather than write a fixed
     // index: the spot branch used to assign SPOT_LIGHT_OFFSET directly, which was correct only for
     // as long as there was exactly one spot slot and would have silently kept handling one after
     // SPOT_LIGHT_COUNT was raised.
-    const auto claimSlot = [&LightIndices, lightSlot](const int offset, const int count)
+    const auto claimSlot = [&lightIndices, lightSlot](const int offset, const int count)
     {
         for (int i = 0; i < count; i++)
         {
-            if (LightIndices[offset + i] == 0)
+            if (lightIndices[offset + i] == 0)
             {
-                LightIndices[offset + i] = lightSlot;
+                lightIndices[offset + i] = lightSlot;
 
                 return;
             }
@@ -688,10 +688,10 @@ void Renderer3D::FrameReset()
         Light.ShadowViewCount = 0;
     }
 
-    auto& [_, LightIndices] = ShaderStorages::Instance.Data().Instances[0];
+    auto& lightIndices = ShaderStorages::Instance.Data().Instances[0].LightIndices;
     for (int i = 0; i < 8;i++)
     {
-        LightIndices[i] = 0;
+        lightIndices[i] = 0;
     }
 
     ShaderStorages::World.Data().AmbientColor = Vector4f(0.f, 0.f, 0.f, 1.f);
