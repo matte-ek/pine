@@ -72,10 +72,12 @@ namespace
     json StoreMatrix(const Pine::Matrix4f& matrix)
     {
         auto columns = json::array();
+
         for (int column = 0; column < 4; ++column)
         {
             columns.push_back({ matrix[column][0], matrix[column][1], matrix[column][2], matrix[column][3] });
         }
+
         return columns;
     }
 

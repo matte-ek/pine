@@ -94,6 +94,7 @@ namespace
         result.Body["request"] = {
             { "state", "rejected" }, { "tracked", false }, { "mayHaveExecuted", false }
         };
+
         return result;
     }
 
@@ -102,10 +103,12 @@ namespace
     {
         pending.Status = state;
         pending.FinishedAt = Clock::now();
+
         if (pending.Mutation)
         {
             result.Body["request"] = Describe(pending);
         }
+
         pending.Result = std::move(result);
         --m_ActiveCount;
         m_CompletionSignal.notify_all();
@@ -119,6 +122,7 @@ namespace
     void ExpireRecords()
     {
         const auto now = Clock::now();
+
         for (auto it = m_Records.begin(); it != m_Records.end();)
         {
             const auto& pending = it->second;
@@ -136,6 +140,7 @@ namespace
     void ExpireQueuedRequests()
     {
         const auto now = Clock::now();
+
         for (const auto& pending : m_Queue)
         {
             if (pending->Status == State::Pending && now >= pending->Deadline)
@@ -143,6 +148,7 @@ namespace
                 CancelPending(*pending, 504, "Request expired before execution; no operation ran.");
             }
         }
+
         m_Queue.erase(std::remove_if(m_Queue.begin(), m_Queue.end(), [](const auto& pending)
         {
             return IsFinished(pending->Status);
@@ -166,6 +172,7 @@ namespace
             { "id", identity }, { "session", m_Session }, { "state", "unknown" },
             { "tracked", false }, { "mayHaveExecuted", true }
         };
+
         return result;
     }
 
@@ -176,18 +183,21 @@ namespace
         result.Body["error"] = "Request belongs to a different server session; its outcome is unknown here.";
         result.Body["request"]["session"] = session;
         result.Body["currentSession"] = m_Session;
+
         return result;
     }
 
     Response Snapshot(const PendingRequest& pending)
     {
         nlohmann::json body = { { "request", Describe(pending) } };
+
         if (IsFinished(pending.Status))
         {
             body["result"] = {
                 { "status", pending.Result.StatusCode }, { "body", pending.Result.Body }
             };
         }
+
         return { 200, body };
     }
 
@@ -333,6 +343,7 @@ Editor::DebugServer::Response Editor::DebugServer::Requests::Dispatch(
         : "Request has started and may have executed. It cannot be cancelled; inspect request status.";
     auto result = Error(504, message);
     result.Body["request"] = Describe(*pending);
+
     return result;
 }
 
@@ -383,12 +394,14 @@ Editor::DebugServer::Response Editor::DebugServer::Requests::Cancel(
     {
         return Unknown(identity);
     }
+
     auto& pending = *found->second;
     if (pending.Status == State::Running)
     {
         auto result = Snapshot(pending);
         result.StatusCode = 409;
         result.Body["error"] = "Request has started and cannot be cancelled.";
+
         return result;
     }
     if (pending.Status == State::Pending)
@@ -396,6 +409,7 @@ Editor::DebugServer::Response Editor::DebugServer::Requests::Cancel(
         CancelPending(pending, 409, "Request cancelled before execution; no operation ran.");
         ExpireQueuedRequests();
     }
+
     return Snapshot(pending);
 }
 
@@ -431,6 +445,7 @@ void Editor::DebugServer::Requests::ResumeReads()
 {
     std::vector<std::shared_ptr<PendingRequest>> batch;
     batch.swap(m_Deferred);
+
     for (const auto& pending : batch)
     {
         {
@@ -454,6 +469,7 @@ void Editor::DebugServer::Requests::Shutdown()
     // Called on the main thread, so no mutation handler is executing concurrently.
     std::lock_guard lock(m_Mutex);
     m_Running = false;
+
     for (const auto& pending : m_Queue)
     {
         if (!IsFinished(pending->Status))
@@ -468,6 +484,7 @@ void Editor::DebugServer::Requests::Shutdown()
             CancelPending(*pending, 503, "Debug server shut down before the read completed.");
         }
     }
+
     m_Queue.clear();
     m_Deferred.clear();
     m_Records.clear();

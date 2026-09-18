@@ -121,6 +121,7 @@ namespace
                     return;
                 }
             }
+
             for (const auto* header : { "Idempotency-Key", "X-Pine-Session" })
             {
                 if (request.has_header(header) &&
@@ -130,6 +131,7 @@ namespace
                     return;
                 }
             }
+
             input.Body = request.body;
             WriteResponse(response, Editor::DebugServer::Requests::Dispatch(
                 path, handler, std::move(input), mutation,
@@ -162,6 +164,7 @@ namespace
                     "Expected only ?id= and X-Pine-Session, without a body or retry key."));
                 return;
             }
+
             const auto id = request.get_param_value("id");
             const auto session = request.get_header_value("X-Pine-Session");
             WriteResponse(response, cancel

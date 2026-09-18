@@ -96,8 +96,10 @@ void main()
         {
             return true;
         }
+
         const auto api = Graphics::GetGraphicsAPI();
         m_Program = api->CreateShaderProgram();
+
         if (!m_Program->CompileAndLoadShader(VertexShader, Graphics::ShaderType::Vertex)
             || !m_Program->CompileAndLoadShader(FragmentShader, Graphics::ShaderType::Fragment)
             || !m_Program->LinkProgram())
@@ -106,6 +108,7 @@ void main()
             m_Program = nullptr;
             return false;
         }
+
         return true;
     }
 
@@ -128,6 +131,7 @@ void main()
                 return false;
             }
         }
+
         return true;
     }
 
@@ -141,29 +145,36 @@ void main()
     std::vector<Draw> CollectDraws(const Pine::RenderingContext& context)
     {
         std::vector<Draw> draws;
+
         for (const auto& renderer : Pine::Components::Get<Pine::ModelRenderer>())
         {
             const auto model = renderer.GetModel();
+
             if (model == nullptr || !IsSceneEntity(renderer.GetParent())
                 || !context.Visibility.IsVisible(renderer.GetInternalId()))
             {
                 continue;
             }
+
             const auto& meshes = model->GetMeshes();
+
             for (std::size_t index = 0; index < meshes.size(); ++index)
             {
                 if (renderer.GetModelMeshIndex() >= 0 && renderer.GetModelMeshIndex() != static_cast<int>(index))
                 {
                     continue;
                 }
+
                 draws.push_back({ meshes[index], renderer.GetTransform()->GetTransformationMatrix(),
                     { renderer.GetParent()->GetId(), renderer.GetId(), model->GetUId(), static_cast<int>(index) } });
+
                 if (draws.size() > MaximumMeshes)
                 {
                     return draws;
                 }
             }
         }
+
         return draws;
     }
 
@@ -187,12 +198,14 @@ void main()
     glm::dvec3 DecodeNormal(const Pine::Vector4f& surface)
     {
         glm::dvec3 normal(surface.x, surface.y, 1.0 - std::abs(surface.x) - std::abs(surface.y));
+
         if (normal.z < 0.0)
         {
             const auto x = normal.x;
             normal.x = (1.0 - std::abs(normal.y)) * (x >= 0.0 ? 1.0 : -1.0);
             normal.y = (1.0 - std::abs(x)) * (normal.y >= 0.0 ? 1.0 : -1.0);
         }
+
         return glm::normalize(normal);
     }
 
@@ -209,20 +222,26 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Capture(
     const int width, const int height, const json& frame)
 {
     RemoveExpired();
+
     if (PlayHandler::GetGameState() != PlayHandler::EditorGameState::Stopped)
     {
         return Error(409, "Picking captures require stopped edit mode.");
     }
+
     const auto pixelCount = static_cast<std::size_t>(width) * height;
+
     if (width < 1 || height < 1 || width > 4096 || height > 4096 || pixelCount > MaximumPixels)
     {
         return Error(409, "Picking capture exceeds 4096 per dimension or 2097152 pixels. Request a smaller observation width.");
     }
+
     const auto draws = CollectDraws(context);
+
     if (draws.size() > MaximumMeshes)
     {
         return Error(409, "Picking capture exceeds 16384 visible model meshes.");
     }
+
     if (!PrepareProgram())
     {
         return Error(500, "Could not prepare the picking shader.");
@@ -234,6 +253,7 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Capture(
     capture.Width = width;
     capture.Height = height;
     capture.InverseViewProjection = glm::inverse(glm::dmat4(viewProjection));
+
     for (int column = 0; column < 4; ++column)
     {
         for (int row = 0; row < 4; ++row)
@@ -244,6 +264,7 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Capture(
             }
         }
     }
+
     capture.Created = Clock::now();
     capture.Surfaces.resize(pixelCount);
     capture.Depth.resize(pixelCount);
@@ -253,10 +274,12 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Capture(
     std::unique_ptr<Graphics::IFrameBuffer, FrameBufferDeleter> buffer(api->CreateFrameBuffer());
     buffer->Prepare();
     buffer->AttachTextures(width, height, Graphics::ColorBuffer | Graphics::DepthBuffer, 0, Graphics::TextureFormat::RGBA16F);
+
     if (!buffer->Finish())
     {
         return Error(500, "Could not prepare the picking framebuffer.");
     }
+
     buffer->Bind();
     api->SetViewport(Pine::Vector2i(0), Pine::Vector2i(width, height));
     api->SetScissorEnabled(false);
@@ -275,12 +298,14 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Capture(
     m_Program->GetUniformVariable("viewProjection")->LoadMatrix4(viewProjection);
     const auto modelUniform = m_Program->GetUniformVariable("model");
     const auto slotUniform = m_Program->GetUniformVariable("meshSlot");
+
     for (const auto& draw : draws)
     {
         capture.Meshes.push_back(draw.Identity);
         modelUniform->LoadMatrix4(draw.Transform);
         slotUniform->LoadInteger(static_cast<int>(capture.Meshes.size()));
         draw.Mesh->GetVertexArray()->Bind();
+
         if (draw.Mesh->HasElementBuffer())
         {
             api->DrawElements(Graphics::RenderMode::Triangles, draw.Mesh->GetRenderCount());
@@ -290,27 +315,33 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Capture(
             api->DrawArrays(Graphics::RenderMode::Triangles, draw.Mesh->GetRenderCount());
         }
     }
+
     buffer->ReadPixels(Pine::Vector2i(0), Pine::Vector2i(width, height), Graphics::ReadFormat::RGBA,
         Graphics::TextureDataFormat::Float, capture.Surfaces.size() * sizeof(Pine::Vector4f), capture.Surfaces.data());
     buffer->ReadPixels(Pine::Vector2i(0), Pine::Vector2i(width, height), Graphics::ReadFormat::Depth,
         Graphics::TextureDataFormat::Float, capture.Depth.size() * sizeof(float), capture.Depth.data());
 
     auto retainedBytes = capture.Bytes();
+
     for (const auto& retained : m_Captures)
     {
         retainedBytes += retained.Bytes();
     }
+
     while (!m_Captures.empty() && (m_Captures.size() >= MaximumCaptures || retainedBytes > MaximumRetainedBytes))
     {
         retainedBytes -= m_Captures.front().Bytes();
         m_Captures.pop_front();
     }
+
     json metadata = {
         { "capture", capture.Id }, { "geometry", "model-surfaces" },
         { "width", width }, { "height", height }, { "retentionSeconds", Retention.count() },
         { "maximumCaptures", MaximumCaptures }, { "maximumRetainedBytes", MaximumRetainedBytes }
     };
+
     m_Captures.push_back(std::move(capture));
+
     return { 200, metadata };
 }
 
@@ -320,35 +351,45 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Pick(const Request& 
     {
         Values::Require(request.Parameters.empty(), "", "Picking does not accept query parameters.");
         Values::Require(request.Body.size() <= 4096, "", "Picking request exceeds 4 KiB.");
+
         const auto depthLimit = [](int depth, json::parse_event_t, json&)
         {
             Values::Require(depth <= 4, "", "Picking JSON nesting exceeds 4 levels.");
             return true;
         };
+
         const auto body = json::parse(request.Body, depthLimit, false);
         Values::Require(!body.is_discarded(), "", "Request body is not valid JSON.");
         Values::Object(body, "", { "capture", "pixel" }, { "capture", "pixel" });
+
         const auto id = Values::Id(body.at("capture"), "/capture").ToString();
         const auto& pixel = body.at("pixel");
         Values::Object(pixel, "/pixel", { "x", "y" }, { "x", "y" });
         const auto x = PixelCoordinate(pixel.at("x"), "/pixel/x");
         const auto y = PixelCoordinate(pixel.at("y"), "/pixel/y");
+
         RemoveExpired();
+
         const auto found = std::find_if(m_Captures.begin(), m_Captures.end(), [&](const CaptureData& capture)
         {
             return capture.Id == id;
         });
+
         if (found == m_Captures.end())
         {
             return Error(409, "Picking capture is unavailable, expired, evicted or from a replaced scene. Request a new observation with picking enabled.");
         }
+
         const auto& capture = *found;
         Values::Require(x < capture.Width && y < capture.Height, "/pixel", "Pixel is outside the captured image.");
+
         const auto index = static_cast<std::size_t>(capture.Height - 1 - y) * capture.Width + x;
         const auto& surface = capture.Surfaces[index];
         const auto slot = static_cast<std::size_t>(surface.z) + static_cast<std::size_t>(surface.w) * 1024;
+
         json result = { { "capture", id }, { "frame", capture.Frame }, { "pixel", pixel },
             { "geometry", "model-surfaces" }, { "hit", nullptr } };
+
         if (slot == 0 || slot > capture.Meshes.size())
         {
             return { 200, result };
@@ -361,17 +402,20 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Pick(const Request& 
         const auto homogeneous = capture.InverseViewProjection * clip;
         const glm::dvec3 position = glm::dvec3(homogeneous) / homogeneous.w;
         const auto normal = DecodeNormal(surface);
+
         if (!std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z)
             || !std::isfinite(normal.x) || !std::isfinite(normal.y) || !std::isfinite(normal.z))
         {
             return Error(409, "The captured surface cannot be reconstructed.");
         }
+
         const auto& identity = capture.Meshes[slot - 1];
         result["hit"] = {
             { "entity", identity.Entity.ToString() }, { "component", identity.Component.ToString() },
             { "model", identity.Model.ToString() }, { "meshIndex", identity.Index },
             { "position", StoreVector(position) }, { "normal", StoreVector(normal) }
         };
+
         return { 200, result };
     }
     catch (const Values::ValidationError& exception)
@@ -383,6 +427,7 @@ Editor::DebugServer::Response Editor::DebugServer::Picking::Pick(const Request& 
 void Editor::DebugServer::Picking::Shutdown()
 {
     m_Captures.clear();
+
     if (m_Program != nullptr)
     {
         Graphics::GetGraphicsAPI()->DestroyShaderProgram(m_Program);

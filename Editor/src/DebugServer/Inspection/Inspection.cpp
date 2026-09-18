@@ -25,6 +25,7 @@ namespace
         {
             return fallback;
         }
+
         Values::Require(object.at(key).is_boolean(), path + "/" + key, "Expected a boolean.");
         return object.at(key).get<bool>();
     }
@@ -33,6 +34,7 @@ namespace
         const std::initializer_list<const char*> choices)
     {
         const auto name = Values::String(value, path);
+
         for (const auto choice : choices)
         {
             if (name == choice)
@@ -40,12 +42,14 @@ namespace
                 return name;
             }
         }
+
         throw Values::ValidationError(path, "Unknown choice.");
     }
 
     Pine::ComponentType ComponentType(const json& value, const std::string& path)
     {
         const auto name = Values::String(value, path);
+
         // Use the engine's type names, including components without editing adapters.
         for (std::size_t index = 0; index < Pine::Components::GetComponentTypes().size(); index++)
         {
@@ -58,6 +62,7 @@ namespace
                 return type;
             }
         }
+
         throw Values::ValidationError(path, "Unknown component type.");
     }
 
@@ -70,6 +75,7 @@ namespace
                 return false;
             }
         }
+
         return true;
     }
 
@@ -115,6 +121,7 @@ namespace
             Values::Require(value.contains("radius") != value.contains("bounds"), path,
                 "Supply exactly one of radius or bounds.");
             Sphere = value.contains("radius");
+
             if (Sphere)
             {
                 const auto& radius = value.at("radius");
@@ -157,6 +164,7 @@ namespace
                 const auto delta = closest - Center;
                 return glm::dot(delta, delta) <= Radius * Radius;
             }
+
             return glm::all(glm::greaterThanEqual(bounds.Max, Minimum)) &&
                 glm::all(glm::lessThanEqual(bounds.Min, Maximum));
         }
