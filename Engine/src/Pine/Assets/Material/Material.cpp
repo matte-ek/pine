@@ -115,6 +115,31 @@ Pine::MaterialRenderingMode Pine::Material::GetRenderingMode() const
     return m_RenderingMode;
 }
 
+void Pine::Material::ResolveRenderingModeFromDiffuse()
+{
+    const auto diffuse = m_Diffuse.Get();
+
+    if (diffuse == nullptr)
+    {
+        return;
+    }
+
+    switch (diffuse->GetAlphaMode())
+    {
+        case TextureAlphaMode::Opaque:
+            m_RenderingMode = MaterialRenderingMode::Opaque;
+            break;
+        case TextureAlphaMode::Cutout:
+            m_RenderingMode = MaterialRenderingMode::Discard;
+            break;
+        case TextureAlphaMode::Transparent:
+            m_RenderingMode = MaterialRenderingMode::Transparent;
+            break;
+        case TextureAlphaMode::Unknown:
+            break;
+    }
+}
+
 void Pine::Material::SetAlpha(float value)
 {
     if (value < 0.f)

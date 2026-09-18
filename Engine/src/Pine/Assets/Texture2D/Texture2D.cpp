@@ -126,6 +126,7 @@ bool Pine::Texture2D::LoadAssetData(const ByteSpan& span)
     textureSerializer.MipFilteringMode.Read(m_MipFilteringMode);
     textureSerializer.WrapMode.Read(m_WrapMode);
     textureSerializer.CompressionFormat.Read(m_CompressionFormat);
+    textureSerializer.AlphaMode.Read(m_AlphaMode);
     textureSerializer.ImportUsageHint.Read(m_ImportConfiguration.UsageHint);
     textureSerializer.ImportUsageHintSource.Read(m_ImportConfiguration.UsageHintSource);
     textureSerializer.ImportCompressionQuality.Read(m_ImportConfiguration.CompressionQuality);
@@ -258,6 +259,11 @@ Pine::Graphics::TextureFormat Pine::Texture2D::GetFormat() const
 Pine::Graphics::TextureCompressionFormat Pine::Texture2D::GetCompressionFormat() const
 {
     return m_CompressionFormat;
+}
+
+Pine::TextureAlphaMode Pine::Texture2D::GetAlphaMode() const
+{
+    return m_AlphaMode;
 }
 
 void Pine::Texture2D::SetFilteringMode(const Graphics::TextureFilteringMode textureFilteringMode)
@@ -444,6 +450,7 @@ Pine::ByteSpan Pine::Texture2D::SaveAssetData()
     textureSerializer.MipFilteringMode.Write(m_MipFilteringMode);
     textureSerializer.WrapMode.Write(m_WrapMode);
     textureSerializer.CompressionFormat.Write(m_CompressionFormat);
+    textureSerializer.AlphaMode.Write(m_AlphaMode);
     textureSerializer.ImportUsageHint.Write(m_ImportConfiguration.UsageHint);
     textureSerializer.ImportUsageHintSource.Write(m_ImportConfiguration.UsageHintSource);
     textureSerializer.ImportCompressionQuality.Write(m_ImportConfiguration.CompressionQuality);

@@ -86,6 +86,16 @@ namespace Pine
 		void SetRenderingMode(MaterialRenderingMode mode);
 		MaterialRenderingMode GetRenderingMode() const;
 
+		// Picks the rendering mode that matches what the diffuse texture does with its alpha: a
+		// solid texture belongs in the opaque pass, a cutout mask in the discard pass, and one that
+		// actually fades in the blended one. Meant to be called wherever a material is given a new
+		// diffuse map - the model importer and the editor both do - so that importing content with
+		// alpha textures doesn't leave every material to be fixed by hand.
+		//
+		// Does nothing when there is no diffuse map, or when the texture predates alpha detection
+		// and has never been re-imported: the material then keeps the mode it already had.
+		void ResolveRenderingModeFromDiffuse();
+
 		void SetAlpha(float value);
 		float GetAlpha() const;
 

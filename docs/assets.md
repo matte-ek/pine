@@ -80,6 +80,35 @@ parent directory (`PSX Textures/Normal Maps/`). Only the trailing token, and onl
 tokens: `gm`'s pack has `metal_floor_5` and `floor_3_metal`, both albedo textures of metal, which
 is why `metal` and `rough` are deliberately *not* in the table.
 
+### What a texture does with its alpha
+
+`TextureImporter::Import` scans the **source image's** alpha channel before anything is block
+compressed, and records the answer on the texture as a `TextureAlphaMode`:
+
+| Mode | Meaning |
+|------|---------|
+| `Opaque` | Every pixel is solid, or there is no alpha channel. |
+| `Cutout` | Alpha is a mask - a pixel is either there or it is not. Antialiased edges count as this. |
+| `Transparent` | More than 10% of the pixels are partially see-through: glass, water, smoke. |
+| `Unknown` | Never scanned. The texture was imported before this existed, and nothing is derived from it until it is re-imported. |
+
+The 10% cut-off is deliberately forgiving, because the two mistakes are not symmetrical: an
+antialiased cutout has partial alpha only along its outline, and `ShadowPass` builds draw lists for
+`Opaque` and `Discard` only - so calling foliage `Transparent` would silently cost it its shadow.
+
+Two things read the result:
+
+- **`Material::ResolveRenderingModeFromDiffuse()`** maps it onto `MaterialRenderingMode`
+  (Opaque / Discard / Transparent). Anything that hands a material a new diffuse map calls it: the
+  model importer, so a model's own materials - which the editor will not let you edit - land in the
+  right pass, and the editor's diffuse picker. `Unknown` leaves the material's mode alone.
+- **The compression format.** BC1 holds no alpha and BC1a holds one bit of it, so a texture that
+  genuinely fades is moved off the fast `AlbedoFaster` default onto `Albedo` (BC7). That goes
+  through `ApplyTextureUsageHint` at the `Heuristic` tier, so it can override the default and the
+  file-name guess but never a hint the model file supplied or the user picked. Note the PNG loader
+  returns RGBA for *every* image, filler alpha included - which is why BC1 vs BC1a is chosen from
+  the alpha mode rather than from the channel count.
+
 ## Editing shaders: `.passet` vs. raw GLSL and the `.ih` hint
 Shaders follow the same rule as every other asset: the `.passet` is a **compiled binary
 container built from raw source at (re)load time**, so you never hand-edit it. For a shader,

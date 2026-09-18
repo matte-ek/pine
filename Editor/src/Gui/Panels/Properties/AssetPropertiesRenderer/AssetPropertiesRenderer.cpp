@@ -44,6 +44,7 @@ namespace
         Widgets::Text("Mip Maps Levels", std::to_string(texture2d->GetMipmapLevels()));
         Widgets::Text("Texture Format", Pine::Graphics::TextureFormatToString(texture2d->GetFormat()));
         Widgets::Text("Compression Format", Pine::Graphics::TextureCompressionFormatToString(texture2d->GetCompressionFormat()));
+        Widgets::Text("Alpha", Pine::TextureAlphaModeToString(texture2d->GetAlphaMode()));
 
         if (Widgets::DropDown("Filtering Mode", &filteringMode, "Nearest\0Linear\0"))
         {
@@ -163,7 +164,14 @@ namespace
         assetModified |= diffuseResult.hasResult || specularResult.hasResult || normalResult.hasResult;
 
         if (diffuseResult.hasResult)
+        {
             material->SetDiffuse(dynamic_cast<Pine::Texture2D *>(diffuseResult.asset));
+
+            // A new diffuse map means a new answer to "is this thing see-through", so re-derive the
+            // rendering mode shown in the dropdown below. It stays editable afterwards.
+            material->ResolveRenderingModeFromDiffuse();
+        }
+
         if (specularResult.hasResult)
             material->SetSpecular(dynamic_cast<Pine::Texture2D *>(specularResult.asset));
         if (normalResult.hasResult)

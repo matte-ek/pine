@@ -50,6 +50,42 @@ namespace Pine
         User
     };
 
+    // How much of its alpha channel a texture actually uses. Worked out from the source image when
+    // the texture is imported, and it is what decides the rendering mode of a material the texture
+    // is the diffuse map of. Serialized as an integer, so only ever append.
+    enum class TextureAlphaMode
+    {
+        // The texture has never been scanned - it was imported before alpha detection existed.
+        // Nothing is derived from this: a material keeps whatever rendering mode it already had
+        // until the texture is re-imported.
+        Unknown = 0,
+
+        // Every pixel is fully opaque, or there is no alpha channel at all.
+        Opaque,
+
+        // Alpha is a cutout mask: a pixel is either there or it is not. Antialiased edges count as
+        // this, see DetectAlphaMode().
+        Cutout,
+
+        // A meaningful part of the texture is partially see-through - glass, water, smoke.
+        Transparent
+    };
+
+    inline const char* TextureAlphaModeToString(const TextureAlphaMode alphaMode)
+    {
+        switch (alphaMode)
+        {
+            case TextureAlphaMode::Opaque:
+                return "Opaque";
+            case TextureAlphaMode::Cutout:
+                return "Cutout";
+            case TextureAlphaMode::Transparent:
+                return "Transparent";
+            default:
+                return "Not detected";
+        }
+    }
+
     enum class TextureCompressionQuality
     {
         Normal,
@@ -106,6 +142,8 @@ namespace Pine
 
         Graphics::TextureCompressionFormat m_CompressionFormat = Graphics::TextureCompressionFormat::Raw;
 
+        TextureAlphaMode m_AlphaMode = TextureAlphaMode::Unknown;
+
         // Underlying graphics texture
         Graphics::ITexture* m_Texture = nullptr;
 
@@ -126,6 +164,7 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(MipFilteringMode, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(WrapMode, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(CompressionFormat, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(AlphaMode, Serialization::DataType::Int32);
 
             PINE_SERIALIZE_PRIMITIVE(ImportUsageHint, Serialization::DataType::Int32);
             PINE_SERIALIZE_PRIMITIVE(ImportUsageHintSource, Serialization::DataType::Int32);
@@ -154,6 +193,8 @@ namespace Pine
 
         Graphics::TextureFormat GetFormat() const;
         Graphics::TextureCompressionFormat GetCompressionFormat() const;
+
+        TextureAlphaMode GetAlphaMode() const;
 
         void SetFilteringMode(Graphics::TextureFilteringMode textureFilteringMode);
         Graphics::TextureFilteringMode GetFilteringMode() const;

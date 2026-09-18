@@ -166,6 +166,10 @@ A material's `MaterialRenderingMode` decides which pass draws it, and a draw lis
 mode. The scene pass runs `Opaque`, then `Discard`, then the skybox, then `Transparent` in
 `RenderBlendedObjects`.
 
+The mode is normally not picked by hand: importing a texture measures its alpha channel, and
+`Material::ResolveRenderingModeFromDiffuse()` turns that into a mode whenever a material is given a
+diffuse map. See [assets.md](assets.md#what-a-texture-does-with-its-alpha).
+
 **The blend pass** builds its list from `ObjectBatchData::BlendObjects` — the objects `SceneProcessor`
 saw carrying a transparent material, which is a much smaller set than the scene — ordered
 `BackToFront` with **`DepthBuckets` left at 0**. Blending is not commutative, so two surfaces that

@@ -324,6 +324,11 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
             }
             engineMaterial->SetNormal(normalMapTexture);
 
+            // The diffuse texture has been imported by now, so its alpha has been measured. A
+            // material a model file generates cannot be edited in the editor, so this is the only
+            // chance it gets to end up in the right pass.
+            engineMaterial->ResolveRenderingModeFromDiffuse();
+
             model->m_EmbeddedMaterials.push_back(engineMaterial);
         }
     }
