@@ -317,9 +317,6 @@ nothing refreshes, freezing its shadow in place instead of removing it.
 residency, importance and cache hits are invisible in the final image when they work and obvious
 there when they don't.
 
-The design reasoning, including what was rejected and why, is in
-[`reports/spot-point-light-shadows-plan.md`](reports/spot-point-light-shadows-plan.md).
-
 ## Lighting
 
 **Light slot layout.** An object gets a fixed set of light slots
