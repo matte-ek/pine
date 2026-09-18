@@ -156,6 +156,18 @@ bool Editor::DebugServer::Spatial::AddModelBounds(Pine::Entity* entity, Bounds& 
     return hasGeometry;
 }
 
+nlohmann::json Editor::DebugServer::Spatial::ReadWorldTransform(const Pine::Entity* entity)
+{
+    const auto transform = entity->GetTransform();
+    return StoreTransform(transform->GetPosition(), transform->GetRotation(), transform->GetScale());
+}
+
+nlohmann::json Editor::DebugServer::Spatial::ReadLocalTransform(const Pine::Entity* entity)
+{
+    const auto transform = entity->GetTransform();
+    return StoreTransform(transform->GetLocalPosition(), transform->GetLocalRotation(), transform->GetLocalScale());
+}
+
 Editor::DebugServer::Response Editor::DebugServer::Spatial::Query(const Request& request)
 {
     try
@@ -201,8 +213,8 @@ Editor::DebugServer::Response Editor::DebugServer::Spatial::Query(const Request&
             const auto transform = entity->GetTransform();
             entities.push_back({
                 { "id", entity->GetId().ToString() }, { "bounds", DescribeBounds(bounds) },
-                { "localTransform", StoreTransform(transform->GetLocalPosition(), transform->GetLocalRotation(), transform->GetLocalScale()) },
-                { "worldTransform", StoreTransform(transform->GetPosition(), transform->GetRotation(), transform->GetScale()) },
+                { "localTransform", ReadLocalTransform(entity) },
+                { "worldTransform", ReadWorldTransform(entity) },
                 { "forward", StoreVector(transform->GetForward()) },
                 { "right", StoreVector(transform->GetRight()) }, { "up", StoreVector(transform->GetUp()) }
             });

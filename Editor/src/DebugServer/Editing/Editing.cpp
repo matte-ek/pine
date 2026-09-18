@@ -10,6 +10,7 @@
 #include "Components/Transform/Transform.hpp"
 #include "Duplication/Duplication.hpp"
 #include "History/History.hpp"
+#include "Placement/Placement.hpp"
 #include "Schema/Schema.hpp"
 #include "Values/Values.hpp"
 #include "../LevelCamera/LevelCamera.hpp"
@@ -64,6 +65,8 @@ namespace
         ReparentEntity,
         DeleteEntity,
         DuplicateEntity,
+        PlaceEntity,
+        AimEntity,
         AddComponent,
         UpdateComponent,
         RemoveComponent
@@ -79,6 +82,10 @@ namespace
         Pine::Entity* Entity = nullptr;
         Pine::Component* Target = nullptr;
         json EntityPatch;
+        json ComponentPatch;
+        json PlacementInput;
+        json AimInput;
+        Pine::Entity* PlacementReference = nullptr;
         std::vector<ComponentEdit> Components;
         std::size_t DeletedEntityCount = 0;
         std::map<Pine::ComponentType, std::size_t> FreedComponents;
@@ -262,9 +269,10 @@ namespace
             Duplication::EntityState State;
         };
 
-        const bool includesDuplication = std::any_of(operations.begin(), operations.end(), [](const Operation& operation)
+        const bool needsProposedState = std::any_of(operations.begin(), operations.end(), [](const Operation& operation)
         {
-            return operation.Type == OperationType::DuplicateEntity;
+            return operation.Type == OperationType::DuplicateEntity || operation.Type == OperationType::PlaceEntity
+                || operation.Type == OperationType::AimEntity;
         });
         std::size_t duplicatedCount = 0;
 
@@ -282,7 +290,7 @@ namespace
             {
                 proposed.Children.push_back(child->GetId().ToString());
             }
-            if (includesDuplication)
+            if (needsProposedState)
             {
                 proposed.State = Duplication::Read(entity);
             }
@@ -342,7 +350,7 @@ namespace
                 {
                     created.PooledComponents[component.Adapter->Type] = 1;
                 }
-                if (includesDuplication)
+                if (needsProposedState)
                 {
                     created.State.Name = operation.Name;
                     const auto transform = Adapters::Find(Pine::ComponentType::Transform);
@@ -401,7 +409,54 @@ namespace
                     }
                 }
             }
-            else if (operation.Type == OperationType::UpdateEntity && includesDuplication)
+            else if (operation.Type == OperationType::PlaceEntity || operation.Type == OperationType::AimEntity)
+            {
+                auto& proposed = entities.at(target);
+                const auto parentTransform = [&](const ProposedEntity& entity, const std::string& transformPath)
+                {
+                    std::vector<std::string> ancestors;
+                    for (auto ancestor = entity.Parent; !ancestor.empty(); ancestor = entities.at(ancestor).Parent)
+                    {
+                        ancestors.push_back(ancestor);
+                    }
+                    Editing::Placement::WorldTransform transform;
+                    for (auto ancestor = ancestors.rbegin(); ancestor != ancestors.rend(); ++ancestor)
+                    {
+                        transform = Editing::Placement::Compose(transform,
+                            entities.at(*ancestor).State.Components.front().Properties, transformPath);
+                    }
+                    return transform;
+                };
+
+                const auto adapter = Adapters::Find(Pine::ComponentType::Transform);
+                const auto targetParent = parentTransform(proposed, path + "/target/parentTransform");
+                json transformState;
+                if (operation.Type == OperationType::AimEntity)
+                {
+                    transformState = Editing::Placement::PrepareAim(operation.AimInput, proposed.State, targetParent, path);
+                }
+                else if (operation.PlacementReference != nullptr)
+                {
+                    const auto referenceKey = operation.PlacementReference->GetId().ToString();
+                    Values::Require(entities.count(referenceKey) != 0, path + "/relativeTo/id",
+                        "Reference entity was deleted by an earlier operation in this batch.");
+                    for (auto ancestor = referenceKey; !ancestor.empty(); ancestor = entities.at(ancestor).Parent)
+                    {
+                        Values::Require(ancestor != target, path + "/relativeTo/id",
+                            "Reference entity cannot be the target or its descendant.");
+                    }
+                    const auto& reference = entities.at(referenceKey);
+                    transformState = Editing::Placement::PrepareRelative(operation.PlacementInput, proposed.State, targetParent,
+                        reference.State, parentTransform(reference, path + "/relativeTo/parentTransform"), path);
+                }
+                else
+                {
+                    transformState = Editing::Placement::Prepare(operation.PlacementInput, proposed.State, targetParent, path);
+                }
+                proposed.State.Components.front().Properties = transformState;
+                operation.Components.push_back({ adapter, std::move(transformState) });
+            }
+            else if (operation.Type == OperationType::UpdateEntity && needsProposedState)
             {
                 auto& state = entities.at(target).State;
                 state.Name = operation.EntityPatch.value("name", state.Name);
@@ -433,7 +488,7 @@ namespace
             else if (operation.Type == OperationType::AddComponent)
             {
                 entities.at(target).PooledComponents[operation.Components.front().Adapter->Type]++;
-                if (includesDuplication)
+                if (needsProposedState)
                 {
                     const auto& component = operation.Components.front();
                     entities.at(target).State.Components.push_back({ component.Adapter->Type, {}, component.State });
@@ -445,7 +500,7 @@ namespace
                 {
                     entities.at(target).PooledComponents[operation.Target->GetType()]--;
                 }
-                if (includesDuplication)
+                if (needsProposedState)
                 {
                     auto& components = entities.at(target).State.Components;
                     const auto found = std::find_if(components.begin(), components.end(), [&](const auto& component)
@@ -458,7 +513,12 @@ namespace
                     }
                     else
                     {
-                        found->Properties = operation.Components.front().State;
+                        // Placement and aiming change Transform state too. Replay the original patch on the
+                        // proposed state so a later partial update retains the calculated transform.
+                        auto& component = operation.Components.front();
+                        component.State = Adapters::Prepare(*component.Adapter, found->Properties,
+                            operation.ComponentPatch, path + "/properties");
+                        found->Properties = component.State;
                     }
                 }
             }
@@ -678,6 +738,40 @@ namespace
             {
                 PrepareReparent(input, path, operation, references);
             }
+            else if (name == "entity.aim")
+            {
+                Values::Object(input, path, { "op", "target", "point", "forwardAxis", "upAxis", "up" },
+                    { "op", "target", "point", "forwardAxis", "upAxis", "up" });
+                Values::Object(input.at("target"), path + "/target", { "id" }, { "id" });
+                operation.Type = OperationType::AimEntity;
+                operation.Entity = Pine::Entities::Find(Values::Id(input.at("target").at("id"), path + "/target/id"));
+                RequireSceneEntity(operation.Entity, path + "/target/id");
+                operation.Target = operation.Entity->GetTransform();
+                operation.AimInput = input;
+                operation.AimInput.erase("op");
+                operation.AimInput.erase("target");
+                Editing::Placement::ValidateAim(operation.AimInput, path);
+            }
+            else if (name == "entity.place")
+            {
+                Values::Object(input, path, { "op", "target", "surface", "anchor", "clearance", "alignment",
+                    "relativeTo", "boundsAlignment", "offset" }, { "op", "target" });
+                Values::Object(input.at("target"), path + "/target", { "id" }, { "id" });
+                operation.Type = OperationType::PlaceEntity;
+                operation.Entity = Pine::Entities::Find(Values::Id(input.at("target").at("id"), path + "/target/id"));
+                RequireSceneEntity(operation.Entity, path + "/target/id");
+                operation.Target = operation.Entity->GetTransform();
+                operation.PlacementInput = input;
+                operation.PlacementInput.erase("op");
+                operation.PlacementInput.erase("target");
+                Editing::Placement::Validate(operation.PlacementInput, path);
+                if (input.contains("relativeTo"))
+                {
+                    operation.PlacementReference = Pine::Entities::Find(
+                        Values::Id(input.at("relativeTo").at("id"), path + "/relativeTo/id"));
+                    RequireSceneEntity(operation.PlacementReference, path + "/relativeTo/id");
+                }
+            }
             else if (name == "entity.delete")
             {
                 PrepareDeletion(input, path, operation);
@@ -735,6 +829,7 @@ namespace
                 }
                 else
                 {
+                    operation.ComponentPatch = input.at("properties");
                     // Later patches build on earlier proposed state without changing live objects.
                     const auto previous = proposedStates.find(id);
                     const auto state = previous == proposedStates.end() ? adapter->Read(operation.Target) : previous->second;
@@ -947,6 +1042,12 @@ namespace
                     ApplyEntityUpdate(operation.Entity, operation.EntityPatch);
                     body["results"].push_back({ { "operation", index }, { "entity", DescribeEntity(operation.Entity) } });
                 }
+                else if (operation.Type == OperationType::PlaceEntity || operation.Type == OperationType::AimEntity)
+                {
+                    const auto& transform = operation.Components.front();
+                    transform.Adapter->Apply(operation.Target, transform.State);
+                    body["results"].push_back({ { "operation", index }, { "entity", DescribeEntity(operation.Entity) } });
+                }
                 else if (operation.Type == OperationType::ReparentEntity)
                 {
                     const auto parent = operation.ParentReference.empty()
@@ -1033,7 +1134,7 @@ Editor::DebugServer::Response Editor::DebugServer::Editing::GetSchema(const Requ
     }
 
     return { 200, {
-        { "version", 1 }, { "operations", { "entity.create", "entity.update", "entity.reparent", "entity.delete", "entity.duplicate",
+        { "version", 1 }, { "operations", { "entity.create", "entity.update", "entity.reparent", "entity.delete", "entity.duplicate", "entity.place", "entity.aim",
             "component.add", "component.update", "component.remove" } },
         { "maxOperations", MaxOperations }, { "maxBodyBytes", MaxBodyBytes },
         { "maxJsonDepth", MaxJsonDepth },
@@ -1144,7 +1245,8 @@ Editor::DebugServer::Response Editor::DebugServer::Editing::Edit(const Request& 
         for (std::size_t index = 0; index < operations.size(); index++)
         {
             const auto& operation = operations[index];
-            if (operation.Type == OperationType::UpdateComponent || operation.Type == OperationType::RemoveComponent)
+            if (operation.Type == OperationType::UpdateComponent || operation.Type == OperationType::RemoveComponent
+                || operation.Type == OperationType::PlaceEntity || operation.Type == OperationType::AimEntity)
             {
                 operationIndex = static_cast<int>(index);
                 RequireRestorableComponent(operation.Target, "/operations/" + std::to_string(index) + "/target");

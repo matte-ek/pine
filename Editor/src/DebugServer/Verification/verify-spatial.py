@@ -41,6 +41,9 @@ includes = '''#include <GL/glew.h>
 #include "DebugServer/Spatial/Spatial.hpp"
 #include "DebugServer/Spatial/Queries/Queries.hpp"
 #include "DebugServer/Editing/Values/Values.hpp"
+#include "DebugServer/Editing/Editing.hpp"
+#include "DebugServer/Editing/History/History.hpp"
+#include "Other/Actions/Actions.hpp"
 #include "Other/PlayHandler/PlayHandler.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Rendering/RenderHandler.hpp"
@@ -52,6 +55,7 @@ includes = '''#include <GL/glew.h>
 '''
 body = Path(__file__).with_name('spatial-native.inc').read_text()
 body = body.replace(marker, Path(__file__).with_name('spatial-intersections-native.inc').read_text())
+body = body.replace(marker, Path(__file__).with_name('placement-native.inc').read_text())
 (root / 'probe.cpp').write_text(includes + source.replace(marker, body))
 command = shlex.split(entry['command'])
 command[command.index('-o') + 1] = str(root / 'probe.o')
@@ -265,8 +269,15 @@ try:
     # Exercise the existing framing recipe against the extracted shared calculation.
     subprocess.run(['python3', str(Path(__file__).with_name('verify-reparent.py')),
                     '--url', url, '--output', str(args.output / 'reparent')], check=True)
+    subprocess.run(['python3', str(Path(__file__).with_name('verify-schema.py')),
+                    '--url', url, '--output', str(args.output / 'schema')], check=True)
+    subprocess.run(['python3', str(Path(__file__).with_name('verify-placement.py')),
+                    '--url', url, '--output', str(args.output / 'placement'), '--terrain'], check=True)
+    subprocess.run(['python3', str(Path(__file__).with_name('verify-aim.py')),
+                    '--url', url, '--output', str(args.output / 'aim')], check=True)
     assert 'PASS(native)' in log_path.read_text()
     assert 'PASS(intersections)' in log_path.read_text()
+    assert 'PASS(placement)' in log_path.read_text()
     print('PASS: spatial measurements, raycasts, overlaps, hierarchy, terrain, validation, read-only state and framing compatibility.')
 finally:
     shutdown()

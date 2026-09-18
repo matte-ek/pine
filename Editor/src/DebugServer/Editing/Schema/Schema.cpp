@@ -1,6 +1,7 @@
 #include "Schema.hpp"
 
 #include "../Components/Components.hpp"
+#include "../Placement/Placement.hpp"
 
 namespace
 {
@@ -79,7 +80,20 @@ nlohmann::json Editor::DebugServer::Editing::Schema::Operations()
         { "properties", initialProperties }
     });
 
+    auto aimFields = Placement::AimFields();
+    aimFields["target"] = entityTarget;
+
+    auto placementFields = Placement::Fields();
+    placementFields["target"] = entityTarget;
+    auto placement = Operation("entity.place", { "op", "target" }, placementFields);
+    placement["oneOf"] = {
+        { { "required", { "surface", "anchor" } }, { "forbidden", { "relativeTo", "boundsAlignment", "offset" } } },
+        { { "required", { "relativeTo", "boundsAlignment" } }, { "forbidden", { "surface", "anchor", "clearance", "alignment" } } }
+    };
+
     return {
+        { "entity.place", placement },
+        { "entity.aim", Operation("entity.aim", { "op", "target", "point", "forwardAxis", "upAxis", "up" }, aimFields) },
         { "entity.create", Operation("entity.create", { "op" }, {
             { "name", creationName }, { "ref", rootRef }, { "parent", creationParent },
             { "components", {

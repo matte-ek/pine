@@ -31,6 +31,13 @@ Collider and RigidBody authoring is documented in [3D physics](debug-server-phys
 - `entity.duplicate` copies an existing scene entity and its hierarchy with fresh
   entity/component IDs. It supports Transform, ModelRenderer, Light, Camera,
   primitive Collider and RigidBody; see [duplication](#duplicate-entities).
+- `entity.place` positions an existing entity against a supplied surface plane using
+  model bounds or a local anchor, with optional axis alignment and clearance. Its
+  alternative relative form aligns world bounds with another entity and adds a
+  world or reference-local offset; see [entity placement](debug-server-placement.md).
+- `entity.aim` rotates an existing entity toward a world point with explicit local
+  forward/up axes and world up, preserving position and scale; see
+  [aiming](debug-server-placement.md#aim-at-a-world-point).
 - `component.update` changes an existing component, addressed by its persistent
   component UId (not the entity ID or pool index). It does not add components.
 - `component.add` adds ModelRenderer, Light, Camera, Collider or RigidBody to an
@@ -442,6 +449,8 @@ and the existing `entity`, `components`, limits and capability fields remain ava
   `operationSchemas`. `maxBodyBytes` and `maxJsonDepth` apply to the whole body.
 - `operationSchemas` describes every supported operation's required and optional
   fields, including nested component entries, target kinds and parent forms.
+  Operations with alternative forms, such as `entity.place`, also advertise
+  `oneOf` entries listing each form's `required` and `forbidden` fields.
 - `referenceRules` describes reference value formats, scene/asset resolution and
   the scope, declaration and permitted uses of batch names.
 - `batchRules` advertises array-order execution and validation against the state

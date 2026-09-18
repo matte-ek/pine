@@ -10,6 +10,7 @@
 #include "../Persistence/Persistence.hpp"
 #include "../LevelCamera/LevelCamera.hpp"
 #include "../Import/Import.hpp"
+#include "../Inspection/Inspection.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -163,27 +164,11 @@ namespace
 
     /* GET /entities */
 
-    // The fields the tree listing and the single-entity view both report, so the two cannot describe
-    // the same entity differently.
-    nlohmann::json StoreEntityIdentity(const Pine::Entity* entity)
-    {
-        nlohmann::json json;
-
-        json["id"] = entity->GetId().ToString();
-        json["internalId"] = entity->GetInternalId();
-        json["name"] = entity->GetName();
-        json["active"] = entity->GetActive();
-        json["static"] = entity->GetStatic();
-
-        // Editor-only entities (the fly camera) are temporary and are not part of the user's scene.
-        json["temporary"] = entity->GetTemporary();
-
-        return json;
-    }
+    using Editor::DebugServer::Inspection::ReadIdentity;
 
     nlohmann::json StoreEntity(const Pine::Entity* entity)
     {
-        auto json = StoreEntityIdentity(entity);
+        auto json = ReadIdentity(entity);
 
         // Component *type names* only. Field values come from the serializer translator in phase 2,
         // so there is deliberately no hand-written per-component dump here to drift out of date.
@@ -379,14 +364,14 @@ namespace
             return Editor::DebugServer::Error(400, "Expected an ?id= or ?internalId= parameter. /entities lists both.");
         }
 
-        auto body = StoreEntityIdentity(entity);
+        auto body = ReadIdentity(entity);
 
         body["tags"] = entity->GetTags();
         body["properties"] = Editor::DebugServer::Editing::ReadEntityProperties(entity);
 
         if (const auto parent = entity->GetParent())
         {
-            body["parent"] = StoreEntityIdentity(parent);
+            body["parent"] = ReadIdentity(parent);
         }
         else
         {
@@ -413,7 +398,7 @@ namespace
 
         for (const auto child : entity->GetChildren())
         {
-            children.push_back(StoreEntityIdentity(child));
+            children.push_back(ReadIdentity(child));
         }
 
         body["children"] = children;
@@ -1217,6 +1202,7 @@ void Editor::DebugServer::Endpoints::Register()
     AddRoute(Method::Get, "/status", GetStatus);
     AddRoute(Method::Get, "/logs", LogHistory::Get);
     AddRoute(Method::Get, "/entities", GetEntities);
+    AddRoute(Method::Post, "/entities/query", Inspection::Query);
     AddRoute(Method::Get, "/entity", GetEntity);
     AddRoute(Method::Post, "/spatial/query", Spatial::Query);
     AddRoute(Method::Post, "/spatial/overlap", Spatial::Queries::Overlap);

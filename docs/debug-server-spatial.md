@@ -137,7 +137,9 @@ for entity in measurements['entities']:
 For a root-level prop resting on a horizontal floor, the required vertical
 translation is `floor_y - bounds['min']['y']`. Add that delta to its current
 position through `/edit`. This measures the enclosing box; uneven-ground contact
-can be inspected with the raycast below. Automatic placement remains future work.
+can be inspected with the raycast below. Use [surface placement](debug-server-placement.md) to place a model bound or
+local anchor against a supplied plane with explicit clearance and optional alignment.
+It does not guarantee clearance over an uneven terrain footprint.
 
 ## Raycasts and bounds overlaps
 

@@ -56,6 +56,7 @@ Examples below use placeholders where a live ID or project asset is required.
 | --- | --- | --- |
 | `GET /status` | None | Project, active Level, play state, world pause, entity count and frame delta. |
 | `GET /entities` | None | Recursive root `entities` tree and total `count`; components are type names only. |
+| `POST /entities/query` | Explicit `entities` or component/name/hierarchy/spatial `filter`, optional `include` and `limit` | Coherent, bounded scene inspection with optional editable properties and local/world transforms, without a capture. [Filtered and batched inspection](debug-server-inspection.md). |
 | `POST /spatial/query` | `{"entities":[{"id":"<entity-id>"}],"includeChildren":true}` | Fresh per-entity and combined world bounds, dimensions, local/world transforms and orientation axes. Read-only; supports models and terrain without moving the camera. [Spatial measurements](debug-server-spatial.md). |
 | `POST /spatial/raycast` | `{"origin":{"x":0,"y":10,"z":0},"direction":{"x":0,"y":-1,"z":0},"maxDistance":20}` | Nearest model-triangle or terrain-surface hit in stopped mode, without colliders or a viewport. Returns world contact, normal and identities. [Raycasts](debug-server-spatial.md#cast-a-ray). |
 | `POST /spatial/overlap` | `{"bounds":{"min":{"x":-1,"y":0,"z":-1},"max":{"x":1,"y":2,"z":1}},"limit":128}` | Stopped-mode world-bounds matches, with total and truncation. Bounds overlap is not exact geometry intersection. [Overlap queries](debug-server-spatial.md#find-overlapping-bounds). |
@@ -224,6 +225,17 @@ null bounds. `/camera/frame` remains useful when you also want to frame the obje
 Place one instance and inspect it before repeating it. Bounds alone cannot reveal
 door openings, shelf heights, the visible front face, or a column blocking an aisle.
 
+Use `entity.place` in `/edit` to place a model bound or explicit local anchor against
+a supplied surface plane, with clearance and optional alignment. Pass a fresh raycast
+point and normal for floor or wall placement; see [surface placement](debug-server-placement.md)
+for examples and the limits of a single plane on uneven terrain.
+Use its [relative bounds form](debug-server-placement.md#relative-bounds-placement)
+to align min/center/max bounds with another entity along selected world axes,
+then add an optional world or reference-local offset. This supports measured gaps
+between props without assuming their pivots lie at the center or base.
+Use [`entity.aim`](debug-server-placement.md#aim-at-a-world-point) to point a
+spotlight or another entity at a picked world point, with explicit forward and up axes.
+
 ### 4. Use purposeful batches and retain their IDs
 
 Organize the scene under identity-transform parents such as Structure, Storage,
@@ -260,6 +272,8 @@ property. Keep a local map from your layout names to IDs and component types.
 | `entity.reparent` | Entity ID; parent is existing ID, earlier batch ref, or null. Preserves local transforms. |
 | `entity.delete` | Entity ID; deletes its entire supported hierarchy. |
 | `entity.duplicate` | Entity ID; copies its supported hierarchy with fresh IDs under the same parent. Use a subsequent batch to rename/move returned copies. |
+| `entity.aim` | Entity ID; rotate an explicit local forward axis toward a world point, with controlled up direction. |
+| `entity.place` | Entity ID; place against a supplied plane, or align bounds with `relativeTo` and apply an offset. |
 | `component.update` | **Component ID**; patch its writable properties. |
 | `component.add` | **Entity ID**, component type and optional properties. |
 | `component.remove` | **Component ID**; required Transform cannot be removed. |
@@ -487,7 +501,7 @@ authoring; it does not add interaction, animation or collision to the prop.
 | Statistics disagree with the picture | Treat counters as diagnostics. The warehouse run reported zero `lightCount` and `vertexCount` despite visible lit geometry; this observation was not diagnosed or fixed. |
 | Physics appears unchanged while stopped | Actors/shapes are created on Play. Box Collider Size is half-extents, scaled with the entity; Position is an unscaled, unrotated world-axis offset. See [physics authoring](debug-server-physics.md). |
 | HTTP 409 on picking | Capture expired, was evicted, or belongs to a replaced scene. Request `/observe` with `picking: true` while stopped. See [picking limits](debug-server-picking.md). |
-| Need ambient/fog/skybox writes, Blueprint spawning, play/pause/stop, material authoring or placement helpers | These are not currently exposed. Use the UI where available; track API work in [the TODO](debug-server-todo.md). |
+| Need ambient/fog/skybox writes, Blueprint spawning, play/pause/stop or material authoring | These are not currently exposed. Use the UI where available; track API work in [the TODO](debug-server-todo.md). |
 
 The API also does not yet expose 2D authoring, viewport-tab switching, general UI
 automation or arbitrary component writes. Reading serialized state does not imply

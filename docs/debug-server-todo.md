@@ -173,11 +173,17 @@ foundation for picking and the filtered queries below.
   actual geometry intersection in the query contract. Model/terrain surface
   raycasts and bounds-only overlaps are verified; see
   [spatial intersections](debug-server-spatial.md#raycasts-and-bounds-overlaps).
-- [ ] Add placement helpers: rest on a surface, mount flush against a wall, align
-  bounds, and offset relative to another entity. Define anchors, clearance,
-  coordinate space and units explicitly; account for parent transforms.
-- [ ] Aim an entity, such as a spotlight, at a world point with an explicit forward
-  axis and up direction.
+- [x] Place a model bound or explicit local anchor against a supplied surface plane,
+  with optional axis alignment, clearance and parent-transform handling. Includes
+  undo/redo and save/reload; see [surface placement](debug-server-placement.md).
+  This guarantees clearance from the supplied plane, not an uneven terrain footprint.
+- [x] Extend placement with bounds alignment and offsets relative to another entity.
+  Includes selected world axes, world/reference-local offsets, ordered batch state,
+  undo/redo and save/reload; see [relative bounds placement](debug-server-placement.md#relative-bounds-placement).
+- [ ] Add footprint-aware uneven-ground placement when actual scene work requires it.
+- [x] Aim an entity, such as a spotlight, at a world point with an explicit forward
+  axis and up direction. Includes parent-aware ordered batches, undo/redo, retries
+  and save/reload; see [entity aiming](debug-server-placement.md#aim-at-a-world-point).
 
 Acceptance: place a crate on uneven ground and a lamp against a rotated wall, then
 aim the lamp at a picked point. Read back the resulting transforms and inspect the
@@ -205,18 +211,22 @@ Acceptance: inspect a problematic lit surface, identify its assigned lights and
 their shadow allocations, and compare point/spot configurations from the same view
 with captures and shadow statistics.
 
-### 3. Filtered and batched scene inspection
+### 3. Filtered and batched scene inspection — complete
 
 Reduces request overhead and makes level probing practical. The Ravenholm lamp
 change required a hierarchy read, twelve individual light reads, and parent reads
 just to establish the reference settings and placement.
 
-- [ ] Query entities by component type, name and hierarchy, with optional component
+Implemented and verified through [filtered and batched inspection](debug-server-inspection.md).
+`POST /entities/query` supports explicit IDs, combined filters and optional
+property/transform readback, with count/byte limits and explicit truncation.
+
+- [x] Query entities by component type, name and hierarchy, with optional component
   properties and world transforms in the response.
-- [ ] Read a specified set of entities in one request without requiring a capture.
-- [ ] Query entities within a radius or bounds, explicitly defining whether the
+- [x] Read a specified set of entities in one request without requiring a capture.
+- [x] Query entities within a radius or bounds, explicitly defining whether the
   test uses pivots or geometry bounds.
-- [ ] Bound response sizes and define truncation or pagination; sample each batch
+- [x] Bound response sizes and define truncation or pagination; sample each batch
   coherently and identify its scene generation.
 
 Acceptance: fetch all lights and their world transforms in one request, then find

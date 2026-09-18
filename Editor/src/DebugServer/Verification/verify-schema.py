@@ -68,7 +68,7 @@ def reject(body, path):
 
 expected_operations = {
     'entity.create', 'entity.update', 'entity.reparent', 'entity.delete',
-    'entity.duplicate', 'component.add', 'component.update', 'component.remove'
+    'entity.duplicate', 'entity.place', 'entity.aim', 'component.add', 'component.update', 'component.remove'
 }
 assert set(operations) == set(schema['operations']) == expected_operations
 assert schema['requestSchema']['additionalFields'] is False
@@ -116,6 +116,11 @@ assert light['properties'] == schema['components']['Light']['defaults']
 
 samples = {
     'entity.create': operation('entity.create'),
+    'entity.aim': operation('entity.aim', target={'id': root}, point={'x': 0, 'y': 0, 'z': -10},
+                            forwardAxis='-Z', upAxis='+Y', up={'x': 0, 'y': 1, 'z': 0}),
+    'entity.place': operation('entity.place', target={'id': root},
+                              surface={'point': {'x': 1, 'y': 2, 'z': 3}, 'normal': {'x': 0, 'y': 1, 'z': 0}},
+                              anchor={'type': 'localPoint', 'point': {'x': 0, 'y': 0, 'z': 0}}),
     'entity.update': operation('entity.update', target={'id': root}, properties={'name': 'Schema root'}),
     'entity.reparent': operation('entity.reparent', target={'id': child}, parent=None),
     'entity.delete': operation('entity.delete', target={'id': child}),
@@ -178,6 +183,7 @@ updated = edit([samples['entity.update'], samples['component.add'], samples['com
 assert updated['results'][0]['entity']['name'] == 'Schema root'
 assert updated['results'][1]['component']['properties'] == schema['components']['Light']['defaults']
 assert updated['results'][2]['component']['properties']['Intensity'] == 4
+edit([samples['entity.place'], samples['entity.aim']])
 edit([samples['entity.reparent']])
 edit([operation('entity.reparent', target={'id': child}, parent={'id': root})])
 duplicated = edit([samples['entity.duplicate'], operation('entity.create', parent={'ref': 'copy'})])
