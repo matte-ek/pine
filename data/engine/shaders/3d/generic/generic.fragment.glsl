@@ -77,7 +77,7 @@ void main(void)
 #ifdef VERSION_DISCARD
     vec4 frag = texture(matSamplers.diffuse, vIn.uv * matPropeties[0].uvScale);
 
-    if (frag.w < 0.001f || frag.r + frag.g + frag.b <= 0.5f)
+    if (frag.w < 0.001f)
     {
         discard;
     }
