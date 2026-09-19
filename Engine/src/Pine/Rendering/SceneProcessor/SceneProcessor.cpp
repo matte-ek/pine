@@ -1,7 +1,5 @@
 ﻿#include "SceneProcessor.hpp"
 
-#include <limits>
-
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
@@ -30,23 +28,23 @@ namespace
         const auto localMin = model->GetBoundingBoxMin();
         const auto localMax = model->GetBoundingBoxMax();
 
-        auto worldMin = Pine::Vector3f(std::numeric_limits<float>::max());
-        auto worldMax = Pine::Vector3f(std::numeric_limits<float>::lowest());
+        // The transform's linear part: the rotation with the scale folded into its columns, which
+        // is what the eight-corner form applied as 'rotation * (corner * scale)'. Negative scale
+        // needs no special case - TransformBounds takes the absolute value of these columns.
+        auto linear = glm::mat3_cast(rotation);
 
-        // Rotate all eight corners and take their extents. Rotating the min/max pair alone would be
-        // wrong for anything not axis-aligned, which is what the old culling test got wrong.
-        for (int corner = 0; corner < 8; corner++)
-        {
-            const auto localCorner = Pine::Vector3f(
-                corner & 1 ? localMax.x : localMin.x,
-                corner & 2 ? localMax.y : localMin.y,
-                corner & 4 ? localMax.z : localMin.z);
+        linear[0] *= scale.x;
+        linear[1] *= scale.y;
+        linear[2] *= scale.z;
 
-            const auto worldCorner = position + rotation * (localCorner * scale);
+        // Equivalent to taking the extents of all eight transformed corners, which is what this
+        // used to do - see TransformBounds for why, and for why it is not the min/max-pair shortcut
+        // the old culling test got wrong. Still a full off-axis fit; just a few operations instead
+        // of eight rotations.
+        Pine::Vector3f worldMin;
+        Pine::Vector3f worldMax;
 
-            worldMin = glm::min(worldMin, worldCorner);
-            worldMax = glm::max(worldMax, worldCorner);
-        }
+        Pine::Math::TransformBounds(linear, position, localMin, localMax, worldMin, worldMax);
 
         data.PreviousBoundsMin = data.BoundsMin;
         data.PreviousBoundsMax = data.BoundsMax;

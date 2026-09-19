@@ -74,21 +74,15 @@ namespace
                                      const float minX, const float maxX,
                                      const float minY, const float maxY)
     {
-        auto lightMin = Vector3f(std::numeric_limits<float>::max());
-        auto lightMax = Vector3f(std::numeric_limits<float>::lowest());
+        // The light view is affine, so its bounds follow from the box's centre and extents rather
+        // than from its eight corners - see Math::TransformBounds. This runs for every caster in
+        // the scene, per cascade, so the eight matrix-vector products it replaces were the bulk of
+        // what building a cascade cost.
+        Vector3f lightMin;
+        Vector3f lightMax;
 
-        for (int corner = 0; corner < 8; corner++)
-        {
-            const auto worldCorner = Vector3f(
-                corner & 1 ? boundsMax.x : boundsMin.x,
-                corner & 2 ? boundsMax.y : boundsMin.y,
-                corner & 4 ? boundsMax.z : boundsMin.z);
-
-            const auto lightCorner = Vector3f(viewMatrix * Vector4f(worldCorner, 1.f));
-
-            lightMin = glm::min(lightMin, lightCorner);
-            lightMax = glm::max(lightMax, lightCorner);
-        }
+        Math::TransformBounds(Matrix3f(viewMatrix), Vector3f(viewMatrix[3]),
+                              boundsMin, boundsMax, lightMin, lightMax);
 
         if (lightMax.x < minX || lightMin.x > maxX ||
             lightMax.y < minY || lightMin.y > maxY)
