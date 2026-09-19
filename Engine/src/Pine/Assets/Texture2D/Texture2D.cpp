@@ -5,7 +5,6 @@
 #include <cctype>
 
 #include "Importer/TextureImporter.hpp"
-#include "Pine/Core/File/File.hpp"
 #include "Pine/Threading/Threading.hpp"
 
 namespace
@@ -418,10 +417,7 @@ Pine::ByteSpan Pine::Texture2D::SaveAssetData()
     // somewhat inefficient but saving assets is not a first-class anyway.
     if (m_ImportData.empty())
     {
-        if (!m_FilePath.empty() && std::filesystem::exists(m_FilePath))
-        {
-            textureSerializer.Read(File::ReadCompressed(m_FilePath));
-        }
+        textureSerializer.Read(ReadStoredAssetData());
     }
     else
     {

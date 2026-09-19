@@ -123,6 +123,20 @@ namespace Pine
         virtual bool LoadAssetData(const ByteSpan& span);
         virtual ByteSpan SaveAssetData();
 
+        // The payload this asset last wrote to its own '.passet', or an empty span when there is
+        // no file yet. For a SaveAssetData() that has to carry bulk data forward which it no
+        // longer holds in system memory - a texture's pixels, a model's geometry, a clip's samples
+        // all live on the GPU or the audio device once loaded, and keeping a second copy purely to
+        // be able to write it out again would double what the asset costs.
+        //
+        // Read it back through here rather than reading the file directly. A '.passet' is the
+        // AssetSerializer envelope with the payload inside its Data field, and handing the whole
+        // file to a payload serializer *succeeds* while populating nothing, because fields are
+        // matched by name and none of the payload's names are in the envelope. The asset then
+        // saves with its bulk data silently dropped, and nothing about it in memory looks wrong at
+        // the time.
+        ByteSpan ReadStoredAssetData() const;
+
         void IncreaseReference();
         void DecreaseReference();
 

@@ -19,6 +19,25 @@ Pine::ByteSpan Pine::Asset::SaveAssetData()
     return {nullptr, 0};
 }
 
+Pine::ByteSpan Pine::Asset::ReadStoredAssetData() const
+{
+    if (m_FilePath.empty() || !std::filesystem::exists(m_FilePath))
+    {
+        return {};
+    }
+
+    AssetSerializer assetSerializer;
+
+    if (!assetSerializer.Read(File::ReadCompressed(m_FilePath)))
+    {
+        PWarning(fmt::format("Could not read back the stored data of asset '{}'.", m_Path));
+
+        return {};
+    }
+
+    return assetSerializer.Data.Read();
+}
+
 void Pine::Asset::IncreaseReference()
 {
     ++m_ReferenceCount;

@@ -25,6 +25,22 @@ extensions. The row itself still has to be there: that list is also the `AssetTy
 lookup `Asset::Load()` and `Assets::CreateAsset()` both go through, so deleting it would stop the
 type from loading at all.
 
+### Saving an asset that was not just imported
+
+An asset type whose payload is bulk data - a texture's pixels, a model's geometry, an audio clip's
+samples - keeps no copy of it in system memory once loaded, because it lives on the GPU or the
+audio device. So `SaveAssetData()` for those types has nothing to write when the save is not
+straight after an import, and has to recover the payload from the `.passet` it is replacing.
+**Read it back with `Asset::ReadStoredAssetData()`, never by reading the file yourself.**
+
+A `.passet` is the `AssetSerializer` envelope (`UId`/`Time`/`Type`/`Path`/`Sources`/`Data`) with
+the type's own payload inside its `Data` field. Handing the whole file to the payload serializer
+*succeeds* and populates nothing, because `Serialization::Serializer::Read` matches fields by name
+and none of the payload's names appear in the envelope. The asset then saves with its bulk data
+dropped, `ReLoad()` writes that over the only good copy, and nothing about the asset in memory
+looks wrong at the time. `Texture2D` and `Model` both did exactly this; `verify-asset-resave.py`
+is what keeps them from doing it again.
+
 ### The import phases
 
 `Assets/Importer/AssetImporter.hpp` splits an import into phases, and a caller can stop between

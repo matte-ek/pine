@@ -136,11 +136,10 @@ ByteSpan Model::SaveAssetData()
 
     if (m_MeshData.empty())
     {
-        // See Texture2D's SaveAssetData() for why.
-        if (!m_FilePath.empty() && std::filesystem::exists(m_FilePath))
-        {
-            modelSerializer.Read(m_FilePath);
-        }
+        // See Asset::ReadStoredAssetData() for why. This used to read the file with the
+        // serializer's own path overload, which reads it raw - so it did not even get as far as
+        // inflating the '.passet', let alone finding the geometry inside it.
+        modelSerializer.Read(ReadStoredAssetData());
     }
     else
     {

@@ -2,7 +2,6 @@
 
 #include "Importer/AudioImporter.hpp"
 #include "Pine/Audio/Audio.hpp"
-#include "Pine/Core/File/File.hpp"
 #include "Pine/Threading/Threading.hpp"
 
 Pine::AudioFile::AudioFile()
@@ -85,19 +84,7 @@ Pine::ByteSpan Pine::AudioFile::SaveAssetData()
     // rarely.
     if (m_ImportSamples.empty())
     {
-        if (!m_FilePath.empty() && std::filesystem::exists(m_FilePath))
-        {
-            // A '.passet' is the asset envelope with this payload inside its Data field, so the
-            // envelope has to come off first. Handing the file straight to the payload serializer
-            // reads without error and finds none of its fields, since it matches them by name -
-            // which loses the samples instead of carrying them across.
-            AssetSerializer storedAsset;
-
-            if (storedAsset.Read(File::ReadCompressed(m_FilePath)))
-            {
-                audioSerializer.Read(storedAsset.Data.Read());
-            }
-        }
+        audioSerializer.Read(ReadStoredAssetData());
     }
     else
     {
