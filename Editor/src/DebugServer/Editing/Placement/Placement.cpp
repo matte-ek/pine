@@ -313,6 +313,73 @@ void Placement::ValidateAim(json& input, const std::string& path)
     UnitVector(input.at("up"), path + "/up");
 }
 
+nlohmann::json Placement::ColliderFitFields()
+{
+    return { { "padding", {
+        { "type", "number" }, { "minimum", 0 },
+        { "units", "model units before world scale" },
+        { "description", "Grows every half-extent, so the box clears the model by this much on all six sides. Scaled by the entity like Size itself." }
+    } } };
+}
+
+void Placement::ValidateColliderFit(json& input, const std::string& path)
+{
+    Values::Object(input, path, { "padding" });
+    Values::Properties(input, ColliderFitFields(), path);
+}
+
+nlohmann::json Placement::PrepareColliderFit(const json& input, const Duplication::EntityState& entity,
+    const WorldTransform& parent, const std::string& path)
+{
+    const auto transformAdapter = Components::Find(Pine::ComponentType::Transform);
+    const auto local = Components::Prepare(*transformAdapter, transformAdapter->Read(nullptr),
+        entity.Components.front().Properties, path + "/target");
+    const auto world = Compose(parent, local, path + "/target");
+
+    const auto adapter = Components::Find(Pine::ComponentType::Collider);
+    const auto existing = std::find_if(entity.Components.begin(), entity.Components.end(), [](const auto& component)
+    {
+        return component.Type == Pine::ComponentType::Collider;
+    });
+
+    Values::Require(existing != entity.Components.end(), path + "/target",
+        "Entity has no Collider. Add one with component.add before fitting it.");
+
+    // Keep the collider's own settings: layers, masks and the trigger flag are authoring choices
+    // this operation has no opinion about.
+    auto state = Components::Prepare(*adapter, adapter->Read(nullptr), existing->Properties, path + "/target");
+
+    Values::Require(state.at("Type") == "Box", path + "/target",
+        "entity.fitCollider fits a Box collider. Set Type to Box first.");
+
+    // Measure the model's own untransformed box. Size is multiplied by the entity's world scale and
+    // the shape is rotated with the entity, so a model-space fit stays tight on a rotated prop -
+    // which is exactly what an axis-aligned world box cannot do.
+    const auto bounds = ModelBounds(entity, path + "/target");
+    const auto padding = input.value("padding", 0.0);
+    const auto half = (bounds.Max - bounds.Min) * 0.5 + padding;
+    const auto center = (bounds.Min + bounds.Max) * 0.5;
+
+    for (int axis = 0; axis < 3; axis++)
+    {
+        Values::Require(half[axis] > 0.0, path + "/target",
+            std::string("Model has no extent on ") + "xyz"[axis] + ", so the box would be degenerate. "
+            "Give padding a nonzero value to fit a flat model.");
+    }
+
+    // Position is an unscaled, unrotated world-axis offset from the entity's world position, so the
+    // model-space centre has to be scaled and rotated into world space here.
+    const auto offset = glm::dquat(world.Rotation) * (center * glm::dvec3(world.Scale));
+
+    RequireFinite(half, path + "/target");
+    RequireFinite(offset, path + "/target");
+
+    state["Size"] = Pine::SerializationJson::StoreVector3(Pine::Vector3f(half));
+    state["Position"] = Pine::SerializationJson::StoreVector3(Pine::Vector3f(offset));
+
+    return Components::Prepare(*adapter, adapter->Read(nullptr), state, path + "/target");
+}
+
 nlohmann::json Placement::PrepareAim(const json& input, const Duplication::EntityState& entity,
     const WorldTransform& parent, const std::string& path)
 {

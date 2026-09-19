@@ -56,6 +56,12 @@ nlohmann::json Editor::DebugServer::Editing::Schema::Operations()
     const json componentTarget = {
         { "type", "reference" }, { "kind", "component" }, { "forms", { "id" } }
     };
+    // Placement, aiming and collider fitting all derive their result from the target's own
+    // transform and geometry, so they also accept a ref this batch declared earlier.
+    const json placementTarget = {
+        { "type", "reference" }, { "kind", "entity" }, { "forms", { "id", "ref" } },
+        { "description", "An existing entity ID, or the ref of an earlier entity.create or entity.duplicate in this request." }
+    };
     const json parent = {
         { "type", "reference" }, { "kind", "entity" }, { "forms", { "id", "ref" } }
     };
@@ -81,10 +87,13 @@ nlohmann::json Editor::DebugServer::Editing::Schema::Operations()
     });
 
     auto aimFields = Placement::AimFields();
-    aimFields["target"] = entityTarget;
+    aimFields["target"] = placementTarget;
+
+    auto colliderFitFields = Placement::ColliderFitFields();
+    colliderFitFields["target"] = placementTarget;
 
     auto placementFields = Placement::Fields();
-    placementFields["target"] = entityTarget;
+    placementFields["target"] = placementTarget;
     auto placement = Operation("entity.place", { "op", "target" }, placementFields);
     placement["oneOf"] = {
         { { "required", { "surface", "anchor" } }, { "forbidden", { "relativeTo", "boundsAlignment", "offset" } } },
@@ -94,6 +103,7 @@ nlohmann::json Editor::DebugServer::Editing::Schema::Operations()
     return {
         { "entity.place", placement },
         { "entity.aim", Operation("entity.aim", { "op", "target", "point", "forwardAxis", "upAxis", "up" }, aimFields) },
+        { "entity.fitCollider", Operation("entity.fitCollider", { "op", "target" }, colliderFitFields) },
         { "entity.create", Operation("entity.create", { "op" }, {
             { "name", creationName }, { "ref", rootRef }, { "parent", creationParent },
             { "components", {
@@ -163,9 +173,10 @@ nlohmann::json Editor::DebugServer::Editing::Schema::References()
             { "scope", "request" }, { "unique", true }, { "earlierOperationsOnly", true },
             { "declaredBy", { "entity.create", "entity.duplicate" } },
             { "declarationField", "ref" }, { "refersTo", "operationRoot" },
-            { "acceptedBy", { "entity.create.parent", "entity.reparent.parent" } },
+            { "acceptedBy", { "entity.create.parent", "entity.reparent.parent",
+                "entity.place.target", "entity.aim.target", "entity.fitCollider.target" } },
             { "deletedEarlierInBatch", "reject" },
-            { "description", "Read allocated IDs from results for use as targets in a subsequent request." }
+            { "description", "Also usable as the target of the operations that compute from the target's own transform and geometry. Read allocated IDs from results for use as targets in a subsequent request." }
         } }
     };
 }

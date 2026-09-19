@@ -24,6 +24,7 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 
+#include "Capture/Capture.hpp"
 #include "Endpoints/Endpoints.hpp"
 #include "Observation/Observation.hpp"
 #include "Picking/Picking.hpp"
@@ -87,6 +88,7 @@ namespace
     void ObserveRenderedFrame(Pine::RenderingContext* context, const Pine::RenderStage stage, float)
     {
         Editor::DebugServer::Observation::OnRender(context, stage);
+        Editor::DebugServer::Capture::OnRender(context, stage);
         if (stage == Pine::RenderStage::PostRender)
         {
             Editor::DebugServer::Requests::ResumeReads();
@@ -148,6 +150,38 @@ namespace
         }
     }
 
+    // Shared by both, since they differ only in which std:: conversion reads the text.
+    template <typename T, typename Convert>
+    Editor::DebugServer::Parameter<T> ReadParameter(const Editor::DebugServer::Request& request,
+                                                    const std::string& name,
+                                                    Convert convert)
+    {
+        const auto parameter = request.Parameters.find(name);
+
+        if (parameter == request.Parameters.end())
+        {
+            return {};
+        }
+
+        Editor::DebugServer::Parameter<T> result;
+
+        result.Present = true;
+
+        try
+        {
+            std::size_t consumed = 0;
+
+            result.Value = convert(parameter->second, &consumed);
+            result.Valid = consumed == parameter->second.size();
+        }
+        catch (const std::exception&)
+        {
+            result.Valid = false;
+        }
+
+        return result;
+    }
+
     void RegisterRequestRoutes()
     {
         // These handlers deliberately bypass the main-thread queue. Status and
@@ -180,6 +214,22 @@ namespace
             control(true, request, response);
         });
     }
+}
+
+Editor::DebugServer::Parameter<int> Editor::DebugServer::ReadIntParameter(const Request& request, const std::string& name)
+{
+    return ReadParameter<int>(request, name, [](const std::string& text, std::size_t* consumed)
+    {
+        return std::stoi(text, consumed);
+    });
+}
+
+Editor::DebugServer::Parameter<float> Editor::DebugServer::ReadFloatParameter(const Request& request, const std::string& name)
+{
+    return ReadParameter<float>(request, name, [](const std::string& text, std::size_t* consumed)
+    {
+        return std::stof(text, consumed);
+    });
 }
 
 void Editor::DebugServer::AddRoute(const Method method, const std::string& path, Handler handler)
@@ -266,6 +316,7 @@ void Editor::DebugServer::Shutdown()
     m_ListenerThread.join();
 
     Picking::Shutdown();
+    Capture::Shutdown();
 
     PInfo("Debug server stopped.");
 }

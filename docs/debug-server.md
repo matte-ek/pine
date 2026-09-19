@@ -71,6 +71,9 @@ ID, `component.add` wants an entity ID, and mixing them is a validation error.
 **Temporary editor entities** (the editor's own camera and helpers) and their whole
 descendant subtrees are excluded from every query and rejected as every target.
 They still appear in `/entities` with `temporary: true` and in `/status.entityCount`.
+`POST /render` adds one of these, `DebugServerCaptureCamera`, the first time it is
+called; like the editor's own camera it is never saved into a Level and survives a
+level load.
 
 **Play mode.** Every write — scene edits, imports, undo/redo, saving, loading,
 terrain sculpting, game-camera selection — requires **stopped** play mode and returns
@@ -431,7 +434,8 @@ a debug batch samples its starting state.
 **What a step restores:** names, entity active/static flags and tags, local
 transforms, model and material references, mesh indices, light properties, component
 active flags, renderer stencil settings, perspective Camera properties, the selected
-game camera, and parent/child, component and scene listing order. Unchanged values
+game camera, the Level's atmosphere settings, and parent/child, component and scene
+listing order. Unchanged values
 are not rewritten. Creation, duplication, component removal and entity deletion
 restore their **original persistent entity and component IDs**; pool slots, raw
 pointers and managed objects do not survive, so reacquire objects by ID. Batch `ref`
@@ -495,6 +499,45 @@ it requires an existing readable file and describes the **stored** asset — if
 
 For a model, `content.Data.Meshes[]` carries `BoundingBoxMin`, `BoundingBoxMax` and
 material IDs. Geometry buffers are opaque size descriptors, not vertex arrays.
+
+### `POST /assets/summary`
+The live details of 1–256 named assets in one reply, for shortlisting candidates
+without a `GET /asset` per entry.
+
+```json
+{"assets": [{"path": "psx/props/crate_1"}, {"id": "<asset-id>"}]}
+```
+
+Each reference is exactly one of `path` or `id`, the same shape `/edit` accepts for an
+asset property; an unknown one is a validation error naming its index. Every entry
+carries the `path`, `type`, `uid` and `modified` that `/assets` lists, plus, by type:
+
+- **Model** — `bounds` (`min`, `max` and `size`, the model's own aggregate), `meshCount`,
+  `vertexCount`, and `materials`, the distinct materials its meshes use in first-use
+  order.
+- **Material** — `diffuseColor`, `specularColor`, `renderingMode`, `alpha`, `shininess`,
+  `shader`, and `textures` (`diffuse`, `specular`, `normal`).
+
+Other types return identity only, so a mixed list is fine. Unlike `GET /asset` this
+reads the **live** asset rather than decompressing the stored one, so it also reflects
+unsaved edits — `modified` says when the two differ.
+
+### `GET /asset/preview.png`
+A rendered PNG of one asset on its own: `?path=` or `?id=`, as `/asset` takes them.
+A **Model** renders as itself, a **Material** on the editor's preview sphere; every
+other type returns 409. The camera is fitted to the subject's bounds, so the framing
+does not depend on how large the asset is.
+
+Optional `width` and `height` (16–4096, default 512 each) and `yaw` and `pitch`
+(±360 degrees, default 30 and 20) — the same three-quarter view and drag angles the
+asset browser uses. The background is opaque mid grey rather than the browser's
+transparency, so the image reads on its own.
+
+This is the asset browser's icon pass, not the scene renderer: it writes the shader's
+linear output straight into an LDR buffer with no exposure, tone mapping or sRGB
+encode. **Treat the colours as approximate.** It is for telling one wall, roof or lamp
+variant from another, which it does well; judge a material's actual appearance from
+`/render` or `/observe`, which go through the real pipeline.
 
 ### `GET /terrain`
 `?path=` or `?id=`, optionally `?x=&z=`. Terrain layout: chunk grid, origin, sample
@@ -625,6 +668,53 @@ reconstructed automatically.
 
 ## Cameras, capture and picking
 
+### `GET /level/settings`, `POST /level/settings`
+The active Level's atmosphere and post-processing: skybox, ambient light, fog, exposure,
+bloom and the film-grain/vignette look. GET returns `level` (`path` and `id`) and
+`properties`; POST takes `{"properties": {…}}` and returns the same reply plus
+`history: "recorded"`.
+
+```json
+{"properties": {"AmbientColor": {"x": 0.12, "y": 0.13, "z": 0.18},
+                "FogColor": {"x": 0.2, "y": 0.25, "z": 0.3, "w": 1.0},
+                "FogDistance": 80, "FogIntensity": 0.35, "Exposure": 1.4}}
+```
+
+**Omitted properties keep their current value**, so a request names only what it changes.
+Merging is per property: a supplied colour replaces the whole colour rather than one
+channel. An empty `properties` object is a validation error, as is an unknown property
+name — spelling is the engine's, matching the Level Properties panel.
+
+| Property | Type | Notes |
+| --- | --- | --- |
+| `Skybox` | Texture3D asset, nullable | `{"path": …}` or `{"id": …}`; `null` clears it |
+| `AmbientColor` | vector3 | Linear. Lights the scene; it does **not** by itself make geometry visible |
+| `FogColor` | vector4 | Linear, with alpha |
+| `FogDistance` | number ≥ 0.01 | World units |
+| `FogIntensity` | number ≥ 0 | Panel span 0–1 |
+| `Exposure` | number ≥ 0 | HDR multiplier before tone mapping |
+| `BloomThreshold`, `BloomIntensity` | number ≥ 0 | Brightness extracted, and how strongly it composites |
+| `GrainStrength`, `VignetteStrength` | number ≥ 0 | Film look in the post-process pass |
+
+The only enforced bounds are those above: negative values are rejected, and `FogDistance`
+has a floor because it divides. The schema also advertises a `uiRange` per property — the
+span the Level Properties panel's sliders offer. **It is guidance, not a limit**, because
+those sliders deliberately let a value be typed past their ends, and the API does not
+impose a ceiling the editor does not have.
+
+**The Game camera is not here.** `LevelSettings` stores it, but it is written through
+`/level/camera`, which validates the camera and its perspective properties. Exposing it
+twice would give two ways to write one field.
+
+Each request is **one undo step**, and undo restores exactly these properties — a later
+undo of an unrelated edit leaves the atmosphere alone. Because the panel writes the same
+struct directly without recording a command, dragging a slider between a debug write and
+its undo makes that step inapplicable; the undo then fails with "Level settings changed
+outside history" rather than overwriting what was dragged.
+
+Settings are authored state, so a change makes `/level/status` report unsaved changes and
+survives save and reload like the rest of the Level.
+
 ### `GET /camera`, `POST /camera`, `POST /camera/frame`
 The **Level viewport's editor camera**. These do not touch any scene Camera component
 and do not select the game camera. Available during play as well as stopped.
@@ -738,6 +828,45 @@ non-perspective view — no stale framebuffer is ever substituted; and a request
 entity that disappears while the observation is pending. A Game capture also needs a
 selected scene Camera.
 
+### `POST /render`
+Renders the live scene from a supplied pose into the debug server's own rendering
+context and returns the PNG. Unlike `/viewport.png` and `/observe` it does **not**
+move the editor camera, does not need a viewport tab open or visible, and is not
+limited to a viewport's size — which is what makes two captures comparable.
+
+```json
+{"position": {"x": 12, "y": 3, "z": -40}, "lookAt": {"x": 12, "y": 2, "z": -52},
+ "up": {"x": 0, "y": 1, "z": 0}, "fieldOfView": 70, "nearPlane": 0.1,
+ "farPlane": 1000, "width": 1280, "height": 720}
+```
+
+`position` is required, as is exactly one of `rotation` (a quaternion) or `lookAt` (a
+world-space target). Optional `up` controls roll and requires `lookAt`, with the same
+parallel-direction rules as `POST /camera`. `fieldOfView` (1–175), `nearPlane` and
+`farPlane` default to **70, 0.1 and 1000** — fixed rather than copied from the editor
+camera, so the same request gives the same image whatever the viewport is set to. The
+default far plane is much longer than `Camera`'s own 150, which clips most of a
+level-sized scene. `width` and `height` are 16–4096, default 1280×720.
+
+The reply carries `frame` (the same identity `/observe` returns), `viewport`, the
+`camera` actually used — whose fields can be posted straight back — and `image` as
+base64 PNG.
+
+It is a read: it takes no retry headers, needs no `after` token, and leaves selection,
+camera, scene, history and unsaved state alone. **Ordering is inherent**: the capture
+renders on a frame after the request was accepted, so anything whose reply you already
+have is in it. A scene replaced between request and capture answers 409.
+
+Captures render **one per frame**, so concurrent requests queue rather than overwrite
+each other's viewpoint; more than 16 waiting answers 409. The rendering context is
+inactive except for the frame it is armed for, so an editor that never calls this
+route renders exactly what it did before.
+
+Two costs worth knowing. The context uses the **Level viewport's clear colour**, so an
+empty scene comes back on the editor's blue rather than black. And a capture larger
+than anything drawn so far grows the engine's shared scene buffers, which is a
+**session high-water mark** that is never given back — ask for the size you need.
+
 ### `POST /pick`
 Read the model surface under a pixel of a **retained capture**. First request an
 observation with `"picking": true` while stopped; ordinary observations return
@@ -843,8 +972,9 @@ anything mutates.
 | `entity.reparent` | entity ID | Move the entity and its hierarchy under a new parent, or to the scene root. |
 | `entity.delete` | entity ID | Delete the entity and all its descendants. |
 | `entity.duplicate` | entity ID | Copy the entity and its hierarchy with fresh IDs, under the same parent. |
-| `entity.place` | entity ID | Position against a supplied surface plane, or align bounds with another entity. |
-| `entity.aim` | entity ID | Rotate a chosen local axis toward a world point. |
+| `entity.place` | entity ID **or ref** | Position against a supplied surface plane, or align bounds with another entity. |
+| `entity.aim` | entity ID **or ref** | Rotate a chosen local axis toward a world point. |
+| `entity.fitCollider` | entity ID **or ref** | Size and offset the entity's Box Collider around its own model geometry. |
 | `component.add` | entity ID | Add a component with optional initial properties. |
 | `component.update` | **component ID** | Patch a component's writable properties. |
 | `component.remove` | **component ID** | Remove a component. |
@@ -856,17 +986,23 @@ exists and can be neither added nor removed; everything else advertises `addable
 
 ## References
 
-- **Entity and component targets accept only `{"id": "…"}`.** Not refs, not pool
-  slots, not the other kind of ID.
+- **Most targets accept only `{"id": "…"}`.** Not refs, not pool slots, not the other
+  kind of ID. Component targets are always IDs.
 - **`parent` additionally accepts `{"ref": "…"}`**, naming an **earlier**
   `entity.create` or `entity.duplicate` root in the same request, or `null` to detach
   to the scene root. Omitting `parent` on a create makes a root; an explicit null
   there is rejected. Reparenting requires the field, where null means detach.
+- **`entity.place`, `entity.aim` and `entity.fitCollider` also take a ref as their
+  `target`.** These three compute their result from the target's own transform and
+  geometry, so "the thing I just created" is the ordinary case — one batch can create
+  a prop, stand it on the ground, turn it and wrap a collider around it. Exactly one
+  of `id` or `ref` per target; supplying both is a validation error. The schema lists
+  the accepting fields under `referenceRules.batchRefs.acceptedBy`.
 - `ref` names are declared by creations and duplications, must be unique across the
-  whole request, and are **parent references only** — never operation targets, never
-  a way to address copied descendants, never usable in a later request. Forward,
-  self, deleted and previous-request references are rejected. To touch something this
-  batch created, use its returned ID in a following request.
+  whole request, and name **an operation's root entity** — never a way to address
+  copied descendants, never usable in a later request. Forward, self, deleted and
+  previous-request references are rejected. To touch something this batch created from
+  an operation that does not take a ref, use its returned ID in a following request.
 - **Asset references** accept exactly one of `{"id": "<uid>"}` or
   `{"path": "<virtual-path>"}`. The asset must already be loaded and match the
   expected type. Responses normalize to IDs. `null` clears a nullable asset property.
@@ -1077,6 +1213,36 @@ a roll. No tracking relationship is created — aim again after moving the entit
 rotating its parent. Aiming does not preserve surface contact, so for a mounted lamp,
 aim a light child rather than the housing.
 
+### `entity.fitCollider`
+Sizes and offsets the entity's **Box** `Collider` so it wraps that entity's own model
+geometry — the same geometry `entity.place`'s `modelBounds` anchor measures, excluding
+descendants.
+
+```json
+{"op": "entity.fitCollider", "target": {"id": "<prop-entity-id>"}, "padding": 0.02}
+```
+
+`padding` is optional and nonnegative, and grows every half-extent, so the box clears
+the model by that much on all six sides.
+
+**It fits in model space, which is the point.** `Size` is half-extents *before* world
+scale and the shape turns with the entity, so the resulting box stays tight on a
+rotated prop. A box derived from world bounds has to stay axis-aligned and therefore
+grows — a cube turned 45° needs an axis-aligned box √2 wider than itself. Because the
+fit is pre-scale, `Size` does not change when the entity is scaled; the engine
+multiplies it. `Position` does, since it is an unscaled, unrotated world-axis offset
+from the entity's world position, so the model's centre is rotated and scaled into it.
+
+The Collider must already exist and be `Type: "Box"` — `component.add` in the same
+batch is enough, and a ref target makes that a one-request sequence. `Layer`,
+`LayerMask`, `IsTrigger` and `TriggerMask` are left alone; this operation only writes
+`Size` and `Position`. Requests fail with 400 when the entity has no Collider, no
+ModelRenderer geometry, a non-Box collider, or a model with zero extent on an axis —
+the last is fixable with `padding`.
+
+Ordering within a batch is respected: a fit after an `entity.place` or `entity.aim`
+measures the placed transform, and a later operation sees the fitted box.
+
 ### `component.add`, `component.update`, `component.remove`
 `component.add` takes an **entity** ID, a `type` and optional `properties` (omitted
 means schema defaults), and rejects a type already present on that entity at this
@@ -1247,13 +1413,15 @@ change still records a step.
 
 Reading serialized state does not imply it can be written. Not currently exposed:
 
-- Ambient, fog and skybox writes; material authoring; Blueprint spawning.
+- Material authoring and Blueprint spawning. Ambient, fog, skybox and the
+  post-processing look are written through `/level/settings`.
 - Play, pause and stop control. (Writes require stopped mode, so drive play from the
   UI.)
 - 2D authoring and 2D camera controls.
 - Arbitrary component writes — only the six adapted types.
 - Viewport tab switching and general UI automation. `/camera/frame` and `/observe`
-  need the relevant viewport already open and visible.
+  need the relevant viewport already open and visible; `/render` is the way to capture
+  without one.
 - Uploads, directory imports and custom import settings.
 - Live physics editing, gameplay trigger callbacks, and picking against terrain or
   material cutouts.

@@ -7,7 +7,7 @@ the mistakes that cost time.
 
 The shape of the loop is always the same:
 
-> **measure → edit → frame → observe → look at the PNG**
+> **measure → edit → capture → look at the PNG**
 
 Never assume an edit did what you meant. Capture it and look.
 
@@ -74,17 +74,43 @@ curl --silent --show-error --fail-with-body --get \
 
 Refresh the catalog after imports.
 
-**Names and bounds will not tell you what an asset looks like.** There are no
-thumbnails, and a catalog of a thousand models tends to have cryptic paths, so
-shortlisting by name gets you candidates and nothing more. When the choice matters —
-which wall, which roof, which of six lamp variants — build a throwaway **palette
-scene**: create the candidates in a row with known spacing, frame them, capture once,
-look, then delete the batch. One extra edit and one capture settles a decision that
-guessing from names will get wrong.
+**Names will not tell you what an asset looks like**, and a catalog of a thousand
+models tends to have cryptic paths, so shortlisting by name gets you candidates and
+nothing more. Settle the rest with two routes, neither of which touches the scene.
+
+`POST /assets/summary` takes up to 256 references and returns each one's bounds,
+mesh and vertex counts and materials in a single reply — enough to drop the
+candidates that are the wrong size or share a material you already rejected:
+
+```python
+shortlist = [{'path': path} for path in candidates]
+for asset in post_json('/assets/summary', {'assets': shortlist})['assets']:
+    print(asset['path'], asset['bounds']['size'],
+          [material['path'] for material in asset['materials']])
+```
+
+Then **look at what survives**. `GET /asset/preview.png` renders one model or
+material on its own, framed to its bounds:
+
+```sh
+curl --silent --show-error --fail-with-body --get \
+  --data-urlencode 'path=psx mega pack 2/props/wooden_crate_1' \
+  --data-urlencode 'width=384' --data-urlencode 'height=384' \
+  http://127.0.0.1:9002/asset/preview.png -o crate.png
+```
+
+Add `yaw` and `pitch` to turn the subject when one angle hides the answer. The preview
+is the asset browser's icon pass, so its colours are approximate and its lighting is
+not the scene's — it is for telling variants apart, not for judging how a material will
+actually look. Build a throwaway **palette scene** only when you need to see candidates
+at scene scale next to each other; for "which of these six lamps" the previews are
+faster and leave no scene to clean up.
 
 ## 3. Measure before you repeat a prop
 
-`GET /asset` gives the **stored** model's mesh bounds:
+`POST /assets/summary` (above) gives the live model's aggregate bounds directly, which
+is what you usually want. `GET /asset` gives the **stored** model's per-mesh bounds,
+for when you need them separately:
 
 ```python
 import json
@@ -205,12 +231,43 @@ guarantee anything about a finite wall's edges and openings. A raycast gives one
 and one face normal, and on uneven terrain that tangent plane can cut through the
 ground under a wide prop. Take more samples and look at the result.
 
-To give props collision, measure them with `/spatial/query` and add a box Collider per
-entity from the returned dimensions — remembering that `Size` is **half-extents**, so
-it is `dimensions / 2`. This is quick and conservative, and it **overestimates rotated
-props**: world-axis bounds of a prop sitting at 45° enclose a good deal of empty space.
-Accept that for scenery, and fit those by hand where the volume has to be tight. A
-stopped-mode raycast can check a sightline down a street or corridor, but it tests one
+To give props collision, add a box Collider and let `entity.fitCollider` size it from
+the entity's own model geometry:
+
+```python
+edit([
+    {'op': 'component.add', 'target': {'id': prop}, 'type': 'Collider'},
+    {'op': 'entity.fitCollider', 'target': {'id': prop}, 'padding': 0.02},
+])
+```
+
+Do not build the box from `/spatial/query` dimensions by hand. Those are world-axis
+bounds, so a prop sitting at 45° gets a box √2 too wide and full of empty space.
+`entity.fitCollider` measures in model space and the shape turns with the entity, so a
+rotated prop keeps a tight volume. It also saves you the two things that are easy to
+get wrong: `Size` is **half-extents before world scale**, and `Position` is an
+unscaled, unrotated world-axis offset that has to account for an off-centre pivot.
+
+`entity.place`, `entity.aim` and `entity.fitCollider` all accept a batch `ref` as their
+target, so a prop can be created, stood on the ground, turned and given a fitted
+collider in **one** request:
+
+```python
+edit([
+    {'op': 'entity.create', 'ref': 'crate', 'name': 'Crate', 'components': [
+        {'type': 'ModelRenderer', 'properties': {'Model': {'path': crate_model}}},
+        {'type': 'Collider'}]},
+    {'op': 'entity.place', 'target': {'ref': 'crate'},
+     'surface': {'point': {'x': 12, 'y': 0, 'z': -40}, 'normal': {'x': 0, 'y': 1, 'z': 0}},
+     'anchor': {'type': 'modelBounds'}},
+    {'op': 'entity.fitCollider', 'target': {'ref': 'crate'}},
+])
+```
+
+Every other target still wants an ID, so the create → collect IDs → adjust sequence
+remains for anything else.
+
+A stopped-mode raycast can check a sightline down a street or corridor, but it tests one
 line — it is not proof that a player fits through.
 
 ## 6. Observe after each stage
@@ -244,11 +301,31 @@ Inspect the PNG; never print its base64 payload. `width` only downsizes.
 guarantee relative to your edit, so a quick intermediate screenshot can show you the
 frame *before* the change you are checking. That matters most in exactly the case you
 will use it for most — comparing lighting before and after a tweak. Use ordered
-observations throughout and the comparison means something.
+captures throughout and the comparison means something.
 
 Use two views, not one: an elevated overview for layout, and a walking-height view for
 clearance, shelf contents, wall gaps and lighting. Framing a whole building tells you
 nothing about its interior, and a central column may force an offset aisle camera.
+
+**Use `POST /render` when the camera is yours to choose.** It takes a pose and a size,
+renders the scene through the same pipeline, and leaves the user's editor camera where
+they left it — so an inspection sweep does not drag their view around, and the size is
+not whatever their viewport happens to be:
+
+```python
+capture = post_json('/render', {
+    'position': {'x': 12, 'y': 1.7, 'z': -40},
+    'lookAt': {'x': 12, 'y': 1.7, 'z': -58},
+    'width': 1280, 'height': 720,
+})
+Path('aisle.png').write_bytes(base64.b64decode(capture['image']['data']))
+```
+
+It needs no `after` token: the capture renders on a frame after the request was
+accepted, so any edit whose reply you already have is in it. Keep `/observe` for the
+things it uniquely gives you — entity readback, an incremental log window, capture
+picking, and seeing the Game camera's own view — and reach for `/render` for the
+pictures. Store the pose you used; posting the reply's `camera` back reproduces it.
 
 ## 7. Tune lighting at the actual scene scale
 
@@ -265,8 +342,31 @@ shadows and upward light spill from wall and street lamps are usually a shaded f
 that was given an omnidirectional `PointLight` where it should have a `SpotLight` aimed
 downward — an authoring mistake that looks like a rendering bug. Set the type, aim it
 with `entity.aim`, and sink the emitter just below its housing so the housing does not
-sit in its own cone. Verify with ordered before/after captures **from the same camera
-pose**; two captures from different angles cannot tell you whether anything improved.
+sit in its own cone. Verify with before/after captures **from the same camera pose**;
+two captures from different angles cannot tell you whether anything improved. `/render`
+is the route that makes this straightforward: send the same pose and size twice, once
+either side of the change, and nothing else can have moved between them.
+
+**Ambient light is not a substitute for a light.** Pine shades nothing without one, so a
+scene with no `Light` renders black however bright `AmbientColor` is — and a "the setting
+had no effect" conclusion drawn from that scene is wrong. Place a light first, then tune.
+
+`POST /level/settings` authors the rest of the atmosphere: skybox, ambient, fog, exposure,
+bloom and the grain/vignette look. It merges, so a request names only what it changes:
+
+```python
+post_json('/level/settings', {'properties': {
+    'AmbientColor': {'x': 0.12, 'y': 0.13, 'z': 0.18},
+    'FogColor': {'x': 0.2, 'y': 0.25, 'z': 0.3, 'w': 1.0},
+    'FogDistance': 80, 'FogIntensity': 0.35, 'Exposure': 1.4,
+}})
+```
+
+Reach for `Exposure` before scaling every light in the scene: if the whole frame is too
+dark or blown out, one exposure change is the cheaper fix and does not disturb the
+relative balance you already tuned. Each request is one undo step, so an experiment costs
+nothing. **Turn `GrainStrength` off before comparing captures** — the grain is animated,
+so two otherwise identical `/render` calls differ while it is on.
 
 ## 8. Save and verify
 
@@ -352,15 +452,20 @@ after a level load returns its old result with IDs that no longer exist.
 | Connection refused | Port, Editor process, `PINE_DEBUG_SERVER`, and whether your sandbox shares a network with the Editor. |
 | 400 on an edit | The error's `path` and `operation` index, the running schema, exact property case, entity vs. component ID, all three vector coordinates, and the batch limits. |
 | 409 on a write | Play state is not `stopped`; an import dialog is open; a destination conflict; mouse capture held for an editor-camera write. Read the actual error. |
-| 409 on a capture | Viewport selected and visible, perspective camera, valid scene token, entities still alive. A Game capture also needs a selected scene Camera. |
+| 409 on a capture | Viewport selected and visible, perspective camera, valid scene token, entities still alive. A Game capture also needs a selected scene Camera. `/render` needs none of that — use it when the viewport is the problem. |
+| 409 on an asset preview | Only Model and Material assets have one. Everything else is identity and bounds through `/assets/summary`. |
 | 409 on a pick | Capture expired, was evicted, or belongs to a replaced scene. Take a new `/observe` with `picking: true` while stopped. |
 | 500 or 504 | Inspect the retained result and the partial-execution flags **before** writing again. A timeout is not a cancellation. |
 | Dark or empty model | Model and `MeshIndex`, asset bounds vs. scale, camera position and clipping, material references, active flags, light placement and intensity — then read the logs. |
 | Textures look stretched or smeared | Non-uniform `LocalScale` somewhere in the chain — check the entity's **parents** too, since scales multiply. There is no UV fix through this API; undo the scale and repeat a module instead. |
 | Odd shadows or light spilling upward | Check the light `Type` first. A shaded fixture with a `PointLight` instead of an aimed `SpotLight` looks like a renderer bug and is not one. |
-| Physics looks unchanged while stopped | Actors and shapes are created on Play. Box Collider `Size` is **half-extents**, scaled by the entity; `Position` is an unscaled, unrotated world-axis offset. |
+| Physics looks unchanged while stopped | Actors and shapes are created on Play. Box Collider `Size` is **half-extents**, scaled by the entity; `Position` is an unscaled, unrotated world-axis offset. `entity.fitCollider` gets both right for you. |
+| 400 from `entity.fitCollider` | No Collider on the entity, no ModelRenderer geometry, a non-Box collider, or a model that is flat on one axis — the last needs `padding`. |
 | Counters disagree with the picture | `/stats` counters are diagnostics. One run reported zero `lightCount` and `vertexCount` over visibly lit geometry; that was never diagnosed. |
-| Feature missing entirely | Ambient/fog/skybox, Blueprint spawning, play control, material authoring, 2D and viewport switching are not exposed. Use the UI. |
+| Preview colours look wrong | Expected. `/asset/preview.png` is the icon pass and gets no display transform; it separates variants, it does not show final appearance. Use `/render`. |
+| Setting the atmosphere changed nothing visible | A scene with no `Light` renders black whatever `AmbientColor` is. Check `/stats.lightCount` before blaming the setting. |
+| Two captures differ for no reason | `GrainStrength` is animated. Set it to 0 through `/level/settings` before comparing. |
+| Feature missing entirely | Blueprint spawning, play control, material authoring, 2D and viewport switching are not exposed. Use the UI. |
 
 ## Verifying a change to the debug server itself
 

@@ -95,26 +95,6 @@ namespace
         };
     }
 
-    std::string EncodeBase64(const std::vector<std::uint8_t>& bytes)
-    {
-        constexpr const char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        std::string result;
-        result.reserve((bytes.size() + 2) / 3 * 4);
-        for (std::size_t index = 0; index < bytes.size(); index += 3)
-        {
-            const bool hasSecond = index + 1 < bytes.size();
-            const bool hasThird = index + 2 < bytes.size();
-            const std::uint32_t bits = (static_cast<std::uint32_t>(bytes[index]) << 16)
-                | (hasSecond ? static_cast<std::uint32_t>(bytes[index + 1]) << 8 : 0)
-                | (hasThird ? bytes[index + 2] : 0);
-            result.push_back(alphabet[(bits >> 18) & 63]);
-            result.push_back(alphabet[(bits >> 12) & 63]);
-            result.push_back(hasSecond ? alphabet[(bits >> 6) & 63] : '=');
-            result.push_back(hasThird ? alphabet[bits & 63] : '=');
-        }
-        return result;
-    }
-
     Response Complete(const Options& options)
     {
         if (Pine::Entities::GetSceneGeneration() != options.After.at("sceneGeneration").get<std::uint64_t>()
@@ -167,10 +147,7 @@ namespace
         const auto width = options.Width > 0 ? std::min(options.Width, sourceWidth) : sourceWidth;
         const auto height = std::max(1, static_cast<int>(std::lround(static_cast<double>(sourceHeight) * width / sourceWidth)));
 
-        const json frame = {
-            { "session", Requests::GetSession() }, { "id", m_Frame },
-            { "sceneGeneration", m_RenderedGeneration }, { "revision", m_RenderedRevision }
-        };
+        const json frame = Observation::FrameIdentity();
         json picking = nullptr;
         if (options.Picking)
         {
@@ -188,10 +165,7 @@ namespace
             { "picking", picking },
             { "viewport", { { "view", options.View }, { "width", sourceWidth }, { "height", sourceHeight } } },
             { "camera", view->Camera },
-            { "image", {
-                { "contentType", "image/png" }, { "encoding", "base64" },
-                { "width", width }, { "height", height }, { "data", EncodeBase64(png) }
-            } },
+            { "image", Screenshot::DescribeImage(png, width, height) },
             { "entities", entities }, { "logs", logs.Body },
             { "timing", {
                 { "camera", "render-context" }, { "image", "post-render-before-ui" },
@@ -338,4 +312,12 @@ Editor::DebugServer::Response Editor::DebugServer::Observation::Begin(const Requ
     {
         return { 400, { { "error", exception.what() }, { "path", exception.Path } } };
     }
+}
+
+nlohmann::json Editor::DebugServer::Observation::FrameIdentity()
+{
+    return {
+        { "session", Requests::GetSession() }, { "id", m_Frame },
+        { "sceneGeneration", m_RenderedGeneration }, { "revision", m_RenderedRevision }
+    };
 }

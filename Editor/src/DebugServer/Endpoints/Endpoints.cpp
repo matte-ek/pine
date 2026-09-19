@@ -9,8 +9,11 @@
 #include "../LogHistory/LogHistory.hpp"
 #include "../Persistence/Persistence.hpp"
 #include "../LevelCamera/LevelCamera.hpp"
+#include "../LevelSettings/LevelSettings.hpp"
 #include "../Import/Import.hpp"
 #include "../Inspection/Inspection.hpp"
+#include "../Catalog/Catalog.hpp"
+#include "../Capture/Capture.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -48,78 +51,6 @@
 namespace
 {
     /* Shared helpers */
-
-    // A parsed query parameter. Keeps "not given" apart from "given but nonsense", so a typo in
-    // ?limit= answers with a 400 instead of quietly behaving like the default.
-    struct IntParameter
-    {
-        bool Present = false;
-        bool Valid = false;
-        int Value = 0;
-    };
-
-    IntParameter ReadIntParameter(const Editor::DebugServer::Request& request, const std::string& name)
-    {
-        const auto parameter = request.Parameters.find(name);
-
-        if (parameter == request.Parameters.end())
-        {
-            return {};
-        }
-
-        IntParameter result;
-
-        result.Present = true;
-
-        try
-        {
-            std::size_t consumed = 0;
-
-            result.Value = std::stoi(parameter->second, &consumed);
-            result.Valid = consumed == parameter->second.size();
-        }
-        catch (const std::exception&)
-        {
-            result.Valid = false;
-        }
-
-        return result;
-    }
-
-    struct FloatParameter
-    {
-        bool Present = false;
-        bool Valid = false;
-        float Value = 0.f;
-    };
-
-    FloatParameter ReadFloatParameter(const Editor::DebugServer::Request& request, const std::string& name)
-    {
-        const auto parameter = request.Parameters.find(name);
-
-        if (parameter == request.Parameters.end())
-        {
-            return {};
-        }
-
-        FloatParameter result;
-
-        result.Present = true;
-
-        try
-        {
-            std::size_t consumed = 0;
-
-            result.Value = std::stof(parameter->second, &consumed);
-            result.Valid = consumed == parameter->second.size();
-        }
-        catch (const std::exception&)
-        {
-            result.Valid = false;
-        }
-
-        return result;
-    }
 
     const char* GameStateToString(const PlayHandler::EditorGameState state)
     {
@@ -338,7 +269,7 @@ namespace
         }
         else if (internalIdParameter != request.Parameters.end())
         {
-            const auto internalId = ReadIntParameter(request, "internalId");
+            const auto internalId = Editor::DebugServer::ReadIntParameter(request, "internalId");
 
             // Bounded before the lookup on purpose: Entities::GetByInternalId only asserts the index
             // is in range, so an out-of-range value aborts a debug build and reads out of bounds in a
@@ -402,205 +333,6 @@ namespace
         }
 
         body["children"] = children;
-
-        return { 200, body };
-    }
-
-    /* GET /assets */
-
-    // Matched against AssetTypeToString rather than a second lookup table, so the two cannot drift
-    // apart as asset types get added.
-    bool TryParseAssetType(const std::string& name, Pine::AssetType& type)
-    {
-        const auto wanted = Pine::String::ToLower(name);
-
-        for (int candidate = 1; candidate < static_cast<int>(Pine::AssetType::Count); candidate++)
-        {
-            const auto assetType = static_cast<Pine::AssetType>(candidate);
-
-            if (Pine::String::ToLower(Pine::AssetTypeToString(assetType)) == wanted)
-            {
-                type = assetType;
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    std::string JoinAssetTypeNames()
-    {
-        std::string names;
-
-        for (int candidate = 1; candidate < static_cast<int>(Pine::AssetType::Count); candidate++)
-        {
-            if (!names.empty())
-            {
-                names += ", ";
-            }
-
-            names += Pine::AssetTypeToString(static_cast<Pine::AssetType>(candidate));
-        }
-
-        return names;
-    }
-
-    Editor::DebugServer::Response GetAssets(const Editor::DebugServer::Request& request)
-    {
-        const auto typeParameter = request.Parameters.find("type");
-
-        bool filterByType = false;
-        Pine::AssetType filterType = Pine::AssetType::Invalid;
-
-        if (typeParameter != request.Parameters.end())
-        {
-            if (!TryParseAssetType(typeParameter->second, filterType))
-            {
-                return Editor::DebugServer::Error(400, fmt::format(
-                    "Unknown asset type '{}'. Expected one of: {}.", typeParameter->second, JoinAssetTypeNames()));
-            }
-
-            filterByType = true;
-        }
-
-        std::vector<const Pine::Asset*> assets;
-
-        for (const auto& [uid, asset] : Pine::Assets::GetAll())
-        {
-            if (asset == nullptr)
-            {
-                continue;
-            }
-
-            if (filterByType && asset->GetType() != filterType)
-            {
-                continue;
-            }
-
-            assets.push_back(asset);
-        }
-
-        // GetAll() is an unordered_map, so without this the listing shuffles between calls - which
-        // makes it useless for scanning or diffing.
-        std::sort(assets.begin(), assets.end(), [](const Pine::Asset* left, const Pine::Asset* right)
-        {
-            return left->GetPath() < right->GetPath();
-        });
-
-        // Deliberately lightweight - path, type, identity. Anything more per asset belongs in the
-        // per-asset endpoint, since a project can hold thousands of these.
-        nlohmann::json entries = nlohmann::json::array();
-
-        for (const auto asset : assets)
-        {
-            nlohmann::json entry;
-
-            entry["path"] = asset->GetPath();
-            entry["type"] = Pine::AssetTypeToString(asset->GetType());
-            entry["uid"] = asset->GetUId().ToString();
-            entry["modified"] = asset->HasBeenModified();
-
-            entries.push_back(entry);
-        }
-
-        nlohmann::json body;
-
-        body["count"] = entries.size();
-        body["assets"] = entries;
-
-        return { 200, body };
-    }
-
-    /* GET /asset */
-
-    // Resolves the ?path= / ?id= pair every asset endpoint accepts. Returns nullptr and fills
-    // `error` with the reply to send, so the caller only has to forward it.
-    Pine::Asset* ResolveRequestedAsset(const Editor::DebugServer::Request& request,
-                                       Editor::DebugServer::Response& error)
-    {
-        const auto pathParameter = request.Parameters.find("path");
-        const auto idParameter = request.Parameters.find("id");
-
-        if (pathParameter != request.Parameters.end())
-        {
-            const auto asset = Pine::Assets::GetAssetByPath(pathParameter->second);
-
-            if (asset == nullptr)
-            {
-                error = Editor::DebugServer::Error(404, fmt::format("No asset at path '{}'.", pathParameter->second));
-            }
-
-            return asset;
-        }
-
-        if (idParameter != request.Parameters.end())
-        {
-            const Pine::UId id{ std::string(idParameter->second) };
-
-            if (!id.IsValid())
-            {
-                error = Editor::DebugServer::Error(400, fmt::format(
-                    "'{}' is not a valid asset id. Ids look like '18d4ae6bff2fd8c6-213ebd6dcd8f0b73'.",
-                    idParameter->second));
-
-                return nullptr;
-            }
-
-            const auto asset = Pine::Assets::GetAssetByUId(id);
-
-            if (asset == nullptr)
-            {
-                error = Editor::DebugServer::Error(404, fmt::format("No asset with id '{}'.", idParameter->second));
-            }
-
-            return asset;
-        }
-
-        error = Editor::DebugServer::Error(400, "Expected a ?path= or ?id= parameter. /assets lists both.");
-
-        return nullptr;
-    }
-
-    Editor::DebugServer::Response GetAsset(const Editor::DebugServer::Request& request)
-    {
-        Editor::DebugServer::Response error;
-
-        const auto asset = ResolveRequestedAsset(request, error);
-
-        if (asset == nullptr)
-        {
-            return error;
-        }
-
-        const auto& filePath = asset->GetFilePath();
-
-        if (filePath.empty() || !std::filesystem::exists(filePath))
-        {
-            return Editor::DebugServer::Error(409, fmt::format(
-                "Asset '{}' has no file on disk to read.", asset->GetPath()));
-        }
-
-        // Read back from disk rather than re-serializing the live asset. Asset::Save() stamps a new
-        // creation time, and a GET must not mutate what it reports on. So this is the *stored*
-        // asset: "modified" tells you when the in-memory one has diverged, and the live world is
-        // what /entities is for.
-        const auto content = Pine::Serialization::Dump::ToJson(Pine::File::ReadCompressed(filePath));
-
-        if (!content.has_value())
-        {
-            return Editor::DebugServer::Error(409, fmt::format(
-                "'{}' could not be read as a Pine serialized file.", filePath.string()));
-        }
-
-        nlohmann::json body;
-
-        body["path"] = asset->GetPath();
-        body["type"] = Pine::AssetTypeToString(asset->GetType());
-        body["uid"] = asset->GetUId().ToString();
-        body["modified"] = asset->HasBeenModified();
-        body["file"] = filePath.string();
-        body["content"] = *content;
 
         return { 200, body };
     }
@@ -670,7 +402,7 @@ namespace
     {
         Editor::DebugServer::Response error;
 
-        const auto asset = ResolveRequestedAsset(request, error);
+        const auto asset = Editor::DebugServer::Catalog::Resolve(request, error);
 
         if (asset == nullptr)
         {
@@ -739,8 +471,8 @@ namespace
 
         // ?x= and ?z= sample a terrain-local point, which is what the later units assert against:
         // where a dropped body should land, what a brush stroke moved.
-        const auto x = ReadFloatParameter(request, "x");
-        const auto z = ReadFloatParameter(request, "z");
+        const auto x = Editor::DebugServer::ReadFloatParameter(request, "x");
+        const auto z = Editor::DebugServer::ReadFloatParameter(request, "z");
 
         if (x.Present != z.Present)
         {
@@ -866,7 +598,7 @@ namespace
 
         Editor::DebugServer::Response error;
 
-        const auto asset = ResolveRequestedAsset(request, error);
+        const auto asset = Editor::DebugServer::Catalog::Resolve(request, error);
 
         if (asset == nullptr)
         {
@@ -1087,7 +819,7 @@ namespace
                 fmt::format("Unknown view '{}'. Expected 'level' or 'game'.", view));
         }
 
-        const auto width = ReadIntParameter(request, "width");
+        const auto width = Editor::DebugServer::ReadIntParameter(request, "width");
 
         if (width.Present && (!width.Valid || width.Value < 1 || width.Value > 4096))
         {
@@ -1208,14 +940,17 @@ void Editor::DebugServer::Endpoints::Register()
     AddRoute(Method::Post, "/spatial/overlap", Spatial::Queries::Overlap);
     AddRoute(Method::Post, "/spatial/raycast", Spatial::Queries::Raycast);
     AddRoute(Method::Get, "/stats", GetStats);
-    AddRoute(Method::Get, "/assets", GetAssets);
+    AddRoute(Method::Get, "/assets", Catalog::List);
+    AddRoute(Method::Post, "/assets/summary", Catalog::Summary);
     AddMutationRoute("/assets/import", Import::Execute);
-    AddRoute(Method::Get, "/asset", GetAsset);
+    AddRoute(Method::Get, "/asset", Catalog::Get);
+    AddRoute(Method::Get, "/asset/preview.png", Capture::Preview);
     AddRoute(Method::Get, "/terrain", GetTerrain);
     AddMutationRoute("/terrain/sculpt", PostTerrainSculpt);
     AddRoute(Method::Get, "/viewport.png", GetViewportPng);
 
     AddRoute(Method::Post, "/observe", Observation::Begin);
+    AddRoute(Method::Post, "/render", Capture::Scene);
     AddRoute(Method::Post, "/pick", Picking::Pick);
     AddMutationRoute("/level/load", PostLevelLoad);
     AddRoute(Method::Get, "/level/status", Persistence::Get);
@@ -1223,6 +958,8 @@ void Editor::DebugServer::Endpoints::Register()
     AddMutationRoute("/level/save-as", Persistence::SaveAs);
     AddRoute(Method::Get, "/level/camera", LevelCamera::Get);
     AddMutationRoute("/level/camera", LevelCamera::Set);
+    AddRoute(Method::Get, "/level/settings", LevelSettings::Get);
+    AddMutationRoute("/level/settings", LevelSettings::Set);
     AddRoute(Method::Get, "/edit/schema", Editing::GetSchema);
     AddMutationRoute("/edit", Editing::Edit);
     AddRoute(Method::Get, "/history", Editing::History::Get);

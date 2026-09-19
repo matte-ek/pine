@@ -44,6 +44,19 @@ namespace Editor::DebugServer
 
     using Handler = std::function<Response(const Request&)>;
 
+    // A parsed query parameter. Keeps "not given" apart from "given but nonsense", so a typo in
+    // ?limit= answers with a 400 instead of quietly behaving like the default.
+    template <typename T>
+    struct Parameter
+    {
+        bool Present = false;
+        bool Valid = false;
+        T Value = {};
+    };
+
+    Parameter<int> ReadIntParameter(const Request& request, const std::string& name);
+    Parameter<float> ReadFloatParameter(const Request& request, const std::string& name);
+
     // Register before Gui::Setup(), then call Setup() after editor initialization.
     void SetupRenderObservation();
     void Setup();

@@ -134,7 +134,7 @@ assert 'entity.place' in schema['operations']
 fields = schema['operationSchemas']['entity.place']['fields']
 assert fields['alignment']['whenOmitted'] == 'preserve world rotation'
 assert fields['clearance']['minimum'] == 0 and fields['clearance']['default'] == 0
-assert fields['target']['forms'] == ['id']
+assert fields['target']['forms'] == ['id', 'ref']
 assert fields['relativeTo']['forms'] == ['id']
 assert fields['boundsAlignment']['space'] == 'world'
 assert fields['boundsAlignment']['minProperties'] == 1

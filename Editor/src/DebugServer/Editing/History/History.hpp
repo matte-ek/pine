@@ -19,6 +19,12 @@ namespace Editor::DebugServer::Editing::History
         std::vector<Pine::UId> Order;
         Pine::UId GameCamera;
         bool RestoreGameCamera = false;
+
+        // The active Level's advertised atmosphere properties, in the wire form
+        // LevelSettings::Read produces. Tracked as JSON so a snapshot covers exactly the fields
+        // /level/settings can write, and nothing else in the Level asset.
+        nlohmann::json Settings;
+        bool RestoreSettings = false;
     };
 
     Snapshot Capture();

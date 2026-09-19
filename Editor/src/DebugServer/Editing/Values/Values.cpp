@@ -65,7 +65,7 @@ namespace
             Values::Require(std::find(choices.begin(), choices.end(), value) != choices.end(),
                 path, "Unknown enum value. See /edit/schema for supported names.");
         }
-        else if (type == "vector3" || type == "quaternion")
+        else if (type == "vector3" || type == "vector4" || type == "quaternion")
         {
             if (type == "vector3")
             {
@@ -202,10 +202,44 @@ Pine::Vector3f Values::Vector3(const json& value)
     return { value.at("x").get<float>(), value.at("y").get<float>(), value.at("z").get<float>() };
 }
 
+Pine::Vector4f Values::Vector4(const json& value)
+{
+    return { value.at("x").get<float>(), value.at("y").get<float>(),
+        value.at("z").get<float>(), value.at("w").get<float>() };
+}
+
 Pine::Quaternion Values::Quaternion(const json& value)
 {
     return { value.at("w").get<float>(), value.at("x").get<float>(),
         value.at("y").get<float>(), value.at("z").get<float>() };
+}
+
+Pine::Vector3f Values::Vector3Field(const json& value, const std::string& path)
+{
+    json field = value;
+
+    ValidateValue(field, { { "type", "vector3" } }, path);
+
+    return Vector3(field);
+}
+
+Pine::Quaternion Values::LookRotation(glm::dvec3 direction, glm::dvec3 up, const std::string& path, const bool explicitUp)
+{
+    Require(glm::length(direction) > 0, path, "View direction must have nonzero length.");
+    Require(glm::length(up) > 0, "/up", "Up vector must have nonzero length.");
+    direction = glm::normalize(direction);
+    up = glm::normalize(up);
+
+    if (std::abs(glm::dot(direction, up)) > 0.9999)
+    {
+        Require(!explicitUp, "/up", "Up vector must not be parallel to the view direction.");
+        // A top/bottom view still needs a stable orientation when the default world-up is
+        // parallel to its direction. Explicitly conflicting inputs are rejected instead.
+        up = glm::dvec3(0, 0, -1);
+    }
+
+    const auto rotation = glm::quat_cast(glm::transpose(glm::dmat3(glm::lookAt(glm::dvec3(0), direction, up))));
+    return glm::normalize(Pine::Quaternion(rotation));
 }
 
 json Values::AssetReference(const Pine::Asset* asset)

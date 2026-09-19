@@ -68,7 +68,8 @@ def reject(body, path):
 
 expected_operations = {
     'entity.create', 'entity.update', 'entity.reparent', 'entity.delete',
-    'entity.duplicate', 'entity.place', 'entity.aim', 'component.add', 'component.update', 'component.remove'
+    'entity.duplicate', 'entity.place', 'entity.aim', 'entity.fitCollider',
+    'component.add', 'component.update', 'component.remove'
 }
 assert set(operations) == set(schema['operations']) == expected_operations
 assert schema['requestSchema']['additionalFields'] is False
@@ -99,7 +100,9 @@ assert operations['entity.reparent']['fields']['parent']['whenNull'] == 'sceneRo
 references = schema['referenceRules']
 assert references['exactlyOneForm'] and not references['additionalFields']
 assert references['batchRefs']['earlierOperationsOnly'] and references['batchRefs']['unique']
-assert set(references['batchRefs']['acceptedBy']) == {'entity.create.parent', 'entity.reparent.parent'}
+assert set(references['batchRefs']['acceptedBy']) == {
+    'entity.create.parent', 'entity.reparent.parent',
+    'entity.place.target', 'entity.aim.target', 'entity.fitCollider.target'}
 assert references['asset']['forms'] == ['id', 'path']
 assert references['asset']['mustBeLoaded'] and references['asset']['responseForm'] == 'id'
 
@@ -125,6 +128,7 @@ samples = {
     'entity.reparent': operation('entity.reparent', target={'id': child}, parent=None),
     'entity.delete': operation('entity.delete', target={'id': child}),
     'entity.duplicate': operation('entity.duplicate', target={'id': root}, ref='copy'),
+    'entity.fitCollider': operation('entity.fitCollider', target={'id': root}),
     'component.add': operation('component.add', target={'id': root}, type='Light'),
     'component.update': operation('component.update', target={'id': light['id']}, properties={'Intensity': 4}),
     'component.remove': operation('component.remove', target={'id': light['id']})
@@ -144,7 +148,12 @@ for name, sample in samples.items():
     if 'target' in sample:
         target = descriptor['fields']['target']
         expected_kind = 'component' if name in ('component.update', 'component.remove') else 'entity'
-        assert target['kind'] == expected_kind and target['forms'] == ['id']
+        # Placement, aiming and collider fitting also take a ref declared earlier in the same
+        # request; every other target is an ID and nothing else. Either way a ref this batch never
+        # declared is rejected, and 'root' belongs to an earlier request.
+        takes_ref = name in ('entity.place', 'entity.aim', 'entity.fitCollider')
+        assert target['kind'] == expected_kind
+        assert target['forms'] == (['id', 'ref'] if takes_ref else ['id'])
         reject(batch([prefix, {**sample, 'target': {'ref': 'root'}}]), '/operations/1/target/ref')
         wrong_id = root if expected_kind == 'component' else light['id']
         reject(batch([prefix, {**sample, 'target': {'id': wrong_id}}]), '/operations/1/target/id')

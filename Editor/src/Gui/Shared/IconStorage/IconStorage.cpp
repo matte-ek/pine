@@ -4,16 +4,12 @@
 
 #include "Gui/Panels/AssetBrowser/AssetHierarchy/AssetHierarchy.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
+#include "Rendering/AssetPreview/AssetPreview.hpp"
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/Model/Model.hpp"
-#include "Pine/Core/Math/ViewFit/ViewFit.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/Interfaces/IFrameBuffer.hpp"
 #include "Pine/Performance/Performance.hpp"
-#include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
-#include "Pine/World/Components/Transform/Transform.hpp"
-#include "Pine/World/Entity/Entity.hpp"
 
 namespace
 {
@@ -76,170 +72,11 @@ namespace
         }
     }
 
-    bool ShouldGenerateDynamicIcon(const Pine::Asset *asset)
-    {
-        switch (asset->GetType())
-        {
-            case Pine::AssetType::Material:
-                return true;
-            case Pine::AssetType::Model:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    // Looking straight down an axis flattens a silhouette; a three-quarter view reads the shape.
-    // Yaw/pitch in degrees, the same pair the preview drag offsets.
-    constexpr Pine::Vector2f SubjectViewAngle = Pine::Vector2f(30.f, 20.f);
-
-    // Leaves a little air around the subject instead of having it touch the edge of the icon.
-    constexpr float SubjectViewPadding = 1.15f;
-
-    // Key light sits over the camera's shoulder, so the subject is lit consistently no matter where
-    // the view angle ends up.
-    constexpr Pine::Vector2f KeyLightAngleOffset = Pine::Vector2f(25.f, 15.f);
-
-    Pine::Vector3f DirectionFromAngles(const Pine::Vector2f &angles)
-    {
-        const float yaw = glm::radians(angles.x);
-        const float pitch = glm::radians(glm::clamp(angles.y, -89.f, 89.f));
-
-        return {
-            glm::cos(pitch) * glm::sin(yaw),
-            glm::sin(pitch),
-            glm::cos(pitch) * glm::cos(yaw)
-        };
-    }
-
-    // Aims a transform at a point from a given direction, i.e. the direction is where it sits
-    // relative to the target, not where it looks.
-    void PlaceLookingAt(Pine::Transform *transform, const Pine::Vector3f &target, const Pine::Vector3f &direction, float distance)
-    {
-        transform->SetLocalPosition(target + direction * distance);
-        transform->SetLocalRotation(glm::quatLookAt(-direction, Pine::Vector3f(0.f, 1.f, 0.f)));
-    }
-
-    // The subject itself is never moved or scaled to fit - the camera is what moves. Scaling the
-    // subject would misreport anything whose look depends on world scale, and would do nothing
-    // about the depth range, which is the half that decides whether a very large or very small
-    // model is visible at all.
-    void SetupView(Pine::Camera *camera, Pine::Light *light, const Pine::Vector3f &boundsMin, const Pine::Vector3f &boundsMax, const Pine::Vector2f &viewAngle, float aspectRatio)
-    {
-        const auto fit = Pine::ViewFit::FromBounds(boundsMin, boundsMax, camera->GetFieldOfView(), aspectRatio, SubjectViewPadding);
-
-        PlaceLookingAt(camera->GetParent()->GetTransform(), fit.Center, DirectionFromAngles(viewAngle), fit.Distance);
-
-        camera->SetOverrideAspectRatio(aspectRatio);
-        camera->SetNearPlane(fit.NearPlane);
-        camera->SetFarPlane(fit.FarPlane);
-        camera->OnRender(0.f);
-
-        // Only the rotation of a directional light matters, but it still needs a sane position for
-        // the transform to resolve.
-        PlaceLookingAt(light->GetParent()->GetTransform(), fit.Center, DirectionFromAngles(viewAngle + KeyLightAngleOffset), fit.Distance);
-    }
-
-    Pine::Model *GetPreviewSphere()
-    {
-        static auto sphereModel = Pine::Assets::Get<Pine::Model>("editor/models/sphere");
-
-        return sphereModel;
-    }
-
-    // What the icon is framed on: a material is previewed on the editor's sphere, a model on itself.
-    bool GetSubjectBounds(const Icon &icon, Pine::Vector3f &boundsMin, Pine::Vector3f &boundsMax)
-    {
-        const Pine::Model *model = nullptr;
-
-        if (icon.Asset->GetType() == Pine::AssetType::Material)
-        {
-            model = GetPreviewSphere();
-        }
-        else if (icon.Asset->GetType() == Pine::AssetType::Model)
-        {
-            model = dynamic_cast<Pine::Model *>(icon.Asset);
-        }
-
-        if (!model || model->GetMeshes().empty())
-        {
-            return false;
-        }
-
-        boundsMin = model->GetBoundingBoxMin();
-        boundsMax = model->GetBoundingBoxMax();
-
-        return true;
-    }
-
-    // Every subject renders at the origin with an identity transform, since the camera is what was
-    // fitted to it.
-    const Pine::Matrix4f &GetSubjectTransform()
-    {
-        static Pine::Entity *subjectEntity = nullptr;
-
-        if (subjectEntity == nullptr)
-        {
-            subjectEntity = new Pine::Entity(Pine::UId::Empty());
-
-            subjectEntity->AddComponent(new Pine::Transform());
-            subjectEntity->GetTransform()->OnRender(0.f);
-        }
-
-        return subjectEntity->GetTransform()->GetTransformationMatrix();
-    }
-
-    void RenderMaterial(const Icon &icon)
-    {
-        const auto sphereModel = GetPreviewSphere();
-
-        Pine::Renderer3D::PrepareMesh(sphereModel->GetMeshes()[0], dynamic_cast<Pine::Material *>(icon.Asset));
-        Pine::Renderer3D::RenderMesh(GetSubjectTransform());
-    }
-
-    void RenderModel(const Icon &icon)
-    {
-        const auto model = dynamic_cast<Pine::Model *>(icon.Asset);
-
-        for (const auto &mesh: model->GetMeshes())
-        {
-            Pine::Renderer3D::PrepareMesh(mesh);
-            Pine::Renderer3D::RenderMesh(GetSubjectTransform());
-        }
-    }
-
+    // The dirty icons and the large preview both come out of the shared asset preview renderer, so
+    // what the browser shows and what the debug server serves cannot drift apart.
     void GenerateDynamicTexture(const Icon &icon, bool isPreview)
     {
         if (icon.Type != IconType::Dynamic || icon.DynamicTexture == nullptr)
-        {
-            return;
-        }
-
-        static Pine::Entity* lightEntity = nullptr;
-        static Pine::Entity* cameraEntity = nullptr;
-
-        if (lightEntity == nullptr)
-        {
-            lightEntity = new Pine::Entity(Pine::UId::Empty());
-
-            lightEntity->AddComponent(new Pine::Transform());
-            lightEntity->AddComponent(new Pine::Light());
-
-            lightEntity->GetComponent<Pine::Light>()->SetLightIntensity(2.f);
-        }
-
-        if (cameraEntity == nullptr)
-        {
-            cameraEntity = new Pine::Entity(Pine::UId::Empty());
-
-            cameraEntity->AddComponent(new Pine::Transform());
-            cameraEntity->AddComponent(new Pine::Camera());
-        }
-
-        Pine::Vector3f boundsMin;
-        Pine::Vector3f boundsMax;
-
-        if (!GetSubjectBounds(icon, boundsMin, boundsMax))
         {
             return;
         }
@@ -250,50 +87,16 @@ namespace
         // The drag orbits the camera rather than spinning the subject, so an off-origin model stays
         // framed instead of swinging out of view. Negated to keep the old feel, where the drag
         // turned the subject and not the camera.
-        const auto viewAngle = isPreview
-            ? SubjectViewAngle + Pine::Vector2f(m_PreviewAngle.x, -m_PreviewAngle.y)
-            : SubjectViewAngle;
+        Editor::AssetPreview::Options options;
 
-        SetupView(cameraEntity->GetComponent<Pine::Camera>(),
-                  lightEntity->GetComponent<Pine::Light>(),
-                  boundsMin,
-                  boundsMax,
-                  viewAngle,
-                  static_cast<float>(size.x) / static_cast<float>(size.y));
+        options.Size = size;
+        options.ViewAngle = isPreview
+            ? Editor::AssetPreview::DefaultViewAngle + Pine::Vector2f(m_PreviewAngle.x, -m_PreviewAngle.y)
+            : Editor::AssetPreview::DefaultViewAngle;
 
-        frameBuffer->Bind();
-
-        Pine::Graphics::GetGraphicsAPI()->SetViewport(Pine::Vector2i(0), size);
-        Pine::Graphics::GetGraphicsAPI()->ClearColor(Pine::Color(0, 0, 0, 0));
-        Pine::Graphics::GetGraphicsAPI()->ClearBuffers(Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::DepthBuffer);
-        Pine::Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
-        Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
-
-        Pine::Renderer3D::FrameReset();
-
-        // Fill light, since a single directional light leaves the back of every subject black and
-        // this pass cannot hold a second one (AddLight puts every directional in slot 0, and the
-        // point/spot slots come from instance light indices that FrameReset zeroes).
-        //
-        // Deliberately over-bright, and not a physically meaningful ambient: this pass renders the
-        // generic shader's linear HDR output straight into an LDR buffer and blits, so it never
-        // gets the display transform - exposure, ACES and the linear->sRGB encode all live in the
-        // post-process resolve. Values therefore land roughly a 2.2 gamma too dark and highlights
-        // hard-clip. Tuned by eye against that, so it has to be retuned if this pass ever resolves
-        // properly.
-        Pine::Renderer3D::PrepareScene(Pine::Vector3f(2.0f, 2.0f, 2.0f), Pine::Vector4f(1.0f), 0.f, 0.f);
-        Pine::Renderer3D::SetCamera(cameraEntity->GetComponent<Pine::Camera>());
-        Pine::Renderer3D::AddLight(lightEntity->GetComponent<Pine::Light>());
-        Pine::Renderer3D::UploadLights();
-
-        if (icon.Asset->GetType() == Pine::AssetType::Material)
+        if (!Editor::AssetPreview::Render(icon.Asset, options, frameBuffer))
         {
-            RenderMaterial(icon);
-        }
-
-        if (icon.Asset->GetType() == Pine::AssetType::Model)
-        {
-            RenderModel(icon);
+            return;
         }
 
         if (!isPreview)
@@ -328,7 +131,7 @@ namespace
         {
             auto asset = assets.front();
 
-            if (ShouldGenerateDynamicIcon(asset) && m_IconCache.count(asset->GetUId()) > 0)
+            if (Editor::AssetPreview::Supports(asset) && m_IconCache.count(asset->GetUId()) > 0)
             {
                 auto icon = m_IconCache[asset->GetUId()];
 
@@ -397,7 +200,7 @@ void Editor::Gui::IconStorage::Update()
             icon->Asset = asset;
         }
 
-        if (ShouldGenerateDynamicIcon(asset))
+        if (Editor::AssetPreview::Supports(asset))
         {
             icon->Type = IconType::Dynamic;
         }

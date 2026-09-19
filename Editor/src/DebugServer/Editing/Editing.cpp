@@ -14,12 +14,14 @@
 #include "Schema/Schema.hpp"
 #include "Values/Values.hpp"
 #include "../LevelCamera/LevelCamera.hpp"
+#include "../LevelSettings/LevelSettings.hpp"
 #include "Gui/Panels/EntityList/EntityListPanel.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Other/PlayHandler/PlayHandler.hpp"
 #include "Other/Actions/Actions.hpp"
 #include "Pine/Engine/Engine.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 
 namespace
@@ -67,6 +69,7 @@ namespace
         DuplicateEntity,
         PlaceEntity,
         AimEntity,
+        FitCollider,
         AddComponent,
         UpdateComponent,
         RemoveComponent
@@ -78,6 +81,7 @@ namespace
         std::string Name;
         std::string Reference;
         std::string ParentReference;
+        std::string TargetReference;
         Pine::Entity* Parent = nullptr;
         Pine::Entity* Entity = nullptr;
         Pine::Component* Target = nullptr;
@@ -116,11 +120,48 @@ namespace
         Values::Require(IsSceneEntity(entity), path, "Cannot edit or parent under a temporary editor entity.");
     }
 
+    // The target of a placement, aim or fit, which may name an entity this batch has not created
+    // yet. Only these operations accept a ref: they compute from an entity's own transform and
+    // geometry, so "the thing I just made" is the common case and an extra request to learn its ID
+    // is pure ceremony.
+    void ResolveTargetEntity(const json& input, const std::string& path, Operation& operation,
+        const std::set<std::string>& references)
+    {
+        Values::Object(input, path, { "id", "ref" });
+        Values::Require(input.size() == 1, path, "Expected exactly one of id or ref.");
+
+        if (input.contains("ref"))
+        {
+            operation.TargetReference = Values::String(input.at("ref"), path + "/ref");
+            Values::Require(references.count(operation.TargetReference) != 0, path + "/ref",
+                "Target ref must name an earlier entity.create or entity.duplicate operation.");
+            return;
+        }
+
+        operation.Entity = Pine::Entities::Find(Values::Id(input.at("id"), path + "/id"));
+        RequireSceneEntity(operation.Entity, path + "/id");
+    }
+
     void RequireRestorableComponent(const Pine::Component* component, const std::string& path)
     {
         const auto adapter = Adapters::Find(component->GetType());
         Values::Require(adapter != nullptr, path, "This component has no history restoration adapter.");
         Adapters::Prepare(*adapter, adapter->Read(nullptr), adapter->Read(component), path + "/beforeState");
+    }
+
+    // The existing component a placement, aim or fit would rewrite. Null when the entity is only
+    // proposed, or when an earlier operation in the batch is what creates the component.
+    Pine::Component* TargetComponent(const Operation& operation)
+    {
+        if (operation.Entity == nullptr)
+        {
+            return nullptr;
+        }
+        if (operation.Type == OperationType::FitCollider)
+        {
+            return operation.Entity->GetComponent<Pine::Collider>();
+        }
+        return operation.Entity->GetTransform();
     }
 
     Pine::Component* FindComponent(const Pine::UId id)
@@ -272,7 +313,7 @@ namespace
         const bool needsProposedState = std::any_of(operations.begin(), operations.end(), [](const Operation& operation)
         {
             return operation.Type == OperationType::DuplicateEntity || operation.Type == OperationType::PlaceEntity
-                || operation.Type == OperationType::AimEntity;
+                || operation.Type == OperationType::AimEntity || operation.Type == OperationType::FitCollider;
         });
         std::size_t duplicatedCount = 0;
 
@@ -315,8 +356,14 @@ namespace
             {
                 owner = operation.Target->GetParent();
             }
-            const auto target = owner == nullptr ? "" : owner->GetId().ToString();
-            if (owner != nullptr)
+            auto target = owner == nullptr ? "" : owner->GetId().ToString();
+            if (!operation.TargetReference.empty())
+            {
+                target = "ref:" + operation.TargetReference;
+                Values::Require(entities.count(target) != 0, path + "/target/ref",
+                    "Target ref was deleted by an earlier operation in this batch.");
+            }
+            else if (owner != nullptr)
             {
                 Values::Require(entities.count(target) != 0, path + "/target/id",
                     "Entity was deleted by an earlier operation in this batch.");
@@ -409,7 +456,8 @@ namespace
                     }
                 }
             }
-            else if (operation.Type == OperationType::PlaceEntity || operation.Type == OperationType::AimEntity)
+            else if (operation.Type == OperationType::PlaceEntity || operation.Type == OperationType::AimEntity
+                || operation.Type == OperationType::FitCollider)
             {
                 auto& proposed = entities.at(target);
                 const auto parentTransform = [&](const ProposedEntity& entity, const std::string& transformPath)
@@ -428,33 +476,55 @@ namespace
                     return transform;
                 };
 
-                const auto adapter = Adapters::Find(Pine::ComponentType::Transform);
                 const auto targetParent = parentTransform(proposed, path + "/target/parentTransform");
-                json transformState;
-                if (operation.Type == OperationType::AimEntity)
+
+                if (operation.Type == OperationType::FitCollider)
                 {
-                    transformState = Editing::Placement::PrepareAim(operation.AimInput, proposed.State, targetParent, path);
-                }
-                else if (operation.PlacementReference != nullptr)
-                {
-                    const auto referenceKey = operation.PlacementReference->GetId().ToString();
-                    Values::Require(entities.count(referenceKey) != 0, path + "/relativeTo/id",
-                        "Reference entity was deleted by an earlier operation in this batch.");
-                    for (auto ancestor = referenceKey; !ancestor.empty(); ancestor = entities.at(ancestor).Parent)
+                    const auto adapter = Adapters::Find(Pine::ComponentType::Collider);
+                    auto colliderState = Editing::Placement::PrepareColliderFit(
+                        operation.PlacementInput, proposed.State, targetParent, path);
+
+                    // Keep the proposed state current, so a later operation in this batch sees the
+                    // fitted box rather than the one it replaced.
+                    for (auto& component : proposed.State.Components)
                     {
-                        Values::Require(ancestor != target, path + "/relativeTo/id",
-                            "Reference entity cannot be the target or its descendant.");
+                        if (component.Type == Pine::ComponentType::Collider)
+                        {
+                            component.Properties = colliderState;
+                        }
                     }
-                    const auto& reference = entities.at(referenceKey);
-                    transformState = Editing::Placement::PrepareRelative(operation.PlacementInput, proposed.State, targetParent,
-                        reference.State, parentTransform(reference, path + "/relativeTo/parentTransform"), path);
+
+                    operation.Components.push_back({ adapter, std::move(colliderState) });
                 }
                 else
                 {
-                    transformState = Editing::Placement::Prepare(operation.PlacementInput, proposed.State, targetParent, path);
+                    const auto adapter = Adapters::Find(Pine::ComponentType::Transform);
+                    json transformState;
+                    if (operation.Type == OperationType::AimEntity)
+                    {
+                        transformState = Editing::Placement::PrepareAim(operation.AimInput, proposed.State, targetParent, path);
+                    }
+                    else if (operation.PlacementReference != nullptr)
+                    {
+                        const auto referenceKey = operation.PlacementReference->GetId().ToString();
+                        Values::Require(entities.count(referenceKey) != 0, path + "/relativeTo/id",
+                            "Reference entity was deleted by an earlier operation in this batch.");
+                        for (auto ancestor = referenceKey; !ancestor.empty(); ancestor = entities.at(ancestor).Parent)
+                        {
+                            Values::Require(ancestor != target, path + "/relativeTo/id",
+                                "Reference entity cannot be the target or its descendant.");
+                        }
+                        const auto& reference = entities.at(referenceKey);
+                        transformState = Editing::Placement::PrepareRelative(operation.PlacementInput, proposed.State, targetParent,
+                            reference.State, parentTransform(reference, path + "/relativeTo/parentTransform"), path);
+                    }
+                    else
+                    {
+                        transformState = Editing::Placement::Prepare(operation.PlacementInput, proposed.State, targetParent, path);
+                    }
+                    proposed.State.Components.front().Properties = transformState;
+                    operation.Components.push_back({ adapter, std::move(transformState) });
                 }
-                proposed.State.Components.front().Properties = transformState;
-                operation.Components.push_back({ adapter, std::move(transformState) });
             }
             else if (operation.Type == OperationType::UpdateEntity && needsProposedState)
             {
@@ -742,25 +812,29 @@ namespace
             {
                 Values::Object(input, path, { "op", "target", "point", "forwardAxis", "upAxis", "up" },
                     { "op", "target", "point", "forwardAxis", "upAxis", "up" });
-                Values::Object(input.at("target"), path + "/target", { "id" }, { "id" });
                 operation.Type = OperationType::AimEntity;
-                operation.Entity = Pine::Entities::Find(Values::Id(input.at("target").at("id"), path + "/target/id"));
-                RequireSceneEntity(operation.Entity, path + "/target/id");
-                operation.Target = operation.Entity->GetTransform();
+                ResolveTargetEntity(input.at("target"), path + "/target", operation, references);
                 operation.AimInput = input;
                 operation.AimInput.erase("op");
                 operation.AimInput.erase("target");
                 Editing::Placement::ValidateAim(operation.AimInput, path);
             }
+            else if (name == "entity.fitCollider")
+            {
+                Values::Object(input, path, { "op", "target", "padding" }, { "op", "target" });
+                operation.Type = OperationType::FitCollider;
+                ResolveTargetEntity(input.at("target"), path + "/target", operation, references);
+                operation.PlacementInput = input;
+                operation.PlacementInput.erase("op");
+                operation.PlacementInput.erase("target");
+                Editing::Placement::ValidateColliderFit(operation.PlacementInput, path);
+            }
             else if (name == "entity.place")
             {
                 Values::Object(input, path, { "op", "target", "surface", "anchor", "clearance", "alignment",
                     "relativeTo", "boundsAlignment", "offset" }, { "op", "target" });
-                Values::Object(input.at("target"), path + "/target", { "id" }, { "id" });
                 operation.Type = OperationType::PlaceEntity;
-                operation.Entity = Pine::Entities::Find(Values::Id(input.at("target").at("id"), path + "/target/id"));
-                RequireSceneEntity(operation.Entity, path + "/target/id");
-                operation.Target = operation.Entity->GetTransform();
+                ResolveTargetEntity(input.at("target"), path + "/target", operation, references);
                 operation.PlacementInput = input;
                 operation.PlacementInput.erase("op");
                 operation.PlacementInput.erase("target");
@@ -1044,9 +1118,22 @@ namespace
                 }
                 else if (operation.Type == OperationType::PlaceEntity || operation.Type == OperationType::AimEntity)
                 {
+                    const auto entity = operation.TargetReference.empty()
+                        ? operation.Entity : entitiesByReference.at(operation.TargetReference);
                     const auto& transform = operation.Components.front();
-                    transform.Adapter->Apply(operation.Target, transform.State);
-                    body["results"].push_back({ { "operation", index }, { "entity", DescribeEntity(operation.Entity) } });
+                    transform.Adapter->Apply(entity->GetTransform(), transform.State);
+                    body["results"].push_back({ { "operation", index }, { "entity", DescribeEntity(entity) } });
+                }
+                else if (operation.Type == OperationType::FitCollider)
+                {
+                    const auto entity = operation.TargetReference.empty()
+                        ? operation.Entity : entitiesByReference.at(operation.TargetReference);
+                    const auto& collider = operation.Components.front();
+                    const auto target = entity->GetComponent<Pine::Collider>();
+                    collider.Adapter->Apply(target, collider.State);
+                    body["results"].push_back({ { "operation", index },
+                        { "entityId", entity->GetId().ToString() },
+                        { "component", Adapters::Describe(*collider.Adapter, target) } });
                 }
                 else if (operation.Type == OperationType::ReparentEntity)
                 {
@@ -1134,13 +1221,14 @@ Editor::DebugServer::Response Editor::DebugServer::Editing::GetSchema(const Requ
     }
 
     return { 200, {
-        { "version", 1 }, { "operations", { "entity.create", "entity.update", "entity.reparent", "entity.delete", "entity.duplicate", "entity.place", "entity.aim",
+        { "version", 1 }, { "operations", { "entity.create", "entity.update", "entity.reparent", "entity.delete", "entity.duplicate", "entity.place", "entity.aim", "entity.fitCollider",
             "component.add", "component.update", "component.remove" } },
         { "maxOperations", MaxOperations }, { "maxBodyBytes", MaxBodyBytes },
         { "maxJsonDepth", MaxJsonDepth },
         { "requestSchema", Schema::Request(MaxOperations) },
         { "operationSchemas", Schema::Operations() }, { "referenceRules", Schema::References() },
         { "levelCamera", LevelCamera::Schema() },
+        { "levelSettings", LevelSettings::Schema() },
         { "readback", {
             { "entityEndpoint", "/entity" }, { "observationEndpoint", "/observe" },
             { "entityProperties", "properties" }, { "componentProperties", "components[].properties" },
@@ -1245,11 +1333,26 @@ Editor::DebugServer::Response Editor::DebugServer::Editing::Edit(const Request& 
         for (std::size_t index = 0; index < operations.size(); index++)
         {
             const auto& operation = operations[index];
-            if (operation.Type == OperationType::UpdateComponent || operation.Type == OperationType::RemoveComponent
-                || operation.Type == OperationType::PlaceEntity || operation.Type == OperationType::AimEntity)
+            const auto path = "/operations/" + std::to_string(index) + "/target";
+            operationIndex = static_cast<int>(index);
+
+            if (operation.Type == OperationType::UpdateComponent || operation.Type == OperationType::RemoveComponent)
             {
-                operationIndex = static_cast<int>(index);
-                RequireRestorableComponent(operation.Target, "/operations/" + std::to_string(index) + "/target");
+                RequireRestorableComponent(operation.Target, path);
+            }
+            else if (operation.Type == OperationType::PlaceEntity || operation.Type == OperationType::AimEntity
+                || operation.Type == OperationType::FitCollider)
+            {
+                // A ref target names an entity this batch is about to create, so there is no
+                // existing component to check - and for a fit, the Collider itself may still be
+                // coming from an earlier component.add.
+                const auto component = operation.TargetReference.empty()
+                    ? TargetComponent(operation) : nullptr;
+
+                if (component != nullptr)
+                {
+                    RequireRestorableComponent(component, path);
+                }
             }
         }
     }

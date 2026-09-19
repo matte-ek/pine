@@ -15,6 +15,8 @@ namespace Editor::DebugServer::Editing::Placement
     void Validate(nlohmann::json& input, const std::string& path);
     nlohmann::json AimFields();
     void ValidateAim(nlohmann::json& input, const std::string& path);
+    nlohmann::json ColliderFitFields();
+    void ValidateColliderFit(nlohmann::json& input, const std::string& path);
     WorldTransform Compose(const WorldTransform& parent, const nlohmann::json& local, const std::string& path);
 
     // Computes a Transform adapter state without changing live entities or cached bounds.
@@ -25,4 +27,8 @@ namespace Editor::DebugServer::Editing::Placement
     nlohmann::json PrepareRelative(const nlohmann::json& input, const Duplication::EntityState& entity,
         const WorldTransform& parent, const Duplication::EntityState& reference,
         const WorldTransform& referenceParent, const std::string& path);
+
+    // Computes a Collider adapter state whose box wraps the entity's own model geometry.
+    nlohmann::json PrepareColliderFit(const nlohmann::json& input, const Duplication::EntityState& entity,
+        const WorldTransform& parent, const std::string& path);
 }

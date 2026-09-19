@@ -4,13 +4,16 @@
 #include <set>
 
 #include "../Editing.hpp"
+#include "../../LevelSettings/LevelSettings.hpp"
 #include "../Components/Transform/Transform.hpp"
 #include "../Values/Values.hpp"
 #include "Other/Actions/Actions.hpp"
 #include "Other/PlayHandler/PlayHandler.hpp"
 #include "Pine/Engine/Engine.hpp"
+#include "Pine/Assets/Level/Level.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/World/Entities/Entities.hpp"
+#include "Pine/World/World.hpp"
 
 namespace
 {
@@ -72,6 +75,12 @@ namespace
     {
         const auto current = History::Capture();
         Require(current.Order == expected.Order, "Scene membership/order changed outside history.");
+
+        if (desired.RestoreSettings)
+        {
+            Require(current.Settings == expected.Settings, "Level settings changed outside history.");
+            Require(Pine::World::GetActiveLevel() != nullptr, "No level is active.");
+        }
 
         if (desired.RestoreGameCamera)
         {
@@ -290,6 +299,11 @@ namespace
                 ? Pine::Components::FindById(Pine::ComponentType::Camera, desired.GameCamera) : nullptr;
             Pine::RenderManager::GetPrimaryRenderingContext()->SceneCamera = static_cast<Pine::Camera*>(camera);
         }
+
+        if (desired.RestoreSettings)
+        {
+            LevelSettings::Apply(Pine::World::GetActiveLevel()->GetLevelSettings(), desired.Settings);
+        }
     }
 
     class BatchCommand final : public Editor::Actions::EditorCommand
@@ -353,6 +367,11 @@ Editor::DebugServer::Editing::History::Snapshot Editor::DebugServer::Editing::Hi
         snapshot.GameCamera = context->SceneCamera->GetId();
     }
 
+    if (const auto level = Pine::World::GetActiveLevel())
+    {
+        snapshot.Settings = LevelSettings::Read(level->GetLevelSettings());
+    }
+
     for (const auto entity : Pine::Entities::GetList())
     {
         snapshot.Order.push_back(entity->GetId());
@@ -384,6 +403,7 @@ Editor::DebugServer::Editing::History::Snapshot Editor::DebugServer::Editing::Hi
 void Editor::DebugServer::Editing::History::Record(Snapshot before, Snapshot after)
 {
     before.RestoreGameCamera = after.RestoreGameCamera = before.GameCamera != after.GameCamera;
+    before.RestoreSettings = after.RestoreSettings = before.Settings != after.Settings;
 
     // Retain only affected entities, so later undo does not rewrite unrelated component values.
     for (auto entry = before.Entities.begin(); entry != before.Entities.end();)

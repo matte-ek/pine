@@ -123,7 +123,7 @@ def check_aim(operation):
 
 schema = request('/edit/schema')
 fields = schema['operationSchemas']['entity.aim']['fields']
-assert fields['target']['forms'] == ['id']
+assert fields['target']['forms'] == ['id', 'ref']
 assert fields['point']['space'] == fields['up']['space'] == 'world'
 axes = fields['forwardAxis']['values']
 assert set(axes) == {'+X', '-X', '+Y', '-Y', '+Z', '-Z'}

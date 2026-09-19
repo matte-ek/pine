@@ -135,32 +135,6 @@ namespace
         Editor::LevelEntity::SetView(Values::Vector3(state.at("position")), Values::Quaternion(state.at("rotation")));
     }
 
-    Pine::Vector3f ReadVector(const json& value, const std::string& name)
-    {
-        json properties = { { name, value } };
-        Values::Properties(properties, { { name, { { "type", "vector3" } } } }, "");
-        return Values::Vector3(properties.at(name));
-    }
-
-    Pine::Quaternion LookRotation(glm::dvec3 direction, glm::dvec3 up, const std::string& path, const bool explicitUp)
-    {
-        Values::Require(glm::length(direction) > 0, path, "View direction must have nonzero length.");
-        Values::Require(glm::length(up) > 0, "/up", "Up vector must have nonzero length.");
-        direction = glm::normalize(direction);
-        up = glm::normalize(up);
-
-        if (std::abs(glm::dot(direction, up)) > 0.9999)
-        {
-            Values::Require(!explicitUp, "/up", "Up vector must not be parallel to the view direction.");
-            // A top/bottom view still needs a stable orientation when the default world-up is
-            // parallel to its direction. Explicitly conflicting inputs are rejected instead.
-            up = glm::dvec3(0, 0, -1);
-        }
-
-        const auto rotation = glm::quat_cast(glm::transpose(glm::dmat3(glm::lookAt(glm::dvec3(0), direction, up))));
-        return glm::normalize(Pine::Quaternion(rotation));
-    }
-
     bool AddEntityBounds(Pine::Entity* entity, const bool includeChildren, Bounds& bounds)
     {
         bool hasGeometry = Spatial::AddModelBounds(entity, bounds);
@@ -302,10 +276,10 @@ Editor::DebugServer::Response Editor::DebugServer::Camera::Set(const Request& re
 
         if (body.contains("lookAt"))
         {
-            const glm::dvec3 target = ReadVector(body.at("lookAt"), "lookAt");
+            const glm::dvec3 target = Values::Vector3Field(body.at("lookAt"), "/lookAt");
             const glm::dvec3 position = Values::Vector3(state.at("position"));
-            const glm::dvec3 up = body.contains("up") ? ReadVector(body.at("up"), "up") : Pine::Vector3f(0, 1, 0);
-            state["rotation"] = Pine::SerializationJson::StoreQuaternion(LookRotation(target - position, up, "/lookAt", body.contains("up")));
+            const glm::dvec3 up = body.contains("up") ? Values::Vector3Field(body.at("up"), "/up") : Pine::Vector3f(0, 1, 0);
+            state["rotation"] = Pine::SerializationJson::StoreQuaternion(Values::LookRotation(target - position, up, "/lookAt", body.contains("up")));
         }
 
         ValidateState(state);
@@ -346,9 +320,9 @@ Editor::DebugServer::Response Editor::DebugServer::Camera::Frame(const Request& 
         auto state = ReadState();
         if (body.contains("direction"))
         {
-            const glm::dvec3 direction = ReadVector(body.at("direction"), "direction");
-            const glm::dvec3 up = body.contains("up") ? ReadVector(body.at("up"), "up") : Pine::Vector3f(0, 1, 0);
-            state["rotation"] = Pine::SerializationJson::StoreQuaternion(LookRotation(direction, up, "/direction", body.contains("up")));
+            const glm::dvec3 direction = Values::Vector3Field(body.at("direction"), "/direction");
+            const glm::dvec3 up = body.contains("up") ? Values::Vector3Field(body.at("up"), "/up") : Pine::Vector3f(0, 1, 0);
+            state["rotation"] = Pine::SerializationJson::StoreQuaternion(Values::LookRotation(direction, up, "/direction", body.contains("up")));
         }
         ValidateState(state);
         const auto bounds = ReadBounds(body);
