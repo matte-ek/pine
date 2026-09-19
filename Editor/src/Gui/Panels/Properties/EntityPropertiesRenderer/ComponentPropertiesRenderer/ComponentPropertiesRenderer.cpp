@@ -11,10 +11,13 @@
 #include "mono/metadata/object.h"
 #include "Other/Actions/Actions.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Game/Game.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
 #include "Pine/Utilities/Entity/EntityUtilities.hpp"
+#include "Pine/World/Components/AudioListener/AudioListener.hpp"
+#include "Pine/World/Components/AudioSource/AudioSource.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
@@ -825,6 +828,135 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
+    void RenderAudioSource(Pine::AudioSource* audioSource)
+    {
+        bool playOnStart = audioSource->GetPlayOnStart();
+        bool loop = audioSource->GetLoop();
+        bool spatial = audioSource->GetSpatial();
+        float volume = audioSource->GetVolume();
+        float pitch = audioSource->GetPitch();
+        float referenceDistance = audioSource->GetReferenceDistance();
+        float maxDistance = audioSource->GetMaxDistance();
+        float rolloffFactor = audioSource->GetRolloffFactor();
+
+        auto [newAudioFileSet, newAudioFile] = Widgets::AssetPicker("Audio File", audioSource->GetAudioFile(), Pine::AssetType::Audio);
+
+        if (newAudioFileSet)
+        {
+            CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+            audioSource->SetAudioFile(dynamic_cast<Pine::AudioFile*>(newAudioFile));
+        }
+
+        if (Widgets::Checkbox("Play On Start", &playOnStart))
+        {
+            CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+            audioSource->SetPlayOnStart(playOnStart);
+        }
+
+        if (Widgets::Checkbox("Loop", &loop))
+        {
+            CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+            audioSource->SetLoop(loop);
+        }
+
+        // Volume has no hard ceiling - the setter only refuses negatives, and ctrl+click still
+        // types anything above the slider - but amplifying a clip past 1 clips the mix, so the
+        // drag stops where it stops being a good idea.
+        if (Widgets::SliderFloat("Volume", &volume, 0.f, 1.f))
+        {
+            CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+            audioSource->SetVolume(volume);
+        }
+
+        // Playback rate as well as pitch, so an octave either way is about as far as a clip stays
+        // recognisable. Logarithmic so that half speed and double speed sit the same distance from
+        // the middle, which is what makes the two halves of the drag feel alike.
+        if (Widgets::SliderFloat("Pitch", &pitch, 0.5f, 2.f, true))
+        {
+            CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+            audioSource->SetPitch(pitch);
+        }
+
+        if (Widgets::Checkbox("Spatial", &spatial))
+        {
+            CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+            audioSource->SetSpatial(spatial);
+        }
+
+        // A non-spatial source plays on the listener, so distance means nothing to it.
+        if (audioSource->GetSpatial())
+        {
+            // Both distances are logarithmic for the same reason a light's range is: the useful
+            // values run from a footstep heard a metre away to ambience carrying across a level,
+            // and a linear drag would spend nearly all its travel above anything indoors wants.
+            if (Widgets::SliderFloat("Reference Distance", &referenceDistance, 0.1f, 100.f, true))
+            {
+                CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+                audioSource->SetReferenceDistance(referenceDistance);
+            }
+
+            // The setter holds this at or above the reference distance, so dragging it below pins
+            // it there rather than inverting the fade.
+            if (Widgets::SliderFloat("Max Distance", &maxDistance, 0.1f, 500.f, true))
+            {
+                CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+                audioSource->SetMaxDistance(maxDistance);
+            }
+
+            if (Widgets::SliderFloat("Rolloff Factor", &rolloffFactor, 0.f, 10.f))
+            {
+                CreateComponentCommand updateCmd(audioSource, CommandType::Update);
+
+                audioSource->SetRolloffFactor(rolloffFactor);
+            }
+        }
+
+        // Read-only, and only worth anything in play mode - but it is the one part of a source you
+        // cannot work out by looking at the scene, and the one you want while chasing a sound that
+        // will not start.
+        const char* playbackState = "Stopped";
+
+        switch (audioSource->GetPlaybackState())
+        {
+            case Pine::Audio::PlaybackState::Playing:
+                playbackState = "Playing";
+                break;
+            case Pine::Audio::PlaybackState::Paused:
+                playbackState = "Paused";
+                break;
+            default:
+                break;
+        }
+
+        ImGui::Spacing();
+
+        Widgets::Text("State", fmt::format("{} ({:.2f}s)", playbackState, audioSource->GetPlaybackPosition()));
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------------
+
+    void RenderAudioListener(Pine::AudioListener* audioListener)
+    {
+        float volume = audioListener->GetVolume();
+
+        if (Widgets::SliderFloat("Volume", &volume, 0.f, 1.f))
+        {
+            CreateComponentCommand updateCmd(audioListener, CommandType::Update);
+
+            audioListener->SetVolume(volume);
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------------
+
     void RenderComponent(Pine::Component* component, int index)
     {
         const std::string displayText = std::string(Pine::ComponentTypeToString(component->GetType())) + "##" + std::to_string(index);
@@ -905,6 +1037,12 @@ namespace
                     break;
                 case Pine::ComponentType::TerrainRenderer:
                     RenderTerrainRenderer(dynamic_cast<Pine::TerrainRendererComponent *>(component));
+                    break;
+                case Pine::ComponentType::AudioSource:
+                    RenderAudioSource(dynamic_cast<Pine::AudioSource *>(component));
+                    break;
+                case Pine::ComponentType::AudioListener:
+                    RenderAudioListener(dynamic_cast<Pine::AudioListener *>(component));
                     break;
                 default:
                     break;

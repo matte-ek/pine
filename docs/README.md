@@ -16,6 +16,7 @@ For operating a running Editor over HTTP, see the two debug-server pages below.
 | [assets.md](assets.md) | Asset manager, the `.passet` format, the serializer, Level/Blueprint |
 | [rendering.md](rendering.md) | Graphics wrapper → Rendering → Renderer3D; pipelines, features, contexts |
 | [scripting.md](scripting.md) | The Mono/C# bridge and the `ScriptRuntime/` project |
+| [audio.md](audio.md) | Device layer, the voice pool, the components, mono vs. `Spatial` |
 | [physics.md](physics.md) | Physics2D / Physics3D (PhysX) and the component coupling |
 | [core.md](core.md) | Core utilities: Math, File, Serialization, UId, Log, WindowManager |
 | [editor.md](editor.md) | The Editor executable: boot, panels, viewports, play mode, tooling |

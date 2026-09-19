@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "Buffer/ALBuffer.hpp"
+#include "Source/ALSource.hpp"
 #include "Pine/Core/Log/Log.hpp"
 
 namespace
@@ -124,6 +125,49 @@ void Pine::Audio::OpenAL::DestroyBuffer(IAudioBuffer* buffer)
     buffer->Dispose();
 
     delete dynamic_cast<ALBuffer*>(buffer);
+}
+
+Pine::Audio::IAudioSource* Pine::Audio::OpenAL::CreateSource()
+{
+    const auto source = new ALSource();
+
+    if (!source->Setup())
+    {
+        delete source;
+
+        return nullptr;
+    }
+
+    return source;
+}
+
+void Pine::Audio::OpenAL::DestroySource(IAudioSource* source)
+{
+    source->Dispose();
+
+    delete dynamic_cast<ALSource*>(source);
+}
+
+void Pine::Audio::OpenAL::SetListenerTransform(
+    const Vector3f& position,
+    const Vector3f& forward,
+    const Vector3f& up)
+{
+    ClearAudioError();
+
+    alListener3f(AL_POSITION, position.x, position.y, position.z);
+
+    // AL_ORIENTATION is a single six-float vector: the forward direction followed by the up one.
+    const ALfloat orientation[6] = { forward.x, forward.y, forward.z, up.x, up.y, up.z };
+
+    alListenerfv(AL_ORIENTATION, orientation);
+
+    CheckAudioError("Setting the listener transform");
+}
+
+void Pine::Audio::OpenAL::SetListenerVolume(const float volume)
+{
+    alListenerf(AL_GAIN, volume);
 }
 
 void Pine::Audio::OpenAL::ReadAudioDevices(const ALCchar* devices)

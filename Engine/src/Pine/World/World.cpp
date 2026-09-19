@@ -5,6 +5,7 @@
 #include "Pine/Script/ScriptManager.hpp"
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Physics/Physics2D/Physics2D.hpp"
+#include "Pine/Audio/Audio.hpp"
 
 namespace
 {
@@ -88,6 +89,11 @@ void Pine::World::Update()
 
     Physics3D::Update(deltaTime);
     Physics2D::Update(deltaTime);
+
+    // After physics, so a sound riding on a moving body is heard from where that body ended up
+    // this frame rather than from where it was last frame. Runs while the world is paused too -
+    // it is what holds the playing sounds still, and keeps the listener following the editor.
+    Audio::Update();
 
     if (!m_Paused)
     {

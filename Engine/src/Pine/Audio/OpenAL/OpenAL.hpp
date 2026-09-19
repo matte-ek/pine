@@ -38,6 +38,12 @@ namespace Pine::Audio
         IAudioBuffer* CreateBuffer() override;
         void DestroyBuffer(IAudioBuffer* buffer) override;
 
+        IAudioSource* CreateSource() override;
+        void DestroySource(IAudioSource* source) override;
+
+        void SetListenerTransform(const Vector3f& position, const Vector3f& forward, const Vector3f& up) override;
+        void SetListenerVolume(float volume) override;
+
         const std::string& GetDeviceName() const;
         const std::vector<std::string>& GetDeviceList() const;
     };
