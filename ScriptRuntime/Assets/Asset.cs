@@ -17,7 +17,9 @@ namespace Pine.Assets
         Font,
         Tileset,
         Tilemap,
+        Audio,
         CSharpScript,
+        Terrain,
     }
     
     public class Asset

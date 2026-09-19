@@ -8,6 +8,9 @@
 #include "mono/metadata/object.h"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/CharacterController/CharacterController.hpp"
+#include "Pine/World/Components/Camera/Camera.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
+#include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 
 namespace
@@ -211,6 +214,327 @@ namespace
 
     // -----------------------------------------------------
 
+    int LightGetLightType(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
+
+        return static_cast<int>(Pine::Components::GetByInternalId<Pine::Light>(internalId)->GetLightType());
+    }
+
+    void LightSetLightType(const std::uint32_t internalId, const int type)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Light>(internalId)->SetLightType(static_cast<Pine::LightType>(type));
+    }
+
+    void LightGetLightColor(const std::uint32_t internalId, Pine::Vector3f* color)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        *color = Pine::Components::GetByInternalId<Pine::Light>(internalId)->GetLightColor();
+    }
+
+    void LightSetLightColor(const std::uint32_t internalId, const Pine::Vector3f* color)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Light>(internalId)->SetLightColor(*color);
+    }
+
+    float LightGetLightIntensity(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Light>(internalId)->GetLightIntensity();
+    }
+
+    void LightSetLightIntensity(const std::uint32_t internalId, const float intensity)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Light>(internalId)->SetLightIntensity(intensity);
+    }
+
+    float LightGetRange(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Light>(internalId)->GetRange();
+    }
+
+    void LightSetRange(const std::uint32_t internalId, const float range)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Light>(internalId)->SetRange(range);
+    }
+
+    bool LightGetCastShadows(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::Light>(internalId)->GetCastShadows();
+    }
+
+    void LightSetCastShadows(const std::uint32_t internalId, const bool castShadows)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Light>(internalId)->SetCastShadows(castShadows);
+    }
+
+    float LightGetSpotlightOuterAngle(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Light>(internalId)->GetSpotlightOuterAngle();
+    }
+
+    void LightSetSpotlightOuterAngle(const std::uint32_t internalId, const float degrees)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Light>(internalId)->SetSpotlightOuterAngle(degrees);
+    }
+
+    float LightGetSpotlightInnerAngle(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Light>(internalId)->GetSpotlightInnerAngle();
+    }
+
+    void LightSetSpotlightInnerAngle(const std::uint32_t internalId, const float degrees)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Light>(internalId)->SetSpotlightInnerAngle(degrees);
+    }
+
+    // -----------------------------------------------------
+
+    int CameraGetCameraType(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
+
+        return static_cast<int>(Pine::Components::GetByInternalId<Pine::Camera>(internalId)->GetCameraType());
+    }
+
+    void CameraSetCameraType(const std::uint32_t internalId, const int type)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Camera>(internalId)->SetCameraType(static_cast<Pine::CameraType>(type));
+    }
+
+    float CameraGetNearPlane(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Camera>(internalId)->GetNearPlane();
+    }
+
+    void CameraSetNearPlane(const std::uint32_t internalId, const float value)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Camera>(internalId)->SetNearPlane(value);
+    }
+
+    float CameraGetFarPlane(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Camera>(internalId)->GetFarPlane();
+    }
+
+    void CameraSetFarPlane(const std::uint32_t internalId, const float value)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Camera>(internalId)->SetFarPlane(value);
+    }
+
+    float CameraGetFieldOfView(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Camera>(internalId)->GetFieldOfView();
+    }
+
+    void CameraSetFieldOfView(const std::uint32_t internalId, const float value)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Camera>(internalId)->SetFieldOfView(value);
+    }
+
+    float CameraGetOrthographicSize(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Camera>(internalId)->GetOrthographicSize();
+    }
+
+    void CameraSetOrthographicSize(const std::uint32_t internalId, const float value)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Camera>(internalId)->SetOrthographicSize(value);
+    }
+
+    void CameraGetClearColor(const std::uint32_t internalId, Pine::Vector4f* color)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        *color = Pine::Components::GetByInternalId<Pine::Camera>(internalId)->GetClearColor();
+    }
+
+    void CameraSetClearColor(const std::uint32_t internalId, const Pine::Vector4f* color)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Camera>(internalId)->SetClearColor(*color);
+    }
+
+    void CameraWorldToScreenPoint(const std::uint32_t internalId, const Pine::Vector3f* position, Pine::Vector3f* screenPoint)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        *screenPoint = Pine::Components::GetByInternalId<Pine::Camera>(internalId)->WorldToScreenPoint(*position);
+    }
+
+    // -----------------------------------------------------
+
+    int ColliderGetColliderType(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
+
+        return static_cast<int>(Pine::Components::GetByInternalId<Pine::Collider>(internalId)->GetColliderType());
+    }
+
+    void ColliderSetColliderType(const std::uint32_t internalId, const int type)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetColliderType(static_cast<Pine::ColliderType>(type));
+    }
+
+    void ColliderGetPosition(const std::uint32_t internalId, Pine::Vector3f* position)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        *position = Pine::Components::GetByInternalId<Pine::Collider>(internalId)->GetPosition();
+    }
+
+    void ColliderSetPosition(const std::uint32_t internalId, const Pine::Vector3f* position)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetPosition(*position);
+    }
+
+    void ColliderGetSize(const std::uint32_t internalId, Pine::Vector3f* size)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        *size = Pine::Components::GetByInternalId<Pine::Collider>(internalId)->GetSize();
+    }
+
+    void ColliderSetSize(const std::uint32_t internalId, const Pine::Vector3f* size)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetSize(*size);
+    }
+
+    float ColliderGetRadius(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Collider>(internalId)->GetRadius();
+    }
+
+    void ColliderSetRadius(const std::uint32_t internalId, const float radius)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetRadius(radius);
+    }
+
+    float ColliderGetHeight(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::Collider>(internalId)->GetHeight();
+    }
+
+    void ColliderSetHeight(const std::uint32_t internalId, const float height)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetHeight(height);
+    }
+
+    std::uint32_t ColliderGetLayer(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
+
+        return Pine::Components::GetByInternalId<Pine::Collider>(internalId)->GetLayer();
+    }
+
+    void ColliderSetLayer(const std::uint32_t internalId, const std::uint32_t layer)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetLayer(layer);
+    }
+
+    std::uint32_t ColliderGetLayerMask(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
+
+        return Pine::Components::GetByInternalId<Pine::Collider>(internalId)->GetLayerMask();
+    }
+
+    void ColliderSetLayerMask(const std::uint32_t internalId, const std::uint32_t layerMask)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetLayerMask(layerMask);
+    }
+
+    bool ColliderGetIsTrigger(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::Collider>(internalId)->IsTrigger();
+    }
+
+    void ColliderSetIsTrigger(const std::uint32_t internalId, const bool isTrigger)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetIsTrigger(isTrigger);
+    }
+
+    std::uint32_t ColliderGetTriggerMask(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
+
+        return Pine::Components::GetByInternalId<Pine::Collider>(internalId)->GetTriggerMask();
+    }
+
+    void ColliderSetTriggerMask(const std::uint32_t internalId, const std::uint32_t mask)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::Collider>(internalId)->SetTriggerMask(mask);
+    }
+
+    // -----------------------------------------------------
+
     MonoObject* ScriptGetCSharpScript(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
@@ -265,6 +589,54 @@ void Pine::Script::Interfaces::Component::Setup()
     mono_add_internal_call("Pine.World.Components.Transform::GetUp", reinterpret_cast<void *>(TransformGetUp));
     mono_add_internal_call("Pine.World.Components.Transform::GetRight", reinterpret_cast<void *>(TransformGetRight));
     mono_add_internal_call("Pine.World.Components.Transform::GetForward", reinterpret_cast<void *>(TransformGetForward));
+
+    mono_add_internal_call("Pine.World.Components.Light::PineGetLightType", reinterpret_cast<void *>(LightGetLightType));
+    mono_add_internal_call("Pine.World.Components.Light::PineSetLightType", reinterpret_cast<void *>(LightSetLightType));
+    mono_add_internal_call("Pine.World.Components.Light::PineGetLightColor", reinterpret_cast<void *>(LightGetLightColor));
+    mono_add_internal_call("Pine.World.Components.Light::PineSetLightColor", reinterpret_cast<void *>(LightSetLightColor));
+    mono_add_internal_call("Pine.World.Components.Light::PineGetLightIntensity", reinterpret_cast<void *>(LightGetLightIntensity));
+    mono_add_internal_call("Pine.World.Components.Light::PineSetLightIntensity", reinterpret_cast<void *>(LightSetLightIntensity));
+    mono_add_internal_call("Pine.World.Components.Light::PineGetRange", reinterpret_cast<void *>(LightGetRange));
+    mono_add_internal_call("Pine.World.Components.Light::PineSetRange", reinterpret_cast<void *>(LightSetRange));
+    mono_add_internal_call("Pine.World.Components.Light::PineGetCastShadows", reinterpret_cast<void *>(LightGetCastShadows));
+    mono_add_internal_call("Pine.World.Components.Light::PineSetCastShadows", reinterpret_cast<void *>(LightSetCastShadows));
+    mono_add_internal_call("Pine.World.Components.Light::PineGetSpotlightOuterAngle", reinterpret_cast<void *>(LightGetSpotlightOuterAngle));
+    mono_add_internal_call("Pine.World.Components.Light::PineSetSpotlightOuterAngle", reinterpret_cast<void *>(LightSetSpotlightOuterAngle));
+    mono_add_internal_call("Pine.World.Components.Light::PineGetSpotlightInnerAngle", reinterpret_cast<void *>(LightGetSpotlightInnerAngle));
+    mono_add_internal_call("Pine.World.Components.Light::PineSetSpotlightInnerAngle", reinterpret_cast<void *>(LightSetSpotlightInnerAngle));
+
+    mono_add_internal_call("Pine.World.Components.Camera::PineGetCameraType", reinterpret_cast<void *>(CameraGetCameraType));
+    mono_add_internal_call("Pine.World.Components.Camera::PineSetCameraType", reinterpret_cast<void *>(CameraSetCameraType));
+    mono_add_internal_call("Pine.World.Components.Camera::PineGetNearPlane", reinterpret_cast<void *>(CameraGetNearPlane));
+    mono_add_internal_call("Pine.World.Components.Camera::PineSetNearPlane", reinterpret_cast<void *>(CameraSetNearPlane));
+    mono_add_internal_call("Pine.World.Components.Camera::PineGetFarPlane", reinterpret_cast<void *>(CameraGetFarPlane));
+    mono_add_internal_call("Pine.World.Components.Camera::PineSetFarPlane", reinterpret_cast<void *>(CameraSetFarPlane));
+    mono_add_internal_call("Pine.World.Components.Camera::PineGetFieldOfView", reinterpret_cast<void *>(CameraGetFieldOfView));
+    mono_add_internal_call("Pine.World.Components.Camera::PineSetFieldOfView", reinterpret_cast<void *>(CameraSetFieldOfView));
+    mono_add_internal_call("Pine.World.Components.Camera::PineGetOrthographicSize", reinterpret_cast<void *>(CameraGetOrthographicSize));
+    mono_add_internal_call("Pine.World.Components.Camera::PineSetOrthographicSize", reinterpret_cast<void *>(CameraSetOrthographicSize));
+    mono_add_internal_call("Pine.World.Components.Camera::PineGetClearColor", reinterpret_cast<void *>(CameraGetClearColor));
+    mono_add_internal_call("Pine.World.Components.Camera::PineSetClearColor", reinterpret_cast<void *>(CameraSetClearColor));
+    mono_add_internal_call("Pine.World.Components.Camera::PineWorldToScreenPoint", reinterpret_cast<void *>(CameraWorldToScreenPoint));
+
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetColliderType", reinterpret_cast<void *>(ColliderGetColliderType));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetColliderType", reinterpret_cast<void *>(ColliderSetColliderType));
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetPosition", reinterpret_cast<void *>(ColliderGetPosition));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetPosition", reinterpret_cast<void *>(ColliderSetPosition));
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetSize", reinterpret_cast<void *>(ColliderGetSize));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetSize", reinterpret_cast<void *>(ColliderSetSize));
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetRadius", reinterpret_cast<void *>(ColliderGetRadius));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetRadius", reinterpret_cast<void *>(ColliderSetRadius));
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetHeight", reinterpret_cast<void *>(ColliderGetHeight));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetHeight", reinterpret_cast<void *>(ColliderSetHeight));
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetLayer", reinterpret_cast<void *>(ColliderGetLayer));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetLayer", reinterpret_cast<void *>(ColliderSetLayer));
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetLayerMask", reinterpret_cast<void *>(ColliderGetLayerMask));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetLayerMask", reinterpret_cast<void *>(ColliderSetLayerMask));
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetIsTrigger", reinterpret_cast<void *>(ColliderGetIsTrigger));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetIsTrigger", reinterpret_cast<void *>(ColliderSetIsTrigger));
+    mono_add_internal_call("Pine.World.Components.Collider::PineGetTriggerMask", reinterpret_cast<void *>(ColliderGetTriggerMask));
+    mono_add_internal_call("Pine.World.Components.Collider::PineSetTriggerMask", reinterpret_cast<void *>(ColliderSetTriggerMask));
 
     mono_add_internal_call("Pine.World.Components.Script::GetScript", reinterpret_cast<void *>(ScriptGetCSharpScript));
     mono_add_internal_call("Pine.World.Components.Script::GetScriptInstanceInternal", reinterpret_cast<void *>(ScriptGetInstance));

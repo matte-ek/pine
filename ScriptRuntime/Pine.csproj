@@ -61,7 +61,10 @@
         <Compile Include="Physics\Physics3D.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
         <Compile Include="World\Component.cs" />
+        <Compile Include="World\Components\Camera.cs" />
         <Compile Include="World\Components\CharacterController.cs" />
+        <Compile Include="World\Components\Collider.cs" />
+        <Compile Include="World\Components\Light.cs" />
         <Compile Include="World\Components\ModelRenderer.cs" />
         <Compile Include="World\Components\RigidBody.cs" />
         <Compile Include="World\Components\Script.cs" />

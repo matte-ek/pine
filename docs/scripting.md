@@ -58,6 +58,21 @@ that fails to compile, or a level loaded before its game assembly, would silentl
 the author set. The debug server has no operation for script fields; they are authored in the
 properties panel.
 
+## Which components C# can reach
+
+`ObjectFactory::CreateComponent` resolves a managed component class by name
+(`mono_class_from_name(pineImage, "Pine.World.Components", ComponentTypeToString(type))`), so a
+component becomes reachable from `GetComponent<T>()` / `AddComponent<T>()` the moment a class of
+that name exists in `ScriptRuntime/World/Components/`. The individual properties still need their
+internal calls in `Script/Interfaces/ScriptInterfaceComponent.cpp`.
+
+Bound today: `Transform`, `ModelRenderer`, `RigidBody`, `CharacterController`, `Script`, `Light`,
+`Camera`, `Collider`. Not bound: `AudioSource`/`AudioListener` (the audio backend is still a stub),
+`SpriteRenderer`, `TilemapRenderer`, `TerrainRenderer`, `Collider2D`, `RigidBody2D`.
+
+There are also **no collision or trigger callbacks** - `Physics3D` exposes `RayCast` and nothing
+else, so a pickup or a proximity check is a distance test or a ray, not an `OnTriggerEnter`.
+
 ## `CSharpScript` is a source-backed asset
 A `CSharpScript` `.passet` is **not** the C# code — it's a thin identity asset. Its payload
 stores the fully-qualified managed **type name** (e.g. `Game.Player`), and the editable `.cs`
