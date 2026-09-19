@@ -1,103 +1,5 @@
 #include "Blueprint.hpp"
-#include "../../Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Core/File/File.hpp"
-
-namespace
-{
-
-    struct EntitySerializer : Pine::Serialization::Serializer
-    {
-        PINE_SERIALIZE_STRING(Name);
-        PINE_SERIALIZE_PRIMITIVE(Active, Pine::Serialization::DataType::Boolean);
-        PINE_SERIALIZE_PRIMITIVE(Static, Pine::Serialization::DataType::Boolean);
-        PINE_SERIALIZE_PRIMITIVE(Tags, Pine::Serialization::DataType::Int64);
-        PINE_SERIALIZE_ARRAY(Components);
-        PINE_SERIALIZE_ARRAY(Children);
-    };
-
-    struct ComponentSerializer : Pine::Serialization::Serializer
-    {
-        PINE_SERIALIZE_PRIMITIVE(Type, Pine::Serialization::DataType::Int32);
-        PINE_SERIALIZE_PRIMITIVE(Active, Pine::Serialization::DataType::Boolean);
-        PINE_SERIALIZE_DATA(Data);
-    };
-
-    void StoreEntity(Pine::ByteSpan& span, const Pine::Entity* entity)
-    {
-        EntitySerializer entitySerializer;
-
-        entitySerializer.Name.Write(entity->GetName());
-        entitySerializer.Active.Write(entity->GetActive());
-        entitySerializer.Static.Write(entity->GetStatic());
-        entitySerializer.Tags.Write(entity->GetTags());
-
-        for (auto component : entity->GetComponents())
-        {
-            ComponentSerializer componentSerializer;
-
-            componentSerializer.Type.Write(component->GetType());
-            componentSerializer.Active.Write(component->GetActive());
-            componentSerializer.Data.Write(component->SaveData());
-
-            entitySerializer.Components.AddData(componentSerializer.Write());
-        }
-
-        for (auto child : entity->GetChildren())
-        {
-            Pine::ByteSpan entityByteSpan;
-
-            StoreEntity(entityByteSpan, child);
-
-            entitySerializer.Children.AddData(entityByteSpan);
-        }
-
-        span = entitySerializer.Write();
-    }
-
-    void LoadEntity(const Pine::ByteSpan& byteSpan, Pine::Entity* entity)
-    {
-        EntitySerializer entitySerializer;
-
-        entitySerializer.Read(byteSpan);
-
-        std::string name;
-        entitySerializer.Name.Read(name);
-
-        entity->SetName(name);
-        entity->SetActive(entitySerializer.Active.Read<bool>());
-        entity->SetStatic(entitySerializer.Static.Read<bool>());
-        entity->SetTags(entitySerializer.Tags.Read<std::uint64_t>());
-
-        for (int i = 0; i < entitySerializer.Components.GetDataCount();i++)
-        {
-            ComponentSerializer componentSerializer;
-
-            componentSerializer.Read(entitySerializer.Components.GetData(i));
-
-            auto component = Pine::Components::Create(static_cast<Pine::ComponentType>(componentSerializer.Type.Read<int32_t>()), true);
-
-            component->LoadData(componentSerializer.Data.Read());
-
-            // The active flag lives next to the component's own data rather than inside it, and
-            // files written before it existed simply leave the default in place.
-            bool active = true;
-
-            componentSerializer.Active.Read(active);
-            component->SetActive(active);
-
-            entity->AddComponent(component);
-        }
-
-        for (int i = 0; i < entitySerializer.Children.GetDataCount();i++)
-        {
-            auto child = new Pine::Entity(Pine::UId::Empty());
-
-            entity->AddChild(child);
-
-            LoadEntity(entitySerializer.Children.GetData(i), child);
-        }
-    }
-}
 
 Pine::Blueprint::Blueprint()
 {
@@ -186,7 +88,7 @@ void Pine::Blueprint::FromByteSpan(const ByteSpan& byteSpan)
 {
     m_Entity = new Entity(UId::Empty());
 
-    LoadEntity(byteSpan, m_Entity);
+    m_Entity->LoadData(byteSpan);
 }
 
 Pine::ByteSpan Pine::Blueprint::ToByteSpan() const
@@ -196,11 +98,7 @@ Pine::ByteSpan Pine::Blueprint::ToByteSpan() const
         throw std::runtime_error("Attempted to serialize invalid blueprint.");
     }
 
-    ByteSpan span;
-
-    StoreEntity(span, m_Entity);
-
-    return span;
+    return m_Entity->SaveData();
 }
 
 Pine::Entity *Pine::Blueprint::GetEntity() const

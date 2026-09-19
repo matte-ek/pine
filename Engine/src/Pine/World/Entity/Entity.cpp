@@ -1,7 +1,30 @@
 #include "Entity.hpp"
 #include <algorithm>
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 #include "Pine/World/Entities/Entities.hpp"
+
+namespace
+{
+
+    struct EntitySerializer : Pine::Serialization::Serializer
+    {
+        PINE_SERIALIZE_STRING(Name);
+        PINE_SERIALIZE_PRIMITIVE(Active, Pine::Serialization::DataType::Boolean);
+        PINE_SERIALIZE_PRIMITIVE(Static, Pine::Serialization::DataType::Boolean);
+        PINE_SERIALIZE_PRIMITIVE(Tags, Pine::Serialization::DataType::Int64);
+        PINE_SERIALIZE_ARRAY(Components);
+        PINE_SERIALIZE_ARRAY(Children);
+    };
+
+    struct ComponentSerializer : Pine::Serialization::Serializer
+    {
+        PINE_SERIALIZE_PRIMITIVE(Type, Pine::Serialization::DataType::Int32);
+        PINE_SERIALIZE_PRIMITIVE(Active, Pine::Serialization::DataType::Boolean);
+        PINE_SERIALIZE_DATA(Data);
+    };
+
+}
 
 Pine::Entity::Entity(const UId id)
     : m_Id(id)
@@ -270,6 +293,88 @@ void Pine::Entity::RemoveChild(Entity* entity)
 const std::vector<Pine::Entity*>& Pine::Entity::GetChildren() const
 {
     return m_Children;
+}
+
+Pine::ByteSpan Pine::Entity::SaveData() const
+{
+    EntitySerializer entitySerializer;
+
+    entitySerializer.Name.Write(m_Name);
+    entitySerializer.Active.Write(m_Active);
+    entitySerializer.Static.Write(m_Static);
+    entitySerializer.Tags.Write(m_Tags);
+
+    for (const auto component : m_Components)
+    {
+        ComponentSerializer componentSerializer;
+
+        componentSerializer.Type.Write(component->GetType());
+        componentSerializer.Active.Write(component->GetActive());
+        componentSerializer.Data.Write(component->SaveData());
+
+        entitySerializer.Components.AddData(componentSerializer.Write());
+    }
+
+    for (const auto child : m_Children)
+    {
+        entitySerializer.Children.AddData(child->SaveData());
+    }
+
+    return entitySerializer.Write();
+}
+
+void Pine::Entity::LoadData(const ByteSpan& data)
+{
+    EntitySerializer entitySerializer;
+
+    entitySerializer.Read(data);
+
+    std::string name;
+    entitySerializer.Name.Read(name);
+
+    SetName(name);
+    SetActive(entitySerializer.Active.Read<bool>());
+    SetStatic(entitySerializer.Static.Read<bool>());
+    SetTags(entitySerializer.Tags.Read<std::uint64_t>());
+
+    // An entity that belongs to the world was created with a default Transform, and the serialized
+    // component list carries its own, so start from an empty entity either way.
+    ClearComponents();
+
+    // An entity with no id is not part of the world (see the destructor), so its components and
+    // children have to be created detached as well, or they would be registered in a world their
+    // owner is not in.
+    const bool standalone = m_Id == UId::Empty();
+
+    for (int i = 0; i < entitySerializer.Components.GetDataCount(); i++)
+    {
+        ComponentSerializer componentSerializer;
+
+        componentSerializer.Read(entitySerializer.Components.GetData(i));
+
+        const auto type = static_cast<ComponentType>(componentSerializer.Type.Read<std::int32_t>());
+        const auto component = Components::Create(type, standalone);
+
+        component->LoadData(componentSerializer.Data.Read());
+
+        // The active flag lives next to the component's own data rather than inside it, and
+        // files written before it existed simply leave the default in place.
+        bool active = true;
+
+        componentSerializer.Active.Read(active);
+        component->SetActive(active);
+
+        AddComponent(component);
+    }
+
+    for (int i = 0; i < entitySerializer.Children.GetDataCount(); i++)
+    {
+        const auto child = standalone ? new Entity(UId::Empty()) : Entity::Create();
+
+        AddChild(child);
+
+        child->LoadData(entitySerializer.Children.GetData(i));
+    }
 }
 
 void Pine::Entity::Delete()

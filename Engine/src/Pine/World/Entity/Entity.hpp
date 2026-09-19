@@ -3,6 +3,7 @@
 #include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
+#include "Pine/Core/Span/Span.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -164,6 +165,15 @@ namespace Pine
         void RemoveChild(Entity* entity);
 
         const std::vector<Entity*>& GetChildren() const;
+
+        // Serializes this entity, its components and its children into a byte span. This is the
+        // format a Blueprint stores, and therefore the format a Level is built out of.
+        ByteSpan SaveData() const;
+
+        // Replaces this entity's name, flags, components and children with the serialized ones.
+        // Loading into an entity that is part of the world creates world components and world
+        // child entities; loading into a detached entity keeps the whole tree detached.
+        void LoadData(const ByteSpan& data);
 
         void Delete();
 
