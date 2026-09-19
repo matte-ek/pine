@@ -13,6 +13,7 @@
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
+#include "Pine/Core/File/File.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Threading/Threading.hpp"
@@ -77,7 +78,7 @@ namespace
         AssetImportFactory( { { }, AssetType::Tileset, [](){ return new Tileset(); } } ),
         AssetImportFactory( { { }, AssetType::Tilemap, [](){ return new Tilemap(); } } ),
         AssetImportFactory( { { }, AssetType::Terrain, [](){ return new Terrain(); } } ),
-        AssetImportFactory( { { "wav", "wave", "flac", "ogg", "oga", "spx" }, AssetType::Audio, [](){ return new AudioFile(); } } ),
+        AssetImportFactory( { { "wav", "wave", "ogg", "oga" }, AssetType::Audio, [](){ return new AudioFile(); } } ),
         AssetImportFactory( { { "cs" }, AssetType::CSharpScript, [](){ return new CSharpScript(); } } )
     };
 

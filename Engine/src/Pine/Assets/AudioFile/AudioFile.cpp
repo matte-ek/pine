@@ -1,96 +1,184 @@
 #include "AudioFile.hpp"
 
-namespace Pine
+#include "Importer/AudioImporter.hpp"
+#include "Pine/Audio/Audio.hpp"
+#include "Pine/Core/File/File.hpp"
+#include "Pine/Threading/Threading.hpp"
+
+Pine::AudioFile::AudioFile()
 {
-    namespace
+    m_Type = AssetType::Audio;
+}
+
+bool Pine::AudioFile::LoadAssetData(const ByteSpan& span)
+{
+    AudioSerializer audioSerializer;
+
+    if (!audioSerializer.Read(span))
     {
-        AudioFileFormat GetAudioFileFormat(const std::string& fileExtension)
-        {
-            static const std::map<std::string, AudioFileFormat> fileFormat =
-            {
-                {".wav", AudioFileFormat::Wave},
-                {".wave", AudioFileFormat::Wave},
-                {".flac", AudioFileFormat::Flac},
-                {".ogg", AudioFileFormat::Ogg},
-                {".oga", AudioFileFormat::Ogg},
-                {".spx", AudioFileFormat::Ogg},
-            };
-
-            const auto foundExtension = fileFormat.find(fileExtension);
-
-            return (foundExtension != fileFormat.end()) ? foundExtension->second : AudioFileFormat::Unknown;
-        }
+        return false;
     }
 
-    AudioFile::AudioFile()
+    audioSerializer.Format.Read(m_Format);
+    audioSerializer.SampleRate.Read(m_SampleRate);
+    audioSerializer.SampleCount.Read(m_SampleCount);
+    audioSerializer.ImportForceMono.Read(m_ImportConfiguration.ForceMono);
+
+    std::vector<std::int16_t> samples;
+
+    audioSerializer.Samples.Read(samples);
+
+    if (samples.empty())
     {
-        m_Type = AssetType::Audio;
+        PWarning(fmt::format("Audio asset '{}' holds no samples.", m_Path));
+        return false;
     }
 
-    bool AudioFile::ProcessFile()
+    // The engine runs without an output device, so the clip is loaded either way - it is a
+    // perfectly good asset that simply has nowhere to play from, and failing here would take down
+    // every level that references a sound. Audio::Setup() has already said so once; saying it
+    // again per clip would bury the rest of the log.
+    if (!Audio::HasInitializedAudioAPI())
     {
-        if (m_FilePath.empty())
-            return false;
-
-        const auto fileExtension = m_FilePath.extension().string();
-
-        m_AudioFileFormat = GetAudioFileFormat(fileExtension);
-
-        switch (m_AudioFileFormat)
-        {
-            case AudioFileFormat::Wave:
-                m_AudioObject = new Audio::WaveFile(m_FilePath.string());
-                break;
-            case AudioFileFormat::Flac:
-                //m_AudioObject = new Pine::Audio::FlacFile(m_FilePath);
-            case AudioFileFormat::Ogg:
-                return false;
-            case AudioFileFormat::Unknown:
-                PError(fmt::format("AudioFile::Setup(): Failed to get audio format from extension, {}", fileExtension));
-                return false;
-        }
-
-        if (!m_AudioObject->Setup())
-        {
-            PError("AudioFile::Setup(): Failed to setup audio object");
-            m_AudioObject->Dispose();
-            return false;
-        }
+        m_State = AssetState::Loaded;
 
         return true;
     }
 
-    float AudioFile::GetDuration() const
+    // Assets load on a worker thread, so hand the upload to the main thread the way a texture
+    // does. An OpenAL context belongs to whichever thread made it current, and uploading from
+    // somewhere else is the kind of mistake that works right up until it doesn't.
+    auto uploaded = false;
+
+    const auto uploadTask = Threading::QueueTask<void>([this, &samples, &uploaded]()
     {
-        return m_AudioObject->GetDuration();
-    }
-
-    ALuint AudioFile::GetNewSource() const
-    {
-        if (m_AudioObject == nullptr)
-            return 0;
-
-        ALuint sourceId = 0;
-        alGenSources(1, &sourceId);
-        if (alGetError() != AL_NO_ERROR)
-            return 0;
-
-        alSourcei(sourceId, AL_BUFFER, m_AudioObject->GetBufferID());
-        if (alGetError() != AL_NO_ERROR) {
-            alDeleteSources(1, &sourceId);
-            return 0;
+        if (m_Buffer == nullptr)
+        {
+            m_Buffer = Audio::GetAudioAPI()->CreateBuffer();
         }
 
-        return sourceId;
-    }
+        uploaded = m_Buffer->Upload(samples.data(), m_Format, m_SampleRate, m_SampleCount);
+    },
+    TaskThreadingMode::MainThread);
 
-    void AudioFile::Dispose()
+    Threading::AwaitTaskResult(uploadTask);
+
+    if (!uploaded)
     {
-        if (m_AudioObject)
-            m_AudioObject->Dispose();
-
-        delete m_AudioObject;
-
-        m_AudioObject = nullptr;
+        PError(fmt::format("Failed to upload audio asset '{}' to the audio device.", m_Path));
+        return false;
     }
+
+    m_State = AssetState::Loaded;
+
+    return true;
+}
+
+Pine::ByteSpan Pine::AudioFile::SaveAssetData()
+{
+    AudioSerializer audioSerializer;
+
+    // The decoded samples only exist here right after an import. Every other save - the user
+    // changing an import setting, say - has to carry the stored PCM across itself, by reading back
+    // the '.passet' being replaced. Keeping a clip in system memory purely so that it could be
+    // written out again would double what audio costs, for something that happens by hand and
+    // rarely.
+    if (m_ImportSamples.empty())
+    {
+        if (!m_FilePath.empty() && std::filesystem::exists(m_FilePath))
+        {
+            // A '.passet' is the asset envelope with this payload inside its Data field, so the
+            // envelope has to come off first. Handing the file straight to the payload serializer
+            // reads without error and finds none of its fields, since it matches them by name -
+            // which loses the samples instead of carrying them across.
+            AssetSerializer storedAsset;
+
+            if (storedAsset.Read(File::ReadCompressed(m_FilePath)))
+            {
+                audioSerializer.Read(storedAsset.Data.Read());
+            }
+        }
+    }
+    else
+    {
+        audioSerializer.Samples.Write(m_ImportSamples);
+
+        m_ImportSamples.clear();
+        m_ImportSamples.shrink_to_fit();
+    }
+
+    audioSerializer.Format.Write(m_Format);
+    audioSerializer.SampleRate.Write(m_SampleRate);
+    audioSerializer.SampleCount.Write(m_SampleCount);
+    audioSerializer.ImportForceMono.Write(m_ImportConfiguration.ForceMono);
+
+    return audioSerializer.Write();
+}
+
+bool Pine::AudioFile::Import(Importer::AssetImport* context)
+{
+    return Importer::AudioImporter::Import(this);
+}
+
+void Pine::AudioFile::Dispose()
+{
+    if (m_Buffer != nullptr)
+    {
+        if (Audio::HasInitializedAudioAPI())
+        {
+            Audio::GetAudioAPI()->DestroyBuffer(m_Buffer);
+        }
+
+        m_Buffer = nullptr;
+    }
+
+    m_ImportSamples.clear();
+    m_ImportSamples.shrink_to_fit();
+
+    m_State = AssetState::Unloaded;
+}
+
+Pine::Audio::AudioFormat Pine::AudioFile::GetFormat() const
+{
+    return m_Format;
+}
+
+int Pine::AudioFile::GetChannelCount() const
+{
+    return Audio::AudioFormatChannelCount(m_Format);
+}
+
+int Pine::AudioFile::GetSampleRate() const
+{
+    return m_SampleRate;
+}
+
+int Pine::AudioFile::GetSampleCount() const
+{
+    return m_SampleCount;
+}
+
+float Pine::AudioFile::GetDuration() const
+{
+    if (m_SampleRate <= 0)
+    {
+        return 0.f;
+    }
+
+    return static_cast<float>(m_SampleCount) / static_cast<float>(m_SampleRate);
+}
+
+std::size_t Pine::AudioFile::GetSampleDataSize() const
+{
+    return static_cast<std::size_t>(m_SampleCount) * GetChannelCount() * sizeof(std::int16_t);
+}
+
+Pine::AudioImportConfiguration& Pine::AudioFile::GetImportConfiguration()
+{
+    return m_ImportConfiguration;
+}
+
+Pine::Audio::IAudioBuffer* Pine::AudioFile::GetBuffer() const
+{
+    return m_Buffer;
 }

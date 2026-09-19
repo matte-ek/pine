@@ -1,6 +1,7 @@
 #include "AssetImportSettings.hpp"
 
 #include "Gui/Shared/Widgets/Widgets.hpp"
+#include "imgui.h"
 
 Editor::Gui::AssetImportSettings::TextureChanges Editor::Gui::AssetImportSettings::RenderTexture(
     Pine::TextureImportConfiguration& configuration)
@@ -57,5 +58,34 @@ void Editor::Gui::AssetImportSettings::ApplyTextureChanges(
     if (changes.GenerateMipmaps)
     {
         to.GenerateMipmaps = from.GenerateMipmaps;
+    }
+}
+
+Editor::Gui::AssetImportSettings::AudioChanges Editor::Gui::AssetImportSettings::RenderAudio(
+    Pine::AudioImportConfiguration& configuration)
+{
+    AudioChanges changes;
+
+    changes.ForceMono = Widgets::Checkbox("Force mono", &configuration.ForceMono);
+
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip(
+            "Fold a stereo clip down to a single channel.\n"
+            "Only mono clips are panned and attenuated by distance, so a sound meant to play from "
+            "somewhere in the world needs this.");
+    }
+
+    return changes;
+}
+
+void Editor::Gui::AssetImportSettings::ApplyAudioChanges(
+    const Pine::AudioImportConfiguration& from,
+    Pine::AudioImportConfiguration& to,
+    const AudioChanges& changes)
+{
+    if (changes.ForceMono)
+    {
+        to.ForceMono = from.ForceMono;
     }
 }

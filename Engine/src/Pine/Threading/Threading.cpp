@@ -1,10 +1,12 @@
 #include "Threading.hpp"
 
+#include <algorithm>
 #include <condition_variable>
 #include <deque>
 #include <optional>
 #include <utility>
 
+#include "Pine/Core/Log/Log.hpp"
 #include "Pine/Engine/Engine.hpp"
 
 namespace

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 
 // The settings an asset is imported with, as the user sees them. Drawn in two places - the
@@ -33,4 +34,24 @@ namespace Editor::Gui::AssetImportSettings
         const Pine::TextureImportConfiguration& from,
         Pine::TextureImportConfiguration& to,
         const TextureChanges& changes);
+
+    // The audio equivalent of TextureChanges, see above.
+    struct AudioChanges
+    {
+        bool ForceMono = false;
+
+        bool Any() const
+        {
+            return ForceMono;
+        }
+    };
+
+    // Draws the settings an audio clip is (or will be) imported with, editing 'configuration' in
+    // place.
+    AudioChanges RenderAudio(Pine::AudioImportConfiguration& configuration);
+
+    void ApplyAudioChanges(
+        const Pine::AudioImportConfiguration& from,
+        Pine::AudioImportConfiguration& to,
+        const AudioChanges& changes);
 }

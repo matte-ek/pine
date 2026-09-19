@@ -183,6 +183,34 @@ One folder per type under `Assets/`, each subclassing `Asset`: `Blueprint`, `Lev
 `Material`, `Mesh`, `Model`, `Shader`, `Texture2D`, `Texture3D`, `Font`, `Tileset`,
 `Tilemap`, `AudioFile`, `CSharpScript`, `Terrain` (+ `InvalidAsset`).
 
+### Audio: what an `AudioFile` stores
+
+An `AudioFile` is a **decoded** clip. The source encoding exists only at import time: the importer
+(`Assets/AudioFile/Importer/`) decodes wave or Ogg Vorbis into interleaved signed 16-bit PCM, and
+that is what goes in the `.passet`, alongside the format, sample rate and per-channel sample count.
+Nothing in the runtime decodes anything - `AudioFile::LoadAssetData` uploads the stored PCM to an
+`Audio::IAudioBuffer` and that is the whole load path.
+
+- **Decoders** live in `Importer/AudioLoader/Formats/`, picked by file extension, and all produce
+  the same `AudioLoader::AudioData`. Wave covers 8/16/24/32-bit PCM and 32/64-bit float, including
+  `WAVE_FORMAT_EXTENSIBLE`; Ogg Vorbis goes through `stb_vorbis`. `.oga` is read as Vorbis and
+  refused if it holds anything else. FLAC and Speex are not supported, and are deliberately **not**
+  in the factory's extension list - claiming an extension and then failing the import is worse than
+  not claiming it.
+- **`ForceMono`** is the only import setting. OpenAL pans and attenuates *mono* buffers only, so a
+  stereo clip on a positioned `AudioSource` plays flat wherever its entity is; this is how a stereo
+  source file is made usable for 3D sound. It is off by default, because it is the wrong thing to
+  do to music. Anything above two channels has no format to be stored as and is folded down whether
+  or not it was asked for. Since it changes what gets decoded, it only takes effect on a re-import.
+- **Size.** PCM barely compresses, so a clip costs roughly `sampleCount * channels * 2` bytes on
+  disk and in the audio device - about 30 MB for a three minute stereo track. The payload records
+  its storage format explicitly so that streaming long clips can be added later without migrating
+  anything already imported.
+
+`Engine/src/Pine/Audio/` is the other half: `IAudioAPI` (OpenAL) creates the `IAudioBuffer` a clip
+uploads into. Playback - sources, the listener, per-frame updates - is not built yet; see
+`Engine/src/Pine/Audio/TODO.md`.
+
 **Reading geometry back out.** A `Mesh` keeps no CPU copy of what it uploaded, so
 `Mesh::ReadGeometry` asks the graphics API for it — positions, plus indices if the mesh has an
 element buffer. That means it needs the graphics context and stalls until the readback lands, which

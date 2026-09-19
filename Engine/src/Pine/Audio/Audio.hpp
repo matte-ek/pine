@@ -1,13 +1,15 @@
 #pragma once
 
 #include "Pine/Audio/Interfaces/IAudioAPI.hpp"
-#include "OpenAL/OpenAL.hpp"
 
 namespace Pine::Audio
 {
-    // Initializes OpenAL
+    // Creates and initializes the audio API, returns false if there is no usable output device.
     bool Setup();
 
-    // Frees OpenAL resources
+    // Call before application exit, to free the audio device and everything it holds.
     void Shutdown();
+
+    bool HasInitializedAudioAPI();
+    IAudioAPI* GetAudioAPI();
 }

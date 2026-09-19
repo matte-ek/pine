@@ -1,5 +1,6 @@
 #include "AudioSource.hpp"
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
+#include "Pine/Audio/Audio.hpp"
 
 Pine::AudioSource::AudioSource()
     : Component(ComponentType::AudioSource)
@@ -8,6 +9,11 @@ Pine::AudioSource::AudioSource()
 
 void Pine::AudioSource::Play() const
 {
+    if (m_SourceId == 0)
+    {
+        return;
+    }
+
     alSourcePlay(m_SourceId);
 }
 
@@ -70,16 +76,35 @@ void Pine::AudioSource::OnSetup()
         return;
 
     if (m_PlayOnStart)
-        alSourcePlay(m_SourceId);
+        Play();
 }
 
 void Pine::AudioSource::SetAudioFile(AudioFile *file)
 {
-    if (file != nullptr)
-        return;
-
     m_AudioFile = file;
-    m_SourceId = m_AudioFile->GetNewSource();
+
+    // Without an output device there is nothing to generate a source on, and every call below
+    // would only be setting OpenAL's error flag.
+    if (m_SourceId == 0 && Audio::HasInitializedAudioAPI())
+    {
+        alGenSources(1, &m_SourceId);
+    }
+
+    if (m_SourceId == 0)
+    {
+        return;
+    }
+
+    const auto buffer = file != nullptr ? file->GetBuffer() : nullptr;
+
+    // Sources are still driven through OpenAL from here rather than through IAudioAPI, unlike the
+    // buffer they play. That is the next piece of the audio work, along with everything else this
+    // component does not do yet - serializing its file, following its entity, being stopped.
+    const auto bufferId = buffer != nullptr
+        ? static_cast<ALint>(*static_cast<std::uint32_t*>(buffer->GetAudioIdentifier()))
+        : 0;
+
+    alSourcei(m_SourceId, AL_BUFFER, bufferId);
 }
 
 Pine::AudioFile * Pine::AudioSource::GetAudioFile() const

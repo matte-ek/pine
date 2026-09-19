@@ -10,6 +10,7 @@
 #include "imgui.h"
 
 #include "Gui/Shared/AssetImportSettings/AssetImportSettings.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Importer/AssetImporter.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
 #include "Pine/Core/Log/Log.hpp"
@@ -44,11 +45,13 @@ namespace
 
         bool Selected = false;
 
-        // What the asset's import settings were before the dialog let them be edited. Only
-        // Action::Update rows carry this: their asset is a live, loaded one, so an edit here
-        // changes the real thing straight away and Cancel has to be able to put it back.
-        // Action::Create rows need nothing - DeleteContext() throws their assets away whole.
+        // What the asset's import settings were before the dialog let them be edited, for
+        // whichever type this row turned out to be. Only Action::Update rows carry one: their
+        // asset is a live, loaded one, so an edit here changes the real thing straight away and
+        // Cancel has to be able to put it back. Action::Create rows need nothing -
+        // DeleteContext() throws their assets away whole.
         std::optional<Pine::TextureImportConfiguration> TextureConfigurationRestore;
+        std::optional<Pine::AudioImportConfiguration> AudioConfigurationRestore;
     };
 
     DialogState m_State = DialogState::Idle;
@@ -142,6 +145,16 @@ namespace
         return dynamic_cast<Pine::Texture2D*>(row.Import->AssetPtr);
     }
 
+    Pine::AudioFile* RowAudioFile(const Row& row)
+    {
+        if (!row.Import || !WillImport(*row.Import))
+        {
+            return nullptr;
+        }
+
+        return dynamic_cast<Pine::AudioFile*>(row.Import->AssetPtr);
+    }
+
     void Dispose()
     {
         if (m_Context)
@@ -178,6 +191,10 @@ namespace
                 {
                     row.TextureConfigurationRestore = texture->GetImportConfiguration();
                 }
+                else if (const auto audioFile = dynamic_cast<Pine::AudioFile*>(import->AssetPtr))
+                {
+                    row.AudioConfigurationRestore = audioFile->GetImportConfiguration();
+                }
             }
 
             m_Rows.push_back(row);
@@ -197,14 +214,20 @@ namespace
     {
         for (const auto& row : m_Rows)
         {
-            if (!row.TextureConfigurationRestore)
+            if (row.TextureConfigurationRestore)
             {
-                continue;
+                if (const auto texture = dynamic_cast<Pine::Texture2D*>(row.Import->AssetPtr))
+                {
+                    texture->GetImportConfiguration() = *row.TextureConfigurationRestore;
+                }
             }
 
-            if (const auto texture = dynamic_cast<Pine::Texture2D*>(row.Import->AssetPtr))
+            if (row.AudioConfigurationRestore)
             {
-                texture->GetImportConfiguration() = *row.TextureConfigurationRestore;
+                if (const auto audioFile = dynamic_cast<Pine::AudioFile*>(row.Import->AssetPtr))
+                {
+                    audioFile->GetImportConfiguration() = *row.AudioConfigurationRestore;
+                }
             }
         }
 
@@ -358,9 +381,61 @@ namespace
         ImGui::EndTable();
     }
 
+    // Both of the settings blocks below edit the first of the selection and push whatever changed
+    // onto the rest, rather than writing every field to every asset - otherwise selecting a mixed
+    // set and touching one control would flatten the settings they didn't ask about.
+    void RenderTextureSettings(const std::vector<Pine::Texture2D*>& textures)
+    {
+        if (textures.empty())
+        {
+            return;
+        }
+
+        ImGui::TextDisabled("%zu texture(s) selected", textures.size());
+        ImGui::Spacing();
+
+        auto& leadConfiguration = textures.front()->GetImportConfiguration();
+
+        const auto changes = AssetImportSettings::RenderTexture(leadConfiguration);
+
+        if (changes.Any())
+        {
+            for (size_t i = 1; i < textures.size(); i++)
+            {
+                AssetImportSettings::ApplyTextureChanges(
+                    leadConfiguration, textures[i]->GetImportConfiguration(), changes);
+            }
+        }
+    }
+
+    void RenderAudioSettings(const std::vector<Pine::AudioFile*>& audioFiles)
+    {
+        if (audioFiles.empty())
+        {
+            return;
+        }
+
+        ImGui::TextDisabled("%zu audio clip(s) selected", audioFiles.size());
+        ImGui::Spacing();
+
+        auto& leadConfiguration = audioFiles.front()->GetImportConfiguration();
+
+        const auto changes = AssetImportSettings::RenderAudio(leadConfiguration);
+
+        if (changes.Any())
+        {
+            for (size_t i = 1; i < audioFiles.size(); i++)
+            {
+                AssetImportSettings::ApplyAudioChanges(
+                    leadConfiguration, audioFiles[i]->GetImportConfiguration(), changes);
+            }
+        }
+    }
+
     void RenderSettings()
     {
         std::vector<Pine::Texture2D*> selectedTextures;
+        std::vector<Pine::AudioFile*> selectedAudioFiles;
 
         for (const auto& row : m_Rows)
         {
@@ -373,41 +448,34 @@ namespace
             {
                 selectedTextures.push_back(texture);
             }
+            else if (const auto audioFile = RowAudioFile(row))
+            {
+                selectedAudioFiles.push_back(audioFile);
+            }
         }
 
         ImGui::TextDisabled("Import Settings");
         ImGui::Spacing();
 
-        if (selectedTextures.empty())
+        if (selectedTextures.empty() && selectedAudioFiles.empty())
         {
             ImGui::TextWrapped(
-                "Select one or more textures to change how they are imported. "
+                "Select one or more textures or audio clips to change how they are imported. "
                 "Other asset types have no import settings yet.");
 
             return;
         }
 
-        if (selectedTextures.size() > 1)
+        RenderTextureSettings(selectedTextures);
+
+        if (!selectedTextures.empty() && !selectedAudioFiles.empty())
         {
-            ImGui::TextDisabled("%zu textures selected, showing the first.", selectedTextures.size());
+            ImGui::Spacing();
+            ImGui::Separator();
             ImGui::Spacing();
         }
 
-        // Edit the first of the selection and push whatever changed onto the rest, rather than
-        // writing every field to every texture - otherwise selecting a mixed set and touching one
-        // dropdown would flatten the settings they didn't ask about.
-        auto& leadConfiguration = selectedTextures.front()->GetImportConfiguration();
-
-        const auto changes = AssetImportSettings::RenderTexture(leadConfiguration);
-
-        if (changes.Any())
-        {
-            for (size_t i = 1; i < selectedTextures.size(); i++)
-            {
-                AssetImportSettings::ApplyTextureChanges(
-                    leadConfiguration, selectedTextures[i]->GetImportConfiguration(), changes);
-            }
-        }
+        RenderAudioSettings(selectedAudioFiles);
     }
 
     void RenderReview()

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include "IAudioBuffer.hpp"
 
 namespace Pine::Audio
 {
@@ -15,5 +14,8 @@ namespace Pine::Audio
         virtual bool Setup() = 0;
 
         virtual void Shutdown() = 0;
+
+        virtual IAudioBuffer* CreateBuffer() = 0;
+        virtual void DestroyBuffer(IAudioBuffer* buffer) = 0;
     };
 }

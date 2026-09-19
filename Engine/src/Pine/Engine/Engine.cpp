@@ -33,7 +33,6 @@ namespace
 
     Pine::Engine::EngineConfiguration m_EngineConfiguration;
     Pine::Graphics::IGraphicsAPI* m_GraphicsAPI;
-    Pine::Audio::IAudioAPI* m_AudioAPI;
 }
 
 bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
@@ -80,15 +79,13 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 
     Graphics::GetGraphicsAPI()->EnableErrorLogging();
 
+    // No usable output device is not a reason to refuse to run. A machine without a sound card, a
+    // container without a sound server, a session that has one but cannot reach it - all of those
+    // are ordinary places to open the editor, and everything except sound works in them. Audio
+    // assets still import and load; they simply have nowhere to play from.
     if (!Audio::Setup())
     {
-        PFatal("Failed to setup audio API");
-
-        WindowManager::Internal::DestroyWindow();
-
-        glfwTerminate();
-
-        return false;
+        PWarning("Failed to set up the audio API, continuing without sound.");
     }
 
     Threading::Setup();
