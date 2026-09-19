@@ -360,7 +360,7 @@ namespace
             }
             else
             {
-                ImGui::Text("%s  %s", AssetTypeIcon(import.Type), AssetTypeToString(import.Type));
+                ImGui::Text("%s  %s", AssetTypeIcon(import.Type), AssetTypeToHumanString(import.Type));
             }
 
             ImGui::TableSetColumnIndex(2);

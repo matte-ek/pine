@@ -69,6 +69,48 @@ namespace Pine
         case AssetType::Audio:
             return "Audio";
         case AssetType::CSharpScript:
+            return "CSharpScript";
+        case AssetType::Terrain:
+            return "Terrain";
+        default:
+            return "Unknown";
+        }
+    }
+
+    // The label to put in front of a person. AssetTypeToString is an identifier - it names the
+    // managed class in Pine.Assets and the type token the debug server accepts - so it is not free
+    // to read well, and the two part ways wherever that costs clarity.
+    inline const char *AssetTypeToHumanString(const AssetType type)
+    {
+        switch (type)
+        {
+        case AssetType::Invalid:
+            return "Invalid";
+        case AssetType::Blueprint:
+            return "Blueprint";
+        case AssetType::Level:
+            return "Level";
+        case AssetType::Material:
+            return "Material";
+        case AssetType::Mesh:
+            return "Mesh";
+        case AssetType::Model:
+            return "Model";
+        case AssetType::Shader:
+            return "Shader";
+        case AssetType::Texture2D:
+            return "Texture 2D";
+        case AssetType::Texture3D:
+            return "Texture 3D";
+        case AssetType::Font:
+            return "Font";
+        case AssetType::Tileset:
+            return "Tile-set";
+        case AssetType::Tilemap:
+            return "Tile-map";
+        case AssetType::Audio:
+            return "Audio";
+        case AssetType::CSharpScript:
             return "Script";
         case AssetType::Terrain:
             return "Terrain";

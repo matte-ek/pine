@@ -75,8 +75,10 @@ Bound today: `Transform`, `ModelRenderer`, `RigidBody`, `CharacterController`, `
 So `Pine::AudioFile` is `Pine.Assets.Audio` on the C# side, because that is what
 `AssetTypeToString(AssetType::Audio)` returns. Get the name wrong and nothing breaks loudly - the
 asset simply never gets a managed mirror, so `AssetManager.Get<T>()` and every property that returns
-it hand back `null`. `Pine.Assets.CSharpScript` is in exactly that state today:
-`AssetTypeToString(AssetType::CSharpScript)` is `"Script"`, which no managed class is called.
+it hand back `null`, which is what `Script.ScriptAsset` did for as long as
+`AssetTypeToString(AssetType::CSharpScript)` said `"Script"` and the class was called
+`CSharpScript`. `AssetTypeToString` is the identifier and has to match the class; the editor's
+labels come from `AssetTypeToHumanString`, which is free to still read "Script".
 
 There are also **no collision or trigger callbacks** - `Physics3D` exposes `RayCast` and nothing
 else, so a pickup or a proximity check is a distance test or a ray, not an `OnTriggerEnter`.

@@ -105,7 +105,7 @@
             throw std::runtime_error("The script has no ReadBackOk field");
         };
 
-        check(readBack(), "C# read back the wrong values from Light, Camera, Collider, AudioSource or AudioListener");
+        check(readBack(), "C# read back the wrong values from a bound component, or from an asset one points at");
 
         // And what the script wrote has to have reached the engine components themselves.
         auto liveLight = liveEntity->GetComponent<Pine::Light>();

@@ -199,6 +199,14 @@ One folder per type under `Assets/`, each subclassing `Asset`: `Blueprint`, `Lev
 `Material`, `Mesh`, `Model`, `Shader`, `Texture2D`, `Texture3D`, `Font`, `Tileset`,
 `Tilemap`, `AudioFile`, `CSharpScript`, `Terrain` (+ `InvalidAsset`).
 
+**Two names per type, and they do different jobs.** `AssetTypeToString` is the identifier: it names
+the managed class in `Pine.Assets` that `ObjectFactory::CreateAsset` resolves, the class name
+`ScriptField::GetAssetType` matches a script field's type against, and the `type` token the debug
+server's `/catalog` accepts and reports. Changing one of those strings is therefore a contract
+change, and it has to keep matching `ScriptRuntime/Assets/`. `AssetTypeToHumanString` is the label
+the editor puts in front of a person, and is free to read better - `CSharpScript` is shown as
+"Script", `Tilemap` as "Tile-map". Both live in `Assets/Asset/Asset.hpp`.
+
 ### Audio: what an `AudioFile` stores
 
 An `AudioFile` is a **decoded** clip. The source encoding exists only at import time: the importer

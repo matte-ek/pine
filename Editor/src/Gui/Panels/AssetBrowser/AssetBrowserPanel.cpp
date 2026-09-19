@@ -46,7 +46,7 @@ namespace
 
         const auto isSelected = Selection::IsSelected(node->Asset.Get());
         const auto icon = node->Icon.DisplayIcon == nullptr ? fileIcon->GetGraphicsTexture() : node->Icon.DisplayIcon;
-        const auto bottomText = node->Asset.Get() != nullptr ? Pine::AssetTypeToString(node->Asset->GetType()) : nullptr;
+        const auto bottomText = node->Asset.Get() != nullptr ? Pine::AssetTypeToHumanString(node->Asset->GetType()) : nullptr;
         bool isClicked = false;
 
         const auto iconRes = Widgets::AssetIcon(node->DisplayText, icon, isSelected, bottomText, m_IconSize);
@@ -72,7 +72,7 @@ namespace
             ImGui::BeginChild("##DragDropInfo", ImVec2(200.f, 64.f));
             {
                 ImGui::Text("%s", node->DisplayText.c_str());
-                ImGui::Text("%s", AssetTypeToString(asset->GetType()));
+                ImGui::Text("%s", AssetTypeToHumanString(asset->GetType()));
             }
             ImGui::EndChild();
 

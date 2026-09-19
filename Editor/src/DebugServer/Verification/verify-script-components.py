@@ -83,7 +83,9 @@ wave = (b'WAVE'
 (content / 'tone.wav').write_bytes(b'RIFF' + struct.pack('<I', len(wave)) + wave)
 
 # Reads every bound property back, then writes to a different one of each, so a binding that is
-# wired in only one direction fails here rather than looking fine.
+# wired in only one direction fails here rather than looking fine. ScriptAsset is read too: it
+# resolves through the same AssetTypeToString lookup as the clip, and was null until the managed
+# class and that name agreed.
 (assets / 'ComponentTest.cs').write_text('''using Pine.Assets;
 using Pine.Math;
 using Pine.World.Components;
@@ -122,7 +124,9 @@ namespace Game
                 audioSource.Pitch == 1.5f &&
                 clip != null &&
                 clip.Duration == 0.5f &&
-                audioListener.Volume == 0.25f;
+                audioListener.Volume == 0.25f &&
+                ScriptAsset != null &&
+                ScriptAsset.Type == AssetType.CSharpScript;
 
             light.LightColor = new Vector3(0.25f, 0.5f, 0.75f);
             light.LightIntensity = 4.0f;

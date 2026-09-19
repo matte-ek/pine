@@ -720,7 +720,7 @@ void AssetPropertiesPanel::Render(Pine::Asset *asset)
         ImGui::Text("%s", std::filesystem::path(asset->GetPath()).filename().string().c_str());
         ImGui::Text("%s", asset->GetPath().c_str());
 
-        ImGui::Text("%s", AssetTypeToString(asset->GetType()));
+        ImGui::Text("%s", AssetTypeToHumanString(asset->GetType()));
     }
     ImGui::EndChild();
 
