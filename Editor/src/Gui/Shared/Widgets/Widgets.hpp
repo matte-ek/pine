@@ -34,6 +34,7 @@ namespace Widgets
     bool Vector2i(const std::string& str, Pine::Vector2i& vector, float speed = 0.01f);
 
     bool Vector3(const std::string& str, Pine::Vector3f& vector, float speed = 0.01f);
+    bool Vector4(const std::string& str, Pine::Vector4f& vector, float speed = 0.01f);
 
     bool DropDown(const std::string& str, int* value, const char* items);
 

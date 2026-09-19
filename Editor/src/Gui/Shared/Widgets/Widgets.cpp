@@ -161,6 +161,45 @@ bool Widgets::Vector3(const std::string& str, Pine::Vector3f& vector, float spee
     return xChanged || yChanged || zChanged;
 }
 
+bool Widgets::Vector4(const std::string& str, Pine::Vector4f& vector, float speed)
+{
+    constexpr float size = 40.f;
+
+    PrepareWidget(str);
+
+    ImGui::Columns(4, nullptr, false);
+
+    CoordinateText("X", ImColor(62, 30, 30, 100), ImColor(255, 11, 11));
+
+    ImGui::SetNextItemWidth(size);
+    bool xChanged = ImGui::DragFloat(std::string("##X" + str).c_str(), &vector.x, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+    ImGui::NextColumn();
+
+    CoordinateText("Y", ImColor(30, 62, 30, 100), ImColor(11, 255, 11));
+
+    ImGui::SetNextItemWidth(size);
+    bool yChanged = ImGui::DragFloat(std::string("##Y" + str).c_str(), &vector.y, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+    ImGui::NextColumn();
+
+    CoordinateText("Z", ImColor(30, 30, 62, 100), ImColor(11, 150, 255));
+
+    ImGui::SetNextItemWidth(size);
+    bool zChanged = ImGui::DragFloat(std::string("##Z" + str).c_str(), &vector.z, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+    ImGui::NextColumn();
+
+    CoordinateText("W", ImColor(52, 30, 62, 100), ImColor(200, 110, 255));
+
+    ImGui::SetNextItemWidth(size);
+    bool wChanged = ImGui::DragFloat(std::string("##W" + str).c_str(), &vector.w, speed, -FLT_MAX, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+    FinishWidget();
+
+    return xChanged || yChanged || zChanged || wChanged;
+}
+
 bool Widgets::DropDown(const std::string& str, int* value, const char* items)
 {
     bool ret = false;

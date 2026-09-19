@@ -3,10 +3,14 @@
 #include <imgui.h>
 #include <fmt/format.h>
 
+#include <algorithm>
+#include <cstring>
+
 #include "IconsMaterialDesign.h"
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "mono/metadata/object.h"
 #include "Other/Actions/Actions.hpp"
+#include "Pine/Assets/Assets.hpp"
 #include "Pine/Game/Game.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
@@ -586,6 +590,137 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
+    // One public field of a C# script. The widgets edit the live managed object directly - the
+    // engine takes a copy of its values whenever that object is about to go away (see
+    // ScriptComponent::CaptureFieldValues), so nothing here has to save anything itself.
+    void RenderScriptField(Pine::ScriptField* field, MonoObject* object, const std::string& widgetId)
+    {
+        const auto label = fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType()));
+
+        switch (field->GetType())
+        {
+        case Pine::ScriptFieldType::Float:
+            {
+                auto value = field->Get<float>(object);
+
+                if (Widgets::InputFloat(label, &value))
+                    field->Set(object, value);
+
+                break;
+            }
+        case Pine::ScriptFieldType::Integer:
+            {
+                auto value = field->Get<int>(object);
+
+                if (Widgets::InputInt(label, &value))
+                    field->Set(object, value);
+
+                break;
+            }
+        case Pine::ScriptFieldType::Boolean:
+            {
+                auto value = field->Get<bool>(object);
+
+                if (Widgets::Checkbox(label, &value))
+                    field->Set(object, value);
+
+                break;
+            }
+        case Pine::ScriptFieldType::Vector2:
+            {
+                auto value = field->Get<Pine::Vector2f>(object);
+
+                if (Widgets::Vector2(label, value))
+                    field->Set(object, value);
+
+                break;
+            }
+        case Pine::ScriptFieldType::Vector3:
+            {
+                auto value = field->Get<Pine::Vector3f>(object);
+
+                if (Widgets::Vector3(label, value))
+                    field->Set(object, value);
+
+                break;
+            }
+        case Pine::ScriptFieldType::Vector4:
+            {
+                auto value = field->Get<Pine::Vector4f>(object);
+
+                if (Widgets::Vector4(label, value))
+                    field->Set(object, value);
+
+                break;
+            }
+        case Pine::ScriptFieldType::String:
+            {
+                Pine::ScriptFieldValue value;
+
+                if (!field->ReadValue(object, value))
+                    break;
+
+                // What gets stored has no length limit; this is only how much of it the editor
+                // lets you type, in line with the other text fields in the editor.
+                char buffer[256] = {};
+
+                std::memcpy(buffer, value.Data.data(), std::min(value.Data.size(), sizeof(buffer) - 1));
+
+                if (Widgets::InputText(label, buffer, sizeof(buffer)))
+                {
+                    const auto bytes = reinterpret_cast<const std::byte*>(buffer);
+
+                    value.Data.assign(bytes, bytes + std::strlen(buffer));
+
+                    field->WriteValue(object, value);
+                }
+
+                break;
+            }
+        case Pine::ScriptFieldType::Asset:
+            {
+                Pine::ScriptFieldValue value;
+
+                if (!field->ReadValue(object, value))
+                    break;
+
+                Pine::Asset* current = nullptr;
+
+                if (value.Data.size() == sizeof(Pine::UId))
+                    current = Pine::Assets::GetAssetByUId(Pine::UId(Pine::ByteSpan(value.Data.data(), value.Data.size())));
+
+                // The picker is restricted to the type the field is declared as, so a Model field
+                // cannot be handed a texture that C# would then fail to cast.
+                auto [picked, asset] = Widgets::AssetPicker(label, widgetId, current, field->GetAssetType());
+
+                if (picked)
+                {
+                    value.Data.clear();
+
+                    if (asset != nullptr)
+                    {
+                        const auto& id = asset->GetUId();
+                        const auto bytes = reinterpret_cast<const std::byte*>(&id);
+
+                        value.Data.assign(bytes, bytes + sizeof(Pine::UId));
+                    }
+
+                    field->WriteValue(object, value);
+                }
+
+                break;
+            }
+        default:
+            // Entity references are reflected so they are visible, but they are not stored yet -
+            // saying so beats an empty row the author has to guess about.
+            Widgets::Text(label, "Not supported yet");
+
+            break;
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------------
+
     void RenderScript(Pine::ScriptComponent* scriptComponent)
     {
         auto [newScriptSet, newScript] = Widgets::AssetPicker("Script", std::to_string(scriptComponent->GetInternalId()), scriptComponent->GetScript(), Pine::AssetType::CSharpScript);
@@ -613,65 +748,7 @@ namespace
 
             for (const auto& field : scriptData->Fields)
             {
-                if (field->GetType() == Pine::ScriptFieldType::Float)
-                {
-                    float value = field->Get<float>(object);
-
-                    if (Widgets::InputFloat(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
-                    {
-                        field->Set(object, value);
-                    }
-
-                    continue;
-                }
-
-                if (field->GetType() == Pine::ScriptFieldType::Integer)
-                {
-                    int value = field->Get<int>(object);
-
-                    if (Widgets::InputInt(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
-                    {
-                        field->Set(object, value);
-                    }
-
-                    continue;
-                }
-
-                if (field->GetType() == Pine::ScriptFieldType::Boolean)
-                {
-                    bool value = field->Get<bool>(object);
-
-                    if (Widgets::Checkbox(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), &value))
-                    {
-                        field->Set(object, value);
-                    }
-
-                    continue;
-                }
-
-                if (field->GetType() == Pine::ScriptFieldType::Vector3)
-                {
-                    Pine::Vector3f value = field->Get<Pine::Vector3f>(object);
-
-                    if (Widgets::Vector3(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), value))
-                    {
-                        field->Set(object, value);
-                    }
-
-                    continue;
-                }
-
-                if (field->GetType() == Pine::ScriptFieldType::Vector2)
-                {
-                    Pine::Vector2f value = field->Get<Pine::Vector2f>(object);
-
-                    if (Widgets::Vector2(fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType())), value))
-                    {
-                        field->Set(object, value);
-                    }
-
-                    continue;
-                }
+                RenderScriptField(field, object, fmt::format("{}-{}", scriptComponent->GetInternalId(), field->GetName()));
             }
         }
 

@@ -72,7 +72,18 @@ namespace
 
             const auto type = mono_field_get_type(field);
 
-            scriptData->Fields.push_back(new Pine::ScriptField(name, field, scriptData, mono_type_get_name(type)));
+            auto scriptField = new Pine::ScriptField(name, field, scriptData, type);
+
+            // A type the editor can neither show nor store. The field still works in C#; it just
+            // isn't reflected, so nothing downstream has to keep checking for it.
+            if (scriptField->GetType() == Pine::ScriptFieldType::Invalid)
+            {
+                delete scriptField;
+
+                continue;
+            }
+
+            scriptData->Fields.push_back(scriptField);
         }
     }
 

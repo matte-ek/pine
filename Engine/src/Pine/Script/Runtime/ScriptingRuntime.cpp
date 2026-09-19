@@ -121,6 +121,11 @@ void Pine::Script::Runtime::Dispose()
             {
                 auto scriptComponent = dynamic_cast<ScriptComponent*>(component);
 
+                // The domain is about to take every managed object with it, and a script's field
+                // values live nowhere else. Read them back into the component first, so the object
+                // rebuilt against the fresh domain starts from what the author set rather than
+                // from the C# field initializers.
+                scriptComponent->CaptureFieldValues();
                 scriptComponent->DestroyInstance();
             }
 
