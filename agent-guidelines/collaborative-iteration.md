@@ -21,3 +21,17 @@ For routine, reversible details, use your judgment and keep moving. State assump
 ## Iterate toward the result
 
 Treat feedback as part of the work. Update your understanding and approach as the user clarifies their priorities. Make important decisions and remaining uncertainties visible so the user can steer without having to supervise every implementation detail.
+
+## Name code precisely when you refer to it
+
+When your prose mentions a function, type, or field, qualify it the way the codebase declares it, so the user can place it without searching. Write `Entity::AddComponent`, not `AddComponent`; `Components::Setup`, not `Setup`.
+
+This matters more than usual in Pine, where subsystems are namespaces of free functions and nearly every one of them has a `Setup`, `Shutdown` and `Update`. A bare name is genuinely ambiguous here.
+
+- Give free functions their namespace: `Components::Setup`, `RenderManager::Run`, `Script::Manager::ReloadScripts`.
+- Give methods their class: `Entity::AddComponent`, `Blueprint::Spawn`.
+- Include the outer namespace when the inner one alone would still be ambiguous, and keep `Internal` visible on engine-internal entry points: `Assets::Internal::RegisterAsset`.
+- Keep the qualified form on later mentions too, rather than shortening to the bare name once you have introduced it. Responses get skimmed and re-read out of order.
+- Add the file when you are pointing at a specific place to change, as in `Entity::AddComponent` in `World/Entity/Entity.hpp`.
+
+This is about how you write to the user. In code you write, follow the surrounding convention as usual.

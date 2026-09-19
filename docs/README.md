@@ -43,3 +43,4 @@ reference. Where one describes shipped work, the contract docs above are authori
 | [plans/terrain-system.md](plans/terrain-system.md) | The terrain rewrite proposal, plus a record of the implementation it replaced — **all eight units implemented** |
 | [reports/review-ffaa33c-shadow-atlas.md](reports/review-ffaa33c-shadow-atlas.md) | Read-only review of the spot/point shadow commit: load-bearing assumptions and suggested follow-up |
 | [reports/review-357fa72-culling-and-lights.md](reports/review-357fa72-culling-and-lights.md) | Read-only review of the frustum-culling and light-handling commit |
+| [plans/dotnet-migration.md](plans/dotnet-migration.md) | Moving scripting from Mono to modern .NET: the measured Mono surface, the target design, and a seven-unit sequence — **proposal, nothing implemented** |
