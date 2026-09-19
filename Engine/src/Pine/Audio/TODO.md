@@ -27,8 +27,6 @@ with no output device. Clips still import and load there; they just get no buffe
       all busy is simply not heard, and nothing decides that the footstep behind the player matters
       less than the one in front of them. Priority and stealing belong in `Audio.cpp`'s
       `AcquireVoice`, which is the only place that hands a voice out.
-- [ ] Expose `AudioSource` and `AudioListener` to C#, the way `70f0caa` did for Light, Camera and
-      Collider. `ScriptRuntime/World/Components/` has no audio in it yet.
 - [ ] `/edit` adapters for both components, under `Editor/src/DebugServer/Editing/Components/`.
       Without them an audio scene cannot be built over HTTP, so verifying one means a native probe.
 - [ ] A preview button in the editor's asset properties panel. There is a playback API to build it

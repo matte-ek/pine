@@ -1,5 +1,6 @@
 #include "Interfaces.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/Assets/Level/Level.hpp"
@@ -31,6 +32,15 @@ namespace
         }
 
         return mono_gchandle_get_target(asset->GetScriptHandle()->Handle);
+    }
+
+    // -----------------------------------------------------
+
+    float AudioGetDuration(Pine::UId id)
+    {
+        const auto audioFile = dynamic_cast<Pine::AudioFile*>(Pine::Assets::GetAssetByUId(id));
+        if (!audioFile) return 0.f;
+        return audioFile->GetDuration();
     }
 
     // -----------------------------------------------------
@@ -77,6 +87,7 @@ void Pine::Script::Interfaces::Asset::Setup()
     mono_add_internal_call("Pine.Assets.Asset::GetFileName", reinterpret_cast<void*>(GetFileName));
     mono_add_internal_call("Pine.Assets.Asset::GetPath", reinterpret_cast<void*>(GetPath));
     mono_add_internal_call("Pine.Assets.AssetManager::GetByPath", reinterpret_cast<void*>(GetByPath));
+    mono_add_internal_call("Pine.Assets.Audio::GetDuration", reinterpret_cast<void*>(AudioGetDuration));
     mono_add_internal_call("Pine.Assets.Blueprint::GetHasEntity", reinterpret_cast<void*>(GetHasEntity));
     mono_add_internal_call("Pine.Assets.Blueprint::CreateFromEntity", reinterpret_cast<void*>(CreateFromEntity));
     mono_add_internal_call("Pine.Assets.Blueprint::SpawnEntity", reinterpret_cast<void*>(SpawnEntity));

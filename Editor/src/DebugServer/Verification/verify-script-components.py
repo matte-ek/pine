@@ -1,12 +1,14 @@
-"""Drive Light, Camera and Collider from C# through the Editor's boot sequence; needs a Ninja Editor build, Mono and Xvfb."""
+"""Drive Light, Camera, Collider and the two audio components from C# through the Editor's boot sequence; needs a Ninja Editor build, Mono and Xvfb."""
 
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import shlex
 import shutil
 import signal
+import struct
 import subprocess
 import tempfile
 
@@ -33,9 +35,13 @@ includes = '''#include <cstdlib>
 #include <string>
 #include <mono/metadata/object.h>
 #include "Other/PlayHandler/PlayHandler.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
+#include "Pine/Assets/Importer/AssetImporter.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
+#include "Pine/World/Components/AudioListener/AudioListener.hpp"
+#include "Pine/World/Components/AudioSource/AudioSource.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
@@ -62,9 +68,24 @@ assets.mkdir(parents=True)
 for name in ['engine', 'editor']:
     shutil.copytree(repo / 'data' / name, data / name)
 
+# A clip for the AudioSource binding to carry. Half a second of 440 Hz at 44100 Hz mono, so the
+# duration C# reads back is exactly 0.5 and not something a float comparison has to be lenient
+# about. The probe imports it; it lives outside assets/ so nothing else picks it up on the way.
+content = data / 'projects/scriptcomponents/content'
+content.mkdir(parents=True)
+sample_rate = 44100
+frames = sample_rate // 2
+samples = b''.join(struct.pack('<h', int(math.sin(2 * math.pi * 440 * frame / sample_rate) * 20000))
+                   for frame in range(frames))
+wave = (b'WAVE'
+        + b'fmt ' + struct.pack('<IHHIIHH', 16, 1, 1, sample_rate, sample_rate * 2, 2, 16)
+        + b'data' + struct.pack('<I', len(samples)) + samples)
+(content / 'tone.wav').write_bytes(b'RIFF' + struct.pack('<I', len(wave)) + wave)
+
 # Reads every bound property back, then writes to a different one of each, so a binding that is
 # wired in only one direction fails here rather than looking fine.
-(assets / 'ComponentTest.cs').write_text('''using Pine.Math;
+(assets / 'ComponentTest.cs').write_text('''using Pine.Assets;
+using Pine.Math;
 using Pine.World.Components;
 
 namespace Game
@@ -78,6 +99,10 @@ namespace Game
             var light = Parent.GetComponent<Light>();
             var camera = Parent.GetComponent<Camera>();
             var collider = Parent.GetComponent<Collider>();
+            var audioSource = Parent.GetComponent<AudioSource>();
+            var audioListener = Parent.GetComponent<AudioListener>();
+
+            var clip = AssetManager.Get<Audio>("tone");
 
             ReadBackOk =
                 light.LightType == LightType.SpotLight &&
@@ -88,7 +113,16 @@ namespace Game
                 camera.FarPlane == 500.0f &&
                 collider.ColliderType == ColliderType.Sphere &&
                 collider.IsTrigger &&
-                collider.Layer == 4u;
+                collider.Layer == 4u &&
+                audioSource.AudioFile == null &&
+                audioSource.PlaybackState == PlaybackState.Stopped &&
+                !audioSource.IsPlaying &&
+                audioSource.Loop &&
+                !audioSource.Spatial &&
+                audioSource.Pitch == 1.5f &&
+                clip != null &&
+                clip.Duration == 0.5f &&
+                audioListener.Volume == 0.25f;
 
             light.LightColor = new Vector3(0.25f, 0.5f, 0.75f);
             light.LightIntensity = 4.0f;
@@ -99,6 +133,14 @@ namespace Game
 
             collider.Size = new Vector3(2.0f, 3.0f, 4.0f);
             collider.LayerMask = 12u;
+
+            audioSource.AudioFile = clip;
+            audioSource.Volume = 0.75f;
+            audioSource.MaxDistance = 80.0f;
+            audioSource.PlaybackPosition = 0.2f;
+            audioSource.Play();
+
+            audioListener.Volume = 0.5f;
         }
     }
 }

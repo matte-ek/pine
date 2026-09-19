@@ -72,6 +72,10 @@ is no separate path for it.
 - In a first-person game put the `AudioListener` on the **camera**, not the player body, so the ears turn when you look. `Transform::GetForward`/`GetUp` compose the parent's rotation, so childing it to a camera that is itself childed to the player works.
 - `AudioSource::SetPlaybackPosition` works while the source holds no voice; the seek waits until one is lent. That is what makes "play this from halfway" a single call.
 - Playing an already-playing source does nothing. Call `AudioSource::Stop()` first to start a clip over.
+- **Both components are bound to C#** (`Pine.World.Components.AudioSource` / `AudioListener`), and a
+  clip is `Pine.Assets.Audio` there - named after `AssetType::Audio` rather than `Pine::AudioFile`,
+  which is what the object factory looks a managed asset class up by. See
+  [scripting.md](scripting.md).
 
 ⚠ **`Audio::Update` gates on `World::IsPaused()`**, pausing every voice rather than stopping it, so
 leaving play mode and going back in continues a clip instead of restarting it. The editor keeps the
@@ -106,8 +110,9 @@ ending on its own, looping, pause/stop/seek, voices handed back by disabled and 
 48-source crowd staying inside the pool and passing a freed voice on, a paused world holding its
 sounds, and both components surviving a save and a load.
 
-`verify-audio-asset.py` covers the import and `.passet` half separately.
+`verify-audio-asset.py` covers the import and `.passet` half separately, and
+`verify-script-components.py` covers the C# bindings alongside the other bound components.
 
-Related: [assets.md](assets.md), [world-ecs.md](world-ecs.md). `Engine/src/Pine/Audio/TODO.md` lists
-what is still missing — voice priority, C# bindings, `/edit` adapters, an asset-panel preview
-button, and streaming for long clips.
+Related: [assets.md](assets.md), [scripting.md](scripting.md), [world-ecs.md](world-ecs.md).
+`Engine/src/Pine/Audio/TODO.md` lists what is still missing — voice priority, `/edit` adapters, an
+asset-panel preview button, and streaming for long clips.

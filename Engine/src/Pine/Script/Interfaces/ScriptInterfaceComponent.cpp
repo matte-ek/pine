@@ -1,5 +1,6 @@
 #include "Interfaces.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
@@ -8,6 +9,8 @@
 #include "mono/metadata/object.h"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/CharacterController/CharacterController.hpp"
+#include "Pine/World/Components/AudioListener/AudioListener.hpp"
+#include "Pine/World/Components/AudioSource/AudioSource.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
@@ -535,6 +538,209 @@ namespace
 
     // -----------------------------------------------------
 
+    MonoObject* AudioSourceGetAudioFile(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+
+        auto audioFile = Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetAudioFile();
+
+        if (!audioFile)
+        {
+            return nullptr;
+        }
+
+        return mono_gchandle_get_target(audioFile->GetScriptHandle()->Handle);
+    }
+
+    void AudioSourceSetAudioFile(const std::uint32_t internalId, Pine::UId assetId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        // An unknown id resolves to nullptr, which is how C# clears the clip by assigning null.
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetAudioFile(
+            dynamic_cast<Pine::AudioFile*>(Pine::Assets::GetAssetByUId(assetId))
+        );
+    }
+
+    void AudioSourcePlay(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->Play();
+    }
+
+    void AudioSourcePause(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->Pause();
+    }
+
+    void AudioSourceStop(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->Stop();
+    }
+
+    int AudioSourceGetPlaybackState(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return static_cast<int>(Pine::Audio::PlaybackState::Stopped);
+
+        return static_cast<int>(Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetPlaybackState());
+    }
+
+    bool AudioSourceIsPlaying(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->IsPlaying();
+    }
+
+    bool AudioSourceGetPlayOnStart(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetPlayOnStart();
+    }
+
+    void AudioSourceSetPlayOnStart(const std::uint32_t internalId, const bool playOnStart)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetPlayOnStart(playOnStart);
+    }
+
+    bool AudioSourceGetLoop(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetLoop();
+    }
+
+    void AudioSourceSetLoop(const std::uint32_t internalId, const bool loop)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetLoop(loop);
+    }
+
+    bool AudioSourceGetSpatial(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetSpatial();
+    }
+
+    void AudioSourceSetSpatial(const std::uint32_t internalId, const bool spatial)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetSpatial(spatial);
+    }
+
+    float AudioSourceGetVolume(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetVolume();
+    }
+
+    void AudioSourceSetVolume(const std::uint32_t internalId, const float volume)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetVolume(volume);
+    }
+
+    float AudioSourceGetPitch(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetPitch();
+    }
+
+    void AudioSourceSetPitch(const std::uint32_t internalId, const float pitch)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetPitch(pitch);
+    }
+
+    float AudioSourceGetReferenceDistance(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetReferenceDistance();
+    }
+
+    void AudioSourceSetReferenceDistance(const std::uint32_t internalId, const float distance)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetReferenceDistance(distance);
+    }
+
+    float AudioSourceGetMaxDistance(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetMaxDistance();
+    }
+
+    void AudioSourceSetMaxDistance(const std::uint32_t internalId, const float distance)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetMaxDistance(distance);
+    }
+
+    float AudioSourceGetRolloffFactor(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetRolloffFactor();
+    }
+
+    void AudioSourceSetRolloffFactor(const std::uint32_t internalId, const float factor)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetRolloffFactor(factor);
+    }
+
+    float AudioSourceGetPlaybackPosition(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetPlaybackPosition();
+    }
+
+    void AudioSourceSetPlaybackPosition(const std::uint32_t internalId, const float seconds)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->SetPlaybackPosition(seconds);
+    }
+
+    // -----------------------------------------------------
+
+    float AudioListenerGetVolume(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0.f;
+
+        return Pine::Components::GetByInternalId<Pine::AudioListener>(internalId)->GetVolume();
+    }
+
+    void AudioListenerSetVolume(const std::uint32_t internalId, const float volume)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::AudioListener>(internalId)->SetVolume(volume);
+    }
+
+    // -----------------------------------------------------
+
     MonoObject* ScriptGetCSharpScript(const std::uint32_t internalId)
     {
         if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
@@ -637,6 +843,35 @@ void Pine::Script::Interfaces::Component::Setup()
     mono_add_internal_call("Pine.World.Components.Collider::PineSetIsTrigger", reinterpret_cast<void *>(ColliderSetIsTrigger));
     mono_add_internal_call("Pine.World.Components.Collider::PineGetTriggerMask", reinterpret_cast<void *>(ColliderGetTriggerMask));
     mono_add_internal_call("Pine.World.Components.Collider::PineSetTriggerMask", reinterpret_cast<void *>(ColliderSetTriggerMask));
+
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetAudioFile", reinterpret_cast<void *>(AudioSourceGetAudioFile));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetAudioFile", reinterpret_cast<void *>(AudioSourceSetAudioFile));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PinePlay", reinterpret_cast<void *>(AudioSourcePlay));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PinePause", reinterpret_cast<void *>(AudioSourcePause));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineStop", reinterpret_cast<void *>(AudioSourceStop));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetPlaybackState", reinterpret_cast<void *>(AudioSourceGetPlaybackState));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineIsPlaying", reinterpret_cast<void *>(AudioSourceIsPlaying));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetPlayOnStart", reinterpret_cast<void *>(AudioSourceGetPlayOnStart));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetPlayOnStart", reinterpret_cast<void *>(AudioSourceSetPlayOnStart));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetLoop", reinterpret_cast<void *>(AudioSourceGetLoop));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetLoop", reinterpret_cast<void *>(AudioSourceSetLoop));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetSpatial", reinterpret_cast<void *>(AudioSourceGetSpatial));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetSpatial", reinterpret_cast<void *>(AudioSourceSetSpatial));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetVolume", reinterpret_cast<void *>(AudioSourceGetVolume));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetVolume", reinterpret_cast<void *>(AudioSourceSetVolume));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetPitch", reinterpret_cast<void *>(AudioSourceGetPitch));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetPitch", reinterpret_cast<void *>(AudioSourceSetPitch));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetReferenceDistance", reinterpret_cast<void *>(AudioSourceGetReferenceDistance));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetReferenceDistance", reinterpret_cast<void *>(AudioSourceSetReferenceDistance));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetMaxDistance", reinterpret_cast<void *>(AudioSourceGetMaxDistance));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetMaxDistance", reinterpret_cast<void *>(AudioSourceSetMaxDistance));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetRolloffFactor", reinterpret_cast<void *>(AudioSourceGetRolloffFactor));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetRolloffFactor", reinterpret_cast<void *>(AudioSourceSetRolloffFactor));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetPlaybackPosition", reinterpret_cast<void *>(AudioSourceGetPlaybackPosition));
+    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetPlaybackPosition", reinterpret_cast<void *>(AudioSourceSetPlaybackPosition));
+
+    mono_add_internal_call("Pine.World.Components.AudioListener::PineGetVolume", reinterpret_cast<void *>(AudioListenerGetVolume));
+    mono_add_internal_call("Pine.World.Components.AudioListener::PineSetVolume", reinterpret_cast<void *>(AudioListenerSetVolume));
 
     mono_add_internal_call("Pine.World.Components.Script::GetScript", reinterpret_cast<void *>(ScriptGetCSharpScript));
     mono_add_internal_call("Pine.World.Components.Script::GetScriptInstanceInternal", reinterpret_cast<void *>(ScriptGetInstance));
