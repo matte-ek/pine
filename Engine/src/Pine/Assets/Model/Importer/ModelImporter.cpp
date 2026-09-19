@@ -4,7 +4,9 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#include <algorithm>
 #include <optional>
+#include <unordered_set>
 
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Core/File/File.hpp"
@@ -23,6 +25,17 @@ namespace
                 str.end());
     }
 
+    // The lower-case extension of the file the model is being imported from, e.g. ".obj".
+    std::string ModelExtension(const Pine::Importer::AssetImport* context)
+    {
+        if (context->SourcePaths.empty())
+        {
+            return {};
+        }
+
+        return Pine::String::ToLower(context->SourcePaths.front().extension().string());
+    }
+
     // The model file tells us what each of its textures is for, which decides both the block
     // compression format and whether the texture gets sRGB-decoded when sampled. That's a much
     // better source than guessing from the file name, so use it while we still have it.
@@ -31,6 +44,8 @@ namespace
     // assimp maps an OBJ's 'map_Bump' onto aiTextureType_HEIGHT rather than NORMALS, and in that
     // format that is what a normal map looks like. Elsewhere HEIGHT may be a real displacement
     // map, so it is left alone.
+    //
+    // 'modelExtension' is the lower-case extension of the model file, as ModelExtension() gives it.
     std::optional<Pine::TextureUsageHint> UsageHintForTextureType(
         const aiTextureType textureType,
         const std::string& modelExtension)
@@ -41,7 +56,7 @@ namespace
                 return Pine::TextureUsageHint::NormalMap;
 
             case aiTextureType_HEIGHT:
-                if (Pine::String::ToLower(modelExtension) == ".obj")
+                if (modelExtension == ".obj")
                 {
                     return Pine::TextureUsageHint::NormalMap;
                 }
@@ -72,9 +87,48 @@ namespace
 
         return allowedExtensions.count(ext) != 0;
     }
+
+    // What an embedded texture is imported as. This ends up in the texture's asset path, so it has
+    // to be usable as a file name, and it has to come out the same every time the same model is
+    // imported - anything else would leave a second texture asset beside the first on a re-import.
+    //
+    // The name the model file carries is used when there is one, but it is optional (glTF only has
+    // one when the image was given a name) and it is an arbitrary string out of the file, which
+    // may well be a path from whichever machine authored the model, so only the file name part of
+    // it is taken. Failing that, the texture's position in the file names it - prefixed with the model,
+    // since every model in a directory imports its textures into the same place.
+    std::string EmbeddedTextureName(const aiScene* scene, const aiTexture* texture, const std::string& modelName)
+    {
+        std::string fileName = texture->mFilename.C_Str();
+
+        RemoveNonASCII(fileName);
+
+        if (const auto directoryEnd = fileName.find_last_of("/\\"); directoryEnd != std::string::npos)
+        {
+            fileName = fileName.substr(directoryEnd + 1);
+        }
+
+        if (!fileName.empty())
+        {
+            return fileName;
+        }
+
+        std::size_t textureIndex = 0;
+
+        for (unsigned int i = 0; i < scene->mNumTextures; i++)
+        {
+            if (scene->mTextures[i] == texture)
+            {
+                textureIndex = i;
+                break;
+            }
+        }
+
+        return fmt::format("{}-texture-{}", modelName, textureIndex);
+    }
 }
 
-void Pine::Importer::ModelImporter::ProcessMesh(Model* model, const aiMesh* mesh, const aiScene* scene)
+void Pine::Importer::ModelImporter::ProcessMesh(Model* model, const aiMesh* mesh, const std::vector<UId>& materialIds)
 {
     MeshData loadData;
 
@@ -113,42 +167,30 @@ void Pine::Importer::ModelImporter::ProcessMesh(Model* model, const aiMesh* mesh
             loadData.Indices.push_back(face.mIndices[j]);
     }
 
-    if (scene->HasMaterials())
+    // A mesh whose material wasn't imported, assimp's default one in particular, is left without
+    // one, which leaves it on the engine's default material (see Mesh::m_Material).
+    if (mesh->mMaterialIndex < materialIds.size())
     {
-        size_t embeddedId = 0;
-
-        for (size_t i{}; i < mesh->mMaterialIndex;i++)
-        {
-            auto material = scene->mMaterials[i];
-
-            if (strcmp(material->GetName().C_Str(), AI_DEFAULT_MATERIAL_NAME) == 0)
-            {
-                continue;
-            }
-
-            embeddedId++;
-        }
-
-        loadData.Material = model->m_EmbeddedMaterials[embeddedId]->GetUId();
+        loadData.Material = materialIds[mesh->mMaterialIndex];
     }
 
     model->m_MeshData.push_back(loadData);
 }
 
-void Pine::Importer::ModelImporter::ProcessNode(Model* model, const aiNode* node, const aiScene* scene)
+void Pine::Importer::ModelImporter::ProcessNode(Model* model, const aiNode* node, const aiScene* scene, const std::vector<UId>& materialIds)
 {
     // Loop through all the meshes within the model
     for (std::uint32_t i = 0; i < node->mNumMeshes; i++)
     {
         const auto mesh = scene->mMeshes[node->mMeshes[i]];
 
-        ProcessMesh(model, mesh, scene);
+        ProcessMesh(model, mesh, materialIds);
     }
 
     // Process additional nodes via the magic of recursion
     for (std::uint32_t i = 0; i < node->mNumChildren; i++)
     {
-        ProcessNode(model, node->mChildren[i], scene);
+        ProcessNode(model, node->mChildren[i], scene, materialIds);
     }
 }
 
@@ -163,10 +205,7 @@ Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* conte
 
     std::function<bool(Asset*)> configure = nullptr;
 
-    const auto modelExtension = context->SourcePaths.empty() ?
-        std::string() : context->SourcePaths.front().extension().string();
-
-    if (const auto usageHint = UsageHintForTextureType(textureType, modelExtension))
+    if (const auto usageHint = UsageHintForTextureType(textureType, ModelExtension(context)))
     {
         configure = [usageHint](Asset* asset)
         {
@@ -186,50 +225,63 @@ Pine::Texture2D* Pine::Importer::ModelImporter::ImportTexture(AssetImport* conte
     aiString filePath;
     material->GetTexture(textureType, 0, &filePath);
 
-    auto embeddedTexture = scene->GetEmbeddedTexture(filePath.C_Str());
-    if (embeddedTexture != nullptr)
+    const auto embeddedTexture = scene->GetEmbeddedTexture(filePath.C_Str());
+
+    if (embeddedTexture == nullptr)
     {
-        if (!std::filesystem::exists("import-cache"))
-        {
-            std::filesystem::create_directory("import-cache");
-        }
+        return dynamic_cast<Texture2D*>(ImportRelative(context, filePath.C_Str(), "", configure));
+    }
 
-        // If the image height is 0, then the texture is embedded as a image file
-        // e.g. PNG or JPEG. Otherwise, it's stored as a raw texture.
-        if (embeddedTexture->mHeight == 0)
-        {
-            if (!IsSupportedImageExtension(embeddedTexture->achFormatHint))
-            {
-                PWarning(fmt::format("Unsupported image format in model: {}", embeddedTexture->achFormatHint));
-                return nullptr;
-            }
-
-            // No way we're even touching arbitrary data to a new path with a arbitrary string,
-            // temporarily use a UID instead so I can sleep better at night.
-            const auto temporaryFilePath = fmt::format("import-cache/{}.{}", UId::New().ToString(), embeddedTexture->achFormatHint);
-
-            const auto imageBytes = ByteSpan(reinterpret_cast<const std::byte*>(embeddedTexture->pcData), embeddedTexture->mWidth);
-
-            File::WriteRaw(temporaryFilePath, imageBytes);
-
-            const auto texture = dynamic_cast<Texture2D*>(ImportRelative(context, temporaryFilePath, embeddedTexture->mFilename.C_Str(), configure));
-
-            std::filesystem::remove(temporaryFilePath);
-
-            return texture;
-        }
-
+    // If the image height is 0, then the texture is embedded as a image file
+    // e.g. PNG or JPEG. Otherwise, it's stored as a raw texture, which nothing here decodes.
+    if (embeddedTexture->mHeight != 0)
+    {
+        PWarning(fmt::format("Ignoring raw embedded texture '{}' in model, only image files are supported.",
+            filePath.C_Str()));
         return nullptr;
     }
 
-    return dynamic_cast<Texture2D*>(ImportRelative(context, filePath.C_Str(), "", configure));
+    if (!IsSupportedImageExtension(embeddedTexture->achFormatHint))
+    {
+        PWarning(fmt::format("Unsupported image format in model: {}", embeddedTexture->achFormatHint));
+        return nullptr;
+    }
+
+    if (!std::filesystem::exists("import-cache"))
+    {
+        std::filesystem::create_directory("import-cache");
+    }
+
+    // No way we're even touching arbitrary data to a new path with a arbitrary string,
+    // temporarily use a UID instead so I can sleep better at night. What the texture is imported
+    // as is a separate matter, see EmbeddedTextureName().
+    const auto temporaryFilePath = fmt::format("import-cache/{}.{}", UId::New().ToString(), embeddedTexture->achFormatHint);
+
+    const auto imageBytes = ByteSpan(reinterpret_cast<const std::byte*>(embeddedTexture->pcData), embeddedTexture->mWidth);
+
+    File::WriteRaw(temporaryFilePath, imageBytes);
+
+    if (!std::filesystem::exists(temporaryFilePath))
+    {
+        PError(fmt::format("Failed to write embedded texture to {}", temporaryFilePath));
+        return nullptr;
+    }
+
+    const auto textureName = EmbeddedTextureName(scene, embeddedTexture, std::filesystem::path(context->EnginePath).stem().string());
+
+    const auto texture = dynamic_cast<Texture2D*>(ImportRelative(context, temporaryFilePath, textureName, configure));
+
+    std::filesystem::remove(temporaryFilePath);
+
+    return texture;
 }
 
 bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* model)
 {
-    if (model->m_SourceFiles.empty() || model->m_SourceFiles.size() > 1)
+    if (model->m_SourceFiles.size() != 1)
     {
-        PWarning("Ignoring Model import, too many source files.");
+        PWarning(fmt::format("Ignoring Model import, expected exactly one source file, got {}.",
+            model->m_SourceFiles.size()));
         return false;
     }
 
@@ -264,14 +316,44 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
     model->m_EmbeddedMaterials.clear();
     model->m_MeshData.clear();
 
+    // Resolved while the materials are imported, so the meshes don't have to work out again which
+    // of the file's materials were skipped. Entries stay empty for the skipped ones.
+    std::vector<UId> materialIds;
+
+    const auto modelExtension = ModelExtension(importContext);
+
     if (scene->HasMaterials())
     {
-        auto materialLoadRelPath = std::filesystem::path(file.FilePath).parent_path().string();
+        materialIds.resize(scene->mNumMaterials, UId::Empty());
+
+        // Assimp adds a material of its own for meshes that don't name one, and not every format
+        // gives it a name we can recognise - glTF's is simply unnamed, so the check below misses
+        // it and it used to be imported as an empty-named material of its own. Going by what the
+        // meshes actually reference catches it whatever it is called, and leaves out any other
+        // material the file carries but never uses.
+        std::vector<bool> isMaterialUsed(scene->mNumMaterials, false);
+
+        for (std::uint32_t i = 0; i < scene->mNumMeshes; i++)
+        {
+            const auto materialIndex = scene->mMeshes[i]->mMaterialIndex;
+
+            if (materialIndex < isMaterialUsed.size())
+            {
+                isMaterialUsed[materialIndex] = true;
+            }
+        }
 
         for (size_t i{}; i < scene->mNumMaterials;i++)
         {
+            if (!isMaterialUsed[i])
+            {
+                continue;
+            }
+
             auto material = scene->mMaterials[i];
 
+            // Assimp hands out a default material for meshes that don't name one. There's nothing
+            // in it worth importing, and the engine already has a default of its own.
             if (strcmp(material->GetName().C_Str(), AI_DEFAULT_MATERIAL_NAME) == 0)
             {
                 continue;
@@ -280,6 +362,14 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
             auto materialName = std::string(material->GetName().C_Str());
 
             RemoveNonASCII(materialName);
+
+            // A material doesn't have to be named - glTF's names are optional - and the name is
+            // the only thing telling one model's materials apart, so fall back to the material's
+            // position in the file rather than importing several of them to the same path.
+            if (materialName.empty())
+            {
+                materialName = fmt::format("material-{}", i);
+            }
 
             const auto materialPath = String::ToLower(model->GetPath() + "-" + materialName);
 
@@ -316,12 +406,15 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
             engineMaterial->SetSpecular(ImportTexture(importContext, scene, material, aiTextureType_SPECULAR));
 
             auto normalMapTexture = ImportTexture(importContext, scene, material, aiTextureType_NORMALS);
-            if (!normalMapTexture && importContext &&
-                !importContext->SourcePaths.empty() &&
-                String::ToLower(importContext->SourcePaths.front().extension().string()) == ".obj")
+
+            // In a format where the height slot is where the normal map lives (an OBJ's
+            // 'map_Bump'), fall back to it when the material has no normals slot of its own.
+            if (!normalMapTexture &&
+                UsageHintForTextureType(aiTextureType_HEIGHT, modelExtension) == TextureUsageHint::NormalMap)
             {
                 normalMapTexture = ImportTexture(importContext, scene, material, aiTextureType_HEIGHT);
             }
+
             engineMaterial->SetNormal(normalMapTexture);
 
             // The diffuse texture has been imported by now, so its alpha has been measured. A
@@ -330,10 +423,12 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
             engineMaterial->ResolveRenderingModeFromDiffuse();
 
             model->m_EmbeddedMaterials.push_back(engineMaterial);
+
+            materialIds[i] = engineMaterial->GetUId();
         }
     }
 
-    ProcessNode(model, scene->mRootNode, scene);
+    ProcessNode(model, scene->mRootNode, scene, materialIds);
 
     return true;
 }
