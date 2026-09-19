@@ -206,7 +206,6 @@ void Pine::Engine::Shutdown()
     }
 
     Script::Manager::Dispose();
-    Script::Runtime::Dispose();
     Utilities::HotReload::Shutdown();
     Input::Shutdown();
     Physics2D::Shutdown();
@@ -216,6 +215,12 @@ void Pine::Engine::Shutdown()
     Components::Shutdown();
     RenderManager::Shutdown();
     Assets::Shutdown();
+
+    // After Entities, Components and Assets, and deliberately so: every one of their objects
+    // frees its managed mirror on the way out, and the runtime has to still be there to free it
+    // with.
+    Script::Runtime::Dispose();
+
     Graphics::Shutdown();
     Audio::Shutdown();
     Threading::Shutdown();

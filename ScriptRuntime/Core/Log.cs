@@ -1,43 +1,47 @@
-using System.Runtime.CompilerServices;
+using Pine.Core.Bindings;
 
 namespace Pine.Core
 {
-    public static class Log
+    public static unsafe class Log
     {
         public static void Info(string message)
         {
-            PineInfo(message);
+            Write(LogBindings.Info, message);
         }
-        
+
         public static void Verbose(string message)
         {
-            PineVerbose(message);
+            Write(LogBindings.Verbose, message);
         }
-        
+
         public static void Warning(string message)
         {
-            PineWarning(message);
+            Write(LogBindings.Warning, message);
         }
-        
+
         public static void Error(string message)
         {
-            PineError(message);
+            Write(LogBindings.Error, message);
         }
-        
+
         public static void Fatal(string message)
         {
-            PineFatal(message);
+            Write(LogBindings.Fatal, message);
         }
-        
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineVerbose(string message);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineInfo(string message);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineWarning(string message);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineError(string message);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineFatal(string message);
+
+        private static unsafe void Write(delegate* unmanaged<byte*, void> binding, string message)
+        {
+            // Logging is the first thing bound, and what everything else reports its own failures
+            // through. A null binding therefore means binding itself did not get that far - and
+            // calling through it would turn a reportable failure into a crash.
+            if (binding == null)
+            {
+                return;
+            }
+
+            using var text = new Interop.Utf8Scope(message);
+
+            binding(text.Pointer);
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using Pine.Core.Bindings;
 using Pine.Math;
 
 namespace Pine.World.Components
@@ -10,12 +10,11 @@ namespace Pine.World.Components
         VelocityChange,
         Acceleration
     }
-    
-    public class RigidBody : Component
+
+    [ComponentType(ComponentType.RigidBody)]
+    public unsafe class RigidBody : Component
     {
-        public void ApplyForce(Vector3 force, ForceType type = ForceType.Force) => ApplyForce(InternalId, ref force, type);
-        
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void ApplyForce(uint id, ref Vector3 position, ForceType type);
+        public void ApplyForce(Vector3 force, ForceType type = ForceType.Force)
+            => ComponentBindings.RigidBodyApplyForce(InternalId, &force, (int)type);
     }
 }

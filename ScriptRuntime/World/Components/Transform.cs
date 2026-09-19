@@ -1,131 +1,133 @@
-using System.Runtime.CompilerServices;
+using Pine.Core.Bindings;
 using Pine.Math;
 
 namespace Pine.World.Components
 {
-    public class Transform : Component
+    [ComponentType(ComponentType.Transform)]
+    public unsafe class Transform : Component
     {
-        public Vector3 Position 
+        public Vector3 Position
         {
             get
             {
-                GetPosition(InternalId, out var position);
+                Vector3 position;
+
+                ComponentBindings.TransformGetPosition(InternalId, &position);
+
                 return position;
             }
         }
-        
-        public Vector3 Rotation
+
+        public Quaternion Rotation
         {
             get
             {
-                GetRotation(InternalId, out var rotation);
+                Quaternion rotation;
+
+                ComponentBindings.TransformGetRotation(InternalId, &rotation);
+
                 return rotation;
             }
         }
-        
+
         public Vector3 Scale
         {
             get
             {
-                GetScale(InternalId, out var scale);
+                Vector3 scale;
+
+                ComponentBindings.TransformGetScale(InternalId, &scale);
+
                 return scale;
             }
         }
-        
+
         public Vector3 LocalPosition
         {
             get
             {
-                GetLocalPosition(InternalId, out var position);
+                Vector3 position;
+
+                ComponentBindings.TransformGetLocalPosition(InternalId, &position);
+
                 return position;
             }
-            set => SetLocalPosition(InternalId, ref value);
+            set => ComponentBindings.TransformSetLocalPosition(InternalId, &value);
         }
-        
+
         public Quaternion LocalRotation
         {
             get
             {
-                GetLocalRotation(InternalId, out var rotation);
+                Quaternion rotation;
+
+                ComponentBindings.TransformGetLocalRotation(InternalId, &rotation);
+
                 return rotation;
             }
-            set => SetLocalRotation(InternalId, ref value);
+            set => ComponentBindings.TransformSetLocalRotation(InternalId, &value);
         }
-        
+
         public Vector3 LocalEulerAngles
         {
             get
             {
-                GetLocalEulerAngles(InternalId, out var rotation);
-                return rotation;
+                Vector3 angles;
+
+                ComponentBindings.TransformGetLocalEulerAngles(InternalId, &angles);
+
+                return angles;
             }
-            set => SetLocalEulerAngles(InternalId, ref value);
+            set => ComponentBindings.TransformSetLocalEulerAngles(InternalId, &value);
         }
-        
+
         public Vector3 LocalScale
         {
             get
             {
-                GetLocalScale(InternalId, out var scale);
+                Vector3 scale;
+
+                ComponentBindings.TransformGetLocalScale(InternalId, &scale);
+
                 return scale;
             }
-            set => SetLocalScale(InternalId, ref value);
+            set => ComponentBindings.TransformSetLocalScale(InternalId, &value);
         }
-        
+
         public Vector3 Up
         {
             get
             {
-                GetUp(InternalId, out var up);
+                Vector3 up;
+
+                ComponentBindings.TransformGetUp(InternalId, &up);
+
                 return up;
             }
         }
-        
+
         public Vector3 Right
         {
             get
             {
-                GetRight(InternalId, out var right);
+                Vector3 right;
+
+                ComponentBindings.TransformGetRight(InternalId, &right);
+
                 return right;
             }
         }
-        
+
         public Vector3 Forward
         {
             get
             {
-                GetForward(InternalId, out var forward);
+                Vector3 forward;
+
+                ComponentBindings.TransformGetForward(InternalId, &forward);
+
                 return forward;
             }
         }
-        
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetPosition(uint id, out Vector3 position);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetRotation(uint id, out Vector3 position);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetScale(uint id, out Vector3 position);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetLocalPosition(uint id, ref Vector3 position);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetLocalPosition(uint id, out Vector3 position);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetLocalRotation(uint id, ref Quaternion rotation);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetLocalRotation(uint id, out Quaternion rotation);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetLocalEulerAngles(uint id, ref Vector3 euler);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetLocalEulerAngles(uint id, out Vector3 euler);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetLocalScale(uint id, ref Vector3 scale);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetLocalScale(uint id, out Vector3 scale);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetUp(uint id, out Vector3 up);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetRight(uint id, out Vector3 right);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetForward(uint id, out Vector3 forward);
     }
 }

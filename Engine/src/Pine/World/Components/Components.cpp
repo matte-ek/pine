@@ -237,7 +237,7 @@ bool Components::Destroy(Component* targetComponent)
 
     // Extra fail-safe to make sure the script object handle is removed, to avoid memory leaks
     // within the scripting engine.
-    assert(targetComponent->GetComponentScriptHandle()->Object == nullptr);
+    assert(!targetComponent->GetComponentScriptHandle()->IsValid());
 
     // If the component is standalone (i.e. it isn't in the "ECS"), we can just free
     // the memory and move on.

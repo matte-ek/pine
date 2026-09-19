@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using Pine.Core.Bindings;
 
 namespace Pine.World.Components
 {
@@ -7,19 +7,15 @@ namespace Pine.World.Components
     //
     // A device has exactly one listener, so the first enabled AudioListener in the world is the one
     // that counts. With none at all, nothing is audible: there is nobody there to hear it.
-    public class AudioListener : Component
+    [ComponentType(ComponentType.AudioListener)]
+    public unsafe class AudioListener : Component
     {
         // Master volume, applied on top of whatever each source is set to. Clamped to zero and up,
         // with no ceiling - above 1 the whole mix is amplified.
         public float Volume
         {
-            get => PineGetVolume(InternalId);
-            set => PineSetVolume(InternalId, value);
+            get => ComponentBindings.AudioListenerGetVolume(InternalId);
+            set => ComponentBindings.AudioListenerSetVolume(InternalId, value);
         }
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetVolume(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetVolume(uint id, float volume);
     }
 }

@@ -1,5 +1,11 @@
+using System.Runtime.InteropServices;
+
 namespace Pine.Math
 {
+    // Blittable, and required to stay that way: it crosses to the engine as raw bytes, by value
+    // and by pointer, through function pointers that accept nothing else. Stating the layout
+    // records that where someone might otherwise add a field that is not.
+    [StructLayout(LayoutKind.Sequential)]
     public struct Vector4
     {
         public float X { get; set; }

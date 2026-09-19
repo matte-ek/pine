@@ -445,7 +445,7 @@ void Pine::Entity::CreateScriptHandle()
 
 void Pine::Entity::DestroyScriptHandle()
 {
-    if (m_EntityScriptHandle.Object == nullptr)
+    if (!m_EntityScriptHandle.IsValid())
     {
         return;
     }

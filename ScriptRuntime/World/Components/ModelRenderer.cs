@@ -1,21 +1,16 @@
-using System;
-using System.Runtime.CompilerServices;
 using Pine.Assets;
 using Pine.Core;
+using Pine.Core.Bindings;
 
 namespace Pine.World.Components
 {
-    public class ModelRenderer : Component
+    [ComponentType(ComponentType.ModelRenderer)]
+    public unsafe class ModelRenderer : Component
     {
         public Model Model
         {
-            get => (Model)GetModel(InternalId);
-            set => SetModel(InternalId, value.Id);
+            get => Interop.ObjectFrom<Model>(ComponentBindings.GetModel(InternalId));
+            set => ComponentBindings.SetModel(InternalId, value.Id);
         }
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern Asset GetModel(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetModel(uint id, UId assetId);
     }
 }

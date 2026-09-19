@@ -1,16 +1,10 @@
-using System.Runtime.CompilerServices;
-using Pine.Core;
+using Pine.Core.Bindings;
 
 namespace Pine.Assets
 {
-    public class Level : Asset
+    public unsafe class Level : Asset
     {
-        public void CreateFromWorld() => CreateFromWorld(Id);
-        public void Load() => Load(Id);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void CreateFromWorld(UId id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void Load(UId id);
+        public void CreateFromWorld() => AssetBindings.LevelCreateFromWorld(Id);
+        public void Load() => AssetBindings.LevelLoad(Id);
     }
 }

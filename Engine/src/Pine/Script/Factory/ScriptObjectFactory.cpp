@@ -1,267 +1,180 @@
-#include <mono/jit/jit.h>
-#include <mono/metadata/appdomain.h>
-#include <mono/metadata/assembly.h>
-#include <cassert>
-#include <unordered_map>
-#include "Pine/Assets/Asset/Asset.hpp"
-#include "Pine/World/Components/Component/Component.hpp"
 #include "ScriptObjectFactory.hpp"
-#include "Pine/Script/Runtime/ScriptingRuntime.hpp"
-#include "Pine/Script/Scripts/ScriptData.hpp"
-#include "Pine/Core/Log/Log.hpp"
-#include "Pine/World/Entity/Entity.hpp"
+
+#include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
-#include "mono/metadata/class.h"
+#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Core/UId/UId.hpp"
+#include "Pine/Script/GameAssembly/GameAssembly.hpp"
+#include "../ManagedCall/ManagedCall.hpp"
+#include "Pine/Script/Scripts/ScriptData.hpp"
+#include "Pine/World/Components/Component/Component.hpp"
+#include "Pine/World/Entity/Entity.hpp"
 
 namespace
 {
-    MonoDomain *m_RootDomain = nullptr;
-    MonoAssembly *m_PineAssembly = nullptr;
-    MonoImage *m_PineImage = nullptr;
+    constexpr auto ObjectFactoryTypeName = "Pine.Core.ObjectFactory, Pine";
 
-    MonoClass *m_EntityClass = nullptr;
-    MonoClassField *m_EntityInternalIdField = nullptr;
-    MonoClassField *m_EntityIdProperty = nullptr;
-    MonoClassField *m_EntityValidProperty = nullptr;
-
-    MonoClass *m_RaycastHitClass = nullptr;
-
-    struct ComponentTypeData
+    // Pine::UId's two halves, laid out as Pine.Core.UId reads them. A UId crosses by value, so the
+    // engine hands over the raw halves rather than the class that wraps them.
+    struct ManagedUId
     {
-        MonoClass *m_ComponentClass = nullptr;
-        MonoClassField *m_ComponentInternalIdField = nullptr;
-        MonoClassField *m_ComponentIsValidField = nullptr;
-        MonoClassField *m_ComponentParentField = nullptr;
-        MonoClassField *m_ComponentTypeField = nullptr;
+        std::uint64_t Time = 0;
+        std::uint64_t Random = 0;
     };
 
-    struct AssetTypeData
+    // The managed factory's entry points, resolved once. All of them are static, and all of them
+    // answer with a failure value rather than throwing - see the class' own comment.
+    struct EntryPoints
     {
-        MonoClass* m_AssetClass = nullptr;
-        MonoClassField* m_AssetIdField = nullptr;
-        MonoClassField* m_AssetTypeField = nullptr;
+        std::uint64_t (*CreateEntity)(ManagedUId id, std::uint32_t internalId) = nullptr;
+
+        std::uint64_t (*CreateComponent)(std::int32_t componentType, std::uint32_t internalId, std::uint64_t parentHandle) = nullptr;
+
+        std::uint64_t (*CreateScriptObject)(std::uint64_t typeHandle, std::int32_t componentType, std::uint32_t internalId, std::uint64_t parentHandle) = nullptr;
+
+        std::uint64_t (*CreateAsset)(std::int32_t assetType, ManagedUId id) = nullptr;
+
+        void (*DisposeEntity)(std::uint64_t handle) = nullptr;
+
+        void (*DisposeComponent)(std::uint64_t handle) = nullptr;
+
+        void (*DisposeObject)(std::uint64_t handle) = nullptr;
     };
 
-    std::unordered_map<Pine::AssetType, AssetTypeData*> m_AssetObjectFactory;
-    std::unordered_map<Pine::ComponentType, ComponentTypeData*> m_ComponentObjectFactory;
+    EntryPoints m_EntryPoints;
+
+    ManagedUId ToManaged(const Pine::UId& id)
+    {
+        return { id.GetTime(), id.GetRandom() };
+    }
+
+    // The mirror an engine object's parent entity is held by. A component whose entity has no
+    // mirror has nothing to be parented to, and is not created at all.
+    std::uint64_t ParentHandleOf(const Pine::Component* component)
+    {
+        return component->GetParent()->GetScriptHandle()->Id;
+    }
+
+    // Hand a mirror over to be let go of, and stop referring to it here. The handle is cleared
+    // whatever managed code made of the call: the engine object it stood for is gone either way,
+    // and keeping the value would leave the engine pointing at an object nothing owns.
+    void Dispose(void (*entryPoint)(std::uint64_t), Pine::Script::ObjectHandle* handle)
+    {
+        if (!handle->IsValid())
+        {
+            return;
+        }
+
+        if (entryPoint != nullptr)
+        {
+            entryPoint(handle->Id);
+        }
+
+        handle->Id = 0;
+    }
 }
 
 void Pine::Script::ObjectFactory::Setup()
 {
-    m_AssetObjectFactory.clear();
-    m_ComponentObjectFactory.clear();
+    m_EntryPoints = {};
 
-    m_RootDomain = Runtime::GetDomain();
-    m_PineAssembly = Runtime::GetPineAssembly();
-    m_PineImage = Runtime::GetPineImage();
-
-    m_EntityClass = mono_class_from_name(m_PineImage, "Pine.World", "Entity");
-    m_EntityInternalIdField = mono_class_get_field_from_name(m_EntityClass, "_internalId");
-    m_EntityValidProperty = mono_class_get_field_from_name(m_EntityClass, "_isValid");
-    m_EntityIdProperty = mono_class_get_field_from_name(m_EntityClass, "Id");
-
-    m_RaycastHitClass = mono_class_from_name(m_PineImage, "Pine.Physics.Data", "RayCastHit");
-
-    assert(m_EntityClass);
-    assert(m_EntityInternalIdField);
-    assert(m_EntityIdProperty);
-    assert(m_EntityValidProperty);
+    m_EntryPoints.CreateEntity = ManagedCall::Find<decltype(EntryPoints::CreateEntity)>(
+        ObjectFactoryTypeName, "CreateEntity");
+    m_EntryPoints.CreateComponent = ManagedCall::Find<decltype(EntryPoints::CreateComponent)>(
+        ObjectFactoryTypeName, "CreateComponent");
+    m_EntryPoints.CreateScriptObject = ManagedCall::Find<decltype(EntryPoints::CreateScriptObject)>(
+        ObjectFactoryTypeName, "CreateScriptObject");
+    m_EntryPoints.CreateAsset = ManagedCall::Find<decltype(EntryPoints::CreateAsset)>(
+        ObjectFactoryTypeName, "CreateAsset");
+    m_EntryPoints.DisposeEntity = ManagedCall::Find<decltype(EntryPoints::DisposeEntity)>(
+        ObjectFactoryTypeName, "DisposeEntity");
+    m_EntryPoints.DisposeComponent = ManagedCall::Find<decltype(EntryPoints::DisposeComponent)>(
+        ObjectFactoryTypeName, "DisposeComponent");
+    m_EntryPoints.DisposeObject = ManagedCall::Find<decltype(EntryPoints::DisposeObject)>(
+        ObjectFactoryTypeName, "DisposeObject");
 }
 
-MonoClass* Pine::Script::ObjectFactory::GetEntityClass()
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(const UId& id, const std::uint32_t internalId)
 {
-    return m_EntityClass;
-}
-
-MonoClass* Pine::Script::ObjectFactory::GetComponentClass(const ComponentType type)
-{
-    return m_ComponentObjectFactory[type]->m_ComponentClass;
-}
-
-MonoClass* Pine::Script::ObjectFactory::GetRayCastHitClass()
-{
-    return m_RaycastHitClass;
-}
-
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateEntity(const UId& id, std::uint32_t internalId)
-{
-    if (!m_PineImage)
+    if (m_EntryPoints.CreateEntity == nullptr)
     {
-        return {nullptr, 0};
-    }
-
-    auto entity = mono_object_new(m_RootDomain, m_EntityClass);
-
-    mono_runtime_object_init(entity);
-
-    // The managed Entity.Id is a value-type mirror of Pine::UId (two 64-bit halves).
-    // Copy the raw value across; the C# side uses it purely as a stable identity token.
-    struct { std::uint64_t Time; std::uint64_t Random; } idValue{ id.GetTime(), id.GetRandom() };
-
-    mono_field_set_value(entity, m_EntityInternalIdField, &internalId);
-    mono_field_set_value(entity, m_EntityIdProperty, &idValue);
-
-    auto handle = mono_gchandle_new(entity, true);
-
-    return {entity, handle};
-}
-
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Component *engineComponent)
-{
-    if (!m_PineImage || engineComponent->GetParent()->GetScriptHandle()->Handle == 0)
-    {
-        return {nullptr, 0};
-    }
-
-    const auto componentType = engineComponent->GetType();
-    ComponentTypeData* componentTypeData;
-
-    if (m_ComponentObjectFactory.count(componentType) == 0)
-    {
-        auto monoClass = mono_class_from_name(m_PineImage, "Pine.World.Components", ComponentTypeToString(componentType));
-
-        if (!monoClass)
-        {
-            m_ComponentObjectFactory[componentType] = nullptr;
-
-            return {nullptr, 0};
-        }
-
-        componentTypeData = new ComponentTypeData();
-
-        componentTypeData->m_ComponentClass = monoClass;
-        componentTypeData->m_ComponentInternalIdField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "_internalId");
-        componentTypeData->m_ComponentIsValidField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "_isValid");
-        componentTypeData->m_ComponentParentField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "Parent");
-        componentTypeData->m_ComponentTypeField = mono_class_get_field_from_name(componentTypeData->m_ComponentClass, "Type");
-
-        m_ComponentObjectFactory[componentType] = componentTypeData;
-    }
-
-    componentTypeData = m_ComponentObjectFactory[componentType];
-
-    if (!componentTypeData)
-    {
-        return {nullptr, 0};
-    }
-
-    auto component = mono_object_new(m_RootDomain, componentTypeData->m_ComponentClass);
-
-    mono_runtime_object_init(component);
-
-    auto internalId = engineComponent->GetInternalId();
-    auto type = static_cast<int>(engineComponent->GetType());
-    
-    mono_field_set_value(component, componentTypeData->m_ComponentInternalIdField, &internalId);
-    mono_field_set_value(component, componentTypeData->m_ComponentTypeField, &type);
-    mono_field_set_value(component, componentTypeData->m_ComponentParentField, mono_gchandle_get_target(engineComponent->GetParent()->GetScriptHandle()->Handle));
-
-    auto handle = mono_gchandle_new(component, true);
-
-    return {component, handle};
-}
-
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const CSharpScript *script, const Component *component)
-{
-    auto data = script->GetScriptData();
-    if (!data || !data->IsReady)
-    {
-        PWarning(fmt::format("Failed to create script object for {}, script data is not ready.", script->GetFilePath().string()));
         return {};
     }
 
-    auto object = mono_object_new(m_RootDomain, data->Class);
-
-    auto internalId = component->GetInternalId();
-    auto type = static_cast<int>(component->GetType());
-
-    mono_runtime_object_init(object);
-    mono_field_set_value(object, data->ComponentParentField, mono_gchandle_get_target(component->GetParent()->GetScriptHandle()->Handle));
-    mono_field_set_value(object, data->ComponentInternalIdField, &internalId);
-    mono_field_set_value(object, data->ComponentTypeField, &type);
-
-    auto handle = mono_gchandle_new(object, true);
-
-    return {object, handle};
+    return { m_EntryPoints.CreateEntity(ToManaged(id), internalId) };
 }
 
-Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Asset *asset)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateComponent(const Component* engineComponent)
 {
-    if (!m_PineImage)
+    if (m_EntryPoints.CreateComponent == nullptr)
     {
-        return {nullptr, 0};
+        return {};
     }
 
-    AssetTypeData* assetTypeData;
+    const auto parentHandle = ParentHandleOf(engineComponent);
 
-    if (m_AssetObjectFactory.count(asset->GetType()) == 0)
+    if (parentHandle == 0)
     {
-        auto monoClass = mono_class_from_name(m_PineImage, "Pine.Assets", AssetTypeToString(asset->GetType()));
-
-        if (!monoClass)
-        {
-            m_AssetObjectFactory[asset->GetType()] = nullptr;
-            
-            return { nullptr, 0 };
-        }
-
-        assetTypeData = new AssetTypeData();
-
-        assetTypeData->m_AssetClass = monoClass;
-        assetTypeData->m_AssetIdField = mono_class_get_field_from_name(monoClass, "Id");
-        assetTypeData->m_AssetTypeField = mono_class_get_field_from_name(monoClass, "Type");
-
-        m_AssetObjectFactory[asset->GetType()] = assetTypeData;
+        return {};
     }
 
-    assetTypeData = m_AssetObjectFactory[asset->GetType()];
+    return { m_EntryPoints.CreateComponent(static_cast<std::int32_t>(engineComponent->GetType()),
+        engineComponent->GetInternalId(), parentHandle) };
+}
 
-    if (!assetTypeData)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateScriptObject(const CSharpScript* script, const Component* component)
+{
+    if (m_EntryPoints.CreateScriptObject == nullptr)
     {
-        return { nullptr, 0 };
+        return {};
     }
 
-    auto object = mono_object_new(m_RootDomain, assetTypeData->m_AssetClass);
+    const auto scriptData = script->GetScriptData();
 
-    mono_runtime_object_init(object);
+    if (!scriptData || !scriptData->IsReady)
+    {
+        PWarning(fmt::format("Failed to create script object for {}, script data is not ready.",
+            script->GetFilePath().string()));
 
-    // Assets are identified by their UId (there is no array-slot id for assets, unlike
-    // entities/components). Mirror it into the managed Asset.Id value type.
-    const auto& uid = asset->GetUId();
-    struct { std::uint64_t Time; std::uint64_t Random; } idValue{ uid.GetTime(), uid.GetRandom() };
-    auto type = static_cast<int>(asset->GetType());
+        return {};
+    }
 
-    mono_field_set_value(object, assetTypeData->m_AssetIdField, &idValue);
-    mono_field_set_value(object, assetTypeData->m_AssetTypeField, &type);
+    // The script's class lives in the game assembly, which the engine addresses by id rather than
+    // holding anything of - see GameAssembly. It crosses as a handle to its Type, like any other
+    // managed object, and the instance keeps its own class alive from there on.
+    const GameAssembly::ScopedClassType classType(scriptData->ClassId);
 
-    auto handle = mono_gchandle_new(object, true);
+    if (!classType.IsValid())
+    {
+        return {};
+    }
 
-    return {object, handle};
+    return { m_EntryPoints.CreateScriptObject(classType.GetHandle(),
+        static_cast<std::int32_t>(component->GetType()), component->GetInternalId(),
+        ParentHandleOf(component)) };
 }
 
-void Pine::Script::ObjectFactory::DisposeObject(ObjectHandle *handle)
+Pine::Script::ObjectHandle Pine::Script::ObjectFactory::CreateAsset(const Asset* asset)
 {
-    handle->Object = nullptr;
+    if (m_EntryPoints.CreateAsset == nullptr)
+    {
+        return {};
+    }
 
-    mono_gchandle_free(handle->Handle);
+    return { m_EntryPoints.CreateAsset(static_cast<std::int32_t>(asset->GetType()), ToManaged(asset->GetUId())) };
 }
 
-void Pine::Script::ObjectFactory::DisposeEntity(ObjectHandle *handle)
+void Pine::Script::ObjectFactory::DisposeObject(ObjectHandle* handle)
 {
-    int newValidState = 0;
-
-    mono_field_set_value(mono_gchandle_get_target(handle->Handle), m_EntityValidProperty, &newValidState);
-
-    DisposeObject(handle);
+    Dispose(m_EntryPoints.DisposeObject, handle);
 }
 
-void Pine::Script::ObjectFactory::DisposeComponent(const Component* component, ObjectHandle *handle)
+void Pine::Script::ObjectFactory::DisposeEntity(ObjectHandle* handle)
 {
-    const auto& componentData = m_ComponentObjectFactory[component->GetType()];
+    Dispose(m_EntryPoints.DisposeEntity, handle);
+}
 
-    bool newValidState = false;
-
-    mono_field_set_value(mono_gchandle_get_target(handle->Handle), componentData->m_ComponentIsValidField, &newValidState);
-
-    DisposeObject(handle);
+void Pine::Script::ObjectFactory::DisposeComponent(ObjectHandle* handle)
+{
+    Dispose(m_EntryPoints.DisposeComponent, handle);
 }

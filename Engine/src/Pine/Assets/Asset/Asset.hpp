@@ -160,7 +160,7 @@ namespace Pine
 
         bool m_HasBeenModified = false;
 
-        Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
+        Script::ObjectHandle m_ScriptObjectHandle;
 
         virtual bool LoadAssetData(const ByteSpan& span);
         virtual ByteSpan SaveAssetData();
@@ -236,12 +236,8 @@ namespace Pine
 
         void CreateScriptHandle();
         void DestroyScriptHandle();
-        // Drops the managed mirror without touching Mono — used when the appdomain is being
-        // unloaded (hot reload), which frees all GC handles wholesale. The mirror is lazily
-        // rebuilt on the next GetScriptHandle() access against the fresh domain.
-        void InvalidateScriptHandle();
         // Lazily creates the managed mirror on first access (only for assets actually touched
-        // by script), and returns it. Rebuilds automatically after a domain reset.
+        // by script), and returns it.
         Script::ObjectHandle* GetScriptHandle();
 
         ByteSpan Save();

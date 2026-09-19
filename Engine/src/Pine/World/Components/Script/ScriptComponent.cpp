@@ -3,8 +3,6 @@
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
 
-#include <mono/metadata/object.h>
-
 namespace
 {
     // Stored values are matched to fields by name, so that renaming a field loses only that field
@@ -70,8 +68,7 @@ void Pine::ScriptComponent::OnCopied()
 {
     Component::OnCopied();
 
-    m_ScriptObjectHandle.Object = nullptr;
-    m_ScriptObjectHandle.Handle = 0;
+    m_ScriptObjectHandle = {};
 }
 
 void Pine::ScriptComponent::OnDestroyed()
@@ -154,7 +151,7 @@ void Pine::ScriptComponent::CreateInstance()
         return;
     }
 
-    if (m_ScriptObjectHandle.Object != nullptr)
+    if (m_ScriptObjectHandle.IsValid())
     {
         return;
     }
@@ -173,7 +170,7 @@ void Pine::ScriptComponent::CreateInstance()
 
 void Pine::ScriptComponent::DestroyInstance()
 {
-    if (m_ScriptObjectHandle.Object == nullptr)
+    if (!m_ScriptObjectHandle.IsValid())
     {
         return;
     }
@@ -185,7 +182,7 @@ void Pine::ScriptComponent::CaptureFieldValues()
 {
     const auto script = m_Script.Get();
 
-    if (m_ScriptObjectHandle.Object == nullptr || script == nullptr)
+    if (!m_ScriptObjectHandle.IsValid() || script == nullptr)
     {
         return;
     }
@@ -197,13 +194,11 @@ void Pine::ScriptComponent::CaptureFieldValues()
         return;
     }
 
-    const auto object = mono_gchandle_get_target(m_ScriptObjectHandle.Handle);
-
     for (const auto& field : scriptData->Fields)
     {
         ScriptFieldValue value;
 
-        if (!field->ReadValue(object, value))
+        if (!field->ReadValue(m_ScriptObjectHandle, value))
         {
             continue;
         }
@@ -223,7 +218,7 @@ void Pine::ScriptComponent::ApplyFieldValues() const
 {
     const auto script = m_Script.Get();
 
-    if (m_ScriptObjectHandle.Object == nullptr || script == nullptr)
+    if (!m_ScriptObjectHandle.IsValid() || script == nullptr)
     {
         return;
     }
@@ -234,8 +229,6 @@ void Pine::ScriptComponent::ApplyFieldValues() const
     {
         return;
     }
-
-    const auto object = mono_gchandle_get_target(m_ScriptObjectHandle.Handle);
 
     for (const auto& field : scriptData->Fields)
     {
@@ -248,7 +241,7 @@ void Pine::ScriptComponent::ApplyFieldValues() const
 
             // A mismatched type is left alone rather than dropped: a field that changed from float
             // to Vector3 and back should find its old value still waiting for it.
-            field->WriteValue(object, value);
+            field->WriteValue(m_ScriptObjectHandle, value);
 
             break;
         }

@@ -1,20 +1,20 @@
-using System.Runtime.CompilerServices;
 using Pine.Assets;
+using Pine.Core;
+using Pine.Core.Bindings;
 
 namespace Pine.World.Components
 {
-    public class Script : Component
+    [ComponentType(ComponentType.Script)]
+    public unsafe class Script : Component
     {
-        public CSharpScript ScriptAsset => (CSharpScript)GetScript(InternalId);
+        public CSharpScript ScriptAsset
+            => Interop.ObjectFrom<CSharpScript>(ComponentBindings.ScriptGetCSharpScript(InternalId));
 
-        public T GetScriptInstance<T>() where T : Script => (T)GetScriptInstanceInternal(InternalId);
-        public Script GetScriptInstance() => GetScriptInstanceInternal(InternalId);
-        
+        public T GetScriptInstance<T>() where T : Script => (T)GetScriptInstance();
+
+        public Script GetScriptInstance()
+            => Interop.ObjectFrom<Script>(ComponentBindings.ScriptGetInstance(InternalId));
+
         protected Transform Transform => Parent.Transform;
-        
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern Asset GetScript(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern Script GetScriptInstanceInternal(uint id);
     }
 }

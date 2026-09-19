@@ -45,6 +45,39 @@
             throw std::runtime_error(std::string("The script has no reflected field named ") + name);
         };
 
+        // ScriptField exchanges values in the stored, type-tagged form, and the fixed-size types
+        // are laid out the same on the managed and the native side, so the bytes go straight
+        // across. The variable-length ones (String, Asset) build their own value below.
+        const auto writeValue = [&](const Pine::Script::ObjectHandle& object, const char* name, auto value)
+        {
+            Pine::ScriptFieldValue stored;
+
+            stored.Name = name;
+            stored.Type = fieldOf(name)->GetType();
+
+            const auto bytes = reinterpret_cast<const std::byte*>(&value);
+
+            stored.Data.assign(bytes, bytes + sizeof(value));
+
+            fieldOf(name)->WriteValue(object, stored);
+        };
+
+        const auto valueIs = [&](const Pine::Script::ObjectHandle& object, const char* name, auto expected)
+        {
+            Pine::ScriptFieldValue stored;
+
+            if (!fieldOf(name)->ReadValue(object, stored) || stored.Data.size() != sizeof(expected))
+            {
+                return false;
+            }
+
+            decltype(expected) actual{};
+
+            std::memcpy(&actual, stored.Data.data(), sizeof(actual));
+
+            return actual == expected;
+        };
+
         // A double is not a type the engine can store, so it has to be left out of the reflection
         // entirely rather than reflected as something nothing downstream knows what to do with.
         for (const auto field : fields())
@@ -53,8 +86,72 @@
                 "An unsupported field type was reflected: " + field->GetName());
         }
 
-        check(fields().size() == 9,
-            "Expected nine reflected fields, got " + std::to_string(fields().size()));
+        const auto hasField = [&](const char* name)
+        {
+            for (const auto field : fields())
+            {
+                if (field->GetName() == name)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        check(fields().size() == 15,
+            "Expected fifteen reflected fields, got " + std::to_string(fields().size()));
+
+        // Managed reflection hands back inherited fields where the old native enumeration did not,
+        // so the two Component declares have to be left out deliberately.
+        check(!hasField("Parent") && !hasField("Type"),
+            "A field inherited from Component was reflected");
+
+        // What the two attributes that decide whether a field is reflected at all are for.
+        check(hasField("Serialized"), "A private [SerializeField] field was not reflected");
+        check(!hasField("Ignored"), "A public [HideInInspector] field was reflected");
+
+        // The rest only say how a field should be drawn.
+        check(fieldOf("Ranged")->HasRange()
+            && fieldOf("Ranged")->GetRangeMin() == 0.f && fieldOf("Ranged")->GetRangeMax() == 10.f,
+            "A [Range] on a float did not survive reflection");
+        check(fieldOf("RangedCount")->HasRange()
+            && fieldOf("RangedCount")->GetRangeMin() == 0.f && fieldOf("RangedCount")->GetRangeMax() == 4.f,
+            "A [Range] on an int did not survive reflection");
+        check(!fieldOf("Speed")->HasRange(), "A field with no [Range] reported one");
+
+        check(fieldOf("Described")->GetTooltip() == "How far it goes.",
+            "A [Tooltip] did not survive reflection");
+        check(fieldOf("Speed")->GetTooltip().empty(), "A field with no [Tooltip] reported one");
+
+        check(fieldOf("Grouped")->GetHeader() == "Movement", "A [Header] did not survive reflection");
+        check(fieldOf("Speed")->GetHeader().empty(), "A field with no [Header] reported one");
+
+        check(fieldOf("Spaced")->HasSpace(), "A [Space] did not survive reflection");
+        check(!fieldOf("Speed")->HasSpace(), "A field with no [Space] reported one");
+
+        // A script deriving from another script gets both classes' fields, base first, and still
+        // none of Component's.
+        auto derivedAsset = dynamic_cast<Pine::CSharpScript*>(
+            Pine::Assets::CreateAsset(Pine::AssetType::CSharpScript, "projects/scriptfields/assets/DerivedFieldTest"));
+
+        check(derivedAsset != nullptr, "Failed to create the derived script asset");
+
+        derivedAsset->SetTypeName("Game.DerivedFieldTest");
+
+        Pine::Assets::Internal::RegisterAsset(derivedAsset);
+        Pine::Script::Manager::ReloadScripts();
+
+        check(derivedAsset->GetScriptData() != nullptr && derivedAsset->GetScriptData()->IsReady,
+            "Game.DerivedFieldTest did not resolve against the game assembly");
+
+        const auto& derivedFields = derivedAsset->GetScriptData()->Fields;
+
+        check(derivedFields.size() == 16,
+            "Expected sixteen reflected fields on the derived script, got "
+                + std::to_string(derivedFields.size()));
+        check(derivedFields.back()->GetName() == "Extra",
+            "The derived script's own field did not come after the ones it inherits");
 
         // A concrete asset type has to classify through the Asset base, since matching on the type
         // name would only ever recognise a field declared as Asset itself.
@@ -88,9 +185,9 @@
 
         const auto author = [&](Pine::ScriptComponent* component)
         {
-            const auto object = mono_gchandle_get_target(component->GetScriptObjectHandle()->Handle);
+            const auto& object = *component->GetScriptObjectHandle();
 
-            check(object != nullptr, "The script component has no managed object to author");
+            check(object.IsValid(), "The script component has no managed object to author");
 
             Pine::ScriptFieldValue text;
 
@@ -99,12 +196,13 @@
             text.Data.assign(reinterpret_cast<const std::byte*>(label.data()),
                              reinterpret_cast<const std::byte*>(label.data()) + label.size());
 
-            fieldOf("Flag")->Set(object, true);
-            fieldOf("Count")->Set(object, 8);
-            fieldOf("Speed")->Set(object, 3.5f);
-            fieldOf("Offset")->Set(object, Pine::Vector2f(1.f, 2.f));
-            fieldOf("Origin")->Set(object, Pine::Vector3f(3.f, 4.f, 5.f));
-            fieldOf("Tint")->Set(object, Pine::Vector4f(6.f, 7.f, 8.f, 9.f));
+            writeValue(object, "Flag", true);
+            writeValue(object, "Count", 8);
+            writeValue(object, "Speed", 3.5f);
+            writeValue(object, "Serialized", 1.25f);
+            writeValue(object, "Offset", Pine::Vector2f(1.f, 2.f));
+            writeValue(object, "Origin", Pine::Vector3f(3.f, 4.f, 5.f));
+            writeValue(object, "Tint", Pine::Vector4f(6.f, 7.f, 8.f, 9.f));
             fieldOf("Label")->WriteValue(object, text);
             fieldOf("Prop")->WriteValue(object, assetValue("Prop", model));
         };
@@ -116,16 +214,17 @@
                 return stage + " did not preserve " + what;
             };
 
-            const auto object = mono_gchandle_get_target(component->GetScriptObjectHandle()->Handle);
+            const auto& object = *component->GetScriptObjectHandle();
 
-            check(object != nullptr, stage + " left the component without a managed object");
+            check(object.IsValid(), stage + " left the component without a managed object");
 
-            check(fieldOf("Flag")->Get<bool>(object), failure("a bool"));
-            check(fieldOf("Count")->Get<int>(object) == 8, failure("an int"));
-            check(fieldOf("Speed")->Get<float>(object) == 3.5f, failure("a float"));
-            check(fieldOf("Offset")->Get<Pine::Vector2f>(object) == Pine::Vector2f(1.f, 2.f), failure("a Vector2"));
-            check(fieldOf("Origin")->Get<Pine::Vector3f>(object) == Pine::Vector3f(3.f, 4.f, 5.f), failure("a Vector3"));
-            check(fieldOf("Tint")->Get<Pine::Vector4f>(object) == Pine::Vector4f(6.f, 7.f, 8.f, 9.f), failure("a Vector4"));
+            check(valueIs(object, "Flag", true), failure("a bool"));
+            check(valueIs(object, "Count", 8), failure("an int"));
+            check(valueIs(object, "Speed", 3.5f), failure("a float"));
+            check(valueIs(object, "Serialized", 1.25f), failure("a [SerializeField] private float"));
+            check(valueIs(object, "Offset", Pine::Vector2f(1.f, 2.f)), failure("a Vector2"));
+            check(valueIs(object, "Origin", Pine::Vector3f(3.f, 4.f, 5.f)), failure("a Vector3"));
+            check(valueIs(object, "Tint", Pine::Vector4f(6.f, 7.f, 8.f, 9.f)), failure("a Vector4"));
 
             Pine::ScriptFieldValue value;
 

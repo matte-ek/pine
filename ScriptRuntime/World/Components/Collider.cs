@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using Pine.Core.Bindings;
 using Pine.Math;
 
 namespace Pine.World.Components
@@ -13,12 +13,13 @@ namespace Pine.World.Components
         HeightField
     }
 
-    public class Collider : Component
+    [ComponentType(ComponentType.Collider)]
+    public unsafe class Collider : Component
     {
         public ColliderType ColliderType
         {
-            get => (ColliderType)PineGetColliderType(InternalId);
-            set => PineSetColliderType(InternalId, (int)value);
+            get => (ColliderType)ComponentBindings.ColliderGetColliderType(InternalId);
+            set => ComponentBindings.ColliderSetColliderType(InternalId, (int)value);
         }
 
         // The collider's offset from the entity's origin.
@@ -26,10 +27,13 @@ namespace Pine.World.Components
         {
             get
             {
-                PineGetPosition(InternalId, out var position);
+                Vector3 position;
+
+                ComponentBindings.ColliderGetPosition(InternalId, &position);
+
                 return position;
             }
-            set => PineSetPosition(InternalId, ref value);
+            set => ComponentBindings.ColliderSetPosition(InternalId, &value);
         }
 
         // Box half-extents. Sphere and capsule read their dimensions out of this too - use Radius
@@ -38,38 +42,41 @@ namespace Pine.World.Components
         {
             get
             {
-                PineGetSize(InternalId, out var size);
+                Vector3 size;
+
+                ComponentBindings.ColliderGetSize(InternalId, &size);
+
                 return size;
             }
-            set => PineSetSize(InternalId, ref value);
+            set => ComponentBindings.ColliderSetSize(InternalId, &value);
         }
 
         // Sphere and capsule only.
         public float Radius
         {
-            get => PineGetRadius(InternalId);
-            set => PineSetRadius(InternalId, value);
+            get => ComponentBindings.ColliderGetRadius(InternalId);
+            set => ComponentBindings.ColliderSetRadius(InternalId, value);
         }
 
         // Capsule only.
         public float Height
         {
-            get => PineGetHeight(InternalId);
-            set => PineSetHeight(InternalId, value);
+            get => ComponentBindings.ColliderGetHeight(InternalId);
+            set => ComponentBindings.ColliderSetHeight(InternalId, value);
         }
 
         // The layer this collider occupies, and the mask of layers it collides with. The same layer
         // space CharacterController and Physics3D.RayCast use.
         public uint Layer
         {
-            get => PineGetLayer(InternalId);
-            set => PineSetLayer(InternalId, value);
+            get => ComponentBindings.ColliderGetLayer(InternalId);
+            set => ComponentBindings.ColliderSetLayer(InternalId, value);
         }
 
         public uint LayerMask
         {
-            get => PineGetLayerMask(InternalId);
-            set => PineSetLayerMask(InternalId, value);
+            get => ComponentBindings.ColliderGetLayerMask(InternalId);
+            set => ComponentBindings.ColliderSetLayerMask(InternalId, value);
         }
 
         // A trigger is still reported by queries but no longer stops anything moving through it.
@@ -77,51 +84,14 @@ namespace Pine.World.Components
         // check instead.
         public bool IsTrigger
         {
-            get => PineGetIsTrigger(InternalId);
-            set => PineSetIsTrigger(InternalId, value);
+            get => ComponentBindings.ColliderGetIsTrigger(InternalId) != 0;
+            set => ComponentBindings.ColliderSetIsTrigger(InternalId, value ? (byte)1 : (byte)0);
         }
 
         public uint TriggerMask
         {
-            get => PineGetTriggerMask(InternalId);
-            set => PineSetTriggerMask(InternalId, value);
+            get => ComponentBindings.ColliderGetTriggerMask(InternalId);
+            set => ComponentBindings.ColliderSetTriggerMask(InternalId, value);
         }
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern int PineGetColliderType(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetColliderType(uint id, int type);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineGetPosition(uint id, out Vector3 position);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetPosition(uint id, ref Vector3 position);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineGetSize(uint id, out Vector3 size);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetSize(uint id, ref Vector3 size);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetRadius(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetRadius(uint id, float radius);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetHeight(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetHeight(uint id, float height);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern uint PineGetLayer(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetLayer(uint id, uint layer);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern uint PineGetLayerMask(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetLayerMask(uint id, uint layerMask);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool PineGetIsTrigger(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetIsTrigger(uint id, bool isTrigger);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern uint PineGetTriggerMask(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetTriggerMask(uint id, uint mask);
     }
 }

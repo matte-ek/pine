@@ -1,96 +1,196 @@
 #include "ScriptingRuntime.hpp"
-#include "Pine/Core/Log/Log.hpp"
-#include "Pine/Script/Interfaces/Interfaces.hpp"
-#include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/CSharpScript/CSharpScript.hpp"
-#include "Pine/Script/ScriptManager.hpp"
-#include "Pine/World/Entities/Entities.hpp"
-#include "Pine/World/Components/Script/ScriptComponent.hpp"
 
-#include <mono/jit/jit.h>
-#include <mono/metadata/appdomain.h>
-#include <mono/metadata/assembly.h>
-#include <mono/metadata/mono-gc.h>
-#include <mono/metadata/mono-config.h>
+#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Script/Bindings/Bindings.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
+#include "Pine/Script/GameAssembly/GameAssembly.hpp"
+#include "../ManagedCall/ManagedCall.hpp"
+#include "Pine/Script/Scripts/ScriptFieldRegistry.hpp"
+
+#include <coreclr_delegates.h>
+#include <hostfxr.h>
+#include <nethost.h>
+
+#include <dlfcn.h>
+#include <filesystem>
 #include <vector>
 
 namespace
 {
-    MonoDomain *m_RootDomain;
-    MonoDomain *m_AppDomain;
-    MonoAssembly *m_PineAssembly;
-    MonoImage *m_PineImage;
+    // The engine's own managed assembly, and the configuration CoreCLR is started from, relative
+    // to the working directory - which is the data/ tree every application runs from.
+    constexpr auto PineAssemblyPath = "engine/script/Pine.dll";
+    constexpr auto PineRuntimeConfigPath = "engine/script/Pine.runtimeconfig.json";
 
-    std::vector<Pine::Script::RuntimeAssembly> m_Assemblies;
+    constexpr auto InteropTypeName = "Pine.Core.Interop, Pine";
 
-    bool m_IsReloading = false;
-    int m_ReloadIndex = 0;
+    void* m_HostFxrLibrary = nullptr;
+    hostfxr_handle m_HostContext = nullptr;
+    hostfxr_close_fn m_CloseHost = nullptr;
+
+    void (*m_RunGarbageCollector)() = nullptr;
 
     bool m_IsAvailable = false;
+
+    // libhostfxr is not linked against, because where it lives depends on which .NET is
+    // installed. nethost answers that, and the three entry points the engine needs come out of
+    // the library by name.
+    bool LoadHostFxr()
+    {
+        char path[2048];
+        auto length = sizeof(path) / sizeof(char);
+
+        if (get_hostfxr_path(path, &length, nullptr) != 0)
+        {
+            PWarning("Script: No .NET runtime host found on this machine, scripting is off. "
+                     "Install a .NET runtime to turn it on.");
+
+            return false;
+        }
+
+        m_HostFxrLibrary = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
+
+        if (m_HostFxrLibrary == nullptr)
+        {
+            PError(fmt::format("Script: Failed to load the .NET runtime host at {}: {}",
+                path, dlerror()));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    template <typename Signature>
+    Signature HostFxrFunction(const char* name)
+    {
+        return reinterpret_cast<Signature>(dlsym(m_HostFxrLibrary, name));
+    }
+
+    // Both hosting calls want a path rather than something to resolve, and hdt_load_assembly
+    // documents its own as fully qualified. The two are resolved together so there is no
+    // remembering which of them is the fussy one.
+    std::string AbsolutePath(const char* path)
+    {
+        return std::filesystem::absolute(path).string();
+    }
+
+    // Start CoreCLR from Pine.runtimeconfig.json and hand back the two delegates the engine
+    // works through: one to load an assembly into the default context, one to resolve a method.
+    bool StartRuntime(load_assembly_fn& loadAssembly, get_function_pointer_fn& getFunctionPointer)
+    {
+        const auto initialize = HostFxrFunction<hostfxr_initialize_for_runtime_config_fn>(
+            "hostfxr_initialize_for_runtime_config");
+        const auto getDelegate = HostFxrFunction<hostfxr_get_runtime_delegate_fn>(
+            "hostfxr_get_runtime_delegate");
+
+        m_CloseHost = HostFxrFunction<hostfxr_close_fn>("hostfxr_close");
+
+        if (initialize == nullptr || getDelegate == nullptr || m_CloseHost == nullptr)
+        {
+            PError("Script: The .NET runtime host is missing the entry points the engine starts "
+                   "it through, scripting system inoperational.");
+
+            return false;
+        }
+
+        const auto configPath = AbsolutePath(PineRuntimeConfigPath);
+
+        if (initialize(configPath.c_str(), nullptr, &m_HostContext) != 0 || m_HostContext == nullptr)
+        {
+            PError(fmt::format("Script: Failed to start the .NET runtime from {}, scripting "
+                               "system inoperational.", configPath));
+
+            return false;
+        }
+
+        // hdt_load_assembly, and deliberately not hdt_load_assembly_and_get_function_pointer:
+        // that one puts each assembly in a private load context of its own, and a game assembly
+        // resolving Pine from the default context would then find nothing - or a second copy,
+        // whose Script class is a different type from the one the object factory knows.
+        if (getDelegate(m_HostContext, hdt_load_assembly, reinterpret_cast<void**>(&loadAssembly)) != 0
+            || getDelegate(m_HostContext, hdt_get_function_pointer, reinterpret_cast<void**>(&getFunctionPointer)) != 0)
+        {
+            PError("Script: The .NET runtime host would not hand over the delegates the engine "
+                   "loads managed code through, scripting system inoperational.");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    // Tell Pine.dll how to reach the engine. Everything C# calls goes through the one function
+    // this hands over - see Script/Bindings/Bindings.hpp - so it has to happen before any other
+    // managed code runs, including anything that would like to log why it failed.
+    bool BindPineAssembly()
+    {
+        using InitializeFn = std::int32_t (*)(void* (*)(const char*));
+
+        const auto initialize = Pine::Script::ManagedCall::Find<InitializeFn>(
+            InteropTypeName, "Initialize");
+
+        if (initialize == nullptr)
+        {
+            return false;
+        }
+
+        Pine::Script::Bindings::Setup();
+
+        if (initialize(Pine::Script::Bindings::Resolve) != 1)
+        {
+            PError("Script: Pine.dll could not bind itself to the engine, scripting system "
+                   "inoperational.");
+
+            return false;
+        }
+
+        return true;
+    }
 }
 
 bool Pine::Script::Runtime::Setup()
 {
-    if (!m_IsReloading)
+    if (!LoadHostFxr())
     {
-        m_RootDomain = mono_jit_init("PineRuntime");
-
-        if (!m_RootDomain)
-        {
-            PError("Script: Failed to initialize Mono runtime, scripting system inoperational.");
-            return false;
-        }
-    }
-
-    char buff[64];
-
-    sprintf(buff, "PineAppDomain%d", m_ReloadIndex++);
-
-    m_AppDomain = mono_domain_create_appdomain(const_cast<char*>(buff), nullptr);
-
-    mono_domain_set(m_AppDomain, false);
-
-    // TODO: Figure out how we'll handle this on Winblows
-    mono_config_parse("/etc/mono/config");
-
-    m_PineAssembly = mono_domain_assembly_open(m_AppDomain, "engine/script/Pine.dll");
-    if (!m_PineAssembly)
-    {
-        PError("Script: Failed to open Pine engine assembly, scripting system inoperational.");
         return false;
     }
 
-    m_PineImage = mono_assembly_get_image(m_PineAssembly);
+    load_assembly_fn loadAssembly = nullptr;
+    get_function_pointer_fn getFunctionPointer = nullptr;
 
-    Interfaces::Log::Setup();
-    Interfaces::Entity::Setup();
-    Interfaces::Component::Setup();
-    Interfaces::Asset::Setup();
-    Interfaces::Input::Setup();
-    Interfaces::Physics::Setup();
-    ObjectFactory::Setup();
-
-    if (m_IsReloading)
+    if (!StartRuntime(loadAssembly, getFunctionPointer))
     {
-        /*
-        for (const auto& [assetPath, asset] : Assets::GetAll())
-        {
-            if (asset->IsDeleted())
-                continue;
+        return false;
+    }
 
-            asset->CreateScriptHandle();
-        }
-        */
+    const auto assemblyPath = AbsolutePath(PineAssemblyPath);
 
-        for (const auto& entity : Entities::GetList())
-        {
-            entity->CreateScriptHandle();
+    if (loadAssembly(assemblyPath.c_str(), nullptr, nullptr) != 0)
+    {
+        PError(fmt::format("Script: Failed to load the Pine engine assembly at {}, scripting "
+                           "system inoperational.", assemblyPath));
 
-            for (const auto& component : entity->GetComponents())
-            {
-                component->CreateScriptInstance();
-            }
-        }
+        return false;
+    }
+
+    ManagedCall::Setup(getFunctionPointer);
+
+    if (!BindPineAssembly())
+    {
+        return false;
+    }
+
+    m_RunGarbageCollector = ManagedCall::Find<void (*)()>(InteropTypeName, "RunGarbageCollector");
+
+    ObjectFactory::Setup();
+    GameAssembly::Setup();
+
+    // The one seam that can refuse: it checks that the engine and Pine.dll still agree on the
+    // shape of a field descriptor. Scripts run either way; their fields would not be reflected.
+    if (!FieldRegistry::Setup())
+    {
+        PError("Script: Script fields will not be reflected.");
     }
 
     m_IsAvailable = true;
@@ -100,152 +200,29 @@ bool Pine::Script::Runtime::Setup()
 
 void Pine::Script::Runtime::Dispose()
 {
-    // The appdomain is about to be unloaded, which frees every GC handle wholesale. Mark the
-    // runtime unavailable so nothing tries to create/free handles against the dying domain, and
-    // invalidate all managed mirrors — they are lazily rebuilt on next access against the fresh
-    // domain (assets are re-anchored by UId; see Asset::GetScriptHandle).
+    // Nothing managed may be created or freed from here on, which is why Pine::Engine::Shutdown
+    // leaves this until after the entities, components and assets have let go of their mirrors.
     m_IsAvailable = false;
 
-    for (const auto& [id, asset] : Assets::GetAll())
+    if (m_HostContext != nullptr)
     {
-        asset->InvalidateScriptHandle();
+        m_CloseHost(m_HostContext);
+
+        m_HostContext = nullptr;
     }
 
-    for (const auto& entity : Entities::GetList())
-    {
-        entity->DestroyScriptHandle();
-
-        for (const auto& component : entity->GetComponents())
-        {
-            if (component->GetType() == ComponentType::Script)
-            {
-                auto scriptComponent = dynamic_cast<ScriptComponent*>(component);
-
-                // The domain is about to take every managed object with it, and a script's field
-                // values live nowhere else. Read them back into the component first, so the object
-                // rebuilt against the fresh domain starts from what the author set rather than
-                // from the C# field initializers.
-                scriptComponent->CaptureFieldValues();
-                scriptComponent->DestroyInstance();
-            }
-
-            component->DestroyScriptInstance();
-        }
-    }
-
-    mono_domain_set(mono_get_root_domain(), false);
-    mono_domain_finalize(m_AppDomain, 0);
-    mono_domain_unload(m_AppDomain);
-    //mono_jit_cleanup(m_AppDomain);
-
-//    RunGarbageCollector();
-
-    m_AppDomain = nullptr;
-    m_IsReloading = true;
-    m_Assemblies.clear();
-}
-
-Pine::Script::RuntimeAssembly* Pine::Script::Runtime::LoadAssembly(const std::filesystem::path &path)
-{
-    if (!m_RootDomain)
-    {
-        PError("Mono runtime not initialized.");
-        return nullptr;
-    }
-
-    for (const auto &assembly: m_Assemblies)
-    {
-        if (assembly.Path == path)
-        {
-            PError(fmt::format("Assembly already loaded: {}", path.string()));
-            return nullptr;
-        }
-    }
-
-    auto assembly = mono_domain_assembly_open(m_AppDomain, path.string().c_str());
-    if (!assembly)
-    {
-        PError(fmt::format("Failed to open assembly: {}", path.string()));
-        return nullptr;
-    }
-
-    auto image = mono_assembly_get_image(assembly);
-    if (!image)
-    {
-        PError(fmt::format("Failed to get image from assembly: {}", path.string()));
-        return nullptr;
-    }
-
-    RuntimeAssembly runtimeAssembly = {path, assembly, image};
-
-    m_Assemblies.push_back(runtimeAssembly);
-
-    return &m_Assemblies.back();
-}
-
-bool Pine::Script::Runtime::UnloadAssembly(const RuntimeAssembly *assembly)
-{
-    if (!m_RootDomain)
-    {
-        PError("Mono runtime not initialized.");
-        return false;
-    }
-
-    if (!assembly)
-    {
-        PError("Assembly is null.");
-        return false;
-    }
-
-    if (assembly->Assembly)
-    {
-        mono_assembly_close(assembly->Assembly);
-    }
-    else
-    {
-        return false;
-    }
-
-    for (int i = 0; i < m_Assemblies.size(); i++)
-    {
-        if (&m_Assemblies[i] == assembly)
-        {
-            m_Assemblies.erase(m_Assemblies.begin() + i);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-MonoAssembly *Pine::Script::Runtime::GetPineAssembly()
-{
-    return m_PineAssembly;
-}
-
-MonoDomain *Pine::Script::Runtime::GetDomain()
-{
-    return m_AppDomain;
-}
-
-MonoImage *Pine::Script::Runtime::GetPineImage()
-{
-    return m_PineImage;
+    // libhostfxr is deliberately left loaded. Unloading it while the runtime it started is still
+    // in the process is a good way to crash on the way out, and the process is ending anyway.
 }
 
 void Pine::Script::Runtime::RunGarbageCollector()
 {
-    PVerbose("Running mono garbage collector...");
+    if (m_RunGarbageCollector == nullptr)
+    {
+        return;
+    }
 
-    mono_gc_collect(mono_gc_max_generation());
-
-    PVerbose(fmt::format("mono_gc_get_heap_size(): {}", mono_gc_get_heap_size()));
-}
-
-void Pine::Script::Runtime::Reset()
-{
-    Dispose();
-    Setup();
+    m_RunGarbageCollector();
 }
 
 bool Pine::Script::Runtime::IsAvailable()

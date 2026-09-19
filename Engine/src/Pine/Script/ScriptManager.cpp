@@ -1,22 +1,18 @@
 #include "ScriptManager.hpp"
-#include "Pine/Script/Runtime/ScriptingRuntime.hpp"
+#include "Pine/Script/GameAssembly/GameAssembly.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
+#include "Pine/Script/Scripts/ScriptFieldRegistry.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
 #include "Pine/World/Entity/Entity.hpp"
-#include "mono/metadata/class.h"
 
-#include <cstring>
+#include <cassert>
 #include <vector>
-
-#include <mono/metadata/appdomain.h>
-#include <mono/metadata/attrdefs.h>
-#include <mono/metadata/exception.h>
 
 #include "Pine/Performance/Performance.hpp"
 
@@ -24,7 +20,6 @@ namespace
 {
     bool m_HasGameAssembly = false;
 
-    Pine::Script::RuntimeAssembly* m_GameAssembly;
     std::filesystem::path m_GameAssemblyPath;
 
     std::vector<Pine::ScriptData*> m_ScriptData;
@@ -52,45 +47,39 @@ namespace
         return scripts;
     }
 
-    // Finds all and populates all public fields for a script class
+    // Asks the scripting runtime which of a script class' fields the editor shows, and what it
+    // should know about each of them. Both the decision and the reflection itself live in Pine.dll
+    // - see Pine.Core.Reflection.FieldRegistry - because they are made from custom attributes.
     void ProcessScriptFields(Pine::ScriptData* scriptData)
     {
-        MonoClassField* field;
-        void* iterator = nullptr;
-        while ((field = mono_class_get_fields(scriptData->Class, &iterator)))
+        const Pine::Script::GameAssembly::ScopedClassType classType(scriptData->ClassId);
+
+        // The field registry keeps its own ids, which are not the game assembly's. Nothing needs
+        // to hold this one: it goes into each ScriptField as it is made, and the class is only
+        // ever reached through those from here on.
+        const auto fieldClassId = Pine::Script::FieldRegistry::Register(classType.GetHandle());
+
+        if (fieldClassId < 0)
         {
-            const auto name = mono_field_get_name(field);
+            PWarning(fmt::format("Failed to reflect the fields of script: {}",
+                scriptData->Asset->GetFilePath().string()));
 
-            // Ignore Pine fields
-            if (strcmp(name, "Parent") == 0 || strcmp(name, "Type") == 0)
-                continue;
+            return;
+        }
 
-            const auto accessFlag = mono_field_get_flags(field) & MONO_FIELD_ATTR_FIELD_ACCESS_MASK;
+        const auto descriptors = Pine::Script::FieldRegistry::GetDescriptors(fieldClassId);
 
-            if (!(accessFlag & MONO_FIELD_ATTR_PUBLIC))
-                continue;
-
-            const auto type = mono_field_get_type(field);
-
-            auto scriptField = new Pine::ScriptField(name, field, scriptData, type);
-
-            // A type the editor can neither show nor store. The field still works in C#; it just
-            // isn't reflected, so nothing downstream has to keep checking for it.
-            if (scriptField->GetType() == Pine::ScriptFieldType::Invalid)
-            {
-                delete scriptField;
-
-                continue;
-            }
-
-            scriptData->Fields.push_back(scriptField);
+        for (std::size_t index = 0; index < descriptors.size(); index++)
+        {
+            scriptData->Fields.push_back(
+                new Pine::ScriptField(scriptData, fieldClassId, static_cast<int>(index), descriptors[index]));
         }
     }
 
     // Populates all fields of a script data instance
     void ResolveScriptData(Pine::ScriptData* scriptData)
     {
-        if (!m_GameAssembly)
+        if (!m_HasGameAssembly)
         {
             return;
         }
@@ -111,27 +100,74 @@ namespace
             className = className.substr(dot + 1);
         }
 
-        auto monoClass = mono_class_from_name(m_GameAssembly->Image, namespaceName.c_str(), className.c_str());
-        if (!monoClass)
+        // The class has to exist in the game assembly and inherit from the `Script` class - that
+        // is what gives an instance the Component identity the object factory writes into it. The
+        // lifecycle methods are all optional, so the registry reports which ones are there rather
+        // than requiring any of them.
+        const auto resolved = Pine::Script::GameAssembly::ResolveClass(namespaceName, className);
+
+        if (resolved.Id < 0)
         {
             PWarning(fmt::format("Failed to find class for script: {}.{}", namespaceName, className));
+
             return;
         }
 
-        scriptData->Class = monoClass;
-
-        scriptData->MethodOnStart = mono_class_get_method_from_name(scriptData->Class, "OnStart", 0);
-        scriptData->MethodOnDestroy = mono_class_get_method_from_name(scriptData->Class, "OnDestroy", 0);
-        scriptData->MethodOnUpdate = mono_class_get_method_from_name(scriptData->Class, "OnUpdate", 1);
-        scriptData->MethodOnRender = mono_class_get_method_from_name(scriptData->Class, "OnRender", 1);
-        scriptData->ComponentParentField = mono_class_get_field_from_name(scriptData->Class, "Parent");
-        scriptData->ComponentTypeField = mono_class_get_field_from_name(scriptData->Class, "Type");     
-        scriptData->ComponentInternalIdField = mono_class_get_field_from_name(scriptData->Class, "_internalId");
+        scriptData->ClassId = resolved.Id;
+        scriptData->HasOnStart = resolved.HasOnStart;
+        scriptData->HasOnUpdate = resolved.HasOnUpdate;
+        scriptData->IsReady = true;
 
         ProcessScriptFields(scriptData);
+    }
 
-        // Realistically, the only requirement is that the script is inheriting from the `Script` class.
-        scriptData->IsReady = scriptData->ComponentParentField && scriptData->ComponentTypeField;
+    // Everything the engine holds that refers into the game assembly: the resolved classes, and
+    // the reflected fields Pine.dll is keeping for them. Both have to be let go of before that
+    // assembly can be unloaded, which is why this is its own step rather than the first half of
+    // ReloadScripts - a reload runs it before the unload, and the rebuild after.
+    //
+    // ReloadScripts still starts with it, because Pine::Engine::Run calls that on its own with no
+    // unload anywhere near it. On the reload path it therefore runs twice, the second time over
+    // nothing.
+    void DestroyScriptData()
+    {
+        for (const auto& script : m_ScriptData)
+        {
+            script->Asset->SetScriptData(nullptr);
+
+            delete script;
+        }
+
+        m_ScriptData.clear();
+
+        Pine::Script::FieldRegistry::Reset();
+    }
+
+    // What a script component has to have before one of its lifecycle methods can be dispatched:
+    // a script asset, a class resolved out of the game assembly, and a managed instance to call
+    // the method on. Null when any of them is missing, in which case there is nothing to run.
+    Pine::ScriptData* DispatchableScript(Pine::ScriptComponent& scriptComponent)
+    {
+        const auto script = scriptComponent.GetScript();
+
+        if (!script)
+        {
+            return nullptr;
+        }
+
+        const auto scriptData = script->GetScriptData();
+
+        if (!scriptData || !scriptData->IsReady)
+        {
+            return nullptr;
+        }
+
+        if (!scriptComponent.GetScriptObjectHandle()->IsValid())
+        {
+            return nullptr;
+        }
+
+        return scriptData;
     }
 }
 
@@ -153,9 +189,7 @@ bool Pine::Script::Manager::HasGameAssembly()
 
 void Pine::Script::Manager::LoadGameAssembly(const std::filesystem::path &path)
 {
-    m_GameAssembly = Runtime::LoadAssembly(path);
-
-    if (!m_GameAssembly)
+    if (!GameAssembly::Load(path))
     {
         PError("Failed to load game assembly.");
         return;
@@ -169,9 +203,25 @@ void Pine::Script::Manager::ReloadGameAssembly()
 {
     assert(m_HasGameAssembly);
 
-    Runtime::Reset();
+    // Unloading the game assembly only works once nothing refers into it any more, and a single
+    // reference left behind makes it fail silently - the old assembly, and everything it brought
+    // with it, stays in memory for the rest of the session. So the engine lets go of all three
+    // kinds of reference it holds, in order, before asking for the unload.
+    for (auto& scriptComponent : Components::Get<ScriptComponent>(true))
+    {
+        // A script's field values live nowhere but its instance, so read them back into the
+        // component first. The instance rebuilt against the new assembly starts from what the
+        // author set rather than from the C# field initializers.
+        scriptComponent.CaptureFieldValues();
+        scriptComponent.DestroyInstance();
+    }
+
+    DestroyScriptData();
+
+    GameAssembly::Unload();
 
     LoadGameAssembly(m_GameAssemblyPath);
+
     ReloadScripts();
 
     for (auto& scriptComponent : Components::Get<ScriptComponent>(true))
@@ -182,19 +232,7 @@ void Pine::Script::Manager::ReloadGameAssembly()
 
 void Pine::Script::Manager::ReloadScripts()
 {
-    for (const auto& script : m_ScriptData)
-    {
-        for (const auto field : script->Fields)
-        {
-            delete field;
-        }
-
-        script->Asset->SetScriptData(nullptr);
-
-        delete script;
-    }
-
-    m_ScriptData.clear();
+    DestroyScriptData();
 
     const auto& scripts = GetAllScripts();
 
@@ -212,42 +250,23 @@ void Pine::Script::Manager::ReloadScripts()
     }
 }
 
+// Whatever a script throws is caught, logged with its stack trace and swallowed by managed code
+// - nothing may be thrown back across the boundary - so neither loop below has anything to
+// report.
 void Pine::Script::Manager::OnStart()
 {
     PINE_PF_SCOPE();
 
     for (auto& scriptComponent : Components::Get<ScriptComponent>())
     {
-        auto script = scriptComponent.GetScript();
+        const auto scriptData = DispatchableScript(scriptComponent);
 
-        if (!script)
+        if (!scriptData || !scriptData->HasOnStart)
         {
             continue;
         }
 
-        auto scriptData = script->GetScriptData();
-
-        if (!scriptData || !scriptData->IsReady || !scriptData->MethodOnStart)
-        {
-            continue;
-        }
-
-        auto objectHandle = scriptComponent.GetScriptObjectHandle();
-        if (!objectHandle || objectHandle->Object == nullptr)
-        {
-            continue;
-        }
-
-        MonoObject *exception = nullptr;
-
-        mono_runtime_invoke(scriptData->MethodOnStart, objectHandle->Object, nullptr, &exception);
-
-        if (exception != nullptr)
-        {
-            auto str = mono_object_to_string(exception, nullptr);
-
-            PError(fmt::format("Exception thrown in script '{}': {}", script->GetFilePath().string(), mono_string_to_utf8(str)));
-        }
+        GameAssembly::OnStart(*scriptComponent.GetScriptObjectHandle(), scriptData->ClassId);
     }
 }
 
@@ -257,37 +276,14 @@ void Pine::Script::Manager::OnUpdate(float deltaTime)
 
     for (auto& scriptComponent : Components::Get<ScriptComponent>())
     {
-        auto script = scriptComponent.GetScript();
+        const auto scriptData = DispatchableScript(scriptComponent);
 
-        if (!script)
+        if (!scriptData || !scriptData->HasOnUpdate)
         {
             continue;
         }
 
-        auto scriptData = script->GetScriptData();
-
-        if (!scriptData || !scriptData->IsReady || !scriptData->MethodOnUpdate)
-        {
-            continue;
-        }
-
-        auto objectHandle = scriptComponent.GetScriptObjectHandle();
-        if (!objectHandle || objectHandle->Object == nullptr)
-        {
-            continue;
-        }
-
-        void* args[1] = { &deltaTime };
-        MonoObject *exception = nullptr;
-
-        mono_runtime_invoke(scriptData->MethodOnUpdate, objectHandle->Object, args, &exception);
-
-        if (exception != nullptr)
-        {
-            auto str = mono_object_to_string(exception, nullptr);
-
-            PError(fmt::format("Exception thrown in script '{}': {}", script->GetFilePath().string(), mono_string_to_utf8(str)));
-        }
+        GameAssembly::OnUpdate(*scriptComponent.GetScriptObjectHandle(), scriptData->ClassId, deltaTime);
     }
 }
 

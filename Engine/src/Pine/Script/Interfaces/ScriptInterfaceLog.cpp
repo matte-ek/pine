@@ -1,52 +1,40 @@
-#include <mono/metadata/appdomain.h>
-#include "Pine/Core/Log/Log.hpp"
 #include "Interfaces.hpp"
+#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Script/Bindings/Bindings.hpp"
 
 namespace
 {
-
-    void PineVerbose(MonoString* string)
+    void PineVerbose(const char* message)
     {
-        auto str = mono_string_to_utf8(string);
-        PVerbose(str);
-        mono_free(str);
+        PVerbose(message);
     }
 
-    void PineInfo(MonoString* string)
+    void PineInfo(const char* message)
     {
-        auto str = mono_string_to_utf8(string);
-        PInfo(str);
-        mono_free(str);
+        PInfo(message);
     }
 
-    void PineWarning(MonoString* string)
+    void PineWarning(const char* message)
     {
-        auto str = mono_string_to_utf8(string);
-        PWarning(str);
-        mono_free(str);
+        PWarning(message);
     }
 
-    void PineError(MonoString* string)
+    void PineError(const char* message)
     {
-        auto str = mono_string_to_utf8(string);
-        PError(str);
-        mono_free(str);
+        PError(message);
     }
 
-    void PineFatal(MonoString* string)
+    void PineFatal(const char* message)
     {
-        auto str = mono_string_to_utf8(string);
-        PFatal(str);
-        mono_free(str);
+        PFatal(message);
     }
-
 }
 
 void Pine::Script::Interfaces::Log::Setup()
 {
-    mono_add_internal_call("Pine.Core.Log::PineVerbose", reinterpret_cast<void*>(PineVerbose));
-    mono_add_internal_call("Pine.Core.Log::PineInfo", reinterpret_cast<void*>(PineInfo));
-    mono_add_internal_call("Pine.Core.Log::PineWarning", reinterpret_cast<void*>(PineWarning));
-    mono_add_internal_call("Pine.Core.Log::PineError", reinterpret_cast<void*>(PineError));
-    mono_add_internal_call("Pine.Core.Log::PineFatal", reinterpret_cast<void*>(PineFatal));
+    Bindings::Register("Pine.Core.Log::PineVerbose", PineVerbose);
+    Bindings::Register("Pine.Core.Log::PineInfo", PineInfo);
+    Bindings::Register("Pine.Core.Log::PineWarning", PineWarning);
+    Bindings::Register("Pine.Core.Log::PineError", PineError);
+    Bindings::Register("Pine.Core.Log::PineFatal", PineFatal);
 }

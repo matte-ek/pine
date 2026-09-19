@@ -16,14 +16,14 @@ namespace Pine
     private:
         AssetHandle<CSharpScript> m_Script;
 
-        Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
+        Script::ObjectHandle m_ScriptObjectHandle;
 
         // The authored values of the script's public fields.
         //
         // The managed object those fields live in is destroyed and rebuilt constantly - on level
-        // load, on blueprint spawn, and on every hot reload, which resets the whole Mono domain -
-        // so the values cannot live only in C#. This is the copy that survives all three, and
-        // CreateInstance() puts it back into each new object.
+        // load, on blueprint spawn, and on every hot reload, which replaces the assembly its class
+        // came from - so the values cannot live only in C#. This is the copy that survives all
+        // three, and CreateInstance() puts it back into each new object.
         //
         // Values whose name no longer matches a field are kept rather than dropped. A script that
         // fails to compile, or a level loaded before the game assembly is, would otherwise silently

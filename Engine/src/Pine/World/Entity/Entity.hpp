@@ -35,7 +35,7 @@ namespace Pine
         std::vector<Component*> m_Components;
         std::vector<Entity*> m_Children;
 
-        Script::ObjectHandle m_EntityScriptHandle = { nullptr, 0 };
+        Script::ObjectHandle m_EntityScriptHandle;
 
         Entity* m_Parent = nullptr;
 

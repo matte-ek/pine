@@ -47,3 +47,40 @@ add_library(nvtt INTERFACE)
 
 target_include_directories(nvtt INTERFACE nvtt/include)
 target_link_libraries(nvtt INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/nvtt/lib/libnvtt.so.30205")
+
+# .NET hosting
+#
+# The engine starts CoreCLR itself to run Pine.dll - see Pine::Script::Runtime. nethost is the
+# small library that locates libhostfxr at runtime, and it ships inside the SDK rather than as a
+# system package, under a pack directory named after the runtime identifier.
+#
+# Do not spell that identifier out. It is "linux-x64" on the SDKs Microsoft publishes and
+# "arch-x64" on the distro-packaged one, so the directory is globbed and the newest pack wins.
+find_program(DOTNET_EXECUTABLE dotnet REQUIRED)
+
+file(REAL_PATH "${DOTNET_EXECUTABLE}" DOTNET_EXECUTABLE_REAL)
+get_filename_component(DOTNET_ROOT "${DOTNET_EXECUTABLE_REAL}" DIRECTORY)
+
+file(GLOB NETHOST_HEADERS
+        "${DOTNET_ROOT}/packs/Microsoft.NETCore.App.Host.*/*/runtimes/*/native/nethost.h")
+
+if (NOT NETHOST_HEADERS)
+    message(FATAL_ERROR
+            "No Microsoft.NETCore.App.Host pack under ${DOTNET_ROOT}/packs. The .NET SDK provides "
+            "the headers and library the engine hosts the scripting runtime with; installing the "
+            "runtime alone is not enough to build.")
+endif ()
+
+list(SORT NETHOST_HEADERS COMPARE NATURAL)
+list(GET NETHOST_HEADERS -1 NETHOST_HEADER)
+
+get_filename_component(NETHOST_DIR "${NETHOST_HEADER}" DIRECTORY)
+
+message(STATUS "Hosting the scripting runtime with ${NETHOST_DIR}")
+
+add_library(nethost INTERFACE)
+
+target_include_directories(nethost INTERFACE "${NETHOST_DIR}")
+# The static library, so a built engine does not also need this pack directory on its library
+# path. It dlopen()s libhostfxr, hence the dynamic loader.
+target_link_libraries(nethost INTERFACE "${NETHOST_DIR}/libnethost.a" ${CMAKE_DL_LIBS})

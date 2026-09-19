@@ -1,87 +1,26 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
-            Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')"/>
+<Project Sdk="Microsoft.NET.Sdk">
+
     <PropertyGroup>
-        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-        <ProjectGuid>{0D2D977F-540D-47D4-AEE9-F97933117A0E}</ProjectGuid>
-        <OutputType>Library</OutputType>
-        <AppDesignerFolder>Properties</AppDesignerFolder>
-        <RootNamespace>Pine</RootNamespace>
+        <TargetFramework>net10.0</TargetFramework>
         <AssemblyName>Pine</AssemblyName>
-        <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-        <FileAlignment>512</FileAlignment>
+        <RootNamespace>Pine</RootNamespace>
+
+        <!-- The engine calls native code through delegate* unmanaged<> function pointers, and
+             exposes its own entry points with [UnmanagedCallersOnly] - see Pine.Core.Interop. -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- The engine hosts this assembly rather than launching it, so it needs the
+             runtimeconfig.json that hostfxr starts the runtime from. Only a project marked for
+             dynamic loading emits one. -->
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+
+        <!-- Pine::Script::Runtime::Setup loads engine/script/Pine.dll by a path with no framework
+             segment in it, so the output must not grow a net10.0/ folder to sit in. -->
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-        <PlatformTarget>AnyCPU</PlatformTarget>
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
-        <Optimize>false</Optimize>
-        <OutputPath>bin\Debug\</OutputPath>
-        <DefineConstants>DEBUG;TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-        <PlatformTarget>AnyCPU</PlatformTarget>
-        <DebugType>pdbonly</DebugType>
-        <Optimize>true</Optimize>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
         <OutputPath>../data/engine/script/</OutputPath>
-        <DefineConstants>TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
     </PropertyGroup>
-    <ItemGroup>
-        <Reference Include="System"/>
-        <Reference Include="System.Core"/>
-        <Reference Include="System.Data"/>
-        <Reference Include="System.Xml"/>
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Include="Assets\Asset.cs" />
-        <Compile Include="Assets\AssetManager.cs" />
-        <Compile Include="Assets\Audio.cs" />
-        <Compile Include="Assets\Blueprint.cs" />
-        <Compile Include="Assets\CSharpScript.cs" />
-        <Compile Include="Assets\Level.cs" />
-        <Compile Include="Assets\Material.cs" />
-        <Compile Include="Assets\Model.cs" />
-        <Compile Include="Core\EditorUtils.cs" />
-        <Compile Include="Core\Log.cs" />
-        <Compile Include="Core\UId.cs" />
-        <Compile Include="Input\InputBind.cs" />
-        <Compile Include="Input\InputManager.cs" />
-        <Compile Include="Input\KeyCode.cs" />
-        <Compile Include="Math\Quaternion.cs" />
-        <Compile Include="Math\Vector2.cs" />
-        <Compile Include="Math\Vector3.cs" />
-        <Compile Include="Math\Vector4.cs" />
-        <Compile Include="Physics\Data\RayCastHit.cs" />
-        <Compile Include="Physics\Data\RaycastResult.cs" />
-        <Compile Include="Physics\Physics3D.cs" />
-        <Compile Include="Properties\AssemblyInfo.cs"/>
-        <Compile Include="World\Component.cs" />
-        <Compile Include="World\Components\AudioListener.cs" />
-        <Compile Include="World\Components\AudioSource.cs" />
-        <Compile Include="World\Components\Camera.cs" />
-        <Compile Include="World\Components\CharacterController.cs" />
-        <Compile Include="World\Components\Collider.cs" />
-        <Compile Include="World\Components\Light.cs" />
-        <Compile Include="World\Components\ModelRenderer.cs" />
-        <Compile Include="World\Components\RigidBody.cs" />
-        <Compile Include="World\Components\Script.cs" />
-        <Compile Include="World\Components\Transform.cs" />
-        <Compile Include="World\Entity.cs" />
-        <Compile Include="World\EntityList.cs" />
-    </ItemGroup>
-    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
-    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-         Other similar extension points exist, see Microsoft.Common.targets.
-    <Target Name="BeforeBuild">
-    </Target>
-    <Target Name="AfterBuild">
-    </Target>
-    -->
 
 </Project>

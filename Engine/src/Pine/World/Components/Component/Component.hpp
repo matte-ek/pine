@@ -123,7 +123,7 @@ namespace Pine
         // If this component is part of the ECF or is just an object in memory.
         bool m_Standalone = true;
 
-        Script::ObjectHandle m_ScriptObjectHandle = { nullptr, 0 };
+        Script::ObjectHandle m_ScriptObjectHandle;
 
         ComponentType m_Type = ComponentType::Transform;
 

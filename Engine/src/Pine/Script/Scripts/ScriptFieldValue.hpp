@@ -62,7 +62,7 @@ namespace Pine
         switch (type)
         {
             case ScriptFieldType::Boolean:
-                return 1; // System.Boolean is one byte in Mono, matching C++ bool.
+                return 1; // Stored as one byte, whatever width a managed bool marshals as.
             case ScriptFieldType::Integer:
                 return sizeof(std::int32_t);
             case ScriptFieldType::Float:
@@ -81,7 +81,7 @@ namespace Pine
     }
 
     // One script field's authored value, held on the engine side so that it outlives the managed
-    // object it was read from. The Mono object a script field lives in is destroyed and rebuilt
+    // object it was read from. The managed object a script field lives in is destroyed and rebuilt
     // constantly - on level load, on blueprint spawn, and on every hot reload, which resets the
     // whole domain - so the value cannot live only in C#.
     //

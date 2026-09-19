@@ -15,7 +15,7 @@ For operating a running Editor over HTTP, see the two debug-server pages below.
 | [world-ecs.md](world-ecs.md) | Custom pool-based ECS: entities, components, storage, the enum-ordering gotcha |
 | [assets.md](assets.md) | Asset manager, the `.passet` format, the serializer, Level/Blueprint |
 | [rendering.md](rendering.md) | Graphics wrapper → Rendering → Renderer3D; pipelines, features, contexts |
-| [scripting.md](scripting.md) | The Mono/C# bridge and the `ScriptRuntime/` project |
+| [scripting.md](scripting.md) | The hosted .NET/C# bridge and the `ScriptRuntime/` project |
 | [audio.md](audio.md) | Device layer, the voice pool, the components, mono vs. `Spatial` |
 | [physics.md](physics.md) | Physics2D / Physics3D (PhysX) and the component coupling |
 | [core.md](core.md) | Core utilities: Math, File, Serialization, UId, Log, WindowManager |
@@ -43,4 +43,4 @@ reference. Where one describes shipped work, the contract docs above are authori
 | [plans/terrain-system.md](plans/terrain-system.md) | The terrain rewrite proposal, plus a record of the implementation it replaced — **all eight units implemented** |
 | [reports/review-ffaa33c-shadow-atlas.md](reports/review-ffaa33c-shadow-atlas.md) | Read-only review of the spot/point shadow commit: load-bearing assumptions and suggested follow-up |
 | [reports/review-357fa72-culling-and-lights.md](reports/review-357fa72-culling-and-lights.md) | Read-only review of the frustum-culling and light-handling commit |
-| [plans/dotnet-migration.md](plans/dotnet-migration.md) | Moving scripting from Mono to modern .NET: the measured Mono surface, the target design, and a seven-unit sequence — **proposal, nothing implemented** |
+| [plans/dotnet-migration.md](plans/dotnet-migration.md) | Moving scripting from Mono to modern .NET: the measured Mono surface, the target design, and a seven-unit sequence — **units 1-6 implemented; 7 is not** |

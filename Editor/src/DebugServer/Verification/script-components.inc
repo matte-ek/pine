@@ -98,7 +98,12 @@
             {
                 if (field->GetName() == "ReadBackOk")
                 {
-                    return field->Get<bool>(mono_gchandle_get_target(liveScript->GetScriptObjectHandle()->Handle));
+                    Pine::ScriptFieldValue value;
+
+                    check(field->ReadValue(*liveScript->GetScriptObjectHandle(), value) && value.Data.size() == 1,
+                        "Could not read the ReadBackOk field back");
+
+                    return value.Data.front() != std::byte{0};
                 }
             }
 

@@ -6,7 +6,6 @@
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Components/Components.hpp"
-#include "mono/metadata/object.h"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/CharacterController/CharacterController.hpp"
 #include "Pine/World/Components/AudioListener/AudioListener.hpp"
@@ -15,6 +14,8 @@
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/Script/ScriptComponent.hpp"
+#include "Pine/Script/Bindings/Bindings.hpp"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 namespace
 {
@@ -41,18 +42,18 @@ namespace
         );
     }
 
-    MonoObject* GetModel(const std::uint32_t internalId)
+    std::uint64_t GetModel(const std::uint32_t internalId)
     {
-        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
 
-        auto model = dynamic_cast<Pine::ModelRenderer*>(Pine::Components::GetByInternalId(Pine::ComponentType::ModelRenderer, internalId))->GetModel();
+        const auto model = dynamic_cast<Pine::ModelRenderer*>(Pine::Components::GetByInternalId(Pine::ComponentType::ModelRenderer, internalId))->GetModel();
 
         if (!model)
         {
-            return nullptr;
+            return 0;
         }
 
-        return mono_gchandle_get_target(model->GetScriptHandle()->Handle);
+        return model->GetScriptHandle()->Id;
     }
 
     // -----------------------------------------------------
@@ -538,18 +539,18 @@ namespace
 
     // -----------------------------------------------------
 
-    MonoObject* AudioSourceGetAudioFile(const std::uint32_t internalId)
+    std::uint64_t AudioSourceGetAudioFile(const std::uint32_t internalId)
     {
-        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
 
-        auto audioFile = Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetAudioFile();
+        const auto audioFile = Pine::Components::GetByInternalId<Pine::AudioSource>(internalId)->GetAudioFile();
 
         if (!audioFile)
         {
-            return nullptr;
+            return 0;
         }
 
-        return mono_gchandle_get_target(audioFile->GetScriptHandle()->Handle);
+        return audioFile->GetScriptHandle()->Id;
     }
 
     void AudioSourceSetAudioFile(const std::uint32_t internalId, Pine::UId assetId)
@@ -741,138 +742,140 @@ namespace
 
     // -----------------------------------------------------
 
-    MonoObject* ScriptGetCSharpScript(const std::uint32_t internalId)
+    std::uint64_t ScriptGetCSharpScript(const std::uint32_t internalId)
     {
-        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
 
-        auto script = dynamic_cast<Pine::ScriptComponent*>(Pine::Components::GetByInternalId(Pine::ComponentType::Script, internalId))->GetScript();
-        if (!script) return nullptr;
+        const auto script = dynamic_cast<Pine::ScriptComponent*>(Pine::Components::GetByInternalId(Pine::ComponentType::Script, internalId))->GetScript();
+        if (!script) return 0;
 
-        return mono_gchandle_get_target(script->GetScriptHandle()->Handle);
+        return script->GetScriptHandle()->Id;
     }
 
-    MonoObject* ScriptGetInstance(const std::uint32_t internalId)
+    // The one binding that hands back an object of the game's own making rather than one of
+    // Pine.dll's, so the only handle here that belongs to the collectible load context.
+    std::uint64_t ScriptGetInstance(const std::uint32_t internalId)
     {
-        if (std::numeric_limits<std::uint32_t>::max() == internalId) return nullptr;
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return 0;
 
-        auto script = dynamic_cast<Pine::ScriptComponent*>(Pine::Components::GetByInternalId(Pine::ComponentType::Script, internalId));
-        if (!script) return nullptr;
+        const auto script = dynamic_cast<Pine::ScriptComponent*>(Pine::Components::GetByInternalId(Pine::ComponentType::Script, internalId));
+        if (!script) return 0;
 
-        return mono_gchandle_get_target(script->GetScriptObjectHandle()->Handle);
+        return script->GetScriptObjectHandle()->Id;
     }
 
 }
 
 void Pine::Script::Interfaces::Component::Setup()
 {
-    mono_add_internal_call("Pine.World.Component::GetActive", reinterpret_cast<void *>(GetActive));
-    mono_add_internal_call("Pine.World.Component::SetActive", reinterpret_cast<void *>(SetActive));
+    Bindings::Register("Pine.World.Component::GetActive", GetActive);
+    Bindings::Register("Pine.World.Component::SetActive", SetActive);
 
-    mono_add_internal_call("Pine.World.Components.ModelRenderer::SetModel", reinterpret_cast<void *>(SetModel));
-    mono_add_internal_call("Pine.World.Components.ModelRenderer::GetModel", reinterpret_cast<void *>(GetModel));
+    Bindings::Register("Pine.World.Components.ModelRenderer::SetModel", SetModel);
+    Bindings::Register("Pine.World.Components.ModelRenderer::GetModel", GetModel);
 
-    mono_add_internal_call("Pine.World.Components.RigidBody::ApplyForce", reinterpret_cast<void *>(RigidBodyApplyForce));
+    Bindings::Register("Pine.World.Components.RigidBody::ApplyForce", RigidBodyApplyForce);
 
-    mono_add_internal_call("Pine.World.Components.CharacterController::PineMove", reinterpret_cast<void *>(CharacterControllerMove));
-    mono_add_internal_call("Pine.World.Components.CharacterController::PineSetPosition", reinterpret_cast<void *>(CharacterControllerSetPosition));
-    mono_add_internal_call("Pine.World.Components.CharacterController::PineIsGrounded", reinterpret_cast<void *>(CharacterControllerIsGrounded));
-    mono_add_internal_call("Pine.World.Components.CharacterController::PineIsTouchingSides", reinterpret_cast<void *>(CharacterControllerIsTouchingSides));
-    mono_add_internal_call("Pine.World.Components.CharacterController::PineGetVelocity", reinterpret_cast<void *>(CharacterControllerGetVelocity));
-    mono_add_internal_call("Pine.World.Components.CharacterController::PineSetVerticalVelocity", reinterpret_cast<void *>(CharacterControllerSetVerticalVelocity));
-    mono_add_internal_call("Pine.World.Components.CharacterController::PineGetVerticalVelocity", reinterpret_cast<void *>(CharacterControllerGetVerticalVelocity));
+    Bindings::Register("Pine.World.Components.CharacterController::PineMove", CharacterControllerMove);
+    Bindings::Register("Pine.World.Components.CharacterController::PineSetPosition", CharacterControllerSetPosition);
+    Bindings::Register("Pine.World.Components.CharacterController::PineIsGrounded", CharacterControllerIsGrounded);
+    Bindings::Register("Pine.World.Components.CharacterController::PineIsTouchingSides", CharacterControllerIsTouchingSides);
+    Bindings::Register("Pine.World.Components.CharacterController::PineGetVelocity", CharacterControllerGetVelocity);
+    Bindings::Register("Pine.World.Components.CharacterController::PineSetVerticalVelocity", CharacterControllerSetVerticalVelocity);
+    Bindings::Register("Pine.World.Components.CharacterController::PineGetVerticalVelocity", CharacterControllerGetVerticalVelocity);
 
-    mono_add_internal_call("Pine.World.Components.Transform::GetPosition", reinterpret_cast<void *>(TransformGetPosition));
-    mono_add_internal_call("Pine.World.Components.Transform::GetRotation", reinterpret_cast<void *>(TransformGetRotation));
-    mono_add_internal_call("Pine.World.Components.Transform::GetScale", reinterpret_cast<void *>(TransformGetScale));
-    mono_add_internal_call("Pine.World.Components.Transform::GetLocalPosition", reinterpret_cast<void *>(TransformGetLocalPosition));
-    mono_add_internal_call("Pine.World.Components.Transform::SetLocalPosition", reinterpret_cast<void *>(TransformSetLocalPosition));
-    mono_add_internal_call("Pine.World.Components.Transform::GetLocalRotation", reinterpret_cast<void *>(TransformGetLocalRotation));
-    mono_add_internal_call("Pine.World.Components.Transform::SetLocalRotation", reinterpret_cast<void *>(TransformSetLocalRotation));
-    mono_add_internal_call("Pine.World.Components.Transform::SetLocalEulerAngles", reinterpret_cast<void *>(TransformSetLocalEulerAngles));
-    mono_add_internal_call("Pine.World.Components.Transform::GetLocalEulerAngles", reinterpret_cast<void *>(TransformGetLocalEulerAngles));
-    mono_add_internal_call("Pine.World.Components.Transform::GetLocalScale", reinterpret_cast<void *>(TransformGetLocalScale));
-    mono_add_internal_call("Pine.World.Components.Transform::SetLocalScale", reinterpret_cast<void *>(TransformSetLocalScale));
-    mono_add_internal_call("Pine.World.Components.Transform::GetUp", reinterpret_cast<void *>(TransformGetUp));
-    mono_add_internal_call("Pine.World.Components.Transform::GetRight", reinterpret_cast<void *>(TransformGetRight));
-    mono_add_internal_call("Pine.World.Components.Transform::GetForward", reinterpret_cast<void *>(TransformGetForward));
+    Bindings::Register("Pine.World.Components.Transform::GetPosition", TransformGetPosition);
+    Bindings::Register("Pine.World.Components.Transform::GetRotation", TransformGetRotation);
+    Bindings::Register("Pine.World.Components.Transform::GetScale", TransformGetScale);
+    Bindings::Register("Pine.World.Components.Transform::GetLocalPosition", TransformGetLocalPosition);
+    Bindings::Register("Pine.World.Components.Transform::SetLocalPosition", TransformSetLocalPosition);
+    Bindings::Register("Pine.World.Components.Transform::GetLocalRotation", TransformGetLocalRotation);
+    Bindings::Register("Pine.World.Components.Transform::SetLocalRotation", TransformSetLocalRotation);
+    Bindings::Register("Pine.World.Components.Transform::SetLocalEulerAngles", TransformSetLocalEulerAngles);
+    Bindings::Register("Pine.World.Components.Transform::GetLocalEulerAngles", TransformGetLocalEulerAngles);
+    Bindings::Register("Pine.World.Components.Transform::GetLocalScale", TransformGetLocalScale);
+    Bindings::Register("Pine.World.Components.Transform::SetLocalScale", TransformSetLocalScale);
+    Bindings::Register("Pine.World.Components.Transform::GetUp", TransformGetUp);
+    Bindings::Register("Pine.World.Components.Transform::GetRight", TransformGetRight);
+    Bindings::Register("Pine.World.Components.Transform::GetForward", TransformGetForward);
 
-    mono_add_internal_call("Pine.World.Components.Light::PineGetLightType", reinterpret_cast<void *>(LightGetLightType));
-    mono_add_internal_call("Pine.World.Components.Light::PineSetLightType", reinterpret_cast<void *>(LightSetLightType));
-    mono_add_internal_call("Pine.World.Components.Light::PineGetLightColor", reinterpret_cast<void *>(LightGetLightColor));
-    mono_add_internal_call("Pine.World.Components.Light::PineSetLightColor", reinterpret_cast<void *>(LightSetLightColor));
-    mono_add_internal_call("Pine.World.Components.Light::PineGetLightIntensity", reinterpret_cast<void *>(LightGetLightIntensity));
-    mono_add_internal_call("Pine.World.Components.Light::PineSetLightIntensity", reinterpret_cast<void *>(LightSetLightIntensity));
-    mono_add_internal_call("Pine.World.Components.Light::PineGetRange", reinterpret_cast<void *>(LightGetRange));
-    mono_add_internal_call("Pine.World.Components.Light::PineSetRange", reinterpret_cast<void *>(LightSetRange));
-    mono_add_internal_call("Pine.World.Components.Light::PineGetCastShadows", reinterpret_cast<void *>(LightGetCastShadows));
-    mono_add_internal_call("Pine.World.Components.Light::PineSetCastShadows", reinterpret_cast<void *>(LightSetCastShadows));
-    mono_add_internal_call("Pine.World.Components.Light::PineGetSpotlightOuterAngle", reinterpret_cast<void *>(LightGetSpotlightOuterAngle));
-    mono_add_internal_call("Pine.World.Components.Light::PineSetSpotlightOuterAngle", reinterpret_cast<void *>(LightSetSpotlightOuterAngle));
-    mono_add_internal_call("Pine.World.Components.Light::PineGetSpotlightInnerAngle", reinterpret_cast<void *>(LightGetSpotlightInnerAngle));
-    mono_add_internal_call("Pine.World.Components.Light::PineSetSpotlightInnerAngle", reinterpret_cast<void *>(LightSetSpotlightInnerAngle));
+    Bindings::Register("Pine.World.Components.Light::PineGetLightType", LightGetLightType);
+    Bindings::Register("Pine.World.Components.Light::PineSetLightType", LightSetLightType);
+    Bindings::Register("Pine.World.Components.Light::PineGetLightColor", LightGetLightColor);
+    Bindings::Register("Pine.World.Components.Light::PineSetLightColor", LightSetLightColor);
+    Bindings::Register("Pine.World.Components.Light::PineGetLightIntensity", LightGetLightIntensity);
+    Bindings::Register("Pine.World.Components.Light::PineSetLightIntensity", LightSetLightIntensity);
+    Bindings::Register("Pine.World.Components.Light::PineGetRange", LightGetRange);
+    Bindings::Register("Pine.World.Components.Light::PineSetRange", LightSetRange);
+    Bindings::Register("Pine.World.Components.Light::PineGetCastShadows", LightGetCastShadows);
+    Bindings::Register("Pine.World.Components.Light::PineSetCastShadows", LightSetCastShadows);
+    Bindings::Register("Pine.World.Components.Light::PineGetSpotlightOuterAngle", LightGetSpotlightOuterAngle);
+    Bindings::Register("Pine.World.Components.Light::PineSetSpotlightOuterAngle", LightSetSpotlightOuterAngle);
+    Bindings::Register("Pine.World.Components.Light::PineGetSpotlightInnerAngle", LightGetSpotlightInnerAngle);
+    Bindings::Register("Pine.World.Components.Light::PineSetSpotlightInnerAngle", LightSetSpotlightInnerAngle);
 
-    mono_add_internal_call("Pine.World.Components.Camera::PineGetCameraType", reinterpret_cast<void *>(CameraGetCameraType));
-    mono_add_internal_call("Pine.World.Components.Camera::PineSetCameraType", reinterpret_cast<void *>(CameraSetCameraType));
-    mono_add_internal_call("Pine.World.Components.Camera::PineGetNearPlane", reinterpret_cast<void *>(CameraGetNearPlane));
-    mono_add_internal_call("Pine.World.Components.Camera::PineSetNearPlane", reinterpret_cast<void *>(CameraSetNearPlane));
-    mono_add_internal_call("Pine.World.Components.Camera::PineGetFarPlane", reinterpret_cast<void *>(CameraGetFarPlane));
-    mono_add_internal_call("Pine.World.Components.Camera::PineSetFarPlane", reinterpret_cast<void *>(CameraSetFarPlane));
-    mono_add_internal_call("Pine.World.Components.Camera::PineGetFieldOfView", reinterpret_cast<void *>(CameraGetFieldOfView));
-    mono_add_internal_call("Pine.World.Components.Camera::PineSetFieldOfView", reinterpret_cast<void *>(CameraSetFieldOfView));
-    mono_add_internal_call("Pine.World.Components.Camera::PineGetOrthographicSize", reinterpret_cast<void *>(CameraGetOrthographicSize));
-    mono_add_internal_call("Pine.World.Components.Camera::PineSetOrthographicSize", reinterpret_cast<void *>(CameraSetOrthographicSize));
-    mono_add_internal_call("Pine.World.Components.Camera::PineGetClearColor", reinterpret_cast<void *>(CameraGetClearColor));
-    mono_add_internal_call("Pine.World.Components.Camera::PineSetClearColor", reinterpret_cast<void *>(CameraSetClearColor));
-    mono_add_internal_call("Pine.World.Components.Camera::PineWorldToScreenPoint", reinterpret_cast<void *>(CameraWorldToScreenPoint));
+    Bindings::Register("Pine.World.Components.Camera::PineGetCameraType", CameraGetCameraType);
+    Bindings::Register("Pine.World.Components.Camera::PineSetCameraType", CameraSetCameraType);
+    Bindings::Register("Pine.World.Components.Camera::PineGetNearPlane", CameraGetNearPlane);
+    Bindings::Register("Pine.World.Components.Camera::PineSetNearPlane", CameraSetNearPlane);
+    Bindings::Register("Pine.World.Components.Camera::PineGetFarPlane", CameraGetFarPlane);
+    Bindings::Register("Pine.World.Components.Camera::PineSetFarPlane", CameraSetFarPlane);
+    Bindings::Register("Pine.World.Components.Camera::PineGetFieldOfView", CameraGetFieldOfView);
+    Bindings::Register("Pine.World.Components.Camera::PineSetFieldOfView", CameraSetFieldOfView);
+    Bindings::Register("Pine.World.Components.Camera::PineGetOrthographicSize", CameraGetOrthographicSize);
+    Bindings::Register("Pine.World.Components.Camera::PineSetOrthographicSize", CameraSetOrthographicSize);
+    Bindings::Register("Pine.World.Components.Camera::PineGetClearColor", CameraGetClearColor);
+    Bindings::Register("Pine.World.Components.Camera::PineSetClearColor", CameraSetClearColor);
+    Bindings::Register("Pine.World.Components.Camera::PineWorldToScreenPoint", CameraWorldToScreenPoint);
 
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetColliderType", reinterpret_cast<void *>(ColliderGetColliderType));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetColliderType", reinterpret_cast<void *>(ColliderSetColliderType));
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetPosition", reinterpret_cast<void *>(ColliderGetPosition));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetPosition", reinterpret_cast<void *>(ColliderSetPosition));
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetSize", reinterpret_cast<void *>(ColliderGetSize));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetSize", reinterpret_cast<void *>(ColliderSetSize));
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetRadius", reinterpret_cast<void *>(ColliderGetRadius));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetRadius", reinterpret_cast<void *>(ColliderSetRadius));
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetHeight", reinterpret_cast<void *>(ColliderGetHeight));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetHeight", reinterpret_cast<void *>(ColliderSetHeight));
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetLayer", reinterpret_cast<void *>(ColliderGetLayer));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetLayer", reinterpret_cast<void *>(ColliderSetLayer));
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetLayerMask", reinterpret_cast<void *>(ColliderGetLayerMask));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetLayerMask", reinterpret_cast<void *>(ColliderSetLayerMask));
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetIsTrigger", reinterpret_cast<void *>(ColliderGetIsTrigger));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetIsTrigger", reinterpret_cast<void *>(ColliderSetIsTrigger));
-    mono_add_internal_call("Pine.World.Components.Collider::PineGetTriggerMask", reinterpret_cast<void *>(ColliderGetTriggerMask));
-    mono_add_internal_call("Pine.World.Components.Collider::PineSetTriggerMask", reinterpret_cast<void *>(ColliderSetTriggerMask));
+    Bindings::Register("Pine.World.Components.Collider::PineGetColliderType", ColliderGetColliderType);
+    Bindings::Register("Pine.World.Components.Collider::PineSetColliderType", ColliderSetColliderType);
+    Bindings::Register("Pine.World.Components.Collider::PineGetPosition", ColliderGetPosition);
+    Bindings::Register("Pine.World.Components.Collider::PineSetPosition", ColliderSetPosition);
+    Bindings::Register("Pine.World.Components.Collider::PineGetSize", ColliderGetSize);
+    Bindings::Register("Pine.World.Components.Collider::PineSetSize", ColliderSetSize);
+    Bindings::Register("Pine.World.Components.Collider::PineGetRadius", ColliderGetRadius);
+    Bindings::Register("Pine.World.Components.Collider::PineSetRadius", ColliderSetRadius);
+    Bindings::Register("Pine.World.Components.Collider::PineGetHeight", ColliderGetHeight);
+    Bindings::Register("Pine.World.Components.Collider::PineSetHeight", ColliderSetHeight);
+    Bindings::Register("Pine.World.Components.Collider::PineGetLayer", ColliderGetLayer);
+    Bindings::Register("Pine.World.Components.Collider::PineSetLayer", ColliderSetLayer);
+    Bindings::Register("Pine.World.Components.Collider::PineGetLayerMask", ColliderGetLayerMask);
+    Bindings::Register("Pine.World.Components.Collider::PineSetLayerMask", ColliderSetLayerMask);
+    Bindings::Register("Pine.World.Components.Collider::PineGetIsTrigger", ColliderGetIsTrigger);
+    Bindings::Register("Pine.World.Components.Collider::PineSetIsTrigger", ColliderSetIsTrigger);
+    Bindings::Register("Pine.World.Components.Collider::PineGetTriggerMask", ColliderGetTriggerMask);
+    Bindings::Register("Pine.World.Components.Collider::PineSetTriggerMask", ColliderSetTriggerMask);
 
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetAudioFile", reinterpret_cast<void *>(AudioSourceGetAudioFile));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetAudioFile", reinterpret_cast<void *>(AudioSourceSetAudioFile));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PinePlay", reinterpret_cast<void *>(AudioSourcePlay));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PinePause", reinterpret_cast<void *>(AudioSourcePause));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineStop", reinterpret_cast<void *>(AudioSourceStop));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetPlaybackState", reinterpret_cast<void *>(AudioSourceGetPlaybackState));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineIsPlaying", reinterpret_cast<void *>(AudioSourceIsPlaying));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetPlayOnStart", reinterpret_cast<void *>(AudioSourceGetPlayOnStart));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetPlayOnStart", reinterpret_cast<void *>(AudioSourceSetPlayOnStart));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetLoop", reinterpret_cast<void *>(AudioSourceGetLoop));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetLoop", reinterpret_cast<void *>(AudioSourceSetLoop));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetSpatial", reinterpret_cast<void *>(AudioSourceGetSpatial));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetSpatial", reinterpret_cast<void *>(AudioSourceSetSpatial));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetVolume", reinterpret_cast<void *>(AudioSourceGetVolume));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetVolume", reinterpret_cast<void *>(AudioSourceSetVolume));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetPitch", reinterpret_cast<void *>(AudioSourceGetPitch));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetPitch", reinterpret_cast<void *>(AudioSourceSetPitch));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetReferenceDistance", reinterpret_cast<void *>(AudioSourceGetReferenceDistance));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetReferenceDistance", reinterpret_cast<void *>(AudioSourceSetReferenceDistance));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetMaxDistance", reinterpret_cast<void *>(AudioSourceGetMaxDistance));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetMaxDistance", reinterpret_cast<void *>(AudioSourceSetMaxDistance));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetRolloffFactor", reinterpret_cast<void *>(AudioSourceGetRolloffFactor));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetRolloffFactor", reinterpret_cast<void *>(AudioSourceSetRolloffFactor));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineGetPlaybackPosition", reinterpret_cast<void *>(AudioSourceGetPlaybackPosition));
-    mono_add_internal_call("Pine.World.Components.AudioSource::PineSetPlaybackPosition", reinterpret_cast<void *>(AudioSourceSetPlaybackPosition));
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetAudioFile", AudioSourceGetAudioFile);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetAudioFile", AudioSourceSetAudioFile);
+    Bindings::Register("Pine.World.Components.AudioSource::PinePlay", AudioSourcePlay);
+    Bindings::Register("Pine.World.Components.AudioSource::PinePause", AudioSourcePause);
+    Bindings::Register("Pine.World.Components.AudioSource::PineStop", AudioSourceStop);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetPlaybackState", AudioSourceGetPlaybackState);
+    Bindings::Register("Pine.World.Components.AudioSource::PineIsPlaying", AudioSourceIsPlaying);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetPlayOnStart", AudioSourceGetPlayOnStart);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetPlayOnStart", AudioSourceSetPlayOnStart);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetLoop", AudioSourceGetLoop);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetLoop", AudioSourceSetLoop);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetSpatial", AudioSourceGetSpatial);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetSpatial", AudioSourceSetSpatial);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetVolume", AudioSourceGetVolume);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetVolume", AudioSourceSetVolume);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetPitch", AudioSourceGetPitch);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetPitch", AudioSourceSetPitch);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetReferenceDistance", AudioSourceGetReferenceDistance);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetReferenceDistance", AudioSourceSetReferenceDistance);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetMaxDistance", AudioSourceGetMaxDistance);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetMaxDistance", AudioSourceSetMaxDistance);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetRolloffFactor", AudioSourceGetRolloffFactor);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetRolloffFactor", AudioSourceSetRolloffFactor);
+    Bindings::Register("Pine.World.Components.AudioSource::PineGetPlaybackPosition", AudioSourceGetPlaybackPosition);
+    Bindings::Register("Pine.World.Components.AudioSource::PineSetPlaybackPosition", AudioSourceSetPlaybackPosition);
 
-    mono_add_internal_call("Pine.World.Components.AudioListener::PineGetVolume", reinterpret_cast<void *>(AudioListenerGetVolume));
-    mono_add_internal_call("Pine.World.Components.AudioListener::PineSetVolume", reinterpret_cast<void *>(AudioListenerSetVolume));
+    Bindings::Register("Pine.World.Components.AudioListener::PineGetVolume", AudioListenerGetVolume);
+    Bindings::Register("Pine.World.Components.AudioListener::PineSetVolume", AudioListenerSetVolume);
 
-    mono_add_internal_call("Pine.World.Components.Script::GetScript", reinterpret_cast<void *>(ScriptGetCSharpScript));
-    mono_add_internal_call("Pine.World.Components.Script::GetScriptInstanceInternal", reinterpret_cast<void *>(ScriptGetInstance));
+    Bindings::Register("Pine.World.Components.Script::GetScript", ScriptGetCSharpScript);
+    Bindings::Register("Pine.World.Components.Script::GetScriptInstanceInternal", ScriptGetInstance);
 }

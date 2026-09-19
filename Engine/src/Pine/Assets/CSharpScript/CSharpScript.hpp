@@ -18,6 +18,11 @@ namespace Pine
         // C# source lives in a sibling '.cs' file registered as an asset source; it is compiled
         // into the project's game assembly separately (see docs/scripting.md).
         std::string m_TypeName;
+
+        struct CSharpScriptSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_STRING(TypeName);
+        };
     public:
         CSharpScript();
 
@@ -29,11 +34,6 @@ namespace Pine
 
         void RegisterScriptComponent(ScriptComponent* scriptComponent);
         void UnregisterScriptComponent(ScriptComponent* scriptComponent);
-
-        struct CSharpScriptSerializer : Serialization::Serializer
-        {
-            PINE_SERIALIZE_STRING(TypeName);
-        };
 
         bool LoadAssetData(const ByteSpan& span) override;
         ByteSpan SaveAssetData() override;

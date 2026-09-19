@@ -3,32 +3,50 @@
 #include "ScriptData.hpp"
 #include "ScriptFieldValue.hpp"
 
-#include "mono/metadata/class.h"
-#include "mono/metadata/object-forward.h"
-#include "mono/metadata/object.h"
+#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
 
 #include <string>
 
 namespace Pine
 {
-    // One public field on a script class, reflected out of the game assembly so the editor can show
-    // it and the engine can store it.
+    namespace Script
+    {
+        struct ScriptFieldDescriptor;
+    }
+
+    // One field on a script class, reflected out of the game assembly so the editor can show it and
+    // the engine can store it. Which fields those are, and how they should be shown, is decided in
+    // Pine.dll - see Pine.Core.Reflection.FieldRegistry.
     //
-    // A field is bound to the class, not to an instance: every method here takes the managed object
-    // to read from or write to. That object is not stable - see ScriptFieldValue for why values are
-    // kept outside it.
+    // A field is bound to the class, not to an instance: every method here takes a handle to the
+    // managed object to read from or write to. That object is not stable - see ScriptFieldValue
+    // for why values are kept outside it.
     class ScriptField
     {
     private:
         std::string m_Name;
         ScriptFieldType m_Type = ScriptFieldType::Invalid;
+        AssetType m_AssetType = AssetType::Invalid;
         ScriptData* m_Parent;
-        MonoClassField* m_Field;
 
-        // The field's declared class, for the reference types. Null for the value types.
-        MonoClass* m_ValueClass = nullptr;
+        // Where this field sits in the scripting runtime's own registry. Both stay good until the
+        // next reload, which rebuilds every ScriptField anyway.
+        int m_ClassId = -1;
+        int m_FieldIndex = -1;
+
+        // How the editor should draw the field, from the attributes it was declared with. None of
+        // this affects what is stored, so a script may gain or lose an attribute freely.
+        bool m_HasRange = false;
+        float m_RangeMin = 0.f;
+        float m_RangeMax = 0.f;
+        bool m_HasSpace = false;
+        std::string m_Header;
+        std::string m_Tooltip;
     public:
-        ScriptField(const std::string& name, MonoClassField* field, ScriptData* parent, MonoType* type);
+        ScriptField(ScriptData* parent, int classId, int fieldIndex, const Script::ScriptFieldDescriptor& descriptor);
+
+        ScriptField(const ScriptField&) = delete;
+        ScriptField& operator=(const ScriptField&) = delete;
 
         ScriptFieldType GetType() const;
         const std::string& GetName() const;
@@ -38,32 +56,27 @@ namespace Pine
         // AssetType for.
         AssetType GetAssetType() const;
 
-        // Read and write the field directly, for the value types only. A reference type needs the
-        // object pointer itself rather than its address, so Set() would corrupt one - use
-        // WriteValue() for those.
-        template<typename T>
-        T Get(MonoObject* object) const
-        {
-            T value;
+        // Draw the field as a slider between these two, rather than as an input field. Only the
+        // Float and Integer fields are drawn that way; the range is ignored on any other type.
+        bool HasRange() const;
+        float GetRangeMin() const;
+        float GetRangeMax() const;
 
-            mono_field_get_value(object, m_Field, &value);
+        // Blank space above the field's row, from [Space].
+        bool HasSpace() const;
 
-            return value;
-        }
-
-        template<typename T>
-        void Set(MonoObject* object, T value) const
-        {
-            mono_field_set_value(object, m_Field, static_cast<void*>(&value));
-        }
+        // A separator labelled with this above the field's row, from [Header]. Empty when the field
+        // has none, as is the tooltip when it has none.
+        const std::string& GetHeader() const;
+        const std::string& GetTooltip() const;
 
         // Read the field into, and write it back out of, the type-tagged form that gets stored.
-        // Unlike Get/Set these handle every supported type, including the reference ones.
+        // These handle every supported type, including the reference ones.
         //
         // WriteValue ignores a value whose type no longer matches the field's - a script that
         // changed `float Speed` into `Vector3 Speed` must not have the old four bytes read as a
         // vector - and reports whether it wrote anything.
-        bool ReadValue(MonoObject* object, ScriptFieldValue& value) const;
-        bool WriteValue(MonoObject* object, const ScriptFieldValue& value) const;
+        bool ReadValue(const Script::ObjectHandle& object, ScriptFieldValue& value) const;
+        bool WriteValue(const Script::ObjectHandle& object, const ScriptFieldValue& value) const;
     };
 }

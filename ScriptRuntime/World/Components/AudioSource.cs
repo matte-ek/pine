@@ -1,6 +1,6 @@
-using System.Runtime.CompilerServices;
 using Pine.Assets;
 using Pine.Core;
+using Pine.Core.Bindings;
 
 namespace Pine.World.Components
 {
@@ -19,32 +19,34 @@ namespace Pine.World.Components
     //
     // That is why asking a source to play is a request rather than a promise: voices are a limited
     // resource, and a source that asks for one while they are all busy is simply not heard.
-    public class AudioSource : Component
+    [ComponentType(ComponentType.AudioSource)]
+    public unsafe class AudioSource : Component
     {
         // The clip this source plays. Assigning null leaves the source with nothing to play.
         public Audio AudioFile
         {
-            get => (Audio)PineGetAudioFile(InternalId);
-            set => PineSetAudioFile(InternalId, value?.Id ?? default(UId));
+            get => Interop.ObjectFrom<Audio>(ComponentBindings.AudioSourceGetAudioFile(InternalId));
+            set => ComponentBindings.AudioSourceSetAudioFile(InternalId, value?.Id ?? default(UId));
         }
 
-        public PlaybackState PlaybackState => (PlaybackState)PineGetPlaybackState(InternalId);
+        public PlaybackState PlaybackState
+            => (PlaybackState)ComponentBindings.AudioSourceGetPlaybackState(InternalId);
 
-        public bool IsPlaying => PineIsPlaying(InternalId);
+        public bool IsPlaying => ComponentBindings.AudioSourceIsPlaying(InternalId) != 0;
 
         // Whether the source starts playing as soon as it enters the world. Changing it afterwards
         // only affects the next time this source is set up, so it is an authoring switch rather
         // than a way to start a sound - call Play() for that.
         public bool PlayOnStart
         {
-            get => PineGetPlayOnStart(InternalId);
-            set => PineSetPlayOnStart(InternalId, value);
+            get => ComponentBindings.AudioSourceGetPlayOnStart(InternalId) != 0;
+            set => ComponentBindings.AudioSourceSetPlayOnStart(InternalId, value ? (byte)1 : (byte)0);
         }
 
         public bool Loop
         {
-            get => PineGetLoop(InternalId);
-            set => PineSetLoop(InternalId, value);
+            get => ComponentBindings.AudioSourceGetLoop(InternalId) != 0;
+            set => ComponentBindings.AudioSourceSetLoop(InternalId, value ? (byte)1 : (byte)0);
         }
 
         // A spatial source is heard from wherever its entity is and fades with distance from the
@@ -53,24 +55,24 @@ namespace Pine.World.Components
         // Worth knowing: only mono clips are positioned - a stereo one plays flat wherever it is.
         public bool Spatial
         {
-            get => PineGetSpatial(InternalId);
-            set => PineSetSpatial(InternalId, value);
+            get => ComponentBindings.AudioSourceGetSpatial(InternalId) != 0;
+            set => ComponentBindings.AudioSourceSetSpatial(InternalId, value ? (byte)1 : (byte)0);
         }
 
         // Clamped to zero and up. There is no ceiling: above 1 a source is amplified, which will
         // clip if the mix was already loud.
         public float Volume
         {
-            get => PineGetVolume(InternalId);
-            set => PineSetVolume(InternalId, value);
+            get => ComponentBindings.AudioSourceGetVolume(InternalId);
+            set => ComponentBindings.AudioSourceSetVolume(InternalId, value);
         }
 
         // Playback rate, which shifts pitch with it - 2 plays an octave up and twice as fast.
         // Clamped to a small positive value, since zero would mean playing nothing at all.
         public float Pitch
         {
-            get => PineGetPitch(InternalId);
-            set => PineSetPitch(InternalId, value);
+            get => ComponentBindings.AudioSourceGetPitch(InternalId);
+            set => ComponentBindings.AudioSourceSetPitch(InternalId, value);
         }
 
         // Distance attenuation for a spatial source, in world units: full volume out to
@@ -78,21 +80,21 @@ namespace Pine.World.Components
         // RolloffFactor scales how fast that fade happens, and 0 switches attenuation off.
         public float ReferenceDistance
         {
-            get => PineGetReferenceDistance(InternalId);
-            set => PineSetReferenceDistance(InternalId, value);
+            get => ComponentBindings.AudioSourceGetReferenceDistance(InternalId);
+            set => ComponentBindings.AudioSourceSetReferenceDistance(InternalId, value);
         }
 
         // Kept at or above ReferenceDistance, so the fade can never run backwards.
         public float MaxDistance
         {
-            get => PineGetMaxDistance(InternalId);
-            set => PineSetMaxDistance(InternalId, value);
+            get => ComponentBindings.AudioSourceGetMaxDistance(InternalId);
+            set => ComponentBindings.AudioSourceSetMaxDistance(InternalId, value);
         }
 
         public float RolloffFactor
         {
-            get => PineGetRolloffFactor(InternalId);
-            set => PineSetRolloffFactor(InternalId, value);
+            get => ComponentBindings.AudioSourceGetRolloffFactor(InternalId);
+            set => ComponentBindings.AudioSourceSetRolloffFactor(InternalId, value);
         }
 
         // How far into the clip playback has got, in seconds. Mirrored off the audio device once a
@@ -101,69 +103,18 @@ namespace Pine.World.Components
         // which is what makes "play this from halfway" two lines.
         public float PlaybackPosition
         {
-            get => PineGetPlaybackPosition(InternalId);
-            set => PineSetPlaybackPosition(InternalId, value);
+            get => ComponentBindings.AudioSourceGetPlaybackPosition(InternalId);
+            set => ComponentBindings.AudioSourceSetPlaybackPosition(InternalId, value);
         }
 
         // Start playing, or resume after a pause. Playing an already-playing source does nothing;
         // call Stop() first to start the clip over.
-        public void Play() => PinePlay(InternalId);
+        public void Play() => ComponentBindings.AudioSourcePlay(InternalId);
 
         // Hold playback where it is. Play() carries on from the same place.
-        public void Pause() => PinePause(InternalId);
+        public void Pause() => ComponentBindings.AudioSourcePause(InternalId);
 
         // Stop and rewind, so the next Play() starts the clip from the beginning.
-        public void Stop() => PineStop(InternalId);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern Asset PineGetAudioFile(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetAudioFile(uint id, UId assetId);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PinePlay(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PinePause(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineStop(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern int PineGetPlaybackState(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool PineIsPlaying(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool PineGetPlayOnStart(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetPlayOnStart(uint id, bool playOnStart);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool PineGetLoop(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetLoop(uint id, bool loop);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool PineGetSpatial(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetSpatial(uint id, bool spatial);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetVolume(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetVolume(uint id, float volume);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetPitch(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetPitch(uint id, float pitch);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetReferenceDistance(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetReferenceDistance(uint id, float distance);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetMaxDistance(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetMaxDistance(uint id, float distance);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetRolloffFactor(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetRolloffFactor(uint id, float factor);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetPlaybackPosition(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetPlaybackPosition(uint id, float seconds);
+        public void Stop() => ComponentBindings.AudioSourceStop(InternalId);
     }
 }

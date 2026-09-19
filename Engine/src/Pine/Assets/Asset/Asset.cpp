@@ -171,34 +171,19 @@ void Pine::Asset::CreateScriptHandle()
 
 void Pine::Asset::DestroyScriptHandle()
 {
-    if (m_ScriptObjectHandle.Object == nullptr)
+    if (!m_ScriptObjectHandle.IsValid())
     {
-        return;
-    }
-
-    // Freeing the GC handle requires a live appdomain. If the runtime is already down
-    // (shutdown / mid-reload) the handle is freed wholesale by the domain unload, so just
-    // forget it here.
-    if (!Script::Runtime::IsAvailable())
-    {
-        InvalidateScriptHandle();
         return;
     }
 
     Script::ObjectFactory::DisposeObject(&m_ScriptObjectHandle);
 }
 
-void Pine::Asset::InvalidateScriptHandle()
-{
-    m_ScriptObjectHandle = { nullptr, 0 };
-}
-
 Pine::Script::ObjectHandle* Pine::Asset::GetScriptHandle()
 {
-    // Lazily create the managed mirror the first time script touches this asset (and after a
-    // domain reset, which invalidates it). Assets are identified by UId, so a mirror rebuilt
-    // in a fresh domain still resolves back to the correct asset.
-    if (m_ScriptObjectHandle.Object == nullptr && Script::Runtime::IsAvailable())
+    // Lazily create the managed mirror the first time script touches this asset - most assets
+    // are never reached from C# at all, and the ones that are come and go with the project.
+    if (!m_ScriptObjectHandle.IsValid() && Script::Runtime::IsAvailable())
     {
         CreateScriptHandle();
     }

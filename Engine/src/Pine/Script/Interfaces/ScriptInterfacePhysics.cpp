@@ -1,25 +1,34 @@
 ﻿#include <PxRigidActor.h>
 #include <PxScene.h>
-#include <mono/metadata/appdomain.h>
 #include "Interfaces.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
-#include "Pine/Script/Factory/ScriptObjectFactory.hpp"
-#include "Pine/Script/Runtime/ScriptingRuntime.hpp"
-#include "Pine/Script/Scripts/ScriptField.hpp"
+#include "Pine/Script/Bindings/Bindings.hpp"
 #include "Pine/World/Entity/Entity.hpp"
+
+#include <vector>
 
 namespace
 {
+    // One hit as it crosses to C#, which reassembles it into Pine.Physics.Data.RayCastHit. That
+    // type carries a managed Entity reference the engine has no way to write, so the entity's
+    // handle travels instead and the managed side resolves it.
     struct RayCastHit
     {
-        MonoObject* Entity;
+        std::uint64_t EntityHandle;
         Pine::Vector3f Position;
         Pine::Vector3f Normal;
     };
 
-    MonoArray* PhysicsRayCast(Pine::Vector3f origin, Pine::Vector3f direction, float maxDistance, int layerMask)
+    // The hits of the most recent query. C# cannot allocate its array before it knows how many
+    // there are, and the query must not run once per hit, so RayCastQuery runs it and leaves the
+    // results here for RayCastGetHit to read out.
+    std::vector<RayCastHit> m_RayCastHits;
+
+    int RayCastQuery(Pine::Vector3f origin, Pine::Vector3f direction, float maxDistance, int layerMask)
     {
+        m_RayCastHits.clear();
+
         physx::PxRaycastBuffer result;
 
         Pine::Physics3D::GetScene()->raycast(
@@ -29,29 +38,36 @@ namespace
             result,
             physx::PxHitFlag::eDEFAULT);
 
-        auto arr = mono_array_new(mono_domain_get(), Pine::Script::ObjectFactory::GetRayCastHitClass(), result.nbTouches);
-
-        for (int i = 0; i < result.nbTouches; i++)
+        for (physx::PxU32 i = 0; i < result.nbTouches; i++)
         {
-            auto entity = static_cast<Pine::Entity*>(result.getTouch(i).actor->userData);
-            auto hit = result.getTouch(i);
+            const auto touch = result.getTouch(i);
+            const auto entity = static_cast<Pine::Entity*>(touch.actor->userData);
 
-            RayCastHit hitObj;
-
-            hitObj.Entity = mono_gchandle_get_target(entity->GetScriptHandle()->Handle);
-            hitObj.Position = {hit.position.x, hit.position.y, hit.position.z};
-            hitObj.Normal = {hit.normal.x, hit.normal.y, hit.normal.z};
-
-            auto obj = mono_value_box(Pine::Script::Runtime::GetDomain(), Pine::Script::ObjectFactory::GetRayCastHitClass(), &hitObj);
-
-            mono_array_setref(arr, i, obj);
+            m_RayCastHits.push_back({
+                entity->GetScriptHandle()->Id,
+                {touch.position.x, touch.position.y, touch.position.z},
+                {touch.normal.x, touch.normal.y, touch.normal.z}
+            });
         }
 
-        return arr;
+        return static_cast<int>(m_RayCastHits.size());
+    }
+
+    void RayCastGetHit(const int index, RayCastHit* hit)
+    {
+        if (index < 0 || index >= static_cast<int>(m_RayCastHits.size()))
+        {
+            *hit = {};
+
+            return;
+        }
+
+        *hit = m_RayCastHits[index];
     }
 }
 
 void Pine::Script::Interfaces::Physics::Setup()
 {
-    mono_add_internal_call("Pine.Physics.Physics3D::RayCast", reinterpret_cast<void*>(PhysicsRayCast));
+    Bindings::Register("Pine.Physics.Physics3D::RayCastQuery", RayCastQuery);
+    Bindings::Register("Pine.Physics.Physics3D::RayCastGetHit", RayCastGetHit);
 }

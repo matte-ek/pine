@@ -19,8 +19,8 @@ external/
 
 # Other
 Testing/
-assets/engine/script
-assets/mono_*
+# Pine.dll and the runtime configuration built from ScriptRuntime/
+data/engine/script/
 ScriptRuntime/obj
 ScriptRuntime/bin
 

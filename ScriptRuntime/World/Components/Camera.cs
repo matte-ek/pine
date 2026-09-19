@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using Pine.Core.Bindings;
 using Pine.Math;
 
 namespace Pine.World.Components
@@ -9,49 +9,53 @@ namespace Pine.World.Components
         Orthographic
     }
 
-    public class Camera : Component
+    [ComponentType(ComponentType.Camera)]
+    public unsafe class Camera : Component
     {
         public CameraType CameraType
         {
-            get => (CameraType)PineGetCameraType(InternalId);
-            set => PineSetCameraType(InternalId, (int)value);
+            get => (CameraType)ComponentBindings.CameraGetCameraType(InternalId);
+            set => ComponentBindings.CameraSetCameraType(InternalId, (int)value);
         }
 
         public float NearPlane
         {
-            get => PineGetNearPlane(InternalId);
-            set => PineSetNearPlane(InternalId, value);
+            get => ComponentBindings.CameraGetNearPlane(InternalId);
+            set => ComponentBindings.CameraSetNearPlane(InternalId, value);
         }
 
         public float FarPlane
         {
-            get => PineGetFarPlane(InternalId);
-            set => PineSetFarPlane(InternalId, value);
+            get => ComponentBindings.CameraGetFarPlane(InternalId);
+            set => ComponentBindings.CameraSetFarPlane(InternalId, value);
         }
 
         // Vertical field of view in degrees. Only used by a perspective camera.
         public float FieldOfView
         {
-            get => PineGetFieldOfView(InternalId);
-            set => PineSetFieldOfView(InternalId, value);
+            get => ComponentBindings.CameraGetFieldOfView(InternalId);
+            set => ComponentBindings.CameraSetFieldOfView(InternalId, value);
         }
 
         // Half the vertical extent the view covers, in world units. Only used by an orthographic
         // camera.
         public float OrthographicSize
         {
-            get => PineGetOrthographicSize(InternalId);
-            set => PineSetOrthographicSize(InternalId, value);
+            get => ComponentBindings.CameraGetOrthographicSize(InternalId);
+            set => ComponentBindings.CameraSetOrthographicSize(InternalId, value);
         }
 
         public Vector4 ClearColor
         {
             get
             {
-                PineGetClearColor(InternalId, out var color);
+                Vector4 color;
+
+                ComponentBindings.CameraGetClearColor(InternalId, &color);
+
                 return color;
             }
-            set => PineSetClearColor(InternalId, ref value);
+            set => ComponentBindings.CameraSetClearColor(InternalId, &value);
         }
 
         // Where a world position lands on screen. X and Y are pixels within the camera's viewport;
@@ -59,35 +63,11 @@ namespace Pine.World.Components
         // and the X/Y are meaningless.
         public Vector3 WorldToScreenPoint(Vector3 position)
         {
-            PineWorldToScreenPoint(InternalId, ref position, out var screenPoint);
+            Vector3 screenPoint;
+
+            ComponentBindings.CameraWorldToScreenPoint(InternalId, &position, &screenPoint);
+
             return screenPoint;
         }
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern int PineGetCameraType(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetCameraType(uint id, int type);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetNearPlane(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetNearPlane(uint id, float value);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetFarPlane(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetFarPlane(uint id, float value);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetFieldOfView(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetFieldOfView(uint id, float value);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float PineGetOrthographicSize(uint id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetOrthographicSize(uint id, float value);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineGetClearColor(uint id, out Vector4 color);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineSetClearColor(uint id, ref Vector4 color);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void PineWorldToScreenPoint(uint id, ref Vector3 position, out Vector3 screenPoint);
     }
 }

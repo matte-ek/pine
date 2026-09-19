@@ -8,7 +8,6 @@
 
 #include "IconsMaterialDesign.h"
 #include "Gui/Shared/Widgets/Widgets.hpp"
-#include "mono/metadata/object.h"
 #include "Other/Actions/Actions.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
@@ -593,10 +592,44 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
-    // One public field of a C# script. The widgets edit the live managed object directly - the
-    // engine takes a copy of its values whenever that object is about to go away (see
+    // Read and write a fixed-size script field as the C++ value the widgets work on. ScriptField
+    // hands values over in their stored, type-tagged form, and every type that goes through here
+    // is a value type the managed and the native side lay out identically.
+    template <typename T>
+    bool ReadScriptFieldValue(Pine::ScriptField* field, const Pine::Script::ObjectHandle& object, T& value)
+    {
+        Pine::ScriptFieldValue storedValue;
+
+        if (!field->ReadValue(object, storedValue) || storedValue.Data.size() != sizeof(T))
+        {
+            return false;
+        }
+
+        std::memcpy(&value, storedValue.Data.data(), sizeof(T));
+
+        return true;
+    }
+
+    template <typename T>
+    void WriteScriptFieldValue(Pine::ScriptField* field, const Pine::Script::ObjectHandle& object, const T& value)
+    {
+        Pine::ScriptFieldValue storedValue;
+
+        storedValue.Name = field->GetName();
+        storedValue.Type = field->GetType();
+
+        const auto bytes = reinterpret_cast<const std::byte*>(&value);
+
+        storedValue.Data.assign(bytes, bytes + sizeof(T));
+
+        field->WriteValue(object, storedValue);
+    }
+
+    // The widget for one script field, without the presentation its attributes ask for - see
+    // RenderScriptField below for that. These edit the live managed object directly: the engine
+    // takes a copy of its values whenever that object is about to go away (see
     // ScriptComponent::CaptureFieldValues), so nothing here has to save anything itself.
-    void RenderScriptField(Pine::ScriptField* field, MonoObject* object, const std::string& widgetId)
+    void RenderScriptFieldWidget(Pine::ScriptField* field, const Pine::Script::ObjectHandle& object, const std::string& widgetId)
     {
         const auto label = fmt::format("{} ({})", field->GetName(), Pine::ScriptFieldTypeToString(field->GetType()));
 
@@ -604,55 +637,83 @@ namespace
         {
         case Pine::ScriptFieldType::Float:
             {
-                auto value = field->Get<float>(object);
+                float value = 0.f;
 
-                if (Widgets::InputFloat(label, &value))
-                    field->Set(object, value);
+                if (!ReadScriptFieldValue(field, object, value))
+                    break;
+
+                // A [Range] turns the input field into a slider. Float and Integer are the only
+                // two types that can be drawn that way, so it is ignored on the rest.
+                const auto edited = field->HasRange()
+                    ? Widgets::SliderFloat(label, &value, field->GetRangeMin(), field->GetRangeMax())
+                    : Widgets::InputFloat(label, &value);
+
+                if (edited)
+                    WriteScriptFieldValue(field, object, value);
 
                 break;
             }
         case Pine::ScriptFieldType::Integer:
             {
-                auto value = field->Get<int>(object);
+                int value = 0;
 
-                if (Widgets::InputInt(label, &value))
-                    field->Set(object, value);
+                if (!ReadScriptFieldValue(field, object, value))
+                    break;
+
+                const auto edited = field->HasRange()
+                    ? Widgets::SliderInt(label, &value, static_cast<int>(field->GetRangeMin()), static_cast<int>(field->GetRangeMax()))
+                    : Widgets::InputInt(label, &value);
+
+                if (edited)
+                    WriteScriptFieldValue(field, object, value);
 
                 break;
             }
         case Pine::ScriptFieldType::Boolean:
             {
-                auto value = field->Get<bool>(object);
+                bool value = false;
+
+                if (!ReadScriptFieldValue(field, object, value))
+                    break;
 
                 if (Widgets::Checkbox(label, &value))
-                    field->Set(object, value);
+                    WriteScriptFieldValue(field, object, value);
 
                 break;
             }
         case Pine::ScriptFieldType::Vector2:
             {
-                auto value = field->Get<Pine::Vector2f>(object);
+                Pine::Vector2f value;
+
+                if (!ReadScriptFieldValue(field, object, value))
+                    break;
 
                 if (Widgets::Vector2(label, value))
-                    field->Set(object, value);
+                    WriteScriptFieldValue(field, object, value);
 
                 break;
             }
         case Pine::ScriptFieldType::Vector3:
             {
-                auto value = field->Get<Pine::Vector3f>(object);
+                Pine::Vector3f value;
+
+                if (!ReadScriptFieldValue(field, object, value))
+                    break;
 
                 if (Widgets::Vector3(label, value))
-                    field->Set(object, value);
+                    WriteScriptFieldValue(field, object, value);
 
                 break;
             }
         case Pine::ScriptFieldType::Vector4:
             {
-                auto value = field->Get<Pine::Vector4f>(object);
+                Pine::Vector4f value;
+
+                if (!ReadScriptFieldValue(field, object, value))
+                    break;
 
                 if (Widgets::Vector4(label, value))
-                    field->Set(object, value);
+                    WriteScriptFieldValue(field, object, value);
 
                 break;
             }
@@ -722,6 +783,46 @@ namespace
         }
     }
 
+    // A field's [Tooltip], shown while the pointer is anywhere over its row.
+    //
+    // Hovering is tested against the row's rectangle rather than with IsItemHovered, because a
+    // Widgets row draws its control into a child window - so the row itself is never the hovered
+    // item, and IsItemHovered would answer false wherever the pointer actually is.
+    void RenderScriptFieldTooltip(const Pine::ScriptField* field)
+    {
+        if (field->GetTooltip().empty())
+            return;
+
+        if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+            return;
+
+        if (!ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()))
+            return;
+
+        ImGui::SetTooltip("%s", field->GetTooltip().c_str());
+    }
+
+    // One field of a C# script, drawn the way the attributes on it ask for. Nothing here changes
+    // what is stored, so a script may gain or lose an attribute without invalidating a scene.
+    void RenderScriptField(Pine::ScriptField* field, const Pine::Script::ObjectHandle& object, const std::string& widgetId)
+    {
+        // Space first and then the header, so a field carrying both gets a gap and then its title.
+        if (field->HasSpace())
+            ImGui::Spacing();
+
+        if (!field->GetHeader().empty())
+            ImGui::SeparatorText(field->GetHeader().c_str());
+
+        // Grouped so the tooltip has one rectangle covering both the label and the control.
+        ImGui::BeginGroup();
+
+        RenderScriptFieldWidget(field, object, widgetId);
+
+        ImGui::EndGroup();
+
+        RenderScriptFieldTooltip(field);
+    }
+
     // -----------------------------------------------------------------------------------------------------------------------
 
     void RenderScript(Pine::ScriptComponent* scriptComponent)
@@ -738,7 +839,7 @@ namespace
         if (scriptComponent->GetScript() &&
             scriptComponent->GetScript()->GetScriptData() &&
             scriptComponent->GetScript()->GetScriptData()->IsReady &&
-            scriptComponent->GetScriptObjectHandle()->Object != nullptr)
+            scriptComponent->GetScriptObjectHandle()->IsValid())
         {
             const auto scriptData = scriptComponent->GetScript()->GetScriptData();
 
@@ -747,7 +848,7 @@ namespace
                 ImGui::Text("No fields available.");
             }
 
-            const auto object = mono_gchandle_get_target(scriptComponent->GetScriptObjectHandle()->Handle);
+            const auto& object = *scriptComponent->GetScriptObjectHandle();
 
             for (const auto& field : scriptData->Fields)
             {

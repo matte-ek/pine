@@ -1,6 +1,6 @@
 # Moving scripting from Mono to modern .NET
 
-Status: proposal. Nothing below is implemented.
+Status: **units 1-6 (Part 3) are implemented**; unit 7 is not. The engine runs on CoreCLR.
 
 Revised after a verification pass against the tree. The counts in Part 1 were re-checked and hold
 (313 call sites, 13 files, 149 registrations against 149 `extern` declarations, and every row of
@@ -746,6 +746,31 @@ loading, internal-call registration, string marshalling, and `mono_runtime_invok
 entry-point set. That is a little over 200 of the original 313 call sites, but 149 of them are the
 registration table and ~26 are string marshalling, so what is left to *think* about is small.
 
+**As built**, three things differ from the sketch above, all of them shrinking unit 5:
+
+- The `mono_runtime_invoke` plumbing units 3 and 4 both need was extracted to
+  `Script/ManagedCall.hpp` - entry-point lookup, the call itself, exception-to-log, and the
+  temporary reflection-`Type` handle. `Pine::Script::FieldRegistry` moved onto it too, so unit 5
+  re-points **one** seam rather than two files' worth of call sites.
+- A component's managed class is found by the `[ComponentType]` attribute that
+  `ComponentTypes.Of<T>` already reads, rather than by name. The two directions now answer from one
+  attribute and cannot drift; the name rule survives only for assets, where it was already the
+  documented convention. A type with no class is warned about once, which is what 2.3 asked for.
+- Every component class inherits `Parent`, `Type`, `_internalId` and `_isValid` from
+  `Pine.World.Component`, so there is no per-class `FieldInfo` cache to keep - one set covers
+  every component and every script. `ScriptClassBinding` lost its three `MonoClassField*` members
+  with it, and `ScriptData::IsReady` became the `mono_class_is_subclass_of` check those members
+  were standing in for.
+
+One caller outside `Script/` did change after all, against what this unit promised:
+`ObjectFactory::DisposeComponent` dropped its `const Component*`, which only existed to find the
+per-type field cache that no longer exists. `Pine::Component::DestroyScriptInstance` passes the
+handle alone.
+
+Handles are now allocated managed-side by `GCHandle.Alloc`, which makes them strong but **not**
+pinned; `mono_gchandle_new` was being passed `pinned = true`. Nothing held an address, and
+`GCHandle.Alloc(obj, GCHandleType.Pinned)` would throw on CoreCLR for these objects anyway.
+
 ### Unit 5 — The runtime swap
 
 Replace `Pine::Script::Runtime` with `hostfxr` (`hdt_load_assembly` + `hdt_get_function_pointer`,
@@ -767,6 +792,56 @@ misbehaves, so do them as a
 deliberate pass with the list in hand rather than as part of the rename. The eleven handle returns
 fail loudly rather than quietly, so they can ride along with the rename.
 
+**As built**, seven things differ from the sketch above:
+
+- **The C# → native table is resolved by name, not by position.** 2.2 asked for a struct of
+  function pointers declared member-for-member on both sides; instead the engine keeps a
+  name-to-pointer map (`Script/Bindings/`) that the six `Interfaces::*::Setup` tables fill -
+  each `mono_add_internal_call` line became a `Bindings::Register` line with no other change -
+  and `Pine.Core.Interop.Initialize` asks for each one back by that name. The reason is failure
+  mode: two hand-maintained 155-entry structs that drift by one member misroute every call below
+  it, silently, whereas a name that one side has and the other does not is a line in the log at
+  startup. The bootstrap still happens exactly once, and the per-call cost is the same indirect
+  call either way. It also makes the two lists checkable against each other with a grep, which is
+  how the count above was confirmed: **155 bindings, not 149** - unit 2's count-and-index
+  crossings added six.
+- **There is no entry-point struct either.** 2.1 step 4 wanted one bootstrap call returning a
+  struct of managed function pointers, to avoid paying name resolution per call. Resolving each of
+  the ~22 entry points through `hdt_get_function_pointer` at boot pays it once too, and needs no
+  second pair of structs to keep in step, so `ManagedCall::Find<Signature>` does that and the
+  caller holds an ordinary typed function pointer. The one bootstrap call that remains is the one
+  handing managed code the binding resolver.
+- **`Pine::Script::Runtime::Reset` is gone rather than shrunk**, and the teardown went to
+  `Pine::Script::Manager::ReloadGameAssembly` - 2.5's second option. Once `Pine.dll` and the host
+  are boot-once, a reload has nothing to do with the runtime's lifecycle: it captures field values,
+  destroys script instances, drops the `ScriptData` and the field registry, unloads, loads, rebuilds.
+  All of that reads in one function. `Runtime::Dispose` stays a teardown of engine-side state only.
+- **`ScriptClassBinding` is gone.** It existed to hold a `MonoClass*` and four `MonoMethod*`, none
+  of which the engine may hold any more. `ScriptData` carries the class' id in the game assembly
+  and two `bool`s saying which lifecycle methods it has, so the opaque-struct dance, its forward
+  declaration and its heap allocation all go with it. The field registry keeps its own ids, which
+  are not the game assembly's - `ProcessScriptFields` is the only place both are in scope.
+- **Two latent bugs surfaced and are fixed**, both of which the old binding mechanism hid.
+  `Pine.Input.InputManager` declared `PineGetMouseButtonState` while the engine registered
+  `PineGetMouseButtonKeyState`, so `GetMouseButtonState` had no implementation at all under Mono;
+  name resolution turns that from a runtime miss into a startup error, so the names now agree.
+  And `Transform.Rotation` was declared `out Vector3` against a binding that writes a
+  `Pine::Quaternion` - a 16-byte write into a 12-byte slot. It is a `Quaternion` now, matching
+  `LocalRotation` beside it and the engine's own `Transform::GetRotation`. **This is the one
+  game-facing C# signature the migration changes**, against decision 4; nothing in the tree uses
+  it, and the alternative was keeping a property that corrupts the caller's stack.
+- **The unload diagnostic from unit 6 landed here**, because unit 5 cannot be called done without
+  it: a failed `Unload()` is silent by construction, so there is otherwise no way to tell a
+  working reload from a leaking one. It is the `WeakReference` check 2.5 describes, in
+  `Pine.Core.GameAssembly.Unload`.
+- **Three edges outside the four csprojs and the four `CMakeLists.txt`** that 2.7's table does not
+  list, and that a build stops working without: `setup-env.sh` installs `dotnet-sdk` where it
+  installed `mono`; the four script probes in `Editor/src/DebugServer/Verification/` build their
+  throwaway `Game.dll` with `dotnet build` where they used `mcs`; and `.gitignore`'s
+  `assets/engine/script` - a path from before `assets/` was renamed `data/`, and so ignoring
+  nothing - became `data/engine/script/`, which is where `Pine.dll` now lands alongside the
+  `runtimeconfig.json` and `deps.json` the host needs.
+
 ### Unit 6 — Reload correctness
 
 The `GCHandle` audit, the `WeakReference` unload diagnostic, the shrunk `Dispose`/`Setup`, and
@@ -777,6 +852,50 @@ Unit 5 moves the teardown ahead of the unload; this unit is where you find out w
 *everything*. Start from the diagnostic rather than from reading code: a `WeakReference` that
 survives two collect-and-finalize cycles tells you there is a pin, and the audit is only worth
 doing once it has told you that.
+
+**As built**, three things differ from the sketch above:
+
+- **Three of the four items had already landed in unit 5** - the diagnostic, the shrunk
+  `Pine::Script::Runtime::Dispose`/`Setup`, and the comment that went with them - so what was
+  actually left was proving the reload under cases harder than the one throwaway probe unit 5 ran.
+  That is `verify-script-reload.py`, the fifth probe in `Editor/src/DebugServer/Verification/`:
+  four script classes, one deriving from another, holding an entity, a component, an asset and an
+  instance of another class in the same assembly, with a fifth that throws once per reload; play
+  mode entered, thirty reloads in a row, and the scene changed between each of them.
+- **The advice above was exactly backwards, and the two-cycle count was the bug.** The first
+  reload of that probe reported a leak. It was not one: the context unloads on the *third*
+  collect-and-finalize cycle, every time, and `Pine.Core.GameAssembly.Unload` only ever ran two.
+  The extra cycle appears once a class' `OnUpdate` has been invoked about four times, which is
+  where reflection stops interpreting the call and emits an invoke stub for it - and that stub is
+  freed by a finalizer, so it costs a cycle of its own before the loader allocator underneath it
+  becomes unreachable. Unit 5's probe never reached that threshold. The loop now asks again until
+  the context is gone, up to ten times, rather than guessing the number; with the fix, thirty
+  reloads warn not once and the resident set is flat (+944 kB over the whole run).
+  **A diagnostic that cries wolf is worse than no diagnostic**, because the next person to see it
+  goes looking for a pin that does not exist - which is most of a day.
+- **No pin was found, and none of the audit's static half turned anything up either.** Every
+  `GCHandle` the engine takes is paired: `Pine::Entity`'s with its constructor and destructor,
+  `Pine::Component`'s with `OnCreated`/`OnDestroyed` (and `Components::Destroy` asserts it), the
+  script instance's with `Pine::ScriptComponent::CreateInstance`/`DestroyInstance`, the asset's
+  with `Pine::Asset::GetScriptHandle`/`~Asset`, and the class `Type`'s with
+  `GameAssembly::ScopedClassType`. The `Pine.dll` statics that could hold a `Game.dll` reference
+  are `Pine.Core.GameAssembly.Classes` and `Pine.Core.Reflection.FieldRegistry.Classes`, both
+  cleared before `Unload()`; `Pine.Core.ObjectFactory`'s two class caches are built from
+  `Pine.dll`'s own assembly and cannot contain one.
+
+**The audit's one real finding was in shutdown, not in reload**, and it is fixed here with the
+author's agreement. `Pine::Engine::Shutdown` called `Pine::Script::Runtime::Dispose` *first*, and
+then `Entities::Shutdown`, `Components::Shutdown` and `Assets::Shutdown` freed every mirror through
+managed code that `Dispose`'s own comment said must not be reached any more. It worked only because
+`hostfxr_close` does not stop the runtime - the invariant was false, and the one place that
+honoured it was `Pine::Asset::DestroyScriptHandle`, which checked
+`Pine::Script::Runtime::IsAvailable()` and forgot the handle instead of freeing it.
+`Pine::Script::Runtime::Dispose` now runs *after* those three, so every mirror is freed through a
+live runtime and the comment is true. `Pine::Asset::InvalidateScriptHandle` existed for that case
+alone and is gone with it, which is what 2.5 guessed would happen to it; the lazy create in
+`Pine::Asset::GetScriptHandle` stays, because an asset touched before the runtime is up - or on a
+machine with no .NET at all - still must not try to make one. The script probes all run the editor
+to a real `Pine::Engine::Shutdown`, so the reordered teardown is exercised on every one of them.
 
 ### Unit 7 — Deployment and docs
 
@@ -798,7 +917,18 @@ merge pain.
 
 # Part 4 — What verification looks like
 
-There are no automated tests in this area, so verification is running the editor and the sample
+Units 2, 3, 4 and 6 each left a native probe behind in `Editor/src/DebugServer/Verification/`, and
+between them they now cover most of this list without a person in front of the editor (unit 5
+moved the first four off `mcs` and onto a throwaway SDK project built with `dotnet build`):
+`verify-script-components.py` (the per-component bindings), `verify-script-collections.py` (the
+count-then-index crossings), `verify-script-fields.py` (authoring, hot reload, play/stop and a level
+round trip), `verify-script-lifetime.py` (a script still holding an entity and a component the
+engine has destroyed) and `verify-script-reload.py` (thirty reloads in a row, checking the
+assembly unloads every time). Each builds the Editor's own objects against a probe
+`Application.cpp` and runs headless under Xvfb, so they are the cheapest thing to run after every
+unit. Run all five.
+
+Beyond them, verification is running the editor and the sample
 project. `data/projects/gm/assets/PlayerController.cs` happens to be an excellent end-to-end probe —
 it exercises `Parent.GetComponent<T>()` (the `typeof` path), `Parent.Children` (the array path),
 `Transform` property get/set, `InputManager`, and `CharacterController` in one script, and its five
@@ -826,7 +956,18 @@ After every unit:
 
 Step 6 is the one that matters most from unit 5 onward — and from unit 6 it should also be run
 **twenty or thirty times in a row** with the process RSS watched, because that is the only way the
-ALC-unload failure mode shows itself.
+ALC-unload failure mode shows itself. Unit 5 did one such run, from a throwaway probe: thirty
+`Pine::Script::Manager::ReloadGameAssembly` calls in a row, resident set flat at 412 MB
+(+628 kB over the whole run, and unchanged from the twelfth reload on) and the unload diagnostic
+silent throughout. That was the starting point for unit 6, not a substitute for it — one script
+class in one assembly is the easy case, and it is why unit 6's harder probe found a two-cycle
+unload that the easy case never reached. `verify-script-reload.py` is that run, now repeatable.
+
+What none of the probes reach is the *trigger*: the editor asks for a reload from a GLFW window
+focus callback (`Editor/src/Utilities/Scripts/ScriptUtilities.cpp`), and no window manager runs
+under Xvfb, so the focus event cannot be delivered from a script. The probes call
+`Pine::Script::Manager::ReloadGameAssembly` directly, which is what that callback calls. Touching a
+script, rebuilding and refocusing the editor is therefore still a thing to do by hand.
 
 Additionally, from unit 3: a script with `[SerializeField] private float x`, `[HideInInspector]
 public float y`, `[Range(0,10)] public float z`, a `public bool` and a **`public string`** should
@@ -899,6 +1040,13 @@ Call it three to five focused weeks. Units 1–4 are predictable; unit 5 is larg
    `PlayerController.cs` is out of scope for this migration. This has already cost one design
    choice: `RayCastHit` stays non-blittable and gains a transport struct behind it, rather than
    having its `Entity` field reshaped (2.6).
+
+   **One exception, taken deliberately in unit 5 and signed off by the author:**
+   `Transform.Rotation` changed from `Vector3` to `Quaternion`. It was never a working property -
+   the binding behind it writes a `Pine::Quaternion` through the pointer, so `out Vector3` was a
+   16-byte write into a 12-byte slot. Keeping the old signature would have meant keeping a
+   property that corrupts its caller's stack, and nothing in the tree calls it. Do not "restore"
+   it.
 5. **The saved format does not change.** `ScriptFieldType` values stay pinned; `ScriptFieldValue`
    keeps its byte layout; no `.passet` migration.
 6. **`Pine.dll` in the default ALC, `Game.dll` collectible.** This is what makes reload simpler
@@ -909,8 +1057,24 @@ Call it three to five focused weeks. Units 1–4 are predictable; unit 5 is larg
 8. **C# → native goes through a function-pointer table, not `[LibraryImport]` into the host.**
    `Engine` is a static library, and symbol export from the executables would silently drop the
    binding translation units once their `Setup()` registrations are gone.
+
+   **Refined in unit 5, with the author's agreement before the work started:** the table is
+   resolved **by name** (`Script/Bindings/`) rather than being a struct whose members line up
+   positionally on both sides. Same mechanism, same per-call cost; the difference is that a
+   binding one side has and the other does not is a named error at startup instead of a silent
+   misroute. See unit 5's "As built" notes. The same reasoning removed the entry-point struct
+   2.1 step 4 describes, so **neither** direction has a hand-maintained parallel struct.
 9. **Target `net10.0`.** Both SDKs are installed; .NET 8 leaves support in November 2026. All four
    csprojs are retargeted, `data/projects/project-template/runtime/Game.csproj` included.
 10. **Nothing throws across the native boundary.** Every `[UnmanagedCallersOnly]` entry point
    catches, logs and returns a failure value; an escaping exception is a process kill, not an error
    the caller can handle.
+
+---
+
+Every departure from this plan that units 1-5 made is written up in the "As built" notes under the
+unit that made it, and each one was put to the repository's author and accepted. They are recorded
+rather than quietly folded in because the reasoning is the part that is expensive to reconstruct -
+if a later change makes one of them wrong, the note says what it was trading off, which is what you
+need to overturn it safely. Reversing one because it merely differs from the prose above is not an
+improvement.

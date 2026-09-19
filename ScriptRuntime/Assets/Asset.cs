@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Pine.Core;
+using Pine.Core.Bindings;
 
 namespace Pine.Assets
 {
@@ -21,8 +21,8 @@ namespace Pine.Assets
         CSharpScript,
         Terrain,
     }
-    
-    public class Asset
+
+    public unsafe class Asset
     {
         public readonly AssetType Type = AssetType.Invalid;
 
@@ -30,12 +30,7 @@ namespace Pine.Assets
         // array-slot id for assets, unlike entities/components.
         public readonly UId Id;
 
-        public string FileName => GetFileName(Id);
-        public string Path => GetPath(Id);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern string GetFileName(UId id);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern string GetPath(UId id);
+        public string FileName => Interop.StringFrom(AssetBindings.GetFileName(Id));
+        public string Path => Interop.StringFrom(AssetBindings.GetPath(Id));
     }
 }

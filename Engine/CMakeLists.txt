@@ -3,7 +3,7 @@ project(Engine)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(src /usr/include/mono-2.0)
+include_directories(src)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
@@ -17,7 +17,7 @@ target_link_libraries(Engine
         GL
         assimp
         fmt
-        mono-2.0
+        nethost
         openal
         glfw
         jpeg

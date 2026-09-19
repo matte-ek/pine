@@ -75,7 +75,7 @@ void Pine::Component::OnDestroyed()
 
 void Pine::Component::OnCopied()
 {
-    m_ScriptObjectHandle = { nullptr, 0 };
+    m_ScriptObjectHandle = {};
 }
 
 void Pine::Component::OnSetup()
@@ -124,12 +124,12 @@ void Pine::Component::CreateScriptInstance()
 
 void Pine::Component::DestroyScriptInstance()
 {
-    if (m_ScriptObjectHandle.Object == nullptr)
+    if (!m_ScriptObjectHandle.IsValid())
     {
         return;
     }
 
-    Script::ObjectFactory::DisposeComponent(this, &m_ScriptObjectHandle);
+    Script::ObjectFactory::DisposeComponent(&m_ScriptObjectHandle);
 }
 
 void Pine::Component::SetInternalId(const std::uint32_t id)

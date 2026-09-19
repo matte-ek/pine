@@ -10,7 +10,7 @@ sudo pacman -S --needed \
     glew \
     assimp \
     fmt \
-    mono \
+    dotnet-sdk \
     openal \
     glfw \
     libjpeg-turbo \

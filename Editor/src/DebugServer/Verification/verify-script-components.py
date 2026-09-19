@@ -1,4 +1,4 @@
-"""Drive Light, Camera, Collider and the two audio components from C# through the Editor's boot sequence; needs a Ninja Editor build, Mono and Xvfb."""
+"""Drive Light, Camera, Collider and the two audio components from C# through the Editor's boot sequence; needs a Ninja Editor build, the .NET SDK and Xvfb."""
 
 import argparse
 import json
@@ -30,10 +30,10 @@ source = application.read_text()
 marker = '    Pine::Engine::Run();'
 assert source.count(marker) == 1, 'Editor main-loop entry changed; update this probe.'
 includes = '''#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <mono/metadata/object.h>
 #include "Other/PlayHandler/PlayHandler.hpp"
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
@@ -150,10 +150,32 @@ namespace Game
 }
 ''')
 
+# The gameplay assembly, which the editor loads but never builds. A throwaway SDK project rather
+# than the one the real projects carry: a single source file against a single reference needs
+# nothing else, and the properties below are the ones the engine's loader depends on - an output
+# path with no framework segment in it, and no local copy of Pine.dll for the game's load context
+# to find a second time.
 runtime = data / 'projects/scriptcomponents/runtime-bin'
 runtime.mkdir(parents=True)
-subprocess.run(['mcs', '-target:library', '-out:' + str(runtime / 'Game.dll'),
-                '-r:' + str(data / 'engine/script/Pine.dll'), str(assets / 'ComponentTest.cs')], check=True)
+(runtime / 'Game.csproj').write_text(f'''<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Game</AssemblyName>
+    <OutputPath>./</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="{assets / 'ComponentTest.cs'}" />
+    <Reference Include="Pine">
+      <HintPath>{data / 'engine/script/Pine.dll'}</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
+''')
+subprocess.run(['dotnet', 'build', '-c', 'Release', '--nologo', '--verbosity', 'quiet',
+                str(runtime / 'Game.csproj')], check=True)
 
 environment = {**os.environ, 'PINE_X11': '1', 'ALSOFT_DRIVERS': 'null'}
 environment.pop('PINE_DEBUG_SERVER', None)

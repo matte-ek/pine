@@ -1,15 +1,22 @@
-using System.Runtime.CompilerServices;
+using Pine.Core;
+using Pine.Core.Bindings;
 
 namespace Pine.Assets
 {
-    public class AssetManager
+    public unsafe class AssetManager
     {
         public static T Get<T>(string path) where T : Asset
         {
-            return (T)GetByPath(path);
+            using var text = new Interop.Utf8Scope(path);
+
+            return Interop.ObjectFrom<T>(AssetBindings.GetByPath(text.Pointer));
         }
-        
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern Asset GetByPath(string path);
+
+        // Not public: an authored asset reference is stored as its UId, so the field registry needs
+        // this to put a script's asset field back, but a game reaches its assets by path.
+        internal static Asset GetByUId(UId id)
+        {
+            return Interop.ObjectFrom<Asset>(AssetBindings.GetById(id));
+        }
     }
 }
