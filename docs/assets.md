@@ -105,12 +105,22 @@ compressed, and records the answer on the texture as a `TextureAlphaMode`:
 |------|---------|
 | `Opaque` | Every pixel is solid, or there is no alpha channel. |
 | `Cutout` | Alpha is a mask - a pixel is either there or it is not. Antialiased edges count as this. |
-| `Transparent` | More than 10% of the pixels are partially see-through: glass, water, smoke. |
+| `Transparent` | Enough of the image is partially see-through, *and* that partial alpha sits inside the shape rather than on its outline: glass, water, smoke. |
 | `Unknown` | Never scanned. The texture was imported before this existed, and nothing is derived from it until it is re-imported. |
 
-The 10% cut-off is deliberately forgiving, because the two mistakes are not symmetrical: an
-antialiased cutout has partial alpha only along its outline, and `ShadowPass` builds draw lists for
-`Opaque` and `Discard` only - so calling foliage `Transparent` would silently cost it its shadow.
+`Cutout` and `Transparent` are told apart by two tests, in that order. The first is the cheap one:
+under 10% partial-alpha pixels and the texture is a mask whatever its shape. The second decides the
+rest, and it asks how that partial alpha is *laid out* rather than how much of it there is. A
+partial pixel bordering a solid or a fully clear one is on an antialiased outline; one with nothing
+but partial pixels around it sits inside a region that genuinely fades. Over half of them have to be
+interior for `Transparent`.
+
+Counting partial pixels alone does not work, because foliage is all perimeter - at 256px a grass
+blade's antialiased edge is a large share of the image. Measured over `gm`'s PSX Nature pack, the
+outlines of grass, ferns and pine branches cover 8-28% of their textures, while under 30% of those
+pixels are interior, against over 95% for a genuinely translucent one. Getting it wrong in that
+direction is the expensive mistake: `ShadowPass` builds draw lists for `Opaque` and `Discard` only,
+so calling foliage `Transparent` silently costs it its shadow.
 
 Two things read the result:
 

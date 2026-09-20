@@ -16,6 +16,8 @@ bool Pine::Importer::TextureImporter::Import(Texture2D* texture)
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
+#include <vector>
+
 #include <stb/stb_image.h>
 #include <stb/stb_image_resize2.h>
 #include <stb/stb_image_write.h>
@@ -81,16 +83,128 @@ namespace
     constexpr unsigned char OpaqueAlphaThreshold = 250;
     constexpr unsigned char ClearAlphaThreshold = 5;
 
-    // How much of a texture has to be partially see-through before the texture counts as
-    // Transparent rather than a cutout mask. An antialiased cutout - foliage, a chain-link fence -
-    // has partial alpha only along its edges, and it belongs in the discard pass: the shadow pass
-    // builds draw lists for Opaque and Discard only, so calling it Transparent would cost it its
-    // shadow. Real transparency (glass, water, smoke) covers far more of the image than an outline
-    // does.
+    // How much of a texture has to be partially see-through before it is worth asking what that
+    // partial alpha is doing. Below this the texture is a mask whatever the shape of it.
     constexpr float TransparentPixelFraction = 0.1f;
+
+    // ...and how many of those partially see-through pixels have to sit inside a fading region,
+    // rather than on the antialiased outline of a cutout, before the texture counts as Transparent.
+    // Measured across foliage the two populations are nowhere near each other: grass, ferns and
+    // pine branches come in under 30%, a genuinely translucent texture over 95%.
+    constexpr float InteriorPartialPixelFraction = 0.5f;
+
+    // What a single pixel does with its alpha channel.
+    enum class PixelAlpha
+    {
+        Solid,
+        Partial,
+        Hole
+    };
+
+    std::vector<PixelAlpha> ClassifyPixels(
+        const void* imageData,
+        const unsigned int width,
+        const unsigned int height,
+        const unsigned int channels)
+    {
+        const auto* pixels = static_cast<const unsigned char*>(imageData);
+        const size_t pixelCount = static_cast<size_t>(width) * height;
+
+        std::vector<PixelAlpha> classified(pixelCount);
+
+        for (size_t i{}; i < pixelCount; i++)
+        {
+            const auto alpha = pixels[i * channels + 3];
+
+            if (alpha >= OpaqueAlphaThreshold)
+            {
+                classified[i] = PixelAlpha::Solid;
+                continue;
+            }
+
+            if (alpha <= ClearAlphaThreshold)
+            {
+                classified[i] = PixelAlpha::Hole;
+                continue;
+            }
+
+            classified[i] = PixelAlpha::Partial;
+        }
+
+        return classified;
+    }
+
+    // A partially transparent pixel next to a solid or a fully clear one is almost certainly on the
+    // antialiased outline of a cutout. One with nothing but partial pixels around it sits inside a
+    // region that genuinely fades, and that is what needs blending to look right.
+    bool IsInteriorPartialPixel(
+        const std::vector<PixelAlpha>& classified,
+        const unsigned int width,
+        const unsigned int height,
+        const unsigned int x,
+        const unsigned int y)
+    {
+        for (int offsetY = -1; offsetY <= 1; offsetY++)
+        {
+            for (int offsetX = -1; offsetX <= 1; offsetX++)
+            {
+                const int neighbourX = static_cast<int>(x) + offsetX;
+                const int neighbourY = static_cast<int>(y) + offsetY;
+
+                const bool outsideImage =
+                    neighbourX < 0 || neighbourX >= static_cast<int>(width) ||
+                    neighbourY < 0 || neighbourY >= static_cast<int>(height);
+
+                if (outsideImage)
+                {
+                    continue;
+                }
+
+                if (classified[static_cast<size_t>(neighbourY) * width + neighbourX] != PixelAlpha::Partial)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    size_t CountInteriorPartialPixels(
+        const std::vector<PixelAlpha>& classified,
+        const unsigned int width,
+        const unsigned int height)
+    {
+        size_t interiorPartialPixels = 0;
+
+        for (unsigned int y{}; y < height; y++)
+        {
+            for (unsigned int x{}; x < width; x++)
+            {
+                if (classified[static_cast<size_t>(y) * width + x] != PixelAlpha::Partial)
+                {
+                    continue;
+                }
+
+                if (IsInteriorPartialPixel(classified, width, height, x, y))
+                {
+                    interiorPartialPixels++;
+                }
+            }
+        }
+
+        return interiorPartialPixels;
+    }
 
     // Works out what a texture does with its alpha channel, from the source image - before block
     // compression gets a chance to quantise it away.
+    //
+    // The question that decides Cutout against Transparent is not how much partial alpha there is,
+    // but how it is laid out. Foliage - grass, ferns, a pine branch - is all perimeter, so its
+    // antialiased outline alone covers a tenth to a third of the image while the texture is still a
+    // plain mask. It belongs in the discard pass: ShadowPass builds draw lists for Opaque and
+    // Discard only, so calling it Transparent would cost it its shadow. Glass, water and smoke fade
+    // across their interior instead, and that is what this looks for.
     TextureAlphaMode DetectAlphaMode(
         const void* imageData,
         const unsigned int width,
@@ -102,28 +216,22 @@ namespace
             return TextureAlphaMode::Opaque;
         }
 
-        const auto* pixels = static_cast<const unsigned char*>(imageData);
-        const size_t pixelCount = static_cast<size_t>(width) * height;
+        const auto classified = ClassifyPixels(imageData, width, height, channels);
+        const size_t pixelCount = classified.size();
 
         size_t holePixels = 0;
         size_t partialPixels = 0;
 
-        for (size_t i{}; i < pixelCount; i++)
+        for (const auto pixelAlpha : classified)
         {
-            const auto alpha = pixels[i * channels + 3];
-
-            if (alpha >= OpaqueAlphaThreshold)
-            {
-                continue;
-            }
-
-            if (alpha <= ClearAlphaThreshold)
+            if (pixelAlpha == PixelAlpha::Hole)
             {
                 holePixels++;
-                continue;
             }
-
-            partialPixels++;
+            else if (pixelAlpha == PixelAlpha::Partial)
+            {
+                partialPixels++;
+            }
         }
 
         if (holePixels == 0 && partialPixels == 0)
@@ -131,7 +239,15 @@ namespace
             return TextureAlphaMode::Opaque;
         }
 
-        if (static_cast<float>(partialPixels) > static_cast<float>(pixelCount) * TransparentPixelFraction)
+        // Too little partial alpha to be anything but a mask, so skip the walk over the image.
+        if (static_cast<float>(partialPixels) <= static_cast<float>(pixelCount) * TransparentPixelFraction)
+        {
+            return TextureAlphaMode::Cutout;
+        }
+
+        const auto interiorPartialPixels = CountInteriorPartialPixels(classified, width, height);
+
+        if (static_cast<float>(interiorPartialPixels) > static_cast<float>(partialPixels) * InteriorPartialPixelFraction)
         {
             return TextureAlphaMode::Transparent;
         }
