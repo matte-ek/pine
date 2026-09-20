@@ -173,8 +173,8 @@ namespace
 
         // Slope-scaled bias is applied by the rasterizer while rendering this view; the normal
         // offset is applied by the shader when sampling it.
-        view.SlopeBias = 2.f;
-        view.DepthBias = 4.f;
+        view.SlopeBias = Rendering::SHADOW_SEPARATION_SLOPE_BIAS;
+        view.DepthBias = Rendering::SHADOW_SEPARATION_DEPTH_BIAS;
 
         // Stated rather than left at the struct default. These views are filled in place and their
         // slots are reused across frames by different lights, so every field a view is rendered with
@@ -238,8 +238,8 @@ namespace
         view.Viewport = viewport;
         view.TexelWorldScale = 2.f * std::tan(fov * 0.5f) / static_cast<float>(viewport.z);
 
-        view.SlopeBias = 2.f;
-        view.DepthBias = 4.f;
+        view.SlopeBias = Rendering::SHADOW_SEPARATION_SLOPE_BIAS;
+        view.DepthBias = Rendering::SHADOW_SEPARATION_DEPTH_BIAS;
 
         // See BuildSpotView: written rather than inherited from the struct default.
         view.FaceCulling = Graphics::FaceCullMode::Back;

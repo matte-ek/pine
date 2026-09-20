@@ -201,11 +201,64 @@ Three limits worth knowing:
   same way the draw list does, override material included — a renderer made transparent by its
   override is what the blend pass would otherwise silently miss.
 
+### Which faces a material draws
+
+`Material::GetRenderFace()` is the second thing a material says about how it is rasterized.
+`Default` leaves the choice to the pass — the scene pass and the pre-pass cull back faces, a shadow
+cascade culls front faces — and `Both` switches culling off wherever that material's geometry is
+drawn. It is for geometry that is a *surface* rather than a solid: a leaf card, a sheet of grass, a
+curtain. Cutout and two-sided are independent, and deliberately not inferred from one another — a
+fence texture on a wall is `Discard` and still has an inside.
+
+**It is applied in `Pipeline3D::RenderBatch`**, per run, rather than in `Renderer3D::PrepareMesh`
+where the rest of a material's state is set. The pre-pass and the shadow pass prepare meshes with
+`SkipMaterialInitialization`, which returns before the material is read, and all three passes have
+to agree about which faces exist or the depth one writes describes geometry another does not draw.
+Runs are already keyed by (mesh, material), so this costs one state change per boundary between a
+two-sided run and an ordinary one, and nothing at all in a scene with no two-sided materials. It is
+not part of the batch key.
+
+Nothing reads culling state back out of `IGraphicsAPI`, so a pass hands `RenderBatch` a
+`Pipeline3D::BatchRasterState`: a `Default` half saying what the pass itself draws with, and a
+`TwoSided` half saying what a `MaterialRenderFace::Both` run gets instead. `RenderBatch` applies
+the default half before its first draw rather than assuming the pass already did, so the switches
+it makes per run are measured against a state it put there itself; a pass states its raster state
+once, in the struct, and nowhere else.
+
+A `Pipeline3D::RasterState` carries a depth bias alongside its culling because the two move
+together. An open surface has no far side for the depth test to hide behind, so a cascade, which
+takes its whole separation from front-face culling and renders at *no* bias, gets none for such a
+surface and it shadows itself. `ShadowPass` therefore gives a two-sided run the same
+`Rendering::SHADOW_SEPARATION_*` pair it gives terrain — and that a local light view renders
+everything at, because a local view cannot cull front faces either. One pair, declared in
+`ShadowView.hpp`, read by all three.
+
+**The lighting half is in the shader.** `generic.fragment.glsl` negates `surface.normal` when
+`gl_FrontFacing` is false, so the far side of a card is lit as the near side's mirror instead of by
+a normal pointing away from the viewer. It is unconditional and has no shader version of its own: a
+face that gets culled never reaches the fragment stage through that face, so for everything else
+`gl_FrontFacing` is always true and the flip is dead code the driver folds away.
+
+What this does **not** do is make a two-sided surface sort correctly against itself. A `Transparent`
+material set to `Both` composites its two faces in whatever order they rasterize; the blend pass
+sorts per object-mesh by centre distance and cannot see inside one. Foliage wants `Discard`, which
+has no such problem.
+
 ### Verification
 
 ```sh
+python3 Editor/src/DebugServer/Verification/verify-render-face.py --build build
 python3 Editor/src/DebugServer/Verification/verify-blending.py --build build
 ```
+
+The first puts the camera inside a large cube — every wall it looks at presents a back face, which
+is the one situation where culling alone decides whether geometry exists — with a small cube in
+front of it as a lit front-face control. It reads a wall pixel with the room material `Default`
+(the skybox shows through) and again with it `Both` (the wall is there and lit), so a flip missed
+in any of the three shaders above fails it. It also asserts that `engine/materials/default`, which
+was written before the field existed, still loads as `Default`.
+
+The second covers the blend pass:
 
 Nothing creates a material over HTTP and `/edit` cannot make one transparent, so this builds a probe
 out of the Editor's boot sequence — the `verify-physics-native.py` pattern — and puts a red cube in

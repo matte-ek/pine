@@ -234,6 +234,15 @@ namespace
             assetModified = true;
         }
 
+        // Both is for geometry that is a surface rather than a solid - foliage cards above all.
+        // See MaterialRenderFace for what it costs and what it does to the lighting.
+        auto renderFace = static_cast<int>(material->GetRenderFace());
+        if (Widgets::DropDown("Render Face", &renderFace, "Default\0Both\0"))
+        {
+            material->SetRenderFace(static_cast<Pine::MaterialRenderFace>(renderFace));
+            assetModified = true;
+        }
+
         if (material->IsMeshGenerated())
         {
             Widgets::PopDisabled();

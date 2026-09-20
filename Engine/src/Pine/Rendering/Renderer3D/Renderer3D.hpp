@@ -42,6 +42,15 @@ namespace Pine::Renderer3D
     // Resets the renderer for a new frame
     void FrameReset();
 
+    // Which material a mesh is really drawn with: the global override if one is set, otherwise the
+    // caller's override, otherwise the mesh's own. Null when none of the three has one.
+    //
+    // Exposed because the submitter has to answer the same question PrepareMesh does, before it
+    // calls it: a material decides face culling, and culling is pipeline state that has to be set
+    // around the draw rather than during mesh preparation. Sharing the rule keeps the two from
+    // disagreeing about which material a draw belongs to.
+    Material* ResolveMaterial(Mesh* mesh, Material* overrideMaterial = nullptr);
+
     // Prepares the specified mesh for rendering, overrideMaterial will override the mesh material if set.
     // If includeMaterial is set to false, the renderer won't set up the material for rendering.
     void PrepareMesh(Mesh* mesh, Material* overrideMaterial = nullptr);

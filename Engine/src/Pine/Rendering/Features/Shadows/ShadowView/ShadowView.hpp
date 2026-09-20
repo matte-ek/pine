@@ -6,6 +6,23 @@
 
 namespace Pine::Rendering
 {
+    // The bias pair a shadow view renders with when its depth separation cannot come from
+    // front-face culling.
+    //
+    // A cascade gets that separation for free: it culls front faces, so what it records is the far
+    // side of a caster and the near side it shadows sits a whole thickness in front of it. It needs
+    // no bias at all. Everything else has to buy the same separation explicitly with this pair -
+    //
+    // - a local light view, which culls back faces like the scene pass and so renders *everything*
+    //   at this bias (see BuildSpotView), and
+    // - inside any view, geometry with no far side to hide behind: terrain, and a material asking
+    //   for both of its faces (see ShadowPass::Render).
+    //
+    // One pair rather than one per case, because it is one problem. Tuning it for a local light and
+    // leaving foliage on a different number would be a bug, not a choice.
+    constexpr float SHADOW_SEPARATION_SLOPE_BIAS = 2.f;
+    constexpr float SHADOW_SEPARATION_DEPTH_BIAS = 4.f;
+
     // One depth render of the scene from one projection, into one region of one render target.
     //
     // Every shadow source decomposes into some number of these and nothing else: a directional light

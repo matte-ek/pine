@@ -99,7 +99,7 @@ vec3 CalculatePointLight(Surface surface, int index, vec3 lightDirection)
     // light's view count, so nothing here has to know that this light spends six views and that one
     // spends one. Returns 1.0 for a light holding no tile, so an unshadowed point light costs one
     // compare.
-    float shadow = SampleLocalShadow(index, vIn.worldPosition, vIn.worldNormal);
+    float shadow = SampleLocalShadow(index, vIn.worldPosition, FacingWorldNormal());
 
     return (result.diffuse + result.specular) * shadow;
 }
@@ -129,7 +129,7 @@ vec3 CalculateSpotLight(Surface surface, int index, vec3 lightDirection)
 
     // Both terms, unlike the directional path which only shadows diffuse. A specular highlight
     // surviving inside a shadow reads as a light leak, and it is the more noticeable of the two.
-    float shadow = SampleLocalShadow(index, vIn.worldPosition, vIn.worldNormal);
+    float shadow = SampleLocalShadow(index, vIn.worldPosition, FacingWorldNormal());
 
     result.diffuse *= shadow;
     result.specular *= shadow;

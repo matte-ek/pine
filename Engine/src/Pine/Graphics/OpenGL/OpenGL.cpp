@@ -415,9 +415,6 @@ void Pine::Graphics::OpenGL::SetStencilTestEnabled(const bool value)
 void Pine::Graphics::OpenGL::SetFaceCullingEnabled(const bool value)
 {
 	value ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
-
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-	glCullFace(GL_BACK);
 }
 
 void Pine::Graphics::OpenGL::SetMultiSampleEnabled(const bool value)

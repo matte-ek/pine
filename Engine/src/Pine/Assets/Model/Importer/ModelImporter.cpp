@@ -422,6 +422,17 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
             // chance it gets to end up in the right pass.
             engineMaterial->ResolveRenderingModeFromDiffuse();
 
+            // glTF's doubleSided, and the equivalent flag in the formats that carry one. Most
+            // content does not set it - foliage exported as plain planes almost never does - and
+            // there is nothing to infer it from here, so the fallback is the editor: generate a
+            // material from this one and set its render face, the route the model panel points at.
+            int isTwoSided = 0;
+
+            if (material->Get(AI_MATKEY_TWOSIDED, isTwoSided) == aiReturn_SUCCESS && isTwoSided != 0)
+            {
+                engineMaterial->SetRenderFace(MaterialRenderFace::Both);
+            }
+
             model->m_EmbeddedMaterials.push_back(engineMaterial);
 
             materialIds[i] = engineMaterial->GetUId();

@@ -74,6 +74,12 @@ namespace
 
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 
+		// Stated rather than inherited from whichever pass ran before this one: the depth written
+		// here is handed to the scene pass, so the two have to rasterize the same faces or it
+		// describes geometry that pass does not draw.
+		Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
+		Graphics::GetGraphicsAPI()->SetFaceCullingMode(Graphics::FaceCullMode::Back);
+
 		// The same corner of the shared buffers the scene pass draws into. The depth written here
 		// is what that pass tests against, so the two have to rasterize to the same pixels; the
 		// clear still covers the whole buffer, so nothing stale is left outside the corner.
@@ -202,6 +208,7 @@ namespace
 		Graphics::GetGraphicsAPI()->SetDepthFunction(Graphics::TestFunction::LessEqual);
 
 		Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
+		Graphics::GetGraphicsAPI()->SetFaceCullingMode(Graphics::FaceCullMode::Back);
 
 		Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
 		Graphics::GetGraphicsAPI()->SetBlendingFunction(Graphics::BlendingFunction::SourceAlpha, Graphics::BlendingFunction::OneMinusSourceAlpha);
@@ -291,11 +298,63 @@ namespace
 	    m_DepthBuffer->AttachTexture(depthBuffer, Graphics::BufferAttachment::DepthStencil);
 	    m_DepthBuffer->Finish();
 	}
+
+	void ApplyFaceCulling(const Pipeline3D::RasterState& state)
+	{
+		auto* graphicsApi = Graphics::GetGraphicsAPI();
+
+		graphicsApi->SetFaceCullingEnabled(state.CullFaces);
+
+		// Only when it means something. A cull mode with culling switched off is harmless, but
+		// stating one would suggest RasterState::FaceCulling still said something about how this
+		// state rasterizes, and it does not.
+		if (state.CullFaces)
+		{
+			graphicsApi->SetFaceCullingMode(state.FaceCulling);
+		}
+	}
+
+	// Moves the rasterizer from one known state into another. Same result as ApplyRasterState,
+	// without the depth bias call when both states carry the same pair - which is the case in
+	// every pass except the shadow one, and those passes have depth bias switched off anyway.
+	void SwitchRasterState(const Pipeline3D::RasterState& from, const Pipeline3D::RasterState& to)
+	{
+		ApplyFaceCulling(to);
+
+		if (to.SlopeBias != from.SlopeBias || to.DepthBias != from.DepthBias)
+		{
+			Graphics::GetGraphicsAPI()->SetDepthBias(to.SlopeBias, to.DepthBias);
+		}
+	}
 }
 
-void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList)
+void Pipeline3D::ApplyRasterState(const RasterState& state)
+{
+	ApplyFaceCulling(state);
+
+	Graphics::GetGraphicsAPI()->SetDepthBias(state.SlopeBias, state.DepthBias);
+}
+
+void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRasterState& rasterState)
 {
 	const auto& items = drawList.GetItems();
+
+	// Face culling is decided here rather than in Renderer3D::PrepareMesh, although it is a
+	// material property like every other thing that call sets. The depth pre-pass and the shadow
+	// pass both prepare meshes with SkipMaterialInitialization, which returns before the material
+	// is looked at - and those passes rasterize the same geometry as the scene pass, so they have
+	// to agree with it about which faces exist at all.
+	//
+	// The pass's own state is applied here rather than taken on trust. Nothing reads culling back
+	// out of the graphics API, so if the batch only ever restored this state it would be restoring
+	// a value the caller had promised and could quietly have stopped setting - and the symptom
+	// would be a list that draws correctly right up to its first two-sided material. Applying it
+	// costs one state change per batch and makes every switch below measurable against something
+	// known. Unconditional, so an empty list leaves the rasterizer in the same place a full one
+	// would.
+	ApplyRasterState(rasterState.Default);
+
+	const RasterState* appliedState = &rasterState.Default;
 
 	std::size_t index = 0;
 
@@ -311,6 +370,24 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList)
 		while (runEnd < items.size() && items[runEnd].MeshPtr == mesh && items[runEnd].MaterialPtr == material)
 		{
 			runEnd++;
+		}
+
+		// A run shares its material, so the surface it draws is two-sided or it is not - resolved
+		// the same way PrepareMesh resolves it, or an override material could make a run draw with
+		// one material and be culled as another.
+		const auto* surfaceMaterial = Renderer3D::ResolveMaterial(mesh, material);
+		const bool isTwoSided = surfaceMaterial != nullptr &&
+		    surfaceMaterial->GetRenderFace() == MaterialRenderFace::Both;
+
+		// Both are members of the same rasterState, so this asks whether the state this run wants
+		// is the one already on the rasterizer.
+		const RasterState& runState = isTwoSided ? rasterState.TwoSided : rasterState.Default;
+
+		if (&runState != appliedState)
+		{
+			SwitchRasterState(*appliedState, runState);
+
+			appliedState = &runState;
 		}
 
 		Renderer3D::PrepareMesh(mesh, material);
@@ -362,6 +439,13 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList)
 		}
 
 		index = runEnd;
+	}
+
+	// The pass carries on drawing through its own state once this returns - terrain, the skybox
+	// and further lists of its own - so a run that switched away from it puts it back.
+	if (appliedState != &rasterState.Default)
+	{
+		SwitchRasterState(*appliedState, rasterState.Default);
 	}
 }
 

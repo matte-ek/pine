@@ -104,4 +104,18 @@ in VertexData
 	flat int lightIndices[8];
 }vIn;
 
+// The world normal of the face actually being shaded.
+//
+// vIn.worldNormal is the normal the geometry was authored with, which points the wrong way on the
+// far side of a surface drawn with both of its faces (MaterialRenderFace::Both - a leaf card, a
+// sheet of grass). Shadow lookups offset their sample position along this normal, so handing them
+// the authored one on such a face pushes the sample *into* the surface and it shadows itself.
+//
+// For anything drawn with a face culled this is vIn.worldNormal unchanged: the culled face never
+// reaches the fragment stage, so gl_FrontFacing is always true there.
+vec3 FacingWorldNormal()
+{
+	return gl_FrontFacing ? vIn.worldNormal : -vIn.worldNormal;
+}
+
 #endif

@@ -23,11 +23,36 @@ namespace
     // another and each submits before the next builds, so one list serves them all.
     Rendering::DrawList m_DrawList;
 
-    // What terrain is drawn with in every shadow view, cascade or local. See the draw itself in
-    // Render: a height field cannot use the cascades' front-face culling, so it pays for its
-    // separation the way a local light does.
-    constexpr float TERRAIN_SLOPE_BIAS = 2.f;
-    constexpr float TERRAIN_DEPTH_BIAS = 4.f;
+    // The two kinds of open geometry a shadow view draws: a material asking for both of its faces,
+    // and terrain. Neither has a far side for the depth test to hide behind, so neither can take
+    // its separation from the cascades' front-face culling the way a closed mesh does, and both
+    // pay for it with SHADOW_SEPARATION_* instead - the pair a local view renders everything at.
+    //
+    // Culling is the only thing they disagree on, and it is the point of each: a leaf card is
+    // drawn from both sides, and a height field has one front face per column worth keeping.
+    Pipeline3D::RasterState TwoSidedState()
+    {
+        Pipeline3D::RasterState state;
+
+        state.CullFaces = false;
+        state.SlopeBias = Rendering::SHADOW_SEPARATION_SLOPE_BIAS;
+        state.DepthBias = Rendering::SHADOW_SEPARATION_DEPTH_BIAS;
+
+        return state;
+    }
+
+    Pipeline3D::RasterState TerrainState()
+    {
+        Pipeline3D::RasterState state;
+
+        // Stated rather than left at the struct default, because the view around it may well be
+        // culling the other way and that is exactly what terrain cannot do.
+        state.FaceCulling = Graphics::FaceCullMode::Back;
+        state.SlopeBias = Rendering::SHADOW_SEPARATION_SLOPE_BIAS;
+        state.DepthBias = Rendering::SHADOW_SEPARATION_DEPTH_BIAS;
+
+        return state;
+    }
 }
 
 void Rendering::ShadowPass::Setup()
@@ -77,10 +102,19 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
         graphicsApi->SetScissor(viewport, size);
         graphicsApi->ClearBuffers(Graphics::DepthBuffer);
 
-        graphicsApi->SetFaceCullingMode(view.FaceCulling);
-        graphicsApi->SetDepthBias(view.SlopeBias, view.DepthBias);
-
         Renderer3D::SetViewProjection(view.ViewProjection);
+
+        // The one statement of what this view rasterizes with. RenderBatch applies the default
+        // half before it draws anything, so there is nothing to set on the graphics API here -
+        // and the terrain draw below reaches for the same two states rather than restating their
+        // values a second time.
+        Pipeline3D::BatchRasterState rasterState;
+
+        rasterState.Default.FaceCulling = view.FaceCulling;
+        rasterState.Default.SlopeBias = view.SlopeBias;
+        rasterState.Default.DepthBias = view.DepthBias;
+
+        rasterState.TwoSided = TwoSidedState();
 
         // Both modes, matching what the old whole-batch draw did: it ignored the material
         // rendering mode entirely, so alpha-tested geometry cast a solid shadow. A draw list is
@@ -90,10 +124,10 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
         // is rendered once per frame at most and often reused from the cache, so the sort would be
         // paid on every view for a saving on the one pass in the frame that does no shading.
         m_DrawList.Build(batchData.OpaqueObjects, MaterialRenderingMode::Opaque, view.Visibility, { Rendering::DrawOrder::Batched });
-        Pipeline3D::RenderBatch(m_DrawList);
+        Pipeline3D::RenderBatch(m_DrawList, rasterState);
 
         m_DrawList.Build(batchData.OpaqueObjects, MaterialRenderingMode::Discard, view.Visibility, { Rendering::DrawOrder::Batched });
-        Pipeline3D::RenderBatch(m_DrawList);
+        Pipeline3D::RenderBatch(m_DrawList, rasterState);
 
         // Terrain is not in the batch, so it needs its own call or the ground casts nothing.
         // It culls its own chunks against this view rather than reading view.Visibility, which
@@ -106,16 +140,14 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
         // ground itself and leave only the chunk skirts writing depth. Back faces culled and an
         // explicit bias pair instead - the same trade a local view already makes, and for the
         // same reason its comment gives.
-        graphicsApi->SetFaceCullingMode(Graphics::FaceCullMode::Back);
-        graphicsApi->SetDepthBias(TERRAIN_SLOPE_BIAS, TERRAIN_DEPTH_BIAS);
+        Pipeline3D::ApplyRasterState(TerrainState());
 
         // Without skirts: they hang below the surface to hide a crack between detail levels,
         // and a vertical rim at every chunk edge writing depth casts a wall's shadow across the
         // ground next to it. See TerrainView::DrawSkirts.
         TerrainRenderer::Render({ view.ViewFrustum, view.Origin, nullptr, false });
 
-        graphicsApi->SetFaceCullingMode(view.FaceCulling);
-        graphicsApi->SetDepthBias(view.SlopeBias, view.DepthBias);
+        Pipeline3D::ApplyRasterState(rasterState.Default);
 
         if (view.AtlasSlot >= 0)
         {

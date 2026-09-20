@@ -196,6 +196,7 @@ bool Editor::AssetPreview::Render(Pine::Asset *asset, const Options &options, Pi
     Pine::Graphics::GetGraphicsAPI()->ClearColor(options.Background);
     Pine::Graphics::GetGraphicsAPI()->ClearBuffers(Pine::Graphics::Buffers::ColorBuffer | Pine::Graphics::DepthBuffer);
     Pine::Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
+    Pine::Graphics::GetGraphicsAPI()->SetFaceCullingMode(Pine::Graphics::FaceCullMode::Back);
     Pine::Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 
     Pine::Renderer3D::FrameReset();

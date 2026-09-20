@@ -515,8 +515,8 @@ carries the `path`, `type`, `uid` and `modified` that `/assets` lists, plus, by 
 - **Model** — `bounds` (`min`, `max` and `size`, the model's own aggregate), `meshCount`,
   `vertexCount`, and `materials`, the distinct materials its meshes use in first-use
   order.
-- **Material** — `diffuseColor`, `specularColor`, `renderingMode`, `alpha`, `shininess`,
-  `shader`, and `textures` (`diffuse`, `specular`, `normal`).
+- **Material** — `diffuseColor`, `specularColor`, `renderingMode`, `renderFace`, `alpha`,
+  `shininess`, `shader`, and `textures` (`diffuse`, `specular`, `normal`).
 
 Other types return identity only, so a mixed list is fine. Unlike `GET /asset` this
 reads the **live** asset rather than decompressing the stored one, so it also reflects

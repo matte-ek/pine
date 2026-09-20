@@ -75,6 +75,19 @@ namespace
         }
     }
 
+    const char* RenderFaceToString(const Pine::MaterialRenderFace face)
+    {
+        switch (face)
+        {
+        case Pine::MaterialRenderFace::Default:
+            return "Default";
+        case Pine::MaterialRenderFace::Both:
+            return "Both";
+        default:
+            return "Unknown";
+        }
+    }
+
     // Identity only - the four fields /assets lists for every asset, whatever its type.
     json ReadIdentity(const Pine::Asset* asset)
     {
@@ -141,6 +154,7 @@ namespace
         entry["diffuseColor"] = Pine::SerializationJson::StoreVector3(material->GetDiffuseColor());
         entry["specularColor"] = Pine::SerializationJson::StoreVector3(material->GetSpecularColor());
         entry["renderingMode"] = RenderingModeToString(material->GetRenderingMode());
+        entry["renderFace"] = RenderFaceToString(material->GetRenderFace());
         entry["alpha"] = material->GetAlpha();
         entry["shininess"] = material->GetShininess();
         entry["shader"] = ReadAssetReference(material->GetShader());

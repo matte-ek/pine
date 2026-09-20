@@ -184,6 +184,21 @@ Renderer3D::RenderConfiguration& Renderer3D::GetRenderConfiguration()
     return m_RenderingConfiguration;
 }
 
+Pine::Material* Renderer3D::ResolveMaterial(Mesh* mesh, Material* overrideMaterial)
+{
+    if (m_RenderingConfiguration.OverrideMaterial != nullptr)
+    {
+        return m_RenderingConfiguration.OverrideMaterial;
+    }
+
+    if (overrideMaterial != nullptr)
+    {
+        return overrideMaterial;
+    }
+
+    return mesh->GetMaterial();
+}
+
 void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
 {
     mesh->GetVertexArray()->Bind();
@@ -201,8 +216,7 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         return;
     }
 
-    // ehh
-    m_Material = m_RenderingConfiguration.OverrideMaterial ? m_RenderingConfiguration.OverrideMaterial : overrideMaterial ? overrideMaterial : mesh->GetMaterial();
+    m_Material = ResolveMaterial(mesh, overrideMaterial);
 
     if (!m_Material)
     {

@@ -21,6 +21,7 @@ bool Pine::Material::LoadAssetData(const ByteSpan& span)
     materialSerializer.Shader.Read(m_Shader);
 
     materialSerializer.RenderingMode.Read(m_RenderingMode);
+    materialSerializer.RenderFace.Read(m_RenderFace);
     materialSerializer.Alpha.Read(m_Alpha);
     materialSerializer.Shininess.Read(m_Shininess);
     materialSerializer.TextureScale.Read(m_TextureScale);
@@ -115,6 +116,16 @@ Pine::MaterialRenderingMode Pine::Material::GetRenderingMode() const
     return m_RenderingMode;
 }
 
+void Pine::Material::SetRenderFace(const MaterialRenderFace face)
+{
+    m_RenderFace = face;
+}
+
+Pine::MaterialRenderFace Pine::Material::GetRenderFace() const
+{
+    return m_RenderFace;
+}
+
 void Pine::Material::ResolveRenderingModeFromDiffuse()
 {
     const auto diffuse = m_Diffuse.Get();
@@ -204,6 +215,7 @@ Pine::ByteSpan Pine::Material::SaveAssetData()
     materialSerializer.Shader.Write(m_Shader);
 
     materialSerializer.RenderingMode.Write(m_RenderingMode);
+    materialSerializer.RenderFace.Write(m_RenderFace);
     materialSerializer.Alpha.Write(m_Alpha);
     materialSerializer.Shininess.Write(m_Shininess);
     materialSerializer.TextureScale.Write(m_TextureScale);

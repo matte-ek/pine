@@ -16,6 +16,26 @@ namespace Pine
 		Size
 	};
 
+	// Which of a surface's two faces the rasterizer keeps.
+	//
+	// 'Default' leaves that to whichever pass is drawing, which is the only honest name for it: the
+	// scene pass culls back faces, and a shadow cascade culls front faces to buy its depth
+	// separation for free. 'Both' turns culling off for this material's geometry in every pass.
+	//
+	// 'Both' is for geometry that is a surface rather than a solid - a leaf card, a sheet of grass,
+	// a curtain - where there is no interior for the cull to hide and the far side is something the
+	// camera is meant to see. A face kept this way is lit with its normal flipped towards the
+	// viewer (see generic.fragment.glsl), or the back of every leaf would shade as if it faced the
+	// other way.
+	//
+	// Per-face values (keep only the front, keep only the back) would go here if something needs
+	// them. Nothing today wants to override *which* single face is kept, only whether one is.
+	enum class MaterialRenderFace
+	{
+		Default,
+		Both
+	};
+
 	class Material final : public Asset
 	{
 	private:
@@ -31,6 +51,8 @@ namespace Pine
 		AssetHandle<Shader> m_Shader = UId("271a649316d8-3cdeb0026f7b7317");
 
 		MaterialRenderingMode m_RenderingMode = MaterialRenderingMode::Opaque;
+
+		MaterialRenderFace m_RenderFace = MaterialRenderFace::Default;
 
 		// Scales the surface's opacity, on top of whatever alpha the diffuse texture carries.
 		// Only the Transparent rendering mode reads it: the opaque and discard passes render
@@ -54,6 +76,7 @@ namespace Pine
 	        PINE_SERIALIZE_ASSET(Shader);
 
 	        PINE_SERIALIZE_PRIMITIVE(RenderingMode, Serialization::DataType::Int32);
+	        PINE_SERIALIZE_PRIMITIVE(RenderFace, Serialization::DataType::Int32);
 	        PINE_SERIALIZE_PRIMITIVE(Alpha, Serialization::DataType::Float32);
 	        PINE_SERIALIZE_PRIMITIVE(Shininess, Serialization::DataType::Float32);
 	        PINE_SERIALIZE_PRIMITIVE(TextureScale, Serialization::DataType::Float32);
@@ -85,6 +108,9 @@ namespace Pine
 
 		void SetRenderingMode(MaterialRenderingMode mode);
 		MaterialRenderingMode GetRenderingMode() const;
+
+		void SetRenderFace(MaterialRenderFace face);
+		MaterialRenderFace GetRenderFace() const;
 
 		// Picks the rendering mode that matches what the diffuse texture does with its alpha: a
 		// solid texture belongs in the opaque pass, a cutout mask in the discard pass, and one that
