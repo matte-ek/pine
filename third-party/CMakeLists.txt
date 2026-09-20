@@ -34,7 +34,7 @@ target_link_libraries(physx INTERFACE
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXExtensions_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysX_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXPvdSDK_static_64.a"
-        "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXVehicle2_static_64.a"
+        "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXVehicle_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXCharacterKinematic_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXCooking_static_64.a"
         "${CMAKE_CURRENT_SOURCE_DIR}/physx/lib/libPhysXCommon_static_64.a"
