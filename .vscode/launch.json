@@ -1,0 +1,137 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // All three executables resolve assets relative to the working directory, so every
+        // configuration below runs from data/.
+        {
+            "name": "Editor",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmake-build-debug/Editor/Editor",
+            // The Editor takes one argument: a project name under data/projects/.
+            "args": ["${input:projectName}"],
+            "cwd": "${workspaceFolder}/data",
+            "environment": [
+                // Enables the localhost HTTP API described in docs/debug-server.md. Harmless
+                // when you are driving the editor by hand; drop it if you would rather not have
+                // the listener running.
+                { "name": "PINE_DEBUG_SERVER", "value": "1" }
+
+                // Forces GLFW onto X11/XWayland. Uncomment on Wayland, e.g. for RenderDoc.
+                // ,{ "name": "PINE_X11", "value": "1" }
+            ],
+            "preLaunchTask": "Build Editor (debug)",
+            "stopAtEntry": false,
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Render std:: and glm types readably",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Editor (release)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmake-build-release/Editor/Editor",
+            "args": ["${input:projectName}"],
+            "cwd": "${workspaceFolder}/data",
+            "environment": [
+                { "name": "PINE_DEBUG_SERVER", "value": "1" }
+            ],
+            "preLaunchTask": "Build Editor (release)",
+            "stopAtEntry": false,
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Render std:: and glm types readably",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "GameHost",
+            "type": "cppdbg",
+            "request": "launch",
+            // Takes no arguments -- it reads data/game/game.json, which the Editor's Game
+            // Properties panel writes, to find the game's assets and startup level.
+            "program": "${workspaceFolder}/cmake-build-debug/GameHost/GameHost",
+            "args": [],
+            "cwd": "${workspaceFolder}/data",
+            "environment": [],
+            "preLaunchTask": "Build GameHost (debug)",
+            "stopAtEntry": false,
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Render std:: and glm types readably",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            // Prints a Pine binary file as JSON -- the quickest way to see what is actually
+            // inside a .passet. The path is relative to data/. For the importer modes
+            // (--import / --batch-import) edit "args" here or run EngineCli from a terminal;
+            // VS Code passes each prompt answer as a single argument, so they do not fit one
+            // free-text prompt.
+            "name": "EngineCli --dump",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmake-build-debug/EngineCli/EngineCli",
+            "args": ["--dump", "${input:dumpFile}"],
+            "cwd": "${workspaceFolder}/data",
+            "environment": [],
+            "preLaunchTask": "Build EngineCli (debug)",
+            "stopAtEntry": false,
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Render std:: and glm types readably",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            // Attach to an Editor or GameHost that is already running, e.g. one started from a
+            // terminal. Pick the process from the list VS Code shows.
+            "name": "Attach to running process",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${workspaceFolder}/cmake-build-debug/Editor/Editor",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Render std:: and glm types readably",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "projectName",
+            "type": "pickString",
+            "description": "Which project under data/projects/?",
+            "options": ["gm", "stress", "project-template"],
+            "default": "gm"
+        },
+        {
+            "id": "dumpFile",
+            "type": "promptString",
+            "description": "File to dump, relative to data/",
+            "default": "engine/shaders/3d/generic.passet"
+        }
+    ]
+}

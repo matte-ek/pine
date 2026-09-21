@@ -1,11 +1,12 @@
 # IDE cache
 .idea/
-.vscode/
 .cache/
 .vs/
 
 # Build files
 cmake-build*
+# Copied out of the active build directory on each configure, for clangd/cpptools.
+compile_commands.json
 build/
 x64/
 cmake_install.cmake

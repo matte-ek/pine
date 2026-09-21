@@ -1,0 +1,107 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        // -----------------------------------------------------------------------------------
+        // CMake
+        // -----------------------------------------------------------------------------------
+        {
+            "label": "CMake: configure (debug)",
+            "type": "shell",
+            "command": "cmake --preset debug",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "detail": "Re-run after adding or removing a source file -- the CMakeLists use GLOB_RECURSE."
+        },
+        {
+            "label": "Build Editor (debug)",
+            "type": "shell",
+            "command": "cmake --build --preset debug --target Editor",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": "$gcc",
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "Build GameHost (debug)",
+            "type": "shell",
+            "command": "cmake --build --preset debug --target GameHost",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": "$gcc",
+            "group": "build"
+        },
+        {
+            "label": "Build EngineCli (debug)",
+            "type": "shell",
+            "command": "cmake --build --preset debug --target EngineCli",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": "$gcc",
+            "group": "build"
+        },
+        {
+            "label": "Build all (debug)",
+            "type": "shell",
+            "command": "cmake --build --preset debug",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": "$gcc",
+            "group": "build"
+        },
+        {
+            "label": "Build Editor (release)",
+            "type": "shell",
+            "command": "cmake --build --preset release --target Editor",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": "$gcc",
+            "group": "build"
+        },
+
+        // -----------------------------------------------------------------------------------
+        // C# side
+        //
+        // Neither assembly is part of the CMake build. Pine.dll is loaded once at engine boot
+        // (so changing it needs a restart); a rebuilt Game.dll is hot-reloaded when the editor
+        // regains focus. Both must be built in Release -- that is the configuration whose
+        // OutputPath puts them where the engine looks.
+        // -----------------------------------------------------------------------------------
+        {
+            "label": "Build Pine.dll (ScriptRuntime)",
+            "type": "shell",
+            "command": "dotnet build -c Release",
+            "options": { "cwd": "${workspaceFolder}/ScriptRuntime" },
+            "problemMatcher": "$msCompile",
+            "group": "build",
+            "detail": "Outputs to data/engine/script/."
+        },
+        {
+            "label": "Build Game.dll (project)",
+            "type": "shell",
+            "command": "dotnet build -c Release",
+            "options": { "cwd": "${workspaceFolder}/data/projects/${input:projectName}/runtime" },
+            "problemMatcher": "$msCompile",
+            "group": "build",
+            "detail": "Outputs to data/projects/<project>/runtime-bin/."
+        },
+
+        // -----------------------------------------------------------------------------------
+        // Everything a first build needs, in dependency order: Game.csproj references the
+        // Pine.dll that the ScriptRuntime build produces.
+        // -----------------------------------------------------------------------------------
+        {
+            "label": "Build everything (debug)",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build Pine.dll (ScriptRuntime)",
+                "Build Game.dll (project)",
+                "Build all (debug)"
+            ],
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "projectName",
+            "type": "pickString",
+            "description": "Which project under data/projects/?",
+            "options": ["gm", "stress", "project-template"],
+            "default": "gm"
+        }
+    ]
+}

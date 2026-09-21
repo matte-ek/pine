@@ -1,0 +1,66 @@
+{
+    // ---------------------------------------------------------------------------------------
+    // CMake
+    // ---------------------------------------------------------------------------------------
+
+    // Build configurations come from CMakePresets.json, so CMake Tools' own kit/variant
+    // machinery stays out of the way. Pick a preset from the status bar.
+    "cmake.useCMakePresets": "always",
+    "cmake.defaultConfigurePreset": "debug",
+
+    // The top-level CMakeLists uses GLOB_RECURSE, so a new source file is invisible until CMake
+    // is configured again. Re-running configure when a CMakeLists changes catches most of it;
+    // after adding a .cpp, run "CMake: Configure" (or the "CMake: configure" task) yourself.
+    "cmake.configureOnOpen": true,
+    "cmake.configureOnEdit": true,
+
+    // ---------------------------------------------------------------------------------------
+    // C++ IntelliSense
+    // ---------------------------------------------------------------------------------------
+
+    // Each configure copies the compile database to the workspace root. Both IntelliSense
+    // engines find it there on their own, with no path setting to keep in sync and no
+    // dependency on ${workspaceFolder} being expanded inside an extension's argument list.
+    // It also follows whichever preset is active, rather than pinning one build directory.
+    "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+
+    // cpptools reads the copy above: it supplies the real include paths, defines and standard
+    // per file, so IntelliSense matches what the build actually does. "C/C++: Log Diagnostics"
+    // reports which entry a given file was matched to when something looks wrong.
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
+
+    // ---------------------------------------------------------------------------------------
+    // C# scripting runtime
+    // ---------------------------------------------------------------------------------------
+
+    // Without this the C# extension asks which project to load every time, since each game
+    // project carries a Game.csproj of its own.
+    "dotnet.defaultSolution": "ScriptRuntime/Pine.sln",
+
+    // ---------------------------------------------------------------------------------------
+    // Files
+    // ---------------------------------------------------------------------------------------
+
+    "files.associations": {
+        // Import headers that sit next to a raw asset -- JSON, despite the extension.
+        "*.ih": "jsonc"
+    },
+
+    // Build output and the caches the engine writes while running.
+    "files.exclude": {
+        "**/cmake-build-*": true,
+        "**/.cache": true,
+        "data/cache": true,
+        "data/import-cache": true,
+        "ScriptRuntime/bin": true,
+        "ScriptRuntime/obj": true
+    },
+
+    // .passet files are compressed binary containers; searching them is never useful.
+    // Use "EngineCli --dump <file>" to read one.
+    "search.exclude": {
+        "**/*.passet": true,
+        "**/cmake-build-*": true,
+        "third-party/**": true
+    }
+}

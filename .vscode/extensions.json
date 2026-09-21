@@ -1,0 +1,22 @@
+{
+    // Extensions that make this repo work out of the box. VS Code offers these on first open.
+    "recommendations": [
+        // Configure, build and pick presets from the status bar.
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
+
+        // IntelliSense and debugging for the C++ side. launch.json uses the "cppdbg" debug type
+        // it provides, and it reads the compile_commands.json each configure copies to the root.
+        //
+        // The repo also ships a .clangd, for anyone preferring clangd in another editor. To
+        // switch VS Code over, install llvm-vs-code-extensions.vscode-clangd and set
+        // "C_Cpp.intelliSenseEngine": "disabled" so the two engines do not both squiggle.
+        "ms-vscode.cpptools",
+
+        // The C# side: ScriptRuntime/ (Pine.dll) and each project's runtime/ (Game.dll).
+        "ms-dotnettools.csharp",
+
+        // Syntax highlighting for the shaders under data/engine/shaders/.
+        "slevesque.shader"
+    ]
+}
