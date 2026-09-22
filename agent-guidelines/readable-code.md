@@ -10,7 +10,16 @@ Optimize code for the people who will read, review, debug, and maintain it. Corr
 - Use guard clauses where they make the main path easier to follow. Keep validation, decisions, and side effects easy to identify.
 - Keep functions focused on a coherent task. Extract a helper when it gives a meaningful operation a useful name or isolates complexity. Avoid scattering a simple sequence across many tiny helpers.
 - Concise expressions are welcome when immediately understandable, such as a simple property or a straightforward query. Judge readability, not length.
-- Use comments to explain intent, constraints, or non-obvious decisions. Prefer clearer code over comments that merely translate the syntax.
+
+## Keep comments proportionate
+
+Use comments to explain intent, constraints, or non-obvious decisions. Prefer clearer code over comments that merely translate the syntax.
+
+- A comment describes the code as it is now. What it replaced, the bug it fixed, and alternatives you considered belong in the commit message or your report to the user.
+- Give each rationale one home, at the declaration it governs. Elsewhere, point to it ("see `ShadowAtlas::Reserve`") rather than restating it.
+- Keep comments short: usually a line or two. Save a paragraph for a genuinely non-obvious constraint.
+- Explain the choice that was made. Do not argue against alternatives the code does not suggest.
+- The tradeoffs and decisions other modules ask you to make visible go to the user, not into code comments.
 
 ## Give code paragraph structure
 

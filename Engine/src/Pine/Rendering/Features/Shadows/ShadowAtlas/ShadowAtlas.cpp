@@ -17,30 +17,17 @@ namespace
 
     std::uint64_t m_Frame = 0;
 
-    // -1 disables the cap. 0 is a real setting - "no tiles at all" - which is the one value that
-    // unambiguously proves the control is wired up, and the denial path is worth being able to hit
-    // on purpose.
+    // -1 disables the cap. See SetDebugSlotLimit.
     int m_DebugSlotLimit = -1;
 
-    // Tiles granted this frame, reused or freshly allocated. The cap counts claims rather than
-    // owned slots because owners are only swept in EndFrame: during Acquire, slots still carry last
-    // frame's owners, so counting those would compare against a number that includes lights which
-    // have already stopped casting.
+    // Tiles granted this frame. The cap counts claims rather than owned slots because owners are
+    // only swept in EndFrame, so during Acquire slots still carry last frame's owners.
     int m_ClaimsThisFrame = 0;
 
-    // The atlas is split into four quadrants, each subdivided into a uniform grid of one tile size:
-    // two quadrants of one tile each, one of four, one of sixteen. 22 tiles in total.
-    //
-    // Half the atlas goes to two tiles because the directional cascades pin them, and a cascade
-    // covers the whole visible world where a local light covers a room. That is a real cost - it is
-    // spent whether or not the level has a sun - and it is still cheaper than what it replaced,
-    // which was a separate 4096x4096x2 depth array sitting alongside a full atlas.
-    //
-    // The rest is sized against SHADOW_VIEW_COUNT (32), the real ceiling on live views.
-    //
-    // This is Godot's quadrant scheme and it is deliberately dumber than a packer. With a budget
-    // measured in low tens of tiles there is nothing worth packing, and the cost of a general
-    // allocator is paid in bugs that only show up when it is nearly full.
+    // Four quadrants, each a uniform grid of one tile size: two of one tile, one of four, one of
+    // sixteen - 22 tiles in total (Godot's quadrant scheme). The two Half tiles are pinned by the
+    // directional cascades, whether or not the level has a sun. The rest is sized against
+    // SHADOW_VIEW_COUNT, the ceiling on live views.
     struct QuadrantLayout
     {
         Rendering::ShadowAtlas::TileSize Size;
@@ -67,16 +54,12 @@ void Rendering::ShadowAtlas::Setup()
     m_Texture = Graphics::GetGraphicsAPI()->CreateTexture();
     m_Texture->Bind();
 
-    // Depth16 rather than the driver's choice, and it holds up for the cascades too now that they
-    // live here. A local light's range is short; a cascade is orthographic, and ortho depth is
-    // *linear*, so 16 bits over even a 150 metre cascade is millimetre resolution - far finer than
-    // the separation front-face culling already provides. This is the thing to suspect first if
-    // banding ever appears in a cascade, and Depth32F is the one-line answer, at double the memory.
+    // Depth16 is enough for the cascades too: ortho depth is linear, so 16 bits over a 150 metre
+    // cascade is millimetre resolution. If banding ever appears in a cascade, suspect this first;
+    // Depth32F fixes it at double the memory.
     m_Texture->UploadTextureData(m_Resolution, m_Resolution, 0, Graphics::TextureFormat::Depth16, Graphics::TextureDataFormat::Float, nullptr);
 
-    // Linear + compare mode is what makes a single sampler2DShadow fetch a 2x2 hardware PCF tap.
-    // That is the right default for a local light: with up to seven shadowed slots per fragment,
-    // filter width is the wall, not depth resolution.
+    // Linear + compare mode makes a single sampler2DShadow fetch a 2x2 hardware PCF tap.
     m_Texture->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
     m_Texture->SetTextureWrapMode(Graphics::TextureWrapMode::ClampToEdge);
     m_Texture->SetCompareModeLowerEqual();
@@ -84,7 +67,7 @@ void Rendering::ShadowAtlas::Setup()
     m_FrameBuffer->AttachTexture(m_Texture, Graphics::BufferAttachment::Depth);
     m_FrameBuffer->Finish();
 
-    // Build the slot table once. Slots never move, which is the whole point.
+    // Built once. Slots never move, so an owner that keeps claiming keeps the same tile.
     m_Slots.clear();
 
     const int quadrantSize = m_Resolution / 2;
@@ -139,8 +122,7 @@ void Rendering::ShadowAtlas::BeginFrame()
 
 void Rendering::ShadowAtlas::EndFrame()
 {
-    // Sweep: anything not re-claimed this frame loses its tile. An owner that keeps asking keeps
-    // the same slot, which is what a cached tile will depend on.
+    // Anything not re-claimed this frame loses its tile.
     for (auto& slot : m_Slots)
     {
         if (!slot.Pinned && slot.Owner != nullptr && slot.LastClaimedFrame != m_Frame)
@@ -157,10 +139,7 @@ bool Rendering::ShadowAtlas::Acquire(const TileSize size, const void* owner, con
         return false;
     }
 
-    // Checked before the incumbency scan below, deliberately. Holding tiles must not exempt a light
-    // from the cap, or lowering it could only ever deny *new* lights and would look like it did
-    // nothing in any scene whose lights were already settled. The cap applies to the group as a
-    // whole for the same reason the grant does.
+    // Before the incumbency scan, so holding tiles does not exempt a light from the cap.
     if (m_DebugSlotLimit >= 0 && m_ClaimsThisFrame + count > m_DebugSlotLimit)
     {
         return false;
@@ -168,7 +147,7 @@ bool Rendering::ShadowAtlas::Acquire(const TileSize size, const void* owner, con
 
     int found = 0;
 
-    // Ours first, so a group keeps the tiles it already had and their contents stay valid.
+    // Tiles this owner already holds first, so their contents stay valid.
     for (std::size_t i = 0; i < m_Slots.size() && found < count; i++)
     {
         if (m_Slots[i].Size == size && m_Slots[i].Owner == owner)
@@ -185,7 +164,7 @@ bool Rendering::ShadowAtlas::Acquire(const TileSize size, const void* owner, con
         }
     }
 
-    // Nothing has been written to a slot yet, so a partial match simply does not happen.
+    // Nothing has been written to a slot yet, so failing here leaves nothing to undo.
     if (found < count)
     {
         return false;

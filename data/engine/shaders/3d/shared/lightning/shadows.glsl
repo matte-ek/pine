@@ -1,7 +1,5 @@
-// Every shadow in the engine is sampled from here: one atlas, one sampler, one lookup.
-//
-// sampler2DShadow, so a single texture() call is a hardware 2x2 PCF tap. That matters because a
-// fragment can carry up to seven shadowed light slots at once, and filter width is the wall.
+// Every shadow in the engine is sampled from here. sampler2DShadow, so a single texture() call is
+// a hardware 2x2 PCF tap.
 uniform sampler2DShadow ShadowAtlas;
 
 #shader bind ShadowAtlas 17
@@ -9,20 +7,14 @@ uniform sampler2DShadow ShadowAtlas;
 // Samples one shadow view's tile and returns its shadow term, or 1.0 (fully lit) for anything the
 // view cannot answer for.
 //
-// Takes the sample position as given and applies no bias of its own. Bias policy belongs to whoever
-// knows what kind of shadow source this is - a cascade separates with front-face culling, a local
-// light with a normal offset - and there is no offset that is correct for both. A constant in
-// *projected* depth especially is not: it is linear in world depth for an ortho cascade and grows
-// with the square of the distance from the light for a perspective one, which is how this used to
-// slide a spot light's shadow the better part of a metre away from its caster.
+// Applies no bias: the caller does, because no single offset suits both a cascade and a local
+// light. A constant in projected depth especially does not, since perspective depth is not
+// linear.
 //
-// 'pcfTaps' is the radius of a grid of hardware taps: 0 is a single 2x2 tap, 1 is a 3x3 grid of
-// them. Local lights take the cheap one because a fragment may sample several; a cascade takes the
-// wide one because it is at most one per fragment and its texels cover far more world.
+// 'pcfTaps' is the radius of a grid of hardware taps: 0 is a single 2x2 tap, 1 is a 3x3 grid.
 //
-// Indexing shadowViews[] dynamically is fine: it is a uniform-block array. The hand-unrolled
-// subscripts elsewhere in these shaders exist because vIn.lightDir[] is a *varying* array, which is
-// the thing that misbehaves on NVIDIA.
+// Indexing shadowViews[] dynamically is fine, since it is a uniform-block array. Only varying
+// arrays such as vIn.lightDir[] need the hand-unrolled subscripts (NVIDIA).
 float SampleShadowView(int viewIndex, vec3 samplePosition, int pcfTaps)
 {
     ShadowView view = shadowViews[viewIndex];
@@ -37,17 +29,15 @@ float SampleShadowView(int viewIndex, vec3 samplePosition, int pcfTaps)
 
     vec3 projected = (clipPosition.xyz / clipPosition.w) * 0.5 + 0.5;
 
-    // Outside this view, or past its far plane: no depth to compare against. Returning "lit" is what
-    // avoids a dark band at a cascade edge or past the last one.
+    // Outside this view, or past its far plane: no depth to compare against, so lit.
     if (projected.z > 1.0 ||
         any(lessThan(projected.xy, vec2(0.0))) || any(greaterThan(projected.xy, vec2(1.0))))
     {
         return 1.0;
     }
 
-    // One atlas texel, measured in this view's own units - projected.xy spans one tile, so an atlas
-    // texel is texelSize / tileRect.zw of it. Getting this wrong by the tile-to-atlas ratio is what
-    // used to let a tap reach into the neighbouring tile, which belongs to a different light.
+    // One atlas texel in tile UV: projected.xy spans one tile, so an atlas texel is
+    // texelSize / tileRect.zw of it.
     vec2 texelSize = vec2(1.0) / vec2(textureSize(ShadowAtlas, 0));
     vec2 tileTexel = texelSize / view.tileRect.zw;
 
@@ -71,18 +61,13 @@ float SampleShadowView(int viewIndex, vec3 samplePosition, int pcfTaps)
 
     shadow /= taps;
 
-    // params.z fades the shadow in and out as a light gains or loses its tile, so the transition is
-    // not a hard pop. It is 1.0 whenever the light holds a stable tile, and always 1.0 for a cascade,
-    // which never competes for its own.
+    // params.z fades the shadow in and out as a light gains or loses its tile. Always 1.0 for a
+    // cascade.
     return mix(1.0, shadow, view.params.z);
 }
 
-// Which of a point light's six views covers this direction.
-//
-// Major axis of L, in the same order Shadows.cpp builds the faces: +X, -X, +Y, -Y, +Z, -Z. The
-// boundaries land exactly on the 45 degree diagonals, which is where the faces meet; each face is
-// rendered slightly wider than 90 degrees so the tap at a boundary still reads texels that face
-// actually drew.
+// Which of a point light's six views covers this direction: the major axis of L, in the order
+// BuildPointView in Shadows.cpp builds the faces (+X, -X, +Y, -Y, +Z, -Z).
 int SelectCubeFace(vec3 L)
 {
     vec3 a = abs(L);
@@ -114,27 +99,14 @@ float SampleLocalShadow(int lightIndex, vec3 worldPosition, vec3 worldNormal)
     float lightDistance = length(toLight);
     vec3 lightDirection = toLight / max(lightDistance, 0.0001);
 
-    // Normal-offset: push the sample point off the surface along its normal before projecting.
-    // This is what replaces the cascades' front-face culling, which peter-pans badly at the short
-    // ranges a local light works over and breaks outright on single-sided geometry.
+    // Normal offset: push the sample point off the surface along its normal before projecting.
     //
-    // Measured in shadow-map texels, not in world units, because that is what acne is made of: the
-    // tile stores one depth for a texel, and the receiver's own depth drifts away from it across the
-    // rest of that texel's world footprint. Sizing the offset to the footprint means it tracks a
-    // tile demotion, a wide cone and a distant fragment for free - params.x is the world size of one
-    // of this view's texels per unit distance from the light, params.y the offset in texels.
+    // Sized in shadow-map texels, since acne is the depth drift across one texel's world footprint.
+    // params.x is the world size of one texel per unit distance from the light, params.y the offset
+    // in texels. Scaled by sin(angle between normal and light), a bounded stand-in for tan().
     //
-    // sin(angle between the normal and the light) is the scale: zero where the surface faces the
-    // light head on and a texel's footprint is flat, largest where the drift across one is worst. It
-    // is the bounded stand-in for the tan() an exact depth correction would want, and the grazing
-    // angles where the two disagree are the ones N.L has already faded to nothing.
-    //
-    // Done *before* the face pick, not after. Picking the face from the un-offset position and then
-    // offsetting can carry the sample past the edge of the face that was chosen - it then projects
-    // outside [0,1] and is treated as unshadowed, which draws a bright seam along every cube edge.
-    // The face border is about one texel of angle and the offset is a small multiple of a texel of
-    // world, so the offset wins comfortably. All six faces carry identical params, so reading them
-    // off the first one is exact rather than approximate.
+    // Done before the face pick: offsetting after it can carry the sample off the chosen face,
+    // which draws a bright seam along every cube edge. All six faces carry the same params.
     float nDotL = dot(worldNormal, lightDirection);
     float slope = sqrt(max(1.0 - nDotL * nDotL, 0.0));
 
@@ -143,8 +115,7 @@ float SampleLocalShadow(int lightIndex, vec3 worldPosition, vec3 worldNormal)
 
     vec3 samplePosition = worldPosition + worldNormal * offset;
 
-    // A point light spends six views, a spot one. Branching on the *count* rather than on a light
-    // type keeps this as ignorant of light types as the CPU side is.
+    // Six views for a point light, one for a spot.
     if (lights[lightIndex].shadowViewCount > 1)
     {
         viewIndex += SelectCubeFace(samplePosition - lights[lightIndex].position);
@@ -153,12 +124,8 @@ float SampleLocalShadow(int lightIndex, vec3 worldPosition, vec3 worldNormal)
     return SampleShadowView(viewIndex, samplePosition, 0);
 }
 
-// The directional light's shadow term.
-//
-// Same atlas, same lookup as every other light since the cascades were folded in - the only thing
-// still specific to it is how the sub-view is chosen, which is by camera distance rather than by
-// cube face. It is lights[0] by construction: Renderer3D::AddLight gives the directional light that
-// slot and every other light one above it.
+// The directional light's shadow term. The cascade is chosen by camera distance. The directional
+// light is always lights[0]; see Renderer3D::AddLight.
 float ComputeShadowFactor()
 {
     int viewIndex = lights[0].shadowViewIndex;
@@ -170,17 +137,14 @@ float ComputeShadowFactor()
 
     float fragCameraDistance = length(vIn.worldPosition - vIn.cameraPos);
 
-    // Matches the 10 metre far plane of cascade 0 in Shadows.cpp. Clamped rather than assumed, so
-    // raising CASCADE_COUNT without adding a threshold here degrades to the last cascade instead of
-    // reading a view belonging to some spot light.
+    // Matches the 10 metre far plane of cascade 0 in ShadowCascades.cpp. Clamped, so a cascade
+    // index can never reach into another light's views.
     int cascade = int(fragCameraDistance > 10.0);
     cascade = min(cascade, lights[0].shadowViewCount - 1);
 
-    // No normal offset: a cascade renders with front-face culling, which already provides the
-    // separation the offset exists to buy, and stacking the two peter-pans.
+    // No normal offset: front-face culling already provides the separation.
     float shadow = SampleShadowView(viewIndex + cascade, vIn.worldPosition, 1);
 
-    // Never fully black. Shadowed geometry still picks up ambient and this keeps the darkest result
-    // from reading as a hole in the world.
+    // Never fully black, so the darkest shadow does not read as a hole.
     return max(shadow, 0.1);
 }

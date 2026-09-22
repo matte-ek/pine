@@ -20,19 +20,13 @@ using namespace Renderer3D::Specifications::Shadows;
 
 namespace
 {
-    // The cascades' pinned atlas tiles, reserved once at Setup.
-    //
-    // The owner is a token rather than a Light: the allocator only ever compares owner pointers, and
-    // there is nothing stable to point at here - a level can swap its sun, or have none, without the
-    // reservation changing hands. Everything else in the atlas is owned by a Light, which is why
-    // anything reading Slot::Owner has to ask before assuming.
+    // The cascades' pinned atlas tiles, reserved once at Setup. The owner is a token rather than a
+    // Light because a level can swap its sun, or have none, without the reservation changing hands.
     const char m_TileOwner = 0;
     int m_Slots[CASCADE_COUNT] = {};
     bool m_SlotsReserved = false;
 
-    // One view per cascade, kept across frames rather than rebuilt: a VisibilitySet owns a bitset
-    // sized to m_MaxObjectCount, and a view's identity has to survive frames for culling not to pay
-    // for that allocation over and over.
+    // One view per cascade, kept across frames. See ShadowCascades::GetViews.
     std::vector<Rendering::ShadowView> m_Views;
 
     Vector3f ComputeBoxCenter(const std::array<Vector3f, 8>& corners)
@@ -56,28 +50,15 @@ namespace
         return glm::lookAt(center - lightDirection, center, Vector3f(0.f, 1.f, 0.f));
     }
 
-    // How far the cascade's near plane is pushed toward the light, in light space.
-    //
-    // An orthographic cascade is not a camera: a caster sitting *behind* the box on the light side
-    // still casts into it. Clipping it away at the box's own front face is what makes a shadow wink
-    // out when the camera turns, so the near plane is fitted to the geometry that can actually reach
-    // the box instead.
-    //
-    // Only casters whose light-space XY overlaps the box can contribute, and that test is what keeps
-    // one tall object on the far side of the level from stretching every cascade's depth range.
-    // Ortho depth is linear, so a range that is somewhat too generous costs precision in proportion
-    // rather than falling off a cliff the way a perspective near plane does.
-    // How far towards the light one caster's box reaches, or nothing when it sits outside the
-    // column of light above the cascade box - whatever that one casts lands somewhere else.
+    // How far towards the light one caster's box reaches, in light-space z, or nothing when it
+    // sits outside the column of light above the cascade box.
     std::optional<float> FitBoxNearZ(const Matrix4f& viewMatrix,
                                      const Vector3f& boundsMin, const Vector3f& boundsMax,
                                      const float minX, const float maxX,
                                      const float minY, const float maxY)
     {
-        // The light view is affine, so its bounds follow from the box's centre and extents rather
-        // than from its eight corners - see Math::TransformBounds. This runs for every caster in
-        // the scene, per cascade, so the eight matrix-vector products it replaces were the bulk of
-        // what building a cascade cost.
+        // Runs for every caster, per cascade, so the bounds come from centre and extents rather
+        // than from eight transformed corners. See Math::TransformBounds.
         Vector3f lightMin;
         Vector3f lightMax;
 
@@ -93,6 +74,12 @@ namespace
         return lightMax.z;
     }
 
+    // Where the cascade's near plane goes, in light space.
+    //
+    // A caster *behind* the box on the light side still casts into it, so clipping at the box's own
+    // front face makes shadows wink out as the camera turns. The near plane is pushed back to the
+    // furthest caster whose light-space XY overlaps the box; the overlap test keeps one tall object
+    // elsewhere in the level from stretching every cascade's depth range.
     float FitCasterNearZ(const Matrix4f& viewMatrix,
                          const float minX, const float maxX,
                          const float minY, const float maxY,
@@ -119,9 +106,7 @@ namespace
             }
         }
 
-        // Terrain casts as well, and is usually the tallest thing in the level. A ridge the cascade
-        // box does not contain still throws a shadow across the ground that it does, so leaving the
-        // chunks out here would crop exactly the shadow terrain exists to produce.
+        // Terrain too: a ridge outside the cascade box still shadows ground inside it.
         for (const auto& terrainRenderer : Components::Get<TerrainRendererComponent>())
         {
             const auto terrain = terrainRenderer.GetTerrain();
@@ -191,16 +176,9 @@ namespace
             maxZ = std::max(maxZ, z);
         }
 
-        // glm::ortho takes zNear/zFar as positive distances *along* the view direction, while light
-        // space puts everything the view can see at negative z. The two used to be passed straight
-        // through, and that only produced a usable box because the light eye sits exactly one unit
-        // from the box centre and farPlaneMargin was always >= 2. The accident handed the near plane
-        // (2 + farPlaneMargin) of slack, which is the only reason casters behind the box cast at all
-        // today - and why cascade 1 got roughly three times as much slack as cascade 0 for no reason
-        // anyone chose. Both ends are explicit now.
-        //
-        // A hair of extra room on the near plane so a caster sitting exactly on the fitted plane is
-        // not clipped by it.
+        // glm::ortho takes zNear/zFar as distances along the view direction, while light space puts
+        // everything visible at negative z, hence the negation. The margin keeps a caster sitting
+        // exactly on the fitted plane from being clipped by it.
         constexpr float casterNearMargin = 0.5f;
 
         const float nearZ = FitCasterNearZ(viewMatrix, minX, maxX, minY, maxY, maxZ) + casterNearMargin;
@@ -211,9 +189,7 @@ namespace
 
 void Rendering::ShadowCascades::Setup()
 {
-    // Pinned for the process lifetime, before any light can compete for them. The cascades are
-    // structural rather than contended: they exist whenever the level has a sun, and a frame in
-    // which they lost a contest for space would just be a frame with no sun shadows.
+    // Pinned before any light can compete for them. See ShadowAtlas::Reserve.
     m_SlotsReserved = ShadowAtlas::Reserve(ShadowAtlas::TileSize::Half, &m_TileOwner,
                                            CASCADE_COUNT, m_Slots);
 
@@ -225,15 +201,6 @@ void Rendering::ShadowCascades::Setup()
     }
 }
 
-// Every shadow view, cascade or local, is culled by the same plain frustum test - see
-// FitCasterNearZ for why that is now true of the cascades as well. A spot or point face never
-// needed anything else: the light sits at the apex, so nothing can be between it and the near
-// plane and still cast into the view.
-//
-// Cascades previously used a whole-scene distance test instead, which is gone. The cascade far
-// plane already derives from MAX_SHADOW_DISTANCE, so the box *is* the shadow distance expressed
-// as a volume - keeping a radius test on top of it culled by transform position rather than
-// bounds and cut shadows off inside the box it was meant to approximate.
 bool Rendering::ShadowCascades::BuildViews(Light* light, Camera* sceneCamera)
 {
     PINE_PF_SCOPE();
@@ -271,9 +238,7 @@ bool Rendering::ShadowCascades::BuildViews(Light* light, Camera* sceneCamera)
 
         const auto viewMatrix = BuildViewMatrix(frustumCorners, lightDirection);
 
-        // The texel snap has to be against the tile the cascade actually lands in, not against a
-        // separate resolution setting. It used to be GraphicsSettings::ShadowMapResolution, which
-        // described a texture that no longer exists.
+        // Texel-snapped against the tile the cascade actually lands in.
         const auto projectionMatrix = BuildProjectionMatrix(frustumCorners, viewMatrix, farPlane[i] * 0.5f, viewport.z);
 
         const auto viewProjection = projectionMatrix * viewMatrix;
@@ -291,10 +256,8 @@ bool Rendering::ShadowCascades::BuildViews(Light* light, Camera* sceneCamera)
         view.SlopeBias = 0.f;
         view.DepthBias = 0.f;
 
-        // Always. A cascade's projection follows the camera's depth range, which changes on any
-        // camera movement at all even when the texel snap holds its XY steady - so the cache
-        // would essentially never hit, and a cascade that wrongly believed itself valid is the
-        // most visible stale tile there is. Caching these wants its own signal, not this one.
+        // Always. The projection follows the camera's depth range, which changes on any camera
+        // movement, so the tile cache would almost never hit.
         view.NeedsRender = true;
 
         auto& viewData = shadowViewData.Views[i];
@@ -302,16 +265,13 @@ bool Rendering::ShadowCascades::BuildViews(Light* light, Camera* sceneCamera)
         viewData.ViewProjection = viewProjection;
         viewData.TileRect = ShadowAtlas::GetUvRect(atlasSlot);
 
-        // No normal offset: front-face culling already provides the separation it exists to
-        // buy, and stacking them would peter-pan. The texel scale in x is perspective-only and
-        // goes unread here for the same reason. Strength is 1 - a cascade never fades because
-        // it never competes for its tile.
+        // No texel scale or normal offset: front-face culling already provides the separation,
+        // and stacking the two would peter-pan. Strength is 1, since a cascade never competes
+        // for its tile and so never fades.
         viewData.Params = Vector4f(0.f, 0.f, 1.f, 0.f);
     }
 
-    // The directional light points at the head of the view array, and spans it. The shader then
-    // picks a cascade the same way it picks a cube face: from the count, without knowing which
-    // kind of light it is looking at.
+    // The shader picks a cascade from the count, the same way it picks a cube face.
     light->GetLightHintData().ShadowViewIndex = 0;
     light->GetLightHintData().ShadowViewCount = CASCADE_COUNT;
 

@@ -12,7 +12,7 @@ Make new code feel like it belongs in the project. Before editing, read the targ
 
 ## Improve clarity within the existing style
 
-Respect local conventions while keeping the new logic straightforward and well spaced. Existing dense code is not a reason to introduce more dense code, and a known bug or unsafe pattern should not be copied for consistency.
+Respect local conventions while keeping the new logic straightforward and well spaced. Existing dense code is not a reason to introduce more dense code, and a known bug or unsafe pattern should not be copied for consistency. Likewise, heavily commented nearby code is not a comment density to match; follow [Readable code](readable-code.md) for what earns a comment.
 
 Consistency does not make the existing structure immutable. Refactor nearby code when doing so makes the requested feature cleaner and easier to maintain, keeping the resulting code coherent with the project's conventions.
 

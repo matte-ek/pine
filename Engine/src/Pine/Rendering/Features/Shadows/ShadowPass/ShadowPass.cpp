@@ -19,17 +19,12 @@ namespace
 {
     Shader* m_ShadowShader = nullptr;
 
-    // Scratch storage for the draw list built per view below. Shadow views are rendered one after
-    // another and each submits before the next builds, so one list serves them all.
+    // Scratch draw list, rebuilt for each view.
     Rendering::DrawList m_DrawList;
 
-    // The two kinds of open geometry a shadow view draws: a material asking for both of its faces,
-    // and terrain. Neither has a far side for the depth test to hide behind, so neither can take
-    // its separation from the cascades' front-face culling the way a closed mesh does, and both
-    // pay for it with SHADOW_SEPARATION_* instead - the pair a local view renders everything at.
-    //
-    // Culling is the only thing they disagree on, and it is the point of each: a leaf card is
-    // drawn from both sides, and a height field has one front face per column worth keeping.
+    // Raster states for open geometry, which has no far side for front-face culling to record and
+    // so always renders at the SHADOW_SEPARATION_* bias pair. A two-sided material culls nothing;
+    // terrain keeps its front faces.
     Pipeline3D::RasterState TwoSidedState()
     {
         Pipeline3D::RasterState state;
@@ -45,8 +40,7 @@ namespace
     {
         Pipeline3D::RasterState state;
 
-        // Stated rather than left at the struct default, because the view around it may well be
-        // culling the other way and that is exactly what terrain cannot do.
+        // Explicit, because the surrounding view may be culling front faces.
         state.FaceCulling = Graphics::FaceCullMode::Back;
         state.SlopeBias = Rendering::SHADOW_SEPARATION_SLOPE_BIAS;
         state.DepthBias = Rendering::SHADOW_SEPARATION_DEPTH_BIAS;
@@ -81,9 +75,8 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
     renderSettings.IgnoreShaderVersions = true;
     renderSettings.SkipMaterialInitialization = true;
 
-    // Scissor, not just viewport: glViewport does not restrict glClear, so without this the only
-    // way to clear one tile would be to clear the whole atlas - which would wipe every other
-    // tile, and those tiles are exactly what the cache is keeping.
+    // Scissor, because glViewport does not restrict glClear, and clearing the whole atlas would
+    // wipe the cached tiles.
     graphicsApi->SetScissorEnabled(true);
 
     for (int i = 0; i < count; i++)
@@ -104,10 +97,7 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
 
         Renderer3D::SetViewProjection(view.ViewProjection);
 
-        // The one statement of what this view rasterizes with. RenderBatch applies the default
-        // half before it draws anything, so there is nothing to set on the graphics API here -
-        // and the terrain draw below reaches for the same two states rather than restating their
-        // values a second time.
+        // RenderBatch applies these itself, so nothing is set on the graphics API here.
         Pipeline3D::BatchRasterState rasterState;
 
         rasterState.Default.FaceCulling = view.FaceCulling;
@@ -116,35 +106,21 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
 
         rasterState.TwoSided = TwoSidedState();
 
-        // Both modes, matching what the old whole-batch draw did: it ignored the material
-        // rendering mode entirely, so alpha-tested geometry cast a solid shadow. A draw list is
-        // built per mode, so leaving out the Discard one would silently stop foliage casting.
-        //
-        // Batched rather than front to back, although this pass writes nothing but depth: a view
-        // is rendered once per frame at most and often reused from the cache, so the sort would be
-        // paid on every view for a saving on the one pass in the frame that does no shading.
+        // Opaque and Discard both cast; leaving out Discard would stop foliage casting. Batched
+        // rather than sorted front to back: a depth-only pass gains little from the sort.
         m_DrawList.Build(batchData.OpaqueObjects, MaterialRenderingMode::Opaque, view.Visibility, { Rendering::DrawOrder::Batched });
         Pipeline3D::RenderBatch(m_DrawList, rasterState);
 
         m_DrawList.Build(batchData.OpaqueObjects, MaterialRenderingMode::Discard, view.Visibility, { Rendering::DrawOrder::Batched });
         Pipeline3D::RenderBatch(m_DrawList, rasterState);
 
-        // Terrain is not in the batch, so it needs its own call or the ground casts nothing.
-        // It culls its own chunks against this view rather than reading view.Visibility, which
-        // cannot hold them - see RenderCulling::VisibilitySet. No statistics sink: the atlas is
-        // drawn once for the whole scene and belongs to no rendering context.
-        //
-        // Drawn with its own culling and bias rather than the view's, because a height field is
-        // single-sided: it has one surface per column and no far side at all. A cascade culls
-        // front faces to buy its separation for free, which for terrain would discard the
-        // ground itself and leave only the chunk skirts writing depth. Back faces culled and an
-        // explicit bias pair instead - the same trade a local view already makes, and for the
-        // same reason its comment gives.
+        // Terrain is not in the batch and culls its own chunks against the view. It is drawn with
+        // TerrainState rather than the view's state: under a cascade's front-face culling only
+        // the chunk skirts would write depth.
         Pipeline3D::ApplyRasterState(TerrainState());
 
-        // Without skirts: they hang below the surface to hide a crack between detail levels,
-        // and a vertical rim at every chunk edge writing depth casts a wall's shadow across the
-        // ground next to it. See TerrainView::DrawSkirts.
+        // Without skirts, which would cast a wall's shadow along every chunk edge. See
+        // TerrainView::DrawSkirts.
         TerrainRenderer::Render({ view.ViewFrustum, view.Origin, nullptr, false });
 
         Pipeline3D::ApplyRasterState(rasterState.Default);

@@ -54,9 +54,8 @@ namespace
     {
         const Pine::Script::GameAssembly::ScopedClassType classType(scriptData->ClassId);
 
-        // The field registry keeps its own ids, which are not the game assembly's. Nothing needs
-        // to hold this one: it goes into each ScriptField as it is made, and the class is only
-        // ever reached through those from here on.
+        // The field registry's own id, not the game assembly's. Only the ScriptFields made below
+        // keep it.
         const auto fieldClassId = Pine::Script::FieldRegistry::Register(classType.GetHandle());
 
         if (fieldClassId < 0)
@@ -100,10 +99,8 @@ namespace
             className = className.substr(dot + 1);
         }
 
-        // The class has to exist in the game assembly and inherit from the `Script` class - that
-        // is what gives an instance the Component identity the object factory writes into it. The
-        // lifecycle methods are all optional, so the registry reports which ones are there rather
-        // than requiring any of them.
+        // The class has to exist in the game assembly and inherit from the `Script` class. The
+        // lifecycle methods are all optional.
         const auto resolved = Pine::Script::GameAssembly::ResolveClass(namespaceName, className);
 
         if (resolved.Id < 0)
@@ -121,14 +118,9 @@ namespace
         ProcessScriptFields(scriptData);
     }
 
-    // Everything the engine holds that refers into the game assembly: the resolved classes, and
-    // the reflected fields Pine.dll is keeping for them. Both have to be let go of before that
-    // assembly can be unloaded, which is why this is its own step rather than the first half of
-    // ReloadScripts - a reload runs it before the unload, and the rebuild after.
-    //
-    // ReloadScripts still starts with it, because Pine::Engine::Run calls that on its own with no
-    // unload anywhere near it. On the reload path it therefore runs twice, the second time over
-    // nothing.
+    // Releases everything the engine holds that refers into the game assembly: the resolved
+    // classes, and the reflected fields Pine.dll keeps for them. Must run before the assembly is
+    // unloaded. ReloadScripts also starts with it, so on the reload path it runs twice.
     void DestroyScriptData()
     {
         for (const auto& script : m_ScriptData)

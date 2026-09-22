@@ -34,16 +34,9 @@ Surface CreateSurface()
     else
         surface.normal = vIn.normalDir;
 
-    // A surface drawn with both of its faces - a leaf card, a sheet of grass - is reached from
-    // either side, and the normal it carries was authored for one of them. Seen from the other it
-    // points away, so every light in front of the surface reads as behind it and the far side of a
-    // canopy shades flat. A thin sheet's far side is the near side's normal negated, which holds
-    // for a mapped normal too: the map perturbs around the geometric normal and the perturbation
-    // mirrors with it.
-    //
-    // Unconditional, and no shader version of its own: a face the rasterizer culls never gets here
-    // in the first place, so for anything but MaterialRenderFace::Both gl_FrontFacing is always
-    // true and this is a no-op.
+    // A two-sided surface (a leaf card, a sheet of grass) seen from behind needs its normal
+    // flipped, or it shades as if lit from behind. A no-op for anything not drawn with
+    // MaterialRenderFace::Both, whose back faces are culled.
     if (!gl_FrontFacing)
     {
         surface.normal = -surface.normal;
@@ -53,9 +46,8 @@ Surface CreateSurface()
 }
 
 // Point lights occupy instance light slots 0-4; their directions are vIn.lightDir[1..5].
-// Written out with literal subscripts on purpose: a loop that indexes vIn.lightDir[i + 1] reads
-// garbage on some drivers (seen on NVIDIA), which zeroes N.L so these lights contribute nothing
-// and the surface falls back to the flat ambient term alone.
+// Literal subscripts on purpose: indexing vIn.lightDir[i + 1] in a loop reads garbage on some
+// drivers (seen on NVIDIA).
 vec3 CalculatePointLights(Surface surface)
 {
     vec3 lightColorOutput = vec3(0.f);
@@ -69,12 +61,8 @@ vec3 CalculatePointLights(Surface surface)
     return lightColorOutput;
 }
 
-// Spot lights occupy instance light slots 5-6; their directions are vIn.lightDir[6..7]. Two slots
-// so a hand-held light and a world light can reach the same surface. Same literal-subscript rule as
-// the point lights above.
-//
-// Each slot costs a cone test and a shadow atlas sample, so this is the loop that gets more
-// expensive when the count is raised - not the vertex side.
+// Spot lights occupy instance light slots 5-6; their directions are vIn.lightDir[6..7]. Same
+// literal-subscript rule as the point lights above.
 vec3 CalculateSpotLights(Surface surface)
 {
     vec3 ret = vec3(0.f);
@@ -89,23 +77,15 @@ void main(void)
 {
     #shader preFragment
 
-    // Both cutout versions decide something from the diffuse texel's alpha before any shading
-    // happens, so sample it once up here rather than once per branch.
+    // Sampled once for both cutout versions.
 #if defined(VERSION_DISCARD) || defined(VERSION_TRANSPARENT)
     float diffuseAlpha = texture(matSamplers.diffuse, vIn.uv * matPropeties[0].uvScale).w;
 #endif
 
 #ifdef VERSION_DISCARD
-    // Coverage test, not an "is there any alpha at all" test. The sampled alpha is a filtered
-    // value: along a cutout's edge the texture unit blends the mask's opaque texels with the
-    // transparent ones next to it, and blends their colour along with it. Those transparent texels
-    // are black in practically every foliage texture, so a texel that is only partly covered comes
-    // back with its colour dragged towards black.
-    //
-    // This version writes alpha 1.0, so whatever survives here is stamped out fully opaque. Keeping
-    // every texel with a trace of coverage therefore paints that black ramp as solid geometry - a
-    // dark outline one filter-width wide around every blade and leaf. Half coverage is the cut:
-    // it is the point where a texel is more inside the mask than outside it.
+    // Half coverage, not "any alpha at all": filtered edge texels are blended towards the black of
+    // the transparent texels next to them, and keeping those would draw a dark outline around every
+    // leaf, since this version writes them fully opaque.
     if (diffuseAlpha < 0.5f)
     {
         discard;
@@ -115,16 +95,9 @@ void main(void)
 #ifdef VERSION_TRANSPARENT
     float surfaceAlpha = matPropeties[0].alpha * diffuseAlpha;
 
-    // A fragment this close to clear cannot change the pixel it lands on: the blend pass runs
-    // SourceAlpha / OneMinusSourceAlpha, which weights this fragment's colour by this very alpha
-    // and the destination by the rest of it. Shading it anyway costs the whole light loop - every
-    // light slot the object holds, each with a shadow atlas tap - and a cutout sheet is mostly
-    // hole, so on foliage those are the bulk of the fragments this pass rasterizes. Nothing else
-    // is lost by leaving here: the pass writes no depth, so a fragment had nothing to contribute
-    // but the colour it was about to weight away.
-    //
-    // The threshold sits below one 8-bit alpha step (1/255 = 0.0039), so only texels that really
-    // are clear are dropped, never one that would have tinted the pixel.
+    // A fragment this close to clear cannot change the pixel, so skip the light loop for it - on
+    // foliage, most fragments are hole. The pass writes no depth, so nothing else is lost. The
+    // threshold is below one 8-bit alpha step.
     if (surfaceAlpha < 0.001f)
     {
         discard;
@@ -143,10 +116,8 @@ void main(void)
     m_OutputColor = vec4(ambient + directionalLight + pointLights + spotLights, 1.0);
 
 #ifdef VERSION_TRANSPARENT
-    // The surface's opacity: the material's own alpha, scaled by whatever the diffuse texture
-    // carries in its alpha channel. Every other version leaves the 1.0 above alone - the resolve
-    // pass forwards this buffer's alpha to the final image, so solid geometry writing less than
-    // that would show through the composite.
+    // The material's alpha scaled by the diffuse texture's. Every other version must keep 1.0,
+    // because the resolve pass forwards this alpha to the final image.
     m_OutputColor.a = surfaceAlpha;
 #endif
 

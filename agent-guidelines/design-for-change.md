@@ -32,6 +32,6 @@ Routine changes within the agreed scope need no advance notice; make them and re
 
 Build what today's requirement needs. Do not implement future features, add unused configuration, or build a general framework because it might be useful later; introduce an abstraction only when it addresses a current need or removes a concrete, costly obstacle to a probable next step.
 
-Explain a tradeoff when it is meaningful: the assumption you made, the likely change it affects, and what would need to change later. Routine, reversible choices need no explanation.
+Explain a tradeoff to the user when it is meaningful: the assumption you made, the likely change it affects, and what would need to change later. Routine, reversible choices need no explanation.
 
 Before finishing, check that the implementation meets today's requirement and that its important assumptions are visible and reasonably easy to revisit.

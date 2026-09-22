@@ -33,13 +33,10 @@ namespace Pine::Rendering
 
     enum class DrawOrder
     {
-        // Grouped by mesh and material, which is the order the scene batch already holds. Nothing
-        // is sorted: the fewest draw calls, and no depth order at all.
+        // Grouped by mesh and material, as the scene batch already is. No sort, fewest draw calls.
         Batched,
 
-        // Nearest surface first, which is what a depth pass wants - near geometry fills the depth
-        // buffer before far geometry is rasterized, so the far geometry fails the depth test
-        // before it is shaded.
+        // Nearest surface first, so far geometry fails the depth test before it is shaded.
         FrontToBack,
 
         // Furthest centre first, the order alpha blending has to be submitted in.
@@ -54,29 +51,18 @@ namespace Pine::Rendering
         // Where the view is. Read by the ordered modes only.
         Vector3f ViewPosition = Vector3f(0.f);
 
-        // How finely an ordered mode resolves distance.
-        //
-        // 0 sorts exactly: every item lands in depth order, and batching is left to whichever
-        // neighbours happen to share a mesh and a material. On a level built from a modular kit
-        // that is close to none of them - see docs/rendering.md for what it measured.
-        //
-        // A positive count spreads the items across that many buckets between the nearest and the
-        // furthest of them and orders by bucket, so items at a similar depth stay grouped by mesh
-        // and material and still submit as one draw. Fewer buckets, fewer draw calls, coarser
-        // depth order. Blending needs exact order and so has to pass 0.
+        // How finely an ordered mode resolves distance. 0 sorts exactly, which breaks up most
+        // batching. A positive count orders by that many depth buckets instead, keeping items
+        // within a bucket grouped by mesh and material. Blending needs exact order, so it passes 0.
+        // See docs/rendering.md for measurements.
         int DepthBuckets = 0;
     };
 
-    // The draw work for ONE view, flattened out of the scene batch and put in an order.
+    // The draw work for one view, flattened out of the scene batch and put in an order. Each view
+    // builds its own; the scene batch stays viewer-independent.
     //
-    // Order is a property of (work, viewer) the same way visibility is, so a list is built for one
-    // view and consumed by it: two viewports, or a shadow view and the scene camera, each build
-    // their own. The scene batch stays viewer-independent.
-    //
-    // What survives the sort is runs of consecutive items sharing a mesh and a material, and a run
-    // is what the submitter turns back into a single instanced draw. Batching is therefore derived
-    // from the order rather than imposed on it, which is what lets one mechanism serve a pass that
-    // needs depth order and a pass that only wants the fewest draw calls.
+    // Pipeline3D::RenderBatch turns each run of consecutive items sharing a mesh and a material
+    // into one instanced draw, so batching follows from the order.
     class DrawList
     {
         std::vector<DrawItem> m_Items;
@@ -84,8 +70,7 @@ namespace Pine::Rendering
         // Collects everything in 'batch' that is in 'mode' and passes 'visibility', then puts it
         // in the order asked for.
         //
-        // Storage is kept between calls, so rebuilding a list every frame stops allocating once it
-        // has grown.
+        // Storage is kept between calls.
         void Build(const ObjectBatchMap& batch,
                    MaterialRenderingMode mode,
                    const RenderCulling::VisibilitySet& visibility,

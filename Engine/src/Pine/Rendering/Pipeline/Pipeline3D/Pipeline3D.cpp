@@ -29,20 +29,13 @@ namespace
 
     Rendering::SceneProcessor::SceneProcessorContext m_SceneContext;
 
-	// Scratch storage for the draw list each pass below builds. One list serves all of them
-	// because every pass builds it and submits it before the next one builds: nothing here holds
-	// on to a list across passes, and reusing it is what keeps the per-frame rebuild from
-	// allocating. A pass that ever needs to keep its order alive past its own draw needs its own.
+	// Scratch draw list, rebuilt and submitted by each pass in turn.
 	Rendering::DrawList m_DrawList;
 
 	PipelineConfiguration m_Configuration;
 
-	// Terrain is not part of the object batch - it renders through its own path, with its own mesh
-	// per chunk and its own detail level per viewer, so it cannot be expressed as a model group.
-	//
-	// The view it is handed is this context's: its frustum culls the chunks, and its camera picks
-	// their detail levels. Without a camera there is no frustum to cull against this frame, and the
-	// one left over from the last camera this context had would hide arbitrary chunks.
+	// Terrain is not part of the object batch; it culls and picks detail levels against this
+	// context's frustum and camera. Without a camera the frustum is left over from an earlier one.
 	void RenderTerrain(RenderingContext& renderingContext)
 	{
 	    if (renderingContext.SceneCamera == nullptr)
@@ -74,15 +67,12 @@ namespace
 
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 
-		// Stated rather than inherited from whichever pass ran before this one: the depth written
-		// here is handed to the scene pass, so the two have to rasterize the same faces or it
-		// describes geometry that pass does not draw.
+		// Must match the scene pass, which this depth is handed to.
 		Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
 		Graphics::GetGraphicsAPI()->SetFaceCullingMode(Graphics::FaceCullMode::Back);
 
-		// The same corner of the shared buffers the scene pass draws into. The depth written here
-		// is what that pass tests against, so the two have to rasterize to the same pixels; the
-		// clear still covers the whole buffer, so nothing stale is left outside the corner.
+		// The same corner of the shared buffers the scene pass draws into, so the depth lands in the
+		// pixels it tests.
 		Graphics::GetGraphicsAPI()->SetViewport(Vector2i(0), Vector2i(renderingContext.Size));
 		Graphics::GetGraphicsAPI()->ClearBuffers(Graphics::ColorBuffer | Graphics::DepthBuffer);
 
@@ -96,16 +86,8 @@ namespace
 
 		RenderTerrain(renderingContext);
 
-		// Batched, not front to back, although this is the pass that would most obviously want it.
-		//
-		// Two reasons, both measured on levels/new-holm - see docs/rendering.md. The depth filled
-		// here goes into this pass's own buffer, which only ambient occlusion reads, so ordering it
-		// cannot reject anything in the pass that does the shading; and the scene is a modular kit,
-		// so depth order takes its instancing apart - 147 draw calls become 1291 sorted exactly,
-		// or 254 in four depth buckets.
-		//
-		// The order to switch to is DrawOrder::FrontToBack with a small DepthBuckets count, and the
-		// change worth making first is giving the scene pass this buffer to test against.
+		// Batched: the scene pass already gets this depth, so ordering would only speed up the
+		// pre-pass's own writes, at a large cost in draw calls. See docs/rendering.md.
 		m_DrawList.Build(m_SceneContext.RenderingBatch.OpaqueObjects,
 		    MaterialRenderingMode::Opaque,
 		    renderingContext.Visibility,
@@ -119,11 +101,7 @@ namespace
 	}
 
 	// Everything with a Transparent material, blended over the scene that is already in the buffer.
-	//
-	// Exact back-to-front order, no depth buckets: blending is not commutative, so two surfaces
-	// that swap places composite differently. That is the one case where the draw calls the
-	// ordering costs have to be paid - see docs/rendering.md - and it is affordable here only
-	// because a scene holds far less blended geometry than opaque.
+	// Exact back-to-front order, since blending is not commutative.
 	void RenderBlendedObjects(RenderingContext& context)
 	{
 		PINE_PF_SCOPE();
@@ -146,9 +124,7 @@ namespace
 
 		auto* graphicsApi = Graphics::GetGraphicsAPI();
 
-		// Tested against the scene's depth so solid geometry still hides these, but writing none of
-		// its own: a blended surface that wrote depth would reject the surfaces drawn after it,
-		// which in this order are the ones in front of it.
+		// Depth-tested but not written: in this order, a surface drawn later is in front.
 		graphicsApi->SetDepthFunction(Graphics::TestFunction::LessEqual);
 		graphicsApi->SetDepthWriteEnabled(false);
 		graphicsApi->SetBlendingEnabled(true);
@@ -180,14 +156,9 @@ namespace
 		    levelSettings.FogDistance,
 		    levelSettings.FogIntensity);
 
-		// Hand the pre-pass's depth to this pass instead of shading against an empty buffer. Every
-		// opaque surface in front of another is then rejected before its fragments are shaded, and
-		// it costs nothing in draw calls - the ordering does not change, the depth simply arrives
-		// already filled. See docs/rendering.md for what that is worth on a real level.
-		//
-		// A copy rather than a shared attachment: the scene buffer is owned by RenderManager and
-		// cleared by it after the pre-pass has run, so sharing the texture would mean that clear
-		// wiping what this pass is here to read.
+		// Start from the pre-pass's depth, so hidden opaque fragments are rejected before shading. A
+		// copy rather than a shared attachment, because RenderManager clears the scene buffer after
+		// the pre-pass has run. See docs/rendering.md.
 		if (context.SceneCamera != nullptr && m_DepthBuffer != nullptr)
 		{
 			auto* sceneBuffer = RenderManager::GetInternalFrameBuffer();
@@ -201,10 +172,8 @@ namespace
 
 		Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
 
-		// LessEqual, not Less: the surfaces this pass draws are the ones the pre-pass already wrote
-		// depth for, and at an equal depth Less rejects every one of them. Not Equal either, which
-		// would be the tighter test - anything the pre-pass did not draw (a discard material, which
-		// it has no alpha test to render correctly) has to be able to write its own depth here.
+		// LessEqual: Less would reject the surfaces the pre-pass already wrote, and Equal would reject
+		// Discard materials, which the pre-pass does not draw.
 		Graphics::GetGraphicsAPI()->SetDepthFunction(Graphics::TestFunction::LessEqual);
 
 		Graphics::GetGraphicsAPI()->SetFaceCullingEnabled(true);
@@ -213,9 +182,6 @@ namespace
 		Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
 		Graphics::GetGraphicsAPI()->SetBlendingFunction(Graphics::BlendingFunction::SourceAlpha, Graphics::BlendingFunction::OneMinusSourceAlpha);
 
-		// No separate shadow upload any more: a light's shadow views reach the shader through its
-		// own entry in the light buffer, which AddLight already writes. The directional light used
-		// to need a second call here to hand over a texture nothing else could see.
 		for (const auto light : lights)
 		{
 			Renderer3D::AddLight(light);
@@ -225,9 +191,8 @@ namespace
 
 		RenderTerrain(context);
 
-		// Render fully opaque objects. Batched rather than front to back: this pass writes into its
-		// own depth buffer rather than the pre-pass's, so ordering it buys nothing today - see
-		// docs/rendering.md.
+		// Render fully opaque objects. Batched, since the pre-pass depth already rejects hidden
+		// fragments.
 		m_DrawList.Build(m_SceneContext.RenderingBatch.OpaqueObjects,
 		    MaterialRenderingMode::Opaque,
 		    context.Visibility,
@@ -243,10 +208,7 @@ namespace
 
 		RenderBatch(m_DrawList);
 
-		// Skybox before the blended geometry, not after it. It is what a transparent surface with
-		// nothing solid behind it blends against, and it writes no alpha of its own - drawing it
-		// afterwards would either paint over what the blend produced or be rejected by the depth
-		// the blend wrote, depending on which of the two writes depth.
+		// Skybox before the blended geometry, which blends against it.
 		if (context.Skybox != nullptr)
 		{
 			Rendering::Skybox::Render(context.Skybox);
@@ -257,9 +219,7 @@ namespace
 	}
 
     // Allocated at the whole internal resolution, like every shared buffer, but filled only in the
-    // context-sized corner the scene pass uses - the depth in it is handed to that pass, and depth
-    // written under a different viewport would land in the wrong pixels. Ambient occlusion reads it
-    // with the same viewportScale the resolve uses on the scene buffer.
+    // context-sized corner the scene pass uses.
     void CreateDepthBuffer()
 	{
 	    const auto resolution = Rendering::InternalResolution::Get();
@@ -281,10 +241,8 @@ namespace
 
 	    m_DepthBuffer->AttachTexture(normalBuffer, Graphics::BufferAttachment::Color);
 
-	    // Depth-stencil rather than plain depth, although nothing here uses the stencil bits: this
-	    // depth is blitted into the scene buffer, and a blit of the depth component requires both
-	    // buffers to hold it in the same format. The scene buffer carries a stencil the editor's
-	    // outlines need, so its depth is the packed 24_8 format and this one has to match it.
+	    // Depth-stencil, although nothing here uses the stencil: a depth blit needs both buffers in
+	    // the same format, and the scene buffer's depth is packed 24_8 for the editor's outlines.
 	    const auto depthBuffer = Graphics::GetGraphicsAPI()->CreateTexture();
 
 	    depthBuffer->Bind();
@@ -305,18 +263,13 @@ namespace
 
 		graphicsApi->SetFaceCullingEnabled(state.CullFaces);
 
-		// Only when it means something. A cull mode with culling switched off is harmless, but
-		// stating one would suggest RasterState::FaceCulling still said something about how this
-		// state rasterizes, and it does not.
 		if (state.CullFaces)
 		{
 			graphicsApi->SetFaceCullingMode(state.FaceCulling);
 		}
 	}
 
-	// Moves the rasterizer from one known state into another. Same result as ApplyRasterState,
-	// without the depth bias call when both states carry the same pair - which is the case in
-	// every pass except the shadow one, and those passes have depth bias switched off anyway.
+	// Same result as ApplyRasterState, skipping the depth bias call when it would not change.
 	void SwitchRasterState(const Pipeline3D::RasterState& from, const Pipeline3D::RasterState& to)
 	{
 		ApplyFaceCulling(to);
@@ -339,19 +292,11 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 {
 	const auto& items = drawList.GetItems();
 
-	// Face culling is decided here rather than in Renderer3D::PrepareMesh, although it is a
-	// material property like every other thing that call sets. The depth pre-pass and the shadow
-	// pass both prepare meshes with SkipMaterialInitialization, which returns before the material
-	// is looked at - and those passes rasterize the same geometry as the scene pass, so they have
-	// to agree with it about which faces exist at all.
+	// Face culling is decided here rather than in Renderer3D::PrepareMesh, because the pre-pass and
+	// shadow pass skip material initialization there but must still cull like the scene pass.
 	//
-	// The pass's own state is applied here rather than taken on trust. Nothing reads culling back
-	// out of the graphics API, so if the batch only ever restored this state it would be restoring
-	// a value the caller had promised and could quietly have stopped setting - and the symptom
-	// would be a list that draws correctly right up to its first two-sided material. Applying it
-	// costs one state change per batch and makes every switch below measurable against something
-	// known. Unconditional, so an empty list leaves the rasterizer in the same place a full one
-	// would.
+	// The default state is applied up front rather than assumed, since nothing reads culling back
+	// from the graphics API.
 	ApplyRasterState(rasterState.Default);
 
 	const RasterState* appliedState = &rasterState.Default;
@@ -360,9 +305,8 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 
 	while (index < items.size())
 	{
-		// One run: the longest stretch of items that share a mesh and a material, and so can go to
-		// the GPU as a single instanced draw. In a batched list that is a whole model group; in a
-		// depth-ordered one it is however many neighbours happened to line up.
+		// One run: the longest stretch of items sharing a mesh and a material, drawn as one
+		// instanced draw.
 		auto* mesh = items[index].MeshPtr;
 		auto* material = items[index].MaterialPtr;
 
@@ -372,15 +316,11 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 			runEnd++;
 		}
 
-		// A run shares its material, so the surface it draws is two-sided or it is not - resolved
-		// the same way PrepareMesh resolves it, or an override material could make a run draw with
-		// one material and be culled as another.
+		// Resolved the same way PrepareMesh resolves it, so an override material is culled as drawn.
 		const auto* surfaceMaterial = Renderer3D::ResolveMaterial(mesh, material);
 		const bool isTwoSided = surfaceMaterial != nullptr &&
 		    surfaceMaterial->GetRenderFace() == MaterialRenderFace::Both;
 
-		// Both are members of the same rasterState, so this asks whether the state this run wants
-		// is the one already on the rasterizer.
 		const RasterState& runState = isTwoSided ? rasterState.TwoSided : rasterState.Default;
 
 		if (&runState != appliedState)
@@ -416,8 +356,7 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 
 		Renderer3D::RenderMeshInstanced();
 
-		// Anything writing its own stencil value cannot ride along in an instanced draw, so it is
-		// drawn on its own once the rest of the run has gone out.
+		// Anything writing its own stencil value cannot be instanced, so it is drawn separately.
 		if (hasStencilBufferOverride)
 		{
 			for (std::size_t i = index; i < runEnd; i++)
@@ -441,8 +380,7 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 		index = runEnd;
 	}
 
-	// The pass carries on drawing through its own state once this returns - terrain, the skybox
-	// and further lists of its own - so a run that switched away from it puts it back.
+	// The pass keeps drawing in its default state after this returns.
 	if (appliedState != &rasterState.Default)
 	{
 		SwitchRasterState(*appliedState, rasterState.Default);
@@ -487,16 +425,10 @@ void Pipeline3D::Prepare()
 
     Rendering::SceneProcessor::Prepare(m_SceneContext);
 
-	// Before any context draws, and once for all of them - a terrain's meshes depend on its height
-	// field, and its chunk light slots on where the lights are, neither of which is about the viewer.
-	//
-	// After SceneProcessor::Prepare, which is what gathered the lights the chunks are assigned from.
+	// Once for all contexts, after SceneProcessor::Prepare has gathered the lights.
 	Rendering::TerrainRenderer::Prepare(m_SceneContext);
 
-	// Local light shadows are viewer-independent, so they are built and rendered once here rather
-	// than inside each rendering context's prepass. With an editor viewport and a game camera both
-	// live, doing it per context would render every spot light's shadow map twice per frame for an
-	// identical result.
+	// Local light shadows are viewer-independent, so they render once here rather than per context.
 	if (m_Configuration.RenderShadows)
 	{
 		Rendering::Shadows::PrepareLocalViews(m_SceneContext);
@@ -507,9 +439,7 @@ void Pipeline3D::Prepare()
 		Rendering::Shadows::ClearLocalViews(m_SceneContext.Lights);
 	}
 
-	// After the scene-level shadow work, not inside SceneProcessor::Prepare where it used to live
-	// behind a TODO. Prepare is no longer the last thing to look at the scene each frame, so the
-	// flags have to outlive it. This ordering is load-bearing - see SceneProcessor::EndFrame.
+	// Must stay after the shadow work. See SceneProcessor::EndFrame.
 	Rendering::SceneProcessor::EndFrame();
 }
 
@@ -519,15 +449,10 @@ void Pipeline3D::Run(RenderingContext& context, const PipelineStage stage)
 	{
 		PINE_PF_SCOPE_MANUAL("Pine::Pipeline3D::Run(PipelineStage::Prepass)");
 
-		// Visibility depends on the camera, and *both* stages consume it - the depth pre-pass below
-		// skips culled objects, and so does RenderScene in the Default stage. Culling here, into this
-		// context's own set, is what keeps the two stages agreeing and keeps two viewports from
-		// overwriting each other's results.
+		// Culled once into this context's own set, which both stages draw from.
 		if (context.SceneCamera != nullptr)
 		{
-			// Kept on the context rather than local to this block: terrain culls its chunks
-			// against the same frustum in both stages, and rebuilding it there would be a second
-			// expression that has to agree with this one.
+			// Kept on the context, because terrain culls against it in both stages.
 			context.ViewFrustum = Frustum::FromViewProjection(
 				context.SceneCamera->GetProjectionMatrix() * context.SceneCamera->GetViewMatrix());
 

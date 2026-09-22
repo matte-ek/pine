@@ -17,40 +17,29 @@ namespace
     std::vector<LightShadowState> m_LightStates;
     std::vector<ShadowCandidate> m_Candidates;
 
-    // Importance at which a light is promoted to Large tiles, and the lower value it has to fall
-    // back through before it is demoted again.
+    // Importance at which a light is promoted to Quarter tiles, and the lower value it has to fall
+    // back through before it is demoted again. 1.0 is the camera entering the light's volume.
     //
-    // Importance is range/distance, so 1.0 is exactly "the camera is inside the light's volume",
-    // which is a good line for "this shadow is worth the resolution".
-    //
-    // The gap between the two is hysteresis and it is not optional: changing size means changing
-    // tile, changing tile means the new one is cold, and cold means a full re-render. A light
-    // hovering on a single threshold would re-render every frame - the exact cost caching exists to
-    // remove, reintroduced by the thing meant to improve quality.
+    // The gap is hysteresis: a size change moves the light to a cold tile, so a light hovering on a
+    // single threshold would re-render every frame.
     constexpr float HIGH_RES_TILE_IMPORTANCE = 1.0f;
     constexpr float HIGH_RES_TILE_IMPORTANCE_DROP = 0.7f;
 
-    // A challenger must be this much more important than an incumbent to take its tile. Without a
-    // margin, two lights either side of the boundary trade the tile every frame and each trade is a
-    // cold re-render of both - the exact cost caching exists to remove, paid twice over.
+    // A challenger must be this much more important than an incumbent to take its tile, so two
+    // lights near the boundary do not trade it every frame.
     constexpr float CHALLENGER_MARGIN = 1.25f;
 
-    // ...and below this much time held, an incumbent cannot be evicted at all. A tile that is drawn
-    // and then handed away a few frames later cost everything and bought nothing.
+    // Below this much time held, an incumbent cannot be evicted at all.
     constexpr float MIN_RESIDENCY_SECONDS = 0.5f;
 
     // How long a shadow takes to fade in when its light wins a tile, and out when it loses one.
-    // Short enough not to read as a dissolve, long enough not to read as a pop.
     constexpr float FADE_SECONDS = 0.25f;
 
     // How much a light's shadow is worth to the image, as the approximate angular size of its
     // sphere of influence. Zero means nothing it touches is on screen.
     //
-    // Scored against every active context rather than the primary one. Which camera "the viewer"
-    // means is genuinely ambiguous with an editor viewport and a game camera both live, and in the
-    // editor the primary context is the *game* one - scoring against it alone would make the
-    // viewport's own lights lose tiles to lights nobody is looking at. A light important to any live
-    // viewer is important.
+    // The maximum over every active context, not just the primary one: in the editor the primary
+    // context is the game camera, and the viewport's lights must not lose tiles to it.
     float ComputeImportance(const Light* light)
     {
         const auto position = light->GetParent()->GetTransform()->GetPosition();
@@ -79,9 +68,8 @@ namespace
             const auto cameraPosition = camera->GetParent()->GetTransform()->GetPosition();
             const float distance = glm::distance(position, cameraPosition);
 
-            // range / distance is near enough the tangent of the half-angle the light subtends. It
-            // passes 1 once the camera is inside the light's volume, which is the right shape: at
-            // that point its shadow fills the screen and is the most important one there is.
+            // range / distance approximates the tangent of the half-angle the light subtends, and
+            // passes 1 once the camera is inside the light's volume.
             importance = std::max(importance, range / std::max(distance, 0.001f));
         }
 
@@ -114,10 +102,8 @@ namespace
         return m_LightStates.back();
     }
 
-    // Ranking key. Incumbency is expressed as a handicap on the challengers rather than as a
-    // separate pass, so the whole policy stays one sort: hold a tile and you are worth
-    // CHALLENGER_MARGIN times what you would be worth as a newcomer; hold it for less than
-    // MIN_RESIDENCY_SECONDS and you cannot be beaten at all yet.
+    // Ranking key. An incumbent scores CHALLENGER_MARGIN times its importance, and cannot be beaten
+    // at all before MIN_RESIDENCY_SECONDS.
     float SelectionScore(const ShadowCandidate& candidate)
     {
         if (!candidate.IsIncumbent)
@@ -133,15 +119,9 @@ namespace
         return candidate.Importance * CHALLENGER_MARGIN;
     }
 
-    // The class importance asks for, clamped to one that can actually hold a group this size.
-    //
-    // The clamp is not an optimisation, it is the difference between casting and not: a group is
-    // granted all-or-nothing out of a single class, so a point light's six faces cannot come from
-    // the Quarter class at all - that quadrant holds four tiles. Asking anyway is not a contest the
-    // light loses, it is a request that can never be granted, and it costs the light its shadow
-    // outright: it holds nothing, so it has no state to be demoted from, so it asks for the same
-    // impossible thing again next frame. Size following importance rather than light type is what
-    // exposed this - every point light close enough to matter scores above the threshold.
+    // The class importance asks for, clamped to one that can hold a group this size at all. A
+    // point light's six faces cannot come from the four-tile Quarter class, and asking for it
+    // would fail every frame.
     Rendering::ShadowAtlas::TileSize SelectTileSize(const float importance, const LightShadowState* state, const int tileCount)
     {
         const float threshold =
@@ -153,8 +133,7 @@ namespace
             ? Rendering::ShadowAtlas::TileSize::Quarter
             : Rendering::ShadowAtlas::TileSize::Eighth;
 
-        // Eighth is the smallest class there is, so it is the only thing to fall back to - and a
-        // group that does not fit there does not fit anywhere, which Setup checks for once.
+        // Eighth is the smallest class. Shadows::Setup checks that it fits the largest group.
         if (Rendering::ShadowAtlas::GetTileCapacity(size) < tileCount)
         {
             return Rendering::ShadowAtlas::TileSize::Eighth;
@@ -164,16 +143,9 @@ namespace
     }
 }
 
-// The clamp in SelectTileSize is not enough on its own: it answers whether a class could ever
-// hold a group this size, which is a property of the layout, and says nothing about what is free
-// right now. There are four Quarter tiles, so the fifth spot light above the promotion threshold
-// asks for a class that is simply full.
-//
-// Holding nothing is what would make that permanent. LightShadowState only exists for a light
-// with tiles, so a light that failed outright has no recorded size to be demoted from next
-// frame: SelectTileSize sees no state, applies the undropped threshold, picks Quarter again, and
-// fails again for as long as the incumbents hold - with sixteen Eighth tiles sitting empty. A
-// contest for the high-resolution class has to cost a light its resolution, not its shadow.
+// Falls back to Eighth when the requested class is full this frame. Without the fallback, a light
+// that fails outright has no LightShadowState to be demoted through, so it would ask for the full
+// class again every frame while Eighth tiles sit empty.
 bool Rendering::ShadowTileSelection::AcquireTiles(const ShadowCandidate& candidate,
                                                  ShadowAtlas::TileSize* outSize, int* outSlots)
 {
@@ -184,8 +156,7 @@ bool Rendering::ShadowTileSelection::AcquireTiles(const ShadowCandidate& candida
         return true;
     }
 
-    // Eighth is the smallest class there is, so there is exactly one demotion to try and a
-    // candidate already asking for it has nowhere left to go.
+    // Already the smallest class, so there is nothing to fall back to.
     if (candidate.Size == ShadowAtlas::TileSize::Eighth)
     {
         return false;
@@ -213,8 +184,7 @@ const std::vector<Light*>& lights)
     {
         auto& hintData = light->GetLightHintData();
 
-        // Cleared for every light, casting or not: a light that loses its tile this frame must
-        // not keep pointing at the view some other light now owns.
+        // Cleared for every light, casting or not. See the declaration.
         hintData.ShadowViewIndex = -1;
         hintData.ShadowViewCount = 0;
 
@@ -231,8 +201,7 @@ const std::vector<Light*>& lights)
         candidate.LightPtr = light;
         candidate.Importance = ComputeImportance(light);
 
-        // The only place a light type is turned into a cost. Everything downstream reads the
-        // cost and never asks what kind of light produced it.
+        // The only place a light type becomes a cost; nothing downstream looks at the type.
         candidate.TileCount = lightType == LightType::PointLight ? POINT_FACE_COUNT : 1;
 
         const auto* state = FindClaim(light);
@@ -245,13 +214,6 @@ const std::vector<Light*>& lights)
         }
 
         // Size follows importance, not light type.
-        //
-        // Tying the size classes to "spot" and "point" was the first-caller shape, and it was
-        // wrong on its own terms as well: the justification was that a cube face covers 90
-        // degrees where a spot cone covers a narrow slice, but a spot at the default 45 degree
-        // outer angle covers about 94 - the same. What a multi-size atlas is actually for is
-        // giving a light that fills the screen a sharp shadow and one across the room a cheap
-        // one, and that is a question about the light's importance, which is already computed.
         candidate.Size = SelectTileSize(candidate.Importance, state, candidate.TileCount);
 
         // Off screen and holding nothing: there is no decision to make about it. An off-screen
@@ -286,10 +248,8 @@ const LightShadowState& Rendering::ShadowTileSelection::RecordGrant(const Shadow
     claim.Fade = std::clamp(claim.Fade + (wins ? fadeStep : -fadeStep), 0.f, 1.f);
     claim.TileCount = candidate.TileCount;
 
-    // Recorded after the acquire, so it is what the light actually got, demotion included. A size
-    // change means the incumbency scan in Acquire matched nothing (it matches on size too), so the
-    // old tiles went unclaimed and the sweep frees them - the move costs one cold re-render and no
-    // bookkeeping.
+    // The size actually granted, demotion included. On a size change the old tiles went unclaimed,
+    // so the atlas sweep frees them.
     claim.Size = grantedSize;
 
     return claim;

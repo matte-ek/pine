@@ -37,37 +37,18 @@ namespace Pine::Rendering::GraphicsSettings
         // Number of blur passes applied to the extracted bright areas. More = a wider, softer glow.
         int BloomBlurPasses = 6;
 
-        // How many shadow atlas tiles local (spot, and later point) lights may hold at once.
+        // How many shadow atlas tiles spot and point lights may hold at once. A spot light costs
+        // one tile and a point light six, so below 6 point lights never cast. It caps how many
+        // tiles can be re-rendered in one frame when everything moves, not memory.
         //
-        // A tile budget rather than per-light-type counts: a scene with five spots and no point
-        // lights should just work, and "2 point + 1 spot" cannot say that. A point light will simply
-        // cost six of these.
-        //
-        // It bounds worst-case cost, not memory. Holding a tile whose contents are still valid is
-        // nearly free - the saving caching buys - so the number that hurts is how many tiles can be
-        // *re-rendered* in one frame, and that is what this caps in the bad case where they all move
-        // at once.
-        //
-        // A point light costs six of these, so anything under 6 silently means "point lights never
-        // cast" - which is why the presets that have shadows on step 6 / 12 / 16 rather than
-        // 2 / 4 / 8. Low is the exception and not a fourth step: it turns Shadows off outright, so
-        // its budget is never read and the 2 it carries is only what Custom starts from.
+        // The Low preset turns shadows off, so its value here is only what Custom starts from.
         int LocalShadowTileBudget = 12;
 
         // --- Allocation-class settings (applied at Setup(), restart to change) ---
 
-        // Shadow atlas resolution (square). Every shadow in the engine lives in it: the directional
-        // cascades pin the two half-size tiles, spot and point lights compete for the rest.
-        //
-        // This is the single knob for shadow quality now. At 4096 that is 2048 per cascade, 1024 for
-        // a nearby local light and 512 for a distant one, in 32 MB of D16 - against the 142 MB the
-        // separate 4096x4096x2 cascade array and a 2048 atlas used to cost between them.
-        //
-        // Being generous costs memory but not frame time: with per-tile scissored clears and
-        // caching, an atlas where nothing moved re-renders nothing regardless of its size. Being
-        // frugal actively hurts - too small and the allocator starts evicting, and a light
-        // oscillating on the eviction boundary re-renders every frame, which is the exact case
-        // caching exists to prevent.
+        // Shadow atlas resolution (square), and the one knob for shadow resolution. Every shadow in
+        // the engine lives in it: at 4096 that is 2048 per cascade, 1024 for a nearby local light
+        // and 512 for a distant one, in 32 MB of D16. The number of tiles does not depend on it.
         int ShadowAtlasResolution = 4096;
 
         // The SSAO buffer is rendered at (internal resolution / this divisor).

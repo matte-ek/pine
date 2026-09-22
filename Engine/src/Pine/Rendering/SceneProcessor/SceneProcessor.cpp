@@ -10,10 +10,8 @@ namespace
 {
     // Recompute the object's world-space bounds from the model's local bounding box.
     //
-    // Deliberately built from the transform's position/rotation/scale rather than its
-    // transformation matrix: those accessors resolve the parent chain from the local fields and are
-    // correct whenever asked, whereas the matrix is only rebuilt in Transform::OnRender - which in
-    // production mode does not run until RenderBatch, long after culling needs this.
+    // Built from the transform's position/rotation/scale rather than its transformation matrix,
+    // which in production mode is not rebuilt until RenderBatch, after culling needs this.
     void UpdateWorldBounds(Pine::ModelRenderer& modelRenderer)
     {
         auto& data = modelRenderer.GetRenderingHintData();
@@ -28,19 +26,15 @@ namespace
         const auto localMin = model->GetBoundingBoxMin();
         const auto localMax = model->GetBoundingBoxMax();
 
-        // The transform's linear part: the rotation with the scale folded into its columns, which
-        // is what the eight-corner form applied as 'rotation * (corner * scale)'. Negative scale
-        // needs no special case - TransformBounds takes the absolute value of these columns.
+        // The transform's linear part: the rotation with the scale folded into its columns.
+        // Negative scale needs no special case.
         auto linear = glm::mat3_cast(rotation);
 
         linear[0] *= scale.x;
         linear[1] *= scale.y;
         linear[2] *= scale.z;
 
-        // Equivalent to taking the extents of all eight transformed corners, which is what this
-        // used to do - see TransformBounds for why, and for why it is not the min/max-pair shortcut
-        // the old culling test got wrong. Still a full off-axis fit; just a few operations instead
-        // of eight rotations.
+        // Equivalent to the extents of all eight transformed corners. See Math::TransformBounds.
         Pine::Vector3f worldMin;
         Pine::Vector3f worldMax;
 
@@ -53,11 +47,8 @@ namespace
         data.BoundsMax = worldMax;
     }
 
-    // Whether the object's bounds changed since last frame.
-    //
-    // Exact comparison on purpose. These are recomputed from the same inputs by the same code every
-    // frame, so an object that did not move reproduces its bounds bit-for-bit; an epsilon would only
-    // buy the ability to miss a genuinely small movement.
+    // Whether the object's bounds changed since last frame. Compared exactly: an object that did
+    // not move reproduces its bounds bit-for-bit.
     bool HasBoundsChanged(const Pine::Renderer3D::ModelRendererHintData& data)
     {
         return data.BoundsMin != data.PreviousBoundsMin || data.BoundsMax != data.PreviousBoundsMax;
@@ -96,10 +87,8 @@ namespace
 
             Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(context, &modelRenderer);
 
-            // Whether anything about this object needs blending, resolved exactly the way the draw
-            // list resolves it: an override material replaces every mesh's own, so asking the
-            // meshes alone would miss an object made transparent by its renderer - and the blend
-            // pass only ever sees what this test collects.
+            // Resolved the way the draw list resolves it: an override material replaces every
+            // mesh's own.
             auto* overrideMaterial = modelRenderer.GetOverrideMaterial();
 
             bool hasTransparentMaterial = false;
@@ -139,10 +128,8 @@ namespace
             context.ModelInstanceCountHint[objectGroup] = modelRenderers.size();
         }
 
-        // A count that did not change is not proof the *set* did not - one object destroyed and
-        // another created in the same frame reads as no change. Anything that survives that is
-        // per-object identity tracking, which is a real cost every frame to catch a case that
-        // costs one stale frame; taking the stale frame is the better trade.
+        // Misses one object destroyed and another created in the same frame. That costs one stale
+        // frame, which is cheaper than tracking identity every frame.
         context.CasterSetChanged = context.CasterCount != previousCasterCount;
     }
 }
@@ -158,10 +145,6 @@ void Pine::Rendering::SceneProcessor::Prepare(SceneProcessorContext& context)
 
 void Pine::Rendering::SceneProcessor::EndFrame()
 {
-    // Everything that reads Entity::IsDirty() has to have run by now - see the header. This used to
-    // sit at the end of Prepare with a TODO saying it did not belong there, and the thing that made
-    // that survivable - Prepare being the last scene-level work in the frame - stopped being true
-    // once the local shadow pass moved in after it.
     for (const auto& entity : Entities::GetList())
     {
         entity->SetDirty(false);

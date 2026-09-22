@@ -22,13 +22,8 @@ namespace
     constexpr float WEIGHT_MAXIMUM = static_cast<float>(std::numeric_limits<std::uint8_t>::max());
 
     // Where a ray enters and leaves an axis-aligned box, as distances along a unit direction.
-    // False when it misses. The slab test: each axis gives the span of the ray that lies between
-    // that axis' pair of planes, and the ray is inside the box over the overlap of the three.
-    //
-    // The axes are walked one at a time rather than divided through as a vector, because an axis
-    // the ray does not move along has to be answered rather than divided by: a ray straight down
-    // the terrain's corner is at x exactly 0 with no x motion at all, and 0/0 would take the whole
-    // test out with a NaN.
+    // False when it misses. The slab test, one axis at a time so an axis the ray does not move
+    // along is handled explicitly instead of producing 0/0.
     bool IntersectBounds(const Vector3f& origin,
                          const Vector3f& direction,
                          const Vector3f& boundsMin,
@@ -64,9 +59,8 @@ namespace
 
     // Where a ray meets one triangle, as a distance along a unit direction, or empty when it misses.
     //
-    // Moller-Trumbore, accepting a hit from either side: the editor camera is normally above the
-    // ground looking down, but a camera that has dropped below it still has to be able to pick the
-    // surface it is looking up at.
+    // Moller-Trumbore, accepting a hit from either side so a camera below the ground can still
+    // pick it.
     std::optional<float> IntersectTriangle(const Vector3f& origin,
                                            const Vector3f& direction,
                                            const Vector3f& first,
@@ -75,11 +69,8 @@ namespace
     {
         constexpr float ParallelEpsilon = 1e-7f;
 
-        // How far outside a triangle a hit is still taken as being on it. Every triangle of the
-        // ground shares each of its edges with a neighbour, so a ray arriving exactly along one -
-        // which is what clicking on a grid line does, and what a ray grazing the surface does -
-        // would otherwise be rejected by both of them and fall through the ground. Accepting it
-        // twice is harmless: the caller keeps the nearer of the two, and they agree along the edge.
+        // How far outside a triangle a hit is still taken as being on it, so a ray exactly along a
+        // shared edge is not rejected by both triangles.
         constexpr float EdgeEpsilon = 1e-5f;
 
         const auto firstEdge = second - first;
@@ -88,8 +79,7 @@ namespace
         const auto normalCross = glm::cross(direction, secondEdge);
         const float determinant = glm::dot(firstEdge, normalCross);
 
-        // Edge on: the ray runs parallel to the triangle's plane and either misses it or lies in
-        // it, and a hit in the plane of a ground triangle is not a point anyone wants back.
+        // Edge on: the ray runs parallel to the triangle's plane.
         if (std::abs(determinant) < ParallelEpsilon)
         {
             return std::nullopt;
@@ -124,9 +114,8 @@ namespace
         return distance;
     }
 
-    // Integer division that rounds towards negative infinity. Plain / truncates towards zero, which
-    // puts sample -1 and sample 0 in the same chunk - the terrain grid extends into negative
-    // coordinates, so that matters here.
+    // Integer division that rounds towards negative infinity, since the grid extends into negative
+    // coordinates and plain / truncates towards zero.
     int FloorDivide(const int value, const int divisor)
     {
         const int quotient = value / divisor;
@@ -207,9 +196,8 @@ bool Terrain::IsLayoutSupported(const Vector2i chunkOrigin, const Vector2i chunk
             return false;
         }
 
-        // The first and last sample coordinates this axis covers - what GetSampleMin and
-        // GetSampleMax work out in int, done here before an int has the chance to wrap. The last
-        // is always above the first, so bounding those two bounds everything between them.
+        // The first and last sample coordinates this axis covers, as GetSampleMin/Max would compute
+        // them, but in 64 bits.
         const std::int64_t firstSample = static_cast<std::int64_t>(origin) * quads;
         const std::int64_t lastSample = (static_cast<std::int64_t>(origin) + count) * quads;
 
@@ -268,9 +256,7 @@ void Terrain::Resize(const Vector2i chunkOrigin, const Vector2i chunkCount)
 
             m_Heights[GetSampleIndex({ x, z })] = previousHeights[source];
 
-            // The weights move with the heights rather than being reset: a resize is meant to leave
-            // what the author built alone, and painted ground that came back as bare layer 0 would
-            // be just as much of a loss as flattened ground.
+            // The weights move with the heights, so painting survives a resize.
             std::copy_n(previousWeights.begin() + static_cast<std::ptrdiff_t>(source * MaximumLayerCount),
                         MaximumLayerCount,
                         m_LayerWeights.begin() + static_cast<std::ptrdiff_t>(GetWeightIndex({ x, z })));
@@ -359,9 +345,7 @@ void Terrain::SetHeightRange(const float heightMin, const float heightMax)
     m_HeightMin = heightMin;
     m_HeightMax = heightMax;
 
-    // Re-encoded in place. Decoding the whole field into an array of floats first would cost four
-    // bytes a sample - tens of megabytes on a large terrain - to hold a value each sample needs
-    // exactly once.
+    // Re-encoded in place, rather than decoding the whole field into floats first.
     for (auto& sample : m_Heights)
     {
         const float height = previousMin + (static_cast<float>(sample) / SAMPLE_MAXIMUM) * previousRange;
@@ -468,8 +452,7 @@ bool Terrain::SetSampleHeightRect(const TerrainSampleRect& rect, const std::vect
                   m_Heights.begin() + static_cast<std::ptrdiff_t>(rowStart));
     }
 
-    // Once for the whole rectangle. Marking per sample would walk every chunk of the terrain for
-    // each of the thousands of samples a brush touches.
+    // Once for the whole rectangle rather than per sample.
     MarkRegionDirty(rect);
 
     return true;
@@ -497,9 +480,7 @@ std::optional<TerrainRayHit> Terrain::Raycast(const Vector3f& origin, const Vect
     const auto sampleMin = GetSampleMin();
     const auto sampleMax = GetSampleMax();
 
-    // The box the whole terrain lives in: its footprint, and the full range the samples encode
-    // into rather than the range they currently use. A tighter y range would need the field's own
-    // extremes, and the only thing this box decides is where marching starts and stops.
+    // The box the whole terrain lives in: its footprint, and the full encodable height range.
     const Vector3f boundsMin = { static_cast<float>(sampleMin.x) * spacing, m_HeightMin, static_cast<float>(sampleMin.y) * spacing };
     const Vector3f boundsMax = { static_cast<float>(sampleMax.x) * spacing, m_HeightMax, static_cast<float>(sampleMax.y) * spacing };
 
@@ -516,18 +497,16 @@ std::optional<TerrainRayHit> Terrain::Raycast(const Vector3f& origin, const Vect
 
     const auto entryPoint = origin + ray * entryDistance;
 
-    // The quad the march starts in. Clamped because the entry point sits exactly on a face of the
-    // box, where rounding can put it a hair outside the grid, and because the far rim belongs to
-    // the last quad rather than to one past the end.
+    // The quad the march starts in, clamped because rounding can put the entry point a hair
+    // outside the grid.
     Vector2i quad = {
         std::clamp(static_cast<int>(std::floor(entryPoint.x / spacing)), sampleMin.x, sampleMax.x - 1),
         std::clamp(static_cast<int>(std::floor(entryPoint.z / spacing)), sampleMin.y, sampleMax.y - 1)
     };
 
     // Standard grid march: step is the direction each axis advances in, delta is how far along the
-    // ray one whole quad takes, and next is the distance at which the ray crosses into the quad
-    // after this one. An axis the ray does not move along never crosses, which the infinities
-    // express without a special case in the loop.
+    // ray one whole quad takes, and next is the distance at which the ray crosses into the next
+    // quad. An axis the ray does not move along has infinite delta and never crosses.
     const Vector2i step = { ray.x >= 0.f ? 1 : -1, ray.z >= 0.f ? 1 : -1 };
 
     const Vector2f delta = {
@@ -560,9 +539,8 @@ std::optional<TerrainRayHit> Terrain::Raycast(const Vector3f& origin, const Vect
             return hit;
         }
 
-        // Where the ray leaves this quad is where it enters the next one. Past the far face of the
-        // box means the ray has left the terrain through its top or bottom, which the footprint
-        // test above cannot see - a steep ray would otherwise march the whole grid for nothing.
+        // Where the ray leaves this quad is where it enters the next one. Past the box's far face,
+        // it has left through the top or bottom.
         const float quadExitDistance = std::min(next.x, next.y);
 
         if (quadExitDistance > exitDistance)
@@ -703,8 +681,7 @@ void Terrain::EncodeSampleWeights(const Vector4f& weights, std::uint8_t* destina
     const auto clamped = glm::max(weights, Vector4f(0.f));
     const float total = clamped.x + clamped.y + clamped.z + clamped.w;
 
-    // Nothing to divide by, so there is no blend to preserve. Layer 0 is the answer an unpainted
-    // sample already gives, which keeps "no weights" meaning one thing rather than two.
+    // Nothing to divide by, so the sample becomes entirely layer 0, like an unpainted one.
     const auto normalized = total > 0.f ? clamped / total : Vector4f(1.f, 0.f, 0.f, 0.f);
 
     int encodedTotal = 0;
@@ -724,9 +701,8 @@ void Terrain::EncodeSampleWeights(const Vector4f& weights, std::uint8_t* destina
         }
     }
 
-    // Four independently rounded weights land a step either side of the total rather than on it.
-    // Correcting the largest channel costs it the least in relative terms, and it keeps the stored
-    // weights summing to exactly one so that reading them back gives what was written.
+    // Rounding can leave the total a step off. Correct the largest channel, which it affects least,
+    // so the stored weights sum to exactly one.
     destination[largest] = static_cast<std::uint8_t>(
         std::clamp(static_cast<int>(destination[largest]) + (255 - encodedTotal), 0, 255));
 }
@@ -735,8 +711,6 @@ Vector4f Terrain::DecodeSampleWeights(const std::uint8_t* source)
 {
     Vector4f weights{};
 
-    // Over MaximumLayerCount rather than the four components spelled out, so that this and
-    // EncodeSampleWeights describe the same number of channels in the same way.
     for (int layer = 0; layer < MaximumLayerCount; layer++)
     {
         weights[layer] = static_cast<float>(source[layer]) / WEIGHT_MAXIMUM;
@@ -825,9 +799,7 @@ bool Terrain::SetSampleWeightRect(const TerrainSampleRect& rect, const std::vect
                   m_LayerWeights.begin() + static_cast<std::ptrdiff_t>(rowStart));
     }
 
-    // No MarkRegionDirty here, unlike the height rectangle: a chunk mesh carries no weights, so
-    // rebuilding one would produce exactly the same vertices. The splat texture is the only thing
-    // downstream of this field.
+    // No MarkRegionDirty, since chunk meshes carry no weights.
     m_IsSplatMapDirty = true;
 
     return true;
@@ -851,9 +823,8 @@ Vector4f Terrain::GetSplatTransform() const
     const auto sampleMin = Vector2f(GetSampleMin());
     const float spacing = GetSampleSpacing();
 
-    // A chunk mesh's uv is its sample coordinate times the sample spacing, so dividing by that
-    // spacing recovers the coordinate. The half sample shifts it onto the centre of that sample's
-    // texel rather than onto its corner, which is where the stored weight actually is.
+    // A chunk mesh's uv divided by the sample spacing is its sample coordinate. The half sample
+    // moves it to the texel centre, where the weight is stored.
     return {
         1.f / (spacing * fieldSize.x),
         1.f / (spacing * fieldSize.y),
@@ -880,17 +851,13 @@ void Terrain::RebuildDirtySplatMap()
 
     m_SplatMap->Bind();
 
-    // Weights are data rather than colour, so no sRGB decode: bending them through a gamma curve
-    // would move the blend away from what was painted. Linear filtering is what turns the border
-    // between two layers into a gradient instead of a staircase of sample-sized squares, and
-    // clamping keeps the far rim's weights from wrapping onto the near one.
+    // Weights are data, not colour, so no sRGB decode. Linear filtering blends between layers, and
+    // clamping stops the far rim wrapping onto the near one.
     m_SplatMap->SetSRGB(false);
     m_SplatMap->SetFilteringMode(Graphics::TextureFilteringMode::Linear);
     m_SplatMap->SetTextureWrapMode(Graphics::TextureWrapMode::ClampToEdge);
 
-    // A full upload rather than a sub-image of what changed: the whole field is four bytes a
-    // sample, so even a large terrain is a couple of megabytes, and a resize changes the
-    // dimensions anyway.
+    // A full upload rather than a sub-image: even a large terrain is a couple of megabytes.
     m_SplatMap->UploadTextureData(fieldSize.x, fieldSize.y, 0,
         Graphics::TextureFormat::RGBA, Graphics::TextureDataFormat::UnsignedByte, m_LayerWeights.data());
 
@@ -937,9 +904,7 @@ void Terrain::GenerateFromNoise()
         {
             float height = 0.f;
 
-            // Summed in order, and each band is skipped where the bands before it have not taken
-            // the ground above its cutoff - which is what lets a detail band break up the hills
-            // the coarse bands raised and leave the lowland between them smooth.
+            // Summed in order, each band skipped where the bands before it are below its cutoff.
             for (const auto& band : m_NoiseSettings.Bands)
             {
                 if (height <= band.Cutoff)
@@ -998,9 +963,7 @@ void Terrain::UpdateChunkBounds(TerrainChunk& chunk) const
     chunk.BoundsMin = { cornerLow.x, lowest, cornerLow.y };
     chunk.BoundsMax = { cornerHigh.x, highest, cornerHigh.y };
 
-    // The box is where the chunk's lights are picked from, so a chunk that just changed shape has
-    // to pick them again. This is the one place a chunk's box moves, which makes it the one place
-    // that has to say so.
+    // The box is where the chunk's lights are picked from, so a changed box has to pick them again.
     chunk.LightSlots.HasComputedData = false;
 }
 
@@ -1094,14 +1057,12 @@ std::optional<TerrainRayHit> Terrain::IntersectQuad(const Vector2i quad, const V
     const auto lowHigh = corner({ quad.x, quad.y + 1 });
     const auto highHigh = corner({ quad.x + 1, quad.y + 1 });
 
-    // The same two triangles BuildChunkMesh emits, split along the same diagonal
-    // IsInFirstQuadTriangle documents - a pick that used the other diagonal would miss the surface
-    // by up to the height difference across the quad, and only on half of every quad.
+    // The same two triangles BuildChunkMesh emits, split along the diagonal IsInFirstQuadTriangle
+    // documents.
     const auto first = IntersectTriangle(origin, direction, lowLow, lowHigh, highLow);
     const auto second = IntersectTriangle(origin, direction, highLow, lowHigh, highHigh);
 
-    // A ray can meet both, along the diagonal they share or when it runs nearly flat across the
-    // quad, so the two are compared rather than the first answer taken.
+    // A ray can meet both, so the nearer one is kept.
     const bool secondIsNearer = second.has_value() && (!first.has_value() || *second < *first);
 
     const auto nearest = secondIsNearer ? second : first;
@@ -1111,9 +1072,7 @@ std::optional<TerrainRayHit> Terrain::IntersectQuad(const Vector2i quad, const V
         return std::nullopt;
     }
 
-    // The face normal of whichever of the two was hit. Both crosses take the triangle's edges in
-    // the winding used above, which is the winding BuildChunkMesh emits - so both come out of the
-    // top of the height field rather than one out of each side.
+    // The face normal of whichever was hit, in BuildChunkMesh's winding so it points up.
     const auto normal = secondIsNearer
         ? glm::cross(lowHigh - highLow, highHigh - highLow)
         : glm::cross(lowHigh - lowLow, highLow - lowLow);
@@ -1141,18 +1100,15 @@ Vector2f Terrain::ComputeSampleSlopes(const Vector2i sample) const
     const auto sampleMin = GetSampleMin();
     const auto sampleMax = GetSampleMax();
 
-    // Central differences over the shared field. This is the payoff of one field rather than one
-    // array per chunk: a sample on a chunk edge reads its neighbour's samples, so both chunks
-    // compute the same slope there and the seam disappears instead of being smoothed over.
+    // Central differences over the shared field, so both chunks compute the same slope along a
+    // shared edge.
     const auto slopeAlong = [&](const Vector2i step)
     {
         const Vector2i lower = glm::clamp(sample - step, sampleMin, sampleMax);
         const Vector2i upper = glm::clamp(sample + step, sampleMin, sampleMax);
 
-        // One of the two neighbours does not exist along the terrain's outer rim, and clamping
-        // collapsed it onto the sample itself - so the span is measured rather than assumed. A
-        // one-sided difference over the full central distance would halve the slope and leave the
-        // rim lit as if it were flatter than it is.
+        // Along the outer rim, clamping collapses one neighbour onto the sample itself, so the span
+        // is measured rather than assumed.
         const float span = static_cast<float>((upper.x - lower.x) + (upper.y - lower.y)) * spacing;
 
         if (span <= 0.f)
@@ -1177,9 +1133,8 @@ void Terrain::AppendChunkSkirt(const int quads,
     const int verticesPerEdge = quads + 1;
 
     // The chunk's boundary vertices in one ring, walked so that the outside is always to the left
-    // of the direction of travel: +x along the low z edge, then +z, then -x, then -z. Building the
-    // ring once means the four edges need one winding rule between them rather than four, which is
-    // where a skirt normally goes wrong - three edges face out and the fourth is culled away.
+    // of the direction of travel: +x along the low z edge, then +z, then -x, then -z. One ring
+    // gives all four edges the same winding rule.
     std::vector<std::uint32_t> ring;
 
     ring.reserve(static_cast<std::size_t>(quads) * 4);
@@ -1210,14 +1165,10 @@ void Terrain::AppendChunkSkirt(const int quads,
         ring.push_back(gridVertex(0, z));
     }
 
-    // One lowered copy per ring vertex, carrying the edge vertex's own normal, tangent and uv. A
-    // skirt is meant to be mistaken for the ground it hangs off, and giving it an outward-facing
-    // normal of its own is what would make it read as a wall instead.
+    // One lowered copy per ring vertex, carrying the edge vertex's own normal, tangent and uv.
     const auto firstSkirtVertex = static_cast<std::uint32_t>(vertices.size());
 
-    // Reserved before the loop because each push_back below reads an element of the vector it is
-    // appending to. That is well defined, but it is easier to be sure of when nothing can reallocate
-    // half way through.
+    // Reserved because each push_back below reads an element of the vector it appends to.
     vertices.reserve(vertices.size() + ring.size());
     normals.reserve(normals.size() + ring.size());
     tangents.reserve(tangents.size() + ring.size());
@@ -1257,9 +1208,8 @@ void Terrain::BuildChunkMesh(TerrainChunk& chunk, const int lodLevel) const
 {
     PINE_PF_SCOPE();
 
-    // Every level keeps every 2^l-th sample, so a coarse mesh is a subset of the fine one rather
-    // than an average of it: the chunk's corner and edge samples survive to the coarsest level, and
-    // two neighbours at the same level still meet exactly.
+    // Every level keeps every 2^l-th sample, so two neighbours at the same level still meet
+    // exactly.
     const int sampleStride = 1 << lodLevel;
     const int quads = m_ChunkQuads / sampleStride;
 
@@ -1287,26 +1237,19 @@ void Terrain::BuildChunkMesh(TerrainChunk& chunk, const int lodLevel) const
 
             const float height = DecodeHeight(m_Heights[GetSampleIndex(sample)]);
 
-            // Slopes come from the neighbouring *samples*, not from the neighbouring vertices of
-            // this level, so a chunk drawn coarsely is still lit by the surface the height field
-            // describes. Deriving them from the level's own vertices would make the same ground
-            // change shade as it crossed an LOD boundary.
+            // Slopes come from the neighbouring samples, not this level's vertices, so shading does
+            // not change across an LOD boundary.
             const auto slopes = ComputeSampleSlopes(sample);
 
-            // Chunk-local positions, with the chunk's world offset carried by the transform the
-            // renderer draws it with. Terrain-local positions would put the far corner of a large
-            // terrain thousands of units from the mesh origin for no gain.
+            // Chunk-local positions; the renderer's transform carries the chunk's offset.
             vertices[vertex] = { static_cast<float>(x) * vertexSpacing, height, static_cast<float>(z) * vertexSpacing };
 
             normals[vertex] = glm::normalize(Vector3f(-slopes.x, 1.f, -slopes.y));
 
-            // The surface tangent along +x, which is the direction u runs in - so a normal-mapped
-            // terrain material gets a tangent basis that agrees with its texture.
+            // The surface tangent along +x, the direction u runs in.
             tangents[vertex] = glm::normalize(Vector3f(1.f, slopes.x, 0.f));
 
-            // Terrain-local world units rather than a 0..1 span per chunk, so the texture is
-            // continuous across chunk edges whatever the material's UV scale is, and so that scale
-            // means "repeats per world unit" regardless of how the terrain is chunked.
+            // Terrain-local world units, so textures are continuous across chunk edges.
             uvs[vertex] = Vector2f(sample) * sampleSpacing;
         }
     }
@@ -1322,10 +1265,8 @@ void Terrain::BuildChunkMesh(TerrainChunk& chunk, const int lodLevel) const
             const auto lowHigh = lowLow + verticesPerEdge;
             const auto highHigh = lowHigh + 1;
 
-            // Split along the diagonal from (x, z + 1) to (x + 1, z), which is the convention
-            // IsInFirstQuadTriangle documents and GetHeightAt interpolates against - the rendered
-            // surface and the queried one have to be the same surface. Wound counter-clockwise seen
-            // from above so the ground faces up under back-face culling.
+            // Split along the diagonal IsInFirstQuadTriangle documents, and wound counter-clockwise
+            // seen from above so the ground faces up.
             indices[index++] = lowLow;
             indices[index++] = lowHigh;
             indices[index++] = highLow;
@@ -1336,22 +1277,14 @@ void Terrain::BuildChunkMesh(TerrainChunk& chunk, const int lodLevel) const
         }
     }
 
-    // Hanging down by the chunk's own height range is what makes the skirt provably tall enough:
-    // a neighbour drawn coarsely can only miss this chunk's shared edge by as much as that edge
-    // rises and falls, and that is inside the range. A flat chunk gets no skirt, correctly - its
-    // edge samples are the same at every level, so there is nothing to hide.
+    // The chunk's own height range is always tall enough: a coarser neighbour can only miss the
+    // shared edge by as much as that edge rises and falls. A flat chunk gets no skirt.
     AppendChunkSkirt(quads, chunk.BoundsMax.y - chunk.BoundsMin.y, vertices, normals, tangents, uvs, indices);
 
     auto& mesh = chunk.LodMeshes[lodLevel];
 
-    // How many vertices a level has depends only on the chunk's quad count, so a sculpting stroke
-    // changes what is in the buffers and nothing about their shape - and the existing mesh can take
-    // the new values in place. That matters because a stroke rebuilds every level of every chunk it
-    // touches, once per frame while the brush is dragged, and building a fresh Mesh allocates a
-    // vertex array and five GPU buffers that the array only frees when it is disposed.
-    //
-    // The quad count does change, on SetChunkQuads, and it does not always change the number of
-    // levels along with it - so this compares the vertex count rather than assuming.
+    // A sculpting stroke rebuilds every chunk it touches each frame, so update the existing mesh in
+    // place when its vertex count still matches. SetChunkQuads can change it.
     const bool canUpdateInPlace = mesh != nullptr && mesh->GetVertexCount() == vertices.size();
 
     if (canUpdateInPlace)
@@ -1361,8 +1294,7 @@ void Terrain::BuildChunkMesh(TerrainChunk& chunk, const int lodLevel) const
         mesh->UpdateTangents(reinterpret_cast<const float*>(tangents.data()), tangents.size() * sizeof(Vector3f));
         mesh->UpdateUvs(reinterpret_cast<const float*>(uvs.data()), uvs.size() * sizeof(Vector2f));
 
-        // The indices are deliberately left alone: the triangles of a level are fixed by its quad
-        // count, so the same index buffer describes the moved vertices.
+        // Same quad count, so the index buffer is unchanged.
     }
     else
     {
@@ -1375,8 +1307,7 @@ void Terrain::BuildChunkMesh(TerrainChunk& chunk, const int lodLevel) const
 
         mesh = new Mesh(nullptr);
 
-        // DynamicDraw because the branch above is the common case for a terrain being sculpted:
-        // these buffers are written far more often than a model's, which are filled once on import.
+        // DynamicDraw, because sculpting rewrites these buffers often.
         constexpr auto usage = Graphics::BufferUsageHint::DynamicDraw;
 
         // Vertices before indices: SetVertices sets the render count to a vertex count, and
@@ -1389,9 +1320,8 @@ void Terrain::BuildChunkMesh(TerrainChunk& chunk, const int lodLevel) const
     }
 
     // The chunk's bounds are terrain-local and the mesh is chunk-local, so only the horizontal
-    // offset differs; the height range is the same range either way. The skirt hangs below the
-    // bounds on purpose and is deliberately not included: the bounds are what culling tests, and a
-    // chunk whose skirt is visible but whose ground is not has nothing worth drawing.
+    // offset differs. The skirt is left out of the bounds, since culling only cares about the
+    // ground.
     const auto chunkCorner = Vector3f(chunk.BoundsMin.x, 0.f, chunk.BoundsMin.z);
 
     mesh->SetAABB(chunk.BoundsMin - chunkCorner, chunk.BoundsMax - chunkCorner);
@@ -1412,8 +1342,7 @@ bool Terrain::RebuildDirtyChunkMeshes()
             continue;
         }
 
-        // Resized rather than cleared, so a chunk rebuilt after a resolution change drops the
-        // levels it no longer has instead of keeping stale meshes under them.
+        // Resized, so a chunk that now has fewer levels drops the extra meshes.
         if (static_cast<int>(chunk.LodMeshes.size()) != lodCount)
         {
             DestroyChunkMeshes(chunk);
@@ -1464,8 +1393,7 @@ Mesh* Terrain::GetChunkMesh(const TerrainChunk& chunk, const int lodLevel) const
         return nullptr;
     }
 
-    // Clamped in int space: a viewer asks for a level by distance, and this terrain may carry fewer
-    // levels than the one the caller last looked at.
+    // Clamped, since this terrain may carry fewer levels than the one the caller asked for.
     const auto coarsest = static_cast<int>(chunk.LodMeshes.size()) - 1;
 
     return chunk.LodMeshes[std::clamp(lodLevel, 0, coarsest)];
@@ -1507,12 +1435,8 @@ bool Terrain::LoadAssetData(const ByteSpan& span)
         return false;
     }
 
-    // Read into locals and commit further down, once the layout is known to be usable. This runs
-    // on a re-load too, and a false return there leaves the terrain registered and rendering with
-    // whatever it already had (see Asset::ReLoad) - so a file that gets refused has to leave it
-    // exactly as it was. Applying the layout first would leave the sample count describing the new
-    // file while the field still held the old one's samples, and every index below is derived from
-    // that layout.
+    // Read into locals and committed further down, once the layout is known to be usable. On a
+    // re-load a refused file must leave the terrain exactly as it was (see Asset::ReLoad).
     Vector2i chunkCount{};
     Vector2i chunkOrigin{};
 
@@ -1530,8 +1454,6 @@ bool Terrain::LoadAssetData(const ByteSpan& span)
     terrainSerializer.HeightMin.Read(heightMin);
     terrainSerializer.HeightMax.Read(heightMax);
 
-    // A file that disagrees with itself is worse than one that will not load at all: a grid too
-    // large to index would take the field down with it.
     if (!IsLayoutSupported(chunkOrigin, chunkCount, chunkQuads) ||
         chunkSize <= 0.f || heightMax <= heightMin)
     {
@@ -1550,24 +1472,19 @@ bool Terrain::LoadAssetData(const ByteSpan& span)
 
     terrainSerializer.Layers.Read(layers);
 
-    // Emptied first, because this also runs when an already-loaded terrain is re-loaded: a slot the
-    // new file does not mention has to end up empty rather than keeping what the previous one put
-    // there. The height field gets this for free - reading it replaces the whole vector.
+    // Emptied first, so on a re-load a slot the new file does not mention ends up empty.
     for (auto& layer : m_Layers)
     {
         layer = static_cast<Material*>(nullptr);
     }
 
-    // Only as many as this build has slots for. The format carries its own count so that a file
-    // written by a build with more layers still loads here - with its extra layers dropped, which
-    // is the honest outcome when there is no channel left to blend them through.
+    // Only as many as this build has slots for; extra layers are dropped.
     for (std::size_t layer = 0; layer < layers.size() && layer < MaximumLayerCount; layer++)
     {
         m_Layers[layer] = layers[layer];
     }
 
-    // Back to the defaults first, for the same reason the layers are: a band the new file does not
-    // mention must not keep what a previous load left in it.
+    // Back to the defaults first, for the same reason as the layers.
     m_NoiseSettings = TerrainNoiseSettings();
 
     ByteSpan noiseSpan;
@@ -1615,10 +1532,8 @@ bool Terrain::LoadAssetData(const ByteSpan& span)
 
     terrainSerializer.LayerWeights.Read(m_LayerWeights);
 
-    // A terrain saved before the weights existed has none, and one saved by a build with a wider
-    // splat format has too many to interpret against this one. Both mean the same thing here: the
-    // heights are still good, the painting is not, so the surface falls back to bare layer 0
-    // rather than to a blend read out of the wrong stride.
+    // Missing weights, or weights from a build with a wider splat format: keep the heights and
+    // fall back to bare layer 0.
     if (m_LayerWeights.size() != expectedSampleCount * MaximumLayerCount)
     {
         if (!m_LayerWeights.empty())
@@ -1687,7 +1602,6 @@ ByteSpan Terrain::SaveAssetData()
 
 void Terrain::Dispose()
 {
-    // The cooked PhysX height field joins this once the physics unit lands.
     DestroyAllChunkMeshes();
     DestroySplatMap();
 
