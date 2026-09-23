@@ -1,7 +1,7 @@
 # Slender-style forest game
 
 Status: **idea**. Nothing game-specific has been built yet. The feature list below was checked
-against the engine on 2026-09-22.
+against the engine on 2026-09-22 and updated on 2026-09-23.
 
 ## The game
 
@@ -52,22 +52,26 @@ animation. That makes it a good first test of how Pine handles a large outdoor s
 - [ ] **In-game UI.** For the page counter, a "press E" prompt, menus and the win/game-over
       screens. `Renderer2D::AddText` and the `Font` asset exist, but `Renderer2D` is only driven
       by `Pipeline2D`, so nothing draws 2D on top of a 3D view, and C# has no UI API.
-- [ ] **Foliage/scatter system.** `EngineConfiguration::m_MaxObjectCount` (default 4096) limits
-      both the entity count and each component type's count, and every tree is an entity with a
-      `ModelRenderer` and a `Collider`. A few thousand trees fit, but grass and undergrowth need
-      instanced placement on the terrain that doesn't use entities, painted in the editor. The
-      terrain brush (`Editor/src/Other/TerrainSculpting/`) is a natural base for the painting tool.
-- [ ] **Post-processing that scripts can control.** For the static effect: grain and vignette
-      strengths are hardcoded locals in `Rendering/Features/PostProcessing/PostProcessing.cpp`
-      (0.08 and 0.5), and C# cannot change them.
-- [ ] **Level fog from C#.** For fog that thickens as the game goes on. `Level`'s fog fields
-      are editor-only today.
+- [x] **Foliage/scatter system.** Terrain detail: a terrain lists detail types (a model, the
+      layer it grows on, a density), and they are scattered wherever that layer is painted, drawn
+      instanced around the camera without entities (see
+      [rendering.md](../rendering.md#terrain-detail)). Trees stay entities with a `ModelRenderer`
+      and a `Collider`, since they need collision; `EngineConfiguration::m_MaxObjectCount`
+      (default 4096) caps those.
+- [x] **Post-processing that scripts can control.** For the static effect: grain and vignette
+      strengths, along with exposure and bloom, are level settings that C# reads and writes
+      through `Level.Active.Rendering` (see [scripting.md](../scripting.md)).
+- [x] **Level fog from C#.** For fog that thickens as the game goes on: fog colour, distance and
+      intensity are on `Level.Active.Rendering` too.
 - [ ] **Quitting the game from C#.** There is no binding for closing the application.
 
 ### Could come later
 
-- [ ] **Model LOD or impostors** for distant trees. Only terrain has LOD today. Heavy fog hides
-      the distance, so the first version may not need it.
+- [x] **Model LOD** for distant trees. A `Model` lists lower-detail models by distance and a
+      distance past which it is not drawn (see [assets.md](../assets.md) and
+      [rendering.md](../rendering.md)).
+- [ ] **Impostors** for distant trees, the step past mesh LOD. Heavy fog hides the distance, so
+      the first version may not need them.
 - [ ] **Wind sway** for foliage.
 - [ ] **Terrain height from C#.** `TerrainRenderer` is not bound to scripts. Until it is, a
       raycast down onto the terrain collider finds the ground for placing the figure.

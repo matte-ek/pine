@@ -11,11 +11,11 @@ relative to `Engine/src/Pine/`.
 - `Graphics/Graphics.hpp` — entry to the GPU wrapper.
 
 ## How it fits together
-- **`Graphics/`** is the API seam. `Graphics/Interfaces/I*.hpp` declares the abstraction (`IGraphicsAPI`, framebuffers, shader programs, textures, VAOs, buffers, UBOs); `Graphics/OpenGL/` is the only implementation today (a `Vulkan` enum value is stubbed). Also here: `Graphics/ShaderStorage/`, `Graphics/TextureAtlas/`.
+- **`Graphics/`** is the API seam. `Graphics/Interfaces/I*.hpp` declares the abstraction (`IGraphicsAPI`, framebuffers, shader programs, textures, VAOs, buffers, UBOs, storage buffers); `Graphics/OpenGL/` is the only implementation today (a `Vulkan` enum value is stubbed). Also here: `Graphics/ShaderStorage/`, `Graphics/TextureAtlas/`.
 - **`RenderManager`** owns the contexts and the stage model — `RenderStage` (Pre/PostRender, RenderContext, Pre/PostRender2D, Pre/PostRender3D, PostProcessing) and `PipelineStage` (Prepass, Default). External code hooks in via `AddRenderCallback(fn(context, stage, dt))`. Right after the `PreRender` callback, and only while the world is running, `RenderManager::Run` dispatches the scripts' `OnRender` (see [scripting.md](scripting.md)), so anything a script moves there is drawn this frame.
 - Per context with `UseRenderPipeline` set (the default) it runs **`Rendering/Pipeline/Pipeline3D/`**, then **`Pipeline2D/`**, then bloom and post-processing. A context with it cleared, such as the editor's entity-selection context, gets only the clear and the `RenderContext` callback and draws for itself.
 - **`Rendering/SceneProcessor/`** (incl. `SceneLightsProcessor/`) walks the ECS component blocks to gather what to draw and light — this is the bridge from the ECS to the renderer.
-- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`) and the quality presets in `Rendering/GraphicsSettings/`. `Rendering/RenderGraph/` is an empty placeholder; pass order is the fixed sequence in `RenderManager::Run` and `Pipeline3D::Run`.
+- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`, `TerrainDetail`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`) and the quality presets in `Rendering/GraphicsSettings/`. `Rendering/RenderGraph/` is an empty placeholder; pass order is the fixed sequence in `RenderManager::Run` and `Pipeline3D::Run`.
 - **`Renderer2D/`** mirrors `Renderer3D/` for sprites/tilemaps.
 
 ## The shared scene buffers & internal resolution
@@ -694,6 +694,78 @@ The last check is that the drawn mesh followed the field. A sculpted terrain and
 identical vertex counts, so what says the meshes were rebuilt is that no chunk is still marked
 dirty — `Prepare` clears that only once it has rebuilt the chunk — and that some chunk's bounding
 box has grown taller.
+
+## Terrain detail
+
+Grass, ferns and pebbles scattered over a terrain wherever one of its layers is painted.
+`Rendering/Features/TerrainDetail/` draws it; the rule lives on the `Terrain` asset as a list of
+`TerrainDetailType`s: a model, the layer it grows on, a density per square unit at full layer
+weight, a scale range and a draw distance. The editor edits the list under the terrain's **Detail**
+header, and it is saved as the `DetailTypes` list in the terrain's payload. Terrains saved before
+it existed load with none.
+
+**Placements are never stored.** `Terrain::GenerateDetailInstances(chunk, type)` derives them from
+the height field and the layer weights. It spreads `Density * ChunkSize²` candidate points over the
+chunk and keeps each with the probability its layer weight gives there, interpolated bilinearly
+the way the splat texture is filtered, so detail grows where the ground looks painted. The random
+numbers come from a SplitMix64 seeded by the chunk coordinate and the type's index, so the same
+terrain grows the same detail on every machine. Every candidate draws all of its numbers whether
+it is kept or not, so a repaint adds and removes placements where it paints and leaves every other
+placement exactly where it was. A chunk carries at most `Terrain::MaximumDetailInstancesPerChunk`
+per type, and `SetDetailTypes` warns when a density would reach that.
+
+**What changed is tracked per chunk** by `TerrainChunk::DetailRevision`. `MarkRegionDirty` (the
+ground moved), `RebuildChunks`, both weight writers (`SetSampleWeights` and the brush's
+`SetSampleWeightRect`) and `SetDetailTypes` stamp the chunks they affect. The stamps come from one
+counter shared by every terrain in the process, so a renderer holding placements can compare a
+revision without also tracking which terrain object stamped it. A terrain unloaded and loaded again
+cannot repeat one.
+
+**Only chunks near a camera hold placements.** `TerrainDetail::Prepare`, called once per frame after
+`TerrainRenderer::Prepare`, keeps one batch per (terrain, chunk, detail type): a storage buffer of
+placements plus the revision it was generated from. A batch is generated once its chunk comes
+within the type's draw distance of **any** pipeline context's camera, so a second viewport gets its
+own detail. It is regenerated when the revision moves, and released once no camera is within 1.25×
+the draw distance. That margin is what stops a camera pacing along the edge from regenerating
+the same chunk every frame. Generation is limited to `MaximumGenerationsPerFrame` (4) batches a
+frame, nearest first. A level load or a teleport therefore fills in over a few frames instead of
+stalling one.
+
+**Drawing** happens in the scene pass only, right after the `Discard` batch: one instanced draw per
+(visible chunk, detail type, mesh), culled against the chunk's box grown by the model's reach.
+`Renderer3D::PrepareTerrainDetailMesh` selects the generic shader's `VERSION_TERRAIN_DETAIL`
+(bit 8). That version reads each copy's placement from a shader storage block at
+`Specifications::StorageBuffers::TERRAIN_DETAIL_INSTANCES`, which `Shader::CompileShader` injects as
+`TERRAIN_DETAIL_INSTANCE_BINDING`, instead of from `instances[gl_InstanceID]`. `instances[0]` still
+carries what every copy shares: the terrain's translation and the chunk's light slots
+(`writeLightIndices(0)`). The storage block is why `generic.vertex.glsl` is `#version 430`. Copies
+shrink into the ground between 80% and 100% of the draw distance instead of popping out.
+
+Things worth knowing:
+
+- ⚠ **Detail always draws through `engine/shaders/3d/generic`**, whatever shader the model's
+  material names, because no other shader has the detail version. Any other program would place
+  every copy from the Instances block, which is why `PrepareTerrainDetailMesh` returns false (and
+  the draw is skipped) rather than falling back. The material still supplies the textures, colours,
+  rendering mode and render face.
+- **`Transparent` materials are drawn as `Discard`**: there is no sorted blend pass around the
+  detail. A `Both` material turns face culling off for its draws, the same as the object batch.
+- **No depth pre-pass and no shadows.** Like a `Discard` material, detail is absent from the
+  pre-pass, so ambient occlusion does not see it. It casts no shadows, which also keeps it out of
+  the flashlight's per-frame shadow redraw. It does *receive* them through the generic fragment
+  path.
+- **No model LOD and no collision.** Detail always draws LOD0, and nothing collides with it.
+- `RenderingStatistics::TerrainDetailInstanceCount` counts the copies the scene pass drew. `/stats`
+  reports it as `terrainDetailInstances`, and the profiler panel as "Terrain detail".
+
+`verify-terrain-detail.py` covers the whole path: generation, determinism, revisions and the
+save/load round trip in process, then over HTTP the detail drawn exactly where the probe put it and
+only on the painted half, released past the draw distance and regenerated on return, and a paint
+stroke through `/terrain/sculpt` that grows detail and whose undo restores the exact count.
+
+```sh
+python3 Editor/src/DebugServer/Verification/verify-terrain-detail.py --build cmake-build-debug-agent
+```
 
 ## Notes
 - Shaders, materials, meshes and models are all **assets** (see [assets.md](assets.md)); the renderer pulls them from the asset system rather than owning GPU resources directly.

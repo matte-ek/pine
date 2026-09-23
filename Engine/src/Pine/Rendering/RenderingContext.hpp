@@ -31,6 +31,10 @@ namespace Pine
         int VisibleTerrainChunkCount = 0;
         int CulledTerrainChunkCount = 0;
 
+        // Terrain detail copies submitted by the scene pass, across every chunk and detail type. The
+        // draws and vertices they cost are in the counters above as well.
+        std::uint64_t TerrainDetailInstanceCount = 0;
+
         void Reset()
         {
             LightCount = 0;
@@ -42,6 +46,7 @@ namespace Pine
             CulledObjectCount = 0;
             VisibleTerrainChunkCount = 0;
             CulledTerrainChunkCount = 0;
+            TerrainDetailInstanceCount = 0;
         }
     };
 

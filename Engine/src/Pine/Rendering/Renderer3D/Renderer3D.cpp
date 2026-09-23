@@ -40,12 +40,17 @@ namespace
     // material to carry one.
     Shader* m_TerrainShader = nullptr;
 
+    // What terrain detail always draws with, since only this shader has the detail version. See
+    // PrepareTerrainDetailMesh.
+    Shader* m_GenericShader = nullptr;
+
     Graphics::IShaderProgram* m_Shader = nullptr;
     ShaderVersion m_ShaderVersion = 0;
 
     Graphics::IUniformVariable* m_HasTangentData = nullptr;
     Graphics::IUniformVariable* m_SplatTransform = nullptr;
     Graphics::IUniformVariable* m_BrushRing = nullptr;
+    Graphics::IUniformVariable* m_DetailFade = nullptr;
 
     Mesh* m_Mesh = nullptr;
 
@@ -124,6 +129,56 @@ namespace
         materialData.UVScale = material->GetTextureScale();
         materialData.Alpha = material->GetAlpha();
     }
+
+    // Binds m_Material's textures and uploads its properties for the program already in use.
+    void BindMaterial()
+    {
+        // Every shadow in the engine comes out of this one texture - cascades included, since they
+        // were folded in. There is no "has a shadow map" uniform to go with it: a light that is not
+        // casting carries shadowViewIndex -1, so the shader never reaches the sampler at all.
+        if (auto* shadowAtlas = Rendering::ShadowAtlas::GetTexture())
+        {
+            shadowAtlas->Bind(Renderer3D::Specifications::Samplers::SHADOW_ATLAS);
+        }
+
+        // Apply Textures
+
+        // Diffuse
+        if (m_Material->GetDiffuse())
+            m_Material->GetDiffuse()->GetGraphicsTexture()->Bind(Renderer3D::Specifications::Samplers::BASE_DIFFUSE);
+        else
+            m_DefaultTexture->Bind(Renderer3D::Specifications::Samplers::BASE_DIFFUSE);
+
+        // Specular
+        if (m_Material->GetSpecular())
+            m_Material->GetSpecular()->GetGraphicsTexture()->Bind(Renderer3D::Specifications::Samplers::BASE_SPECULAR);
+        else
+            m_DefaultTexture->Bind(Renderer3D::Specifications::Samplers::BASE_SPECULAR);
+
+        // Normal
+        if (m_Material->GetNormal())
+            m_Material->GetNormal()->GetGraphicsTexture()->Bind(Renderer3D::Specifications::Samplers::BASE_NORMAL);
+        else
+            m_DefaultTexture->Bind(Renderer3D::Specifications::Samplers::BASE_NORMAL);
+
+        /* Material Properties */
+        auto& materialData = Renderer3D::ShaderStorages::Material.Data().Properties[0];
+
+        // Authored colors are sRGB; decode to linear here so the shader receives linear data.
+        materialData.DiffuseColor = SrgbToLinear(m_Material->GetDiffuseColor());
+        materialData.SpecularColor = SrgbToLinear(m_Material->GetSpecularColor());
+        materialData.AmbientColor = SrgbToLinear(m_Material->GetAmbientColor());
+        materialData.Shininess = m_Material->GetShininess();
+        materialData.UVScale = m_Material->GetTextureScale();
+        materialData.Alpha = m_Material->GetAlpha();
+
+        Renderer3D::ShaderStorages::Material.Upload();
+
+        if (m_HasTangentData)
+        {
+            m_HasTangentData->LoadInteger(m_Material->GetNormal() != nullptr);
+        }
+    }
 }
 
 void Renderer3D::Setup()
@@ -153,6 +208,7 @@ void Renderer3D::Setup()
     m_DefaultNormalTexture->UploadTextureData(1, 1, 0, Graphics::TextureFormat::RGBA, Graphics::TextureDataFormat::UnsignedByte, flatNormal);
 
     m_TerrainShader = Assets::Get<Shader>("engine/shaders/3d/terrain");
+    m_GenericShader = Assets::Get<Shader>("engine/shaders/3d/generic");
 
     ShaderStorages::Matrix.Create();
     ShaderStorages::Instance.Create();
@@ -170,6 +226,7 @@ void Renderer3D::Shutdown()
     m_DefaultTexture = nullptr;
     m_DefaultNormalTexture = nullptr;
     m_TerrainShader = nullptr;
+    m_GenericShader = nullptr;
 
     ShaderStorages::Matrix.Dispose();
     ShaderStorages::Instance.Dispose();
@@ -258,50 +315,90 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
         return;
     }
 
-    // Every shadow in the engine comes out of this one texture - cascades included, since they
-    // were folded in. There is no "has a shadow map" uniform to go with it: a light that is not
-    // casting carries shadowViewIndex -1, so the shader never reaches the sampler at all.
-    if (auto* shadowAtlas = Rendering::ShadowAtlas::GetTexture())
+    BindMaterial();
+}
+
+bool Renderer3D::PrepareTerrainDetailMesh(Mesh* mesh)
+{
+    mesh->GetVertexArray()->Bind();
+
+    m_CurrentInstanceIndex = 0;
+    m_Mesh = mesh;
+
+    m_Material = ResolveMaterial(mesh);
+
+    if (m_Material == nullptr || m_GenericShader == nullptr || !m_GenericShader->HasShaderVersion(0))
     {
-        shadowAtlas->Bind(Specifications::Samplers::SHADOW_ATLAS);
+        return false;
     }
 
-    // Apply Textures
+    auto version = static_cast<ShaderVersion>(Specifications::ShaderVersions::Generic::TerrainDetail);
 
-    // Diffuse
-    if (m_Material->GetDiffuse())
-        m_Material->GetDiffuse()->GetGraphicsTexture()->Bind(Specifications::Samplers::BASE_DIFFUSE);
-    else
-        m_DefaultTexture->Bind(Specifications::Samplers::BASE_DIFFUSE);
-
-    // Specular
-    if (m_Material->GetSpecular())
-        m_Material->GetSpecular()->GetGraphicsTexture()->Bind(Specifications::Samplers::BASE_SPECULAR);
-    else
-        m_DefaultTexture->Bind(Specifications::Samplers::BASE_SPECULAR);
-
-    // Normal
-    if (m_Material->GetNormal())
-        m_Material->GetNormal()->GetGraphicsTexture()->Bind(Specifications::Samplers::BASE_NORMAL);
-    else
-        m_DefaultTexture->Bind(Specifications::Samplers::BASE_NORMAL);
-
-    /* Material Properties */
-    auto& materialData = ShaderStorages::Material.Data().Properties[0];
-
-    // Authored colors are sRGB; decode to linear here so the shader receives linear data.
-    materialData.DiffuseColor = SrgbToLinear(m_Material->GetDiffuseColor());
-    materialData.SpecularColor = SrgbToLinear(m_Material->GetSpecularColor());
-    materialData.AmbientColor = SrgbToLinear(m_Material->GetAmbientColor());
-    materialData.Shininess = m_Material->GetShininess();
-    materialData.UVScale = m_Material->GetTextureScale();
-    materialData.Alpha = m_Material->GetAlpha();
-
-    ShaderStorages::Material.Upload();
-
-    if (m_HasTangentData)
+    if (m_Material->GetRenderingMode() != MaterialRenderingMode::Opaque)
     {
-        m_HasTangentData->LoadInteger(m_Material->GetNormal() != nullptr);
+        version |= static_cast<ShaderVersion>(Specifications::ShaderVersions::Generic::Discard);
+    }
+
+    const bool isVersionCompiled = m_GenericShader->HasShaderVersion(version);
+
+    if (!isVersionCompiled ||
+        m_GenericShader->GetProgram(version) != m_Shader ||
+        m_ShaderVersion != version ||
+        !m_GenericShader->IsRendererReady(version))
+    {
+        SetShader(m_GenericShader, version);
+    }
+
+    // SetShader falls back to the default program when the version does not compile, and that
+    // program would place every copy from the Instances block.
+    if (m_Shader == nullptr || m_ShaderVersion != version)
+    {
+        return false;
+    }
+
+    BindMaterial();
+
+    return true;
+}
+
+void Renderer3D::RenderTerrainDetail(const Matrix4f& terrainTransform,
+                                     LightSlotData* lightSlots,
+                                     Graphics::IStorageBuffer* instances,
+                                     const int instanceCount,
+                                     const Vector2f& fadeDistances)
+{
+    if (instanceCount <= 0)
+    {
+        return;
+    }
+
+    // Instance 0 carries what every copy shares; the shader reads nothing past it in this version.
+    WriteInstanceLightIndices(0, lightSlots);
+
+    ShaderStorages::Instance.Data().Instances[0].TransformationMatrix = terrainTransform;
+    ShaderStorages::Instance.Upload(sizeof(ShaderStorages::InstanceData::Instance));
+
+    instances->Bind(Specifications::StorageBuffers::TERRAIN_DETAIL_INSTANCES);
+
+    if (m_DetailFade != nullptr)
+    {
+        m_DetailFade->LoadVector2(fadeDistances);
+    }
+
+    if (m_Mesh->HasElementBuffer())
+    {
+        m_GraphicsAPI->DrawElementsInstanced(Graphics::RenderMode::Triangles, m_Mesh->GetRenderCount(), instanceCount);
+    }
+    else
+    {
+        m_GraphicsAPI->DrawArraysInstanced(Graphics::RenderMode::Triangles, m_Mesh->GetRenderCount(), instanceCount);
+    }
+
+    if (m_RenderingContext != nullptr)
+    {
+        m_RenderingContext->Statistics.DrawCalls++;
+        m_RenderingContext->Statistics.VertexCount +=
+            static_cast<std::uint64_t>(m_Mesh->GetRenderCount()) * instanceCount;
     }
 }
 
@@ -557,6 +654,13 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     // cache it, and leave one warning per program in the log.
     m_BrushRing = shader == m_TerrainShader && version == static_cast<ShaderVersion>(Specifications::ShaderVersions::Terrain::Brush)
         ? m_Shader->GetUniformVariable("brushRing")
+        : nullptr;
+
+    // Only exists in the generic shader's terrain detail versions, for the same reason.
+    const auto detailBit = static_cast<ShaderVersion>(Specifications::ShaderVersions::Generic::TerrainDetail);
+
+    m_DetailFade = shader == m_GenericShader && (version & detailBit) != 0
+        ? m_Shader->GetUniformVariable("detailFade")
         : nullptr;
 }
 

@@ -19,11 +19,8 @@ the engine already covers.
 | Feature | Slender |
 |---------|:-------:|
 | In-game UI (text and images drawn over the 3D view, usable from C#) | Needed |
-| Foliage/scatter system (instanced, painted on terrain) | Needed |
-| Post-processing controllable from C# | Needed |
-| Level fog controllable from C# | Needed |
 | Quitting the game from C# | Needed |
-| Model LOD / impostors | Later |
+| Impostors for distant models | Later |
 | Foliage wind sway | Later |
 | Terrain height query from C# | Later |
 | Trigger callbacks | Later |

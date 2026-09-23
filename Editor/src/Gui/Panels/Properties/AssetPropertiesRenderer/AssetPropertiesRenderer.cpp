@@ -643,6 +643,90 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
+    // Edited on a copy and handed back whole, like the model's LOD levels. Every change restamps the
+    // terrain's chunks, so the detail around the camera regenerates within a few frames.
+    void RenderTerrainDetail(Pine::Terrain *terrain)
+    {
+        if (!ImGui::CollapsingHeader("Detail"))
+        {
+            return;
+        }
+
+        ImGui::TextDisabled("Scattered over the ground wherever a layer is painted, around the camera.");
+        ImGui::TextDisabled("Density is instances per square unit at full layer weight.");
+        ImGui::Spacing();
+
+        // The combo lists the slots by number and material, so the author picks the channel they
+        // painted rather than guessing which index it was.
+        std::string layerItems;
+
+        for (int layer = 0; layer < Pine::Terrain::MaximumLayerCount; layer++)
+        {
+            const auto material = terrain->GetLayer(layer);
+
+            layerItems += fmt::format("Layer {} ({})", layer, material != nullptr ? material->GetFileName() : "empty");
+            layerItems += '\0';
+        }
+
+        auto detailTypes = terrain->GetDetailTypes();
+        bool detailChanged = false;
+        int removedDetail = -1;
+
+        const float chunkArea = terrain->GetChunkSize() * terrain->GetChunkSize();
+
+        for (int i = 0; i < detailTypes.size(); i++)
+        {
+            auto& detailType = detailTypes[i];
+
+            ImGui::PushID(i);
+
+            ImGui::SeparatorText(fmt::format("Detail {}", i + 1).c_str());
+
+            const auto newModel = Widgets::AssetPicker("Model", detailType.DetailModel.Get(), Pine::AssetType::Model);
+            if (newModel.hasResult)
+            {
+                detailType.DetailModel = newModel.asset;
+                detailChanged = true;
+            }
+
+            detailChanged |= Widgets::DropDown("Layer", &detailType.Layer, layerItems.c_str());
+            detailChanged |= Widgets::InputFloat("Density", &detailType.Density);
+            detailChanged |= Widgets::InputFloat("Scale Min", &detailType.ScaleMin);
+            detailChanged |= Widgets::InputFloat("Scale Max", &detailType.ScaleMax);
+            detailChanged |= Widgets::InputFloat("Draw Distance", &detailType.DrawDistance);
+
+            ImGui::TextDisabled("Up to %.0f per chunk", std::min(detailType.Density * chunkArea,
+                static_cast<float>(Pine::Terrain::MaximumDetailInstancesPerChunk)));
+
+            if (ImGui::Button(ICON_MD_DELETE " Remove"))
+            {
+                removedDetail = i;
+            }
+
+            ImGui::PopID();
+        }
+
+        if (removedDetail >= 0)
+        {
+            detailTypes.erase(detailTypes.begin() + removedDetail);
+            detailChanged = true;
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button(ICON_MD_ADD " Add Detail"))
+        {
+            detailTypes.push_back({});
+            detailChanged = true;
+        }
+
+        if (detailChanged)
+        {
+            terrain->SetDetailTypes(detailTypes);
+            terrain->MarkAsModified();
+        }
+    }
+
     void RenderTerrain(Pine::Terrain *terrain)
     {
         // Every field in this block reshapes stored samples: shrinking the grid drops the rows it
@@ -791,6 +875,12 @@ namespace
 
             Pine::Physics3D::TerrainCollision::RebuildColliders(*terrain);
         }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        RenderTerrainDetail(terrain);
     }
 }
 

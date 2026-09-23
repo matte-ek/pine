@@ -115,6 +115,17 @@ namespace Pine::Renderer3D::ShaderStorages
         Vector4f FogSettings = Vector4f(0.f);
     };
 
+    // One terrain detail placement as the storage buffer holds it. Mirrors 'TerrainDetailInstance'
+    // in shaders/3d/generic/generic.vertex.glsl, laid out for std430: two vec4s, so no padding.
+    struct TerrainDetailInstanceData
+    {
+        // xyz the terrain-local position, w the uniform scale.
+        Vector4f PositionScale;
+
+        // x = cos(yaw), y = sin(yaw), zw unused. Precomputed so the vertex stage does no trig.
+        Vector4f Rotation;
+    };
+
     inline Graphics::ShaderStorage<MatrixData> Matrix(Specifications::ShaderStorages::MATRICES, "Matrices");
     inline Graphics::ShaderStorage<InstanceData> Instance(Specifications::ShaderStorages::INSTANCE, "Instances");
     inline Graphics::ShaderStorage<MaterialData> Material(Specifications::ShaderStorages::MATERIAL, "Material");

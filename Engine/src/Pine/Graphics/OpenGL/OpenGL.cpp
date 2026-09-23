@@ -3,6 +3,7 @@
 #include "Pine/Graphics/OpenGL/ShaderProgram/GLShaderProgram.hpp"
 #include "Pine/Graphics/OpenGL/Texture/GLTexture.hpp"
 #include "Pine/Graphics/OpenGL/VertexArray/GLVertexArray.hpp"
+#include "Pine/Graphics/OpenGL/StorageBuffer/GLStorageBuffer.hpp"
 #include "Pine/Graphics/OpenGL/UniformBuffer/GLUniformBuffer.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Rendering/Renderer3D/ShaderStorages.hpp"
@@ -395,6 +396,18 @@ void Pine::Graphics::OpenGL::DestroyUniformBuffer(IUniformBuffer* buffer)
 	buffer->Dispose();
 
 	delete dynamic_cast<GLUniformBuffer*>(buffer);
+}
+
+Pine::Graphics::IStorageBuffer* Pine::Graphics::OpenGL::CreateStorageBuffer()
+{
+	return new GLStorageBuffer();
+}
+
+void Pine::Graphics::OpenGL::DestroyStorageBuffer(IStorageBuffer* buffer)
+{
+	buffer->Dispose();
+
+	delete dynamic_cast<GLStorageBuffer*>(buffer);
 }
 
 void Pine::Graphics::OpenGL::SetDepthTestEnabled(const bool value)

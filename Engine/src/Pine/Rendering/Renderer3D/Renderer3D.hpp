@@ -2,6 +2,7 @@
 
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Mesh/Mesh.hpp"
+#include "Pine/Graphics/Interfaces/IStorageBuffer.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
@@ -75,6 +76,31 @@ namespace Pine::Renderer3D
                              Graphics::ITexture* splatMap,
                              const Vector4f& splatTransform,
                              const Vector4f* brushRing = nullptr);
+
+    // Prepares a mesh of a terrain detail model, which RenderTerrainDetail then draws many copies
+    // of. Returns false when there is nothing that can draw it - no material, or no program for
+    // the detail version - in which case the caller must skip the draw: any other program would
+    // read the placements out of the Instances block and put every copy in the wrong place.
+    //
+    // Always draws through the engine's generic shader, whatever shader the mesh's material names,
+    // because only that shader has the detail version. The material still supplies the textures,
+    // colours and rendering mode. Detail is drawn in the scene pass only, where there is no blend
+    // pass around it, so a Transparent material is drawn as a Discard one.
+    bool PrepareTerrainDetailMesh(Mesh* mesh);
+
+    // Draws the prepared detail mesh once per placement in 'instances', which holds
+    // 'instanceCount' ShaderStorages::TerrainDetailInstanceData entries. The placements are
+    // terrain-local; 'terrainTransform' puts the terrain in the world, and every copy is lit
+    // through 'lightSlots'.
+    //
+    // 'fadeDistances' are the distances from the camera at which a copy starts shrinking and at
+    // which it has shrunk to nothing, so detail sinks into the ground at the edge of its draw
+    // distance rather than popping out of existence.
+    void RenderTerrainDetail(const Matrix4f& terrainTransform,
+                             LightSlotData* lightSlots,
+                             Graphics::IStorageBuffer* instances,
+                             int instanceCount,
+                             const Vector2f& fadeDistances);
 
     // Adds the transform to the ongoing instance batch, returns true if flushing is required, i.e. rendering via RenderMeshInstanced.
     //

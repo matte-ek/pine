@@ -99,7 +99,13 @@ namespace Pine::Renderer3D::Specifications
             // Writes the surface's real alpha instead of a constant 1. Only this version does:
             // the resolve pass forwards the scene buffer's alpha to the final image, so an
             // opaque surface writing anything below 1 would show through the composite.
-            Transparent = (1 << 2)
+            Transparent = (1 << 2),
+
+            // Draws terrain detail: every instance's placement is read from the storage buffer at
+            // StorageBuffers::TERRAIN_DETAIL_INSTANCES rather than from the Instances block, which
+            // keeps one transform and one set of light slots for the whole draw. See
+            // Renderer3D::RenderTerrainDetail.
+            TerrainDetail = (1 << 3)
         };
 
         enum class Terrain
@@ -123,5 +129,12 @@ namespace Pine::Renderer3D::Specifications
         constexpr int WORLD = 5;
         constexpr int AO_DATA = 6;
         constexpr int SHADOW_VIEWS = 7;
+    }
+
+    // Binding points of shader storage blocks, a separate numbering from the uniform blocks above.
+    // Injected into the shaders as #defines, so this is the single place each one is written.
+    namespace StorageBuffers
+    {
+        constexpr int TERRAIN_DETAIL_INSTANCES = 0;
     }
 }

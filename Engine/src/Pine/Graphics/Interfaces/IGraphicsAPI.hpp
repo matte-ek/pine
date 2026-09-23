@@ -2,6 +2,7 @@
 
 #include "IFrameBuffer.hpp"
 #include "IShaderProgram.hpp"
+#include "IStorageBuffer.hpp"
 #include "ITexture.hpp"
 #include "IVertexArray.hpp"
 #include "Pine/Core/Color/Color.hpp"
@@ -141,6 +142,9 @@ namespace Pine::Graphics
 
         virtual IUniformBuffer* CreateUniformBuffer() = 0;
         virtual void DestroyUniformBuffer(IUniformBuffer* buffer) = 0;
+
+        virtual IStorageBuffer* CreateStorageBuffer() = 0;
+        virtual void DestroyStorageBuffer(IStorageBuffer* buffer) = 0;
 
         virtual IFrameBuffer* CreateFrameBuffer() = 0;
         virtual void DestroyFrameBuffer(IFrameBuffer* buffer) = 0;

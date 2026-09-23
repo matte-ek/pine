@@ -179,6 +179,7 @@ namespace
         json["culledObjects"] = statistics.CulledObjectCount;
         json["visibleTerrainChunks"] = statistics.VisibleTerrainChunkCount;
         json["culledTerrainChunks"] = statistics.CulledTerrainChunkCount;
+        json["terrainDetailInstances"] = statistics.TerrainDetailInstanceCount;
         json["renderTime"] = statistics.RenderTime;
 
         return json;
@@ -468,6 +469,26 @@ namespace
 
         body["layers"] = layers;
         body["splatMapReady"] = terrain->GetSplatMap() != nullptr;
+
+        auto detailTypes = nlohmann::json::array();
+
+        for (const auto& detailType : terrain->GetDetailTypes())
+        {
+            nlohmann::json entry;
+
+            const auto model = detailType.DetailModel.Get();
+
+            entry["model"] = model != nullptr ? nlohmann::json(model->GetPath()) : nlohmann::json(nullptr);
+            entry["layer"] = detailType.Layer;
+            entry["density"] = detailType.Density;
+            entry["scaleMin"] = detailType.ScaleMin;
+            entry["scaleMax"] = detailType.ScaleMax;
+            entry["drawDistance"] = detailType.DrawDistance;
+
+            detailTypes.push_back(entry);
+        }
+
+        body["detailTypes"] = detailTypes;
 
         // ?x= and ?z= sample a terrain-local point, which is what the later units assert against:
         // where a dropped body should land, what a brush stroke moved.

@@ -241,6 +241,11 @@ namespace
                 statistics.VisibleTerrainChunkCount + statistics.CulledTerrainChunkCount);
         });
 
+        renderStatisticRow("Terrain detail", [](const Pine::RenderingStatistics& statistics)
+        {
+            return FormatCount(statistics.TerrainDetailInstanceCount);
+        });
+
         renderStatisticRow("Lights", [](const Pine::RenderingStatistics& statistics)
         {
             return fmt::format("{}", statistics.LightCount);

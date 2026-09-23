@@ -30,17 +30,24 @@ out VertexData
 	flat int lightIndices[8];
 }vOut;
 
+// Copies the light slots of one entry of the Instances block into the varyings.
+void writeLightIndices(int instanceIndex)
+{
+	vOut.lightIndices[0] = instances[instanceIndex].lightIndices[0].x;
+	vOut.lightIndices[1] = instances[instanceIndex].lightIndices[0].y;
+	vOut.lightIndices[2] = instances[instanceIndex].lightIndices[0].z;
+	vOut.lightIndices[3] = instances[instanceIndex].lightIndices[0].w;
+
+	vOut.lightIndices[4] = instances[instanceIndex].lightIndices[1].x;
+	vOut.lightIndices[5] = instances[instanceIndex].lightIndices[1].y;
+	vOut.lightIndices[6] = instances[instanceIndex].lightIndices[1].z;
+	vOut.lightIndices[7] = instances[instanceIndex].lightIndices[1].w;
+}
+
+// The light slots of the instance being drawn.
 void writeLightIndices()
 {
-	vOut.lightIndices[0] = instances[gl_InstanceID].lightIndices[0].x;
-	vOut.lightIndices[1] = instances[gl_InstanceID].lightIndices[0].y;
-	vOut.lightIndices[2] = instances[gl_InstanceID].lightIndices[0].z;
-	vOut.lightIndices[3] = instances[gl_InstanceID].lightIndices[0].w;
-
-	vOut.lightIndices[4] = instances[gl_InstanceID].lightIndices[1].x;
-	vOut.lightIndices[5] = instances[gl_InstanceID].lightIndices[1].y;
-	vOut.lightIndices[6] = instances[gl_InstanceID].lightIndices[1].z;
-	vOut.lightIndices[7] = instances[gl_InstanceID].lightIndices[1].w;
+	writeLightIndices(gl_InstanceID);
 }
 
 // Pass everything directly in world space.

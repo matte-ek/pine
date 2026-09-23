@@ -1,8 +1,11 @@
 #include "Terrain.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <limits>
+
+#include <glm/gtc/constants.hpp>
 
 #include "PerlinNoise.hpp"
 #include "Pine/Assets/Mesh/Mesh.hpp"
@@ -20,6 +23,65 @@ namespace
     // What one layer weight is stored as. A byte per channel, so a sample's four weights are one
     // RGBA8 texel and the field can be handed to the GPU without being converted first.
     constexpr float WEIGHT_MAXIMUM = static_cast<float>(std::numeric_limits<std::uint8_t>::max());
+
+    // Where TerrainChunk::DetailRevision values come from. One counter for every terrain, so that
+    // a terrain unloaded and loaded again cannot hand out a revision a renderer already holds
+    // placements for. Atomic because terrains load on worker threads.
+    std::atomic<std::uint64_t> m_NextDetailRevision = 1;
+
+    // The random numbers detail placement is drawn from (SplitMix64). Written out rather than taken
+    // from <random>, whose distributions may differ between standard libraries: the same terrain
+    // has to grow the same grass on every machine.
+    class DetailRandom
+    {
+    private:
+        std::uint64_t m_State;
+    public:
+        explicit DetailRandom(const std::uint64_t seed) :
+            m_State(seed)
+        {
+        }
+
+        std::uint64_t Next()
+        {
+            m_State += 0x9E3779B97F4A7C15ull;
+
+            std::uint64_t value = m_State;
+
+            value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9ull;
+            value = (value ^ (value >> 27)) * 0x94D049BB133111EBull;
+
+            return value ^ (value >> 31);
+        }
+
+        // Uniform in [0, 1), from the top 24 bits, which is all a float can hold exactly.
+        float NextFloat()
+        {
+            return static_cast<float>(Next() >> 40) / static_cast<float>(1 << 24);
+        }
+    };
+
+    // Every chunk and detail type starts its own sequence, so a chunk's placements depend on
+    // nothing outside that chunk.
+    std::uint64_t GetDetailSeed(const Vector2i chunkCoordinate, const int detailType)
+    {
+        const auto chunkBits = static_cast<std::uint64_t>(static_cast<std::uint32_t>(chunkCoordinate.x)) << 32 |
+                               static_cast<std::uint32_t>(chunkCoordinate.y);
+
+        return chunkBits ^ (static_cast<std::uint64_t>(detailType) * 0xD1B54A32D192ED03ull);
+    }
+
+    // Pulls one detail type's fields back into the range the generator and the renderer assume.
+    TerrainDetailType SanitizeDetailType(TerrainDetailType detailType)
+    {
+        detailType.Layer = std::clamp(detailType.Layer, 0, Terrain::MaximumLayerCount - 1);
+        detailType.Density = std::max(detailType.Density, 0.f);
+        detailType.ScaleMin = std::max(detailType.ScaleMin, 0.001f);
+        detailType.ScaleMax = std::max(detailType.ScaleMax, detailType.ScaleMin);
+        detailType.DrawDistance = std::max(detailType.DrawDistance, 0.f);
+
+        return detailType;
+    }
 
     // Where a ray enters and leaves an axis-aligned box, as distances along a unit direction.
     // False when it misses. The slab test, one axis at a time so an axis the ray does not move
@@ -740,6 +802,8 @@ bool Terrain::SetSampleWeights(const Vector2i sample, const Vector4f& weights)
 
     m_IsSplatMapDirty = true;
 
+    MarkRegionDetailChanged({ sample, sample });
+
     return true;
 }
 
@@ -799,8 +863,10 @@ bool Terrain::SetSampleWeightRect(const TerrainSampleRect& rect, const std::vect
                   m_LayerWeights.begin() + static_cast<std::ptrdiff_t>(rowStart));
     }
 
-    // No MarkRegionDirty, since chunk meshes carry no weights.
+    // No MarkRegionDirty, since chunk meshes carry no weights. Detail placements do follow them.
     m_IsSplatMapDirty = true;
+
+    MarkRegionDetailChanged(rect);
 
     return true;
 }
@@ -875,6 +941,133 @@ void Terrain::DestroySplatMap()
 
     m_SplatMap = nullptr;
     m_IsSplatMapDirty = true;
+}
+
+/* Detail */
+
+const std::vector<TerrainDetailType>& Terrain::GetDetailTypes() const
+{
+    return m_DetailTypes;
+}
+
+void Terrain::SetDetailTypes(const std::vector<TerrainDetailType>& detailTypes)
+{
+    m_DetailTypes.clear();
+
+    const float chunkArea = m_ChunkSize * m_ChunkSize;
+
+    for (const auto& detailType : detailTypes)
+    {
+        const auto sanitized = SanitizeDetailType(detailType);
+
+        if (sanitized.Density * chunkArea > static_cast<float>(MaximumDetailInstancesPerChunk))
+        {
+            PWarning(fmt::format("A terrain detail density of {} would place {:.0f} instances in a {}-unit chunk. "
+                                 "Each chunk is capped at {}, so this detail will be sparser than asked for.",
+                                 sanitized.Density, sanitized.Density * chunkArea, m_ChunkSize,
+                                 MaximumDetailInstancesPerChunk));
+        }
+
+        m_DetailTypes.push_back(sanitized);
+    }
+
+    for (auto& chunk : m_Chunks)
+    {
+        StampDetailRevision(chunk);
+    }
+}
+
+float Terrain::GetLayerWeightAt(const int layer, const float x, const float z) const
+{
+    const float spacing = GetSampleSpacing();
+
+    const float sampleX = x / spacing;
+    const float sampleZ = z / spacing;
+
+    const auto sampleMin = GetSampleMin();
+    const auto sampleMax = GetSampleMax();
+
+    if (sampleX < static_cast<float>(sampleMin.x) || sampleX > static_cast<float>(sampleMax.x) ||
+        sampleZ < static_cast<float>(sampleMin.y) || sampleZ > static_cast<float>(sampleMax.y))
+    {
+        return 0.f;
+    }
+
+    // A point exactly on the far rim belongs to the last quad, as in GetHeightAt.
+    const Vector2i low = {
+        std::min(static_cast<int>(std::floor(sampleX)), sampleMax.x - 1),
+        std::min(static_cast<int>(std::floor(sampleZ)), sampleMax.y - 1)
+    };
+
+    const float blendX = sampleX - static_cast<float>(low.x);
+    const float blendZ = sampleZ - static_cast<float>(low.y);
+
+    const auto weightAt = [this, layer](const Vector2i sample)
+    {
+        return static_cast<float>(m_LayerWeights[GetWeightIndex(sample) + layer]) / WEIGHT_MAXIMUM;
+    };
+
+    const float nearRow = glm::mix(weightAt(low), weightAt({ low.x + 1, low.y }), blendX);
+    const float farRow = glm::mix(weightAt({ low.x, low.y + 1 }), weightAt({ low.x + 1, low.y + 1 }), blendX);
+
+    return glm::mix(nearRow, farRow, blendZ);
+}
+
+std::vector<TerrainDetailInstance> Terrain::GenerateDetailInstances(const TerrainChunk& chunk, const int detailType) const
+{
+    PINE_PF_SCOPE();
+
+    if (detailType < 0 || detailType >= static_cast<int>(m_DetailTypes.size()))
+    {
+        return {};
+    }
+
+    const auto& type = m_DetailTypes[detailType];
+
+    // Candidates are spread over the whole chunk at the full density, and each is kept with the
+    // probability its layer weight gives - which is how density follows the paint.
+    const float expectedAtFullWeight = type.Density * m_ChunkSize * m_ChunkSize;
+    const int candidateCount = static_cast<int>(std::min(std::round(expectedAtFullWeight),
+                                                         static_cast<float>(MaximumDetailInstancesPerChunk)));
+
+    const auto chunkLow = Vector2f(chunk.Coordinate) * m_ChunkSize;
+
+    DetailRandom random(GetDetailSeed(chunk.Coordinate, detailType));
+
+    std::vector<TerrainDetailInstance> instances;
+
+    for (int candidate = 0; candidate < candidateCount; candidate++)
+    {
+        // All five drawn before anything is decided, so that whether this candidate is kept
+        // cannot change the numbers every candidate after it gets.
+        const float x = chunkLow.x + random.NextFloat() * m_ChunkSize;
+        const float z = chunkLow.y + random.NextFloat() * m_ChunkSize;
+        const float keepThreshold = random.NextFloat();
+        const float scaleFraction = random.NextFloat();
+        const float yawFraction = random.NextFloat();
+
+        if (keepThreshold >= GetLayerWeightAt(type.Layer, x, z))
+        {
+            continue;
+        }
+
+        const auto height = GetHeightAt(x, z);
+
+        if (!height.has_value())
+        {
+            continue;
+        }
+
+        TerrainDetailInstance instance;
+
+        instance.Position = { x, height.value(), z };
+        instance.Scale = glm::mix(type.ScaleMin, type.ScaleMax, scaleFraction);
+        instance.Yaw = yawFraction * glm::two_pi<float>();
+
+        instances.push_back(instance);
+    }
+
+    return instances;
 }
 
 /* Noise */
@@ -983,14 +1176,15 @@ void Terrain::RebuildChunks()
             chunk.Coordinate = m_ChunkOrigin + Vector2i(x, z);
 
             UpdateChunkBounds(chunk);
+            StampDetailRevision(chunk);
         }
     }
 }
 
-void Terrain::MarkRegionDirty(const TerrainSampleRect& rect)
+std::pair<Vector2i, Vector2i> Terrain::GetChunkRangeCovering(const TerrainSampleRect& rect) const
 {
     // A sample sitting exactly on a chunk edge belongs to the chunks on both sides of it, so the
-    // dirty range reaches one chunk further back than the low corner's own chunk.
+    // range reaches one chunk further back than the low corner's own chunk.
     const Vector2i firstChunk = {
         FloorDivide(rect.Min.x - 1, m_ChunkQuads),
         FloorDivide(rect.Min.y - 1, m_ChunkQuads)
@@ -1000,6 +1194,13 @@ void Terrain::MarkRegionDirty(const TerrainSampleRect& rect)
         FloorDivide(rect.Max.x, m_ChunkQuads),
         FloorDivide(rect.Max.y, m_ChunkQuads)
     };
+
+    return { firstChunk, lastChunk };
+}
+
+void Terrain::MarkRegionDirty(const TerrainSampleRect& rect)
+{
+    const auto [firstChunk, lastChunk] = GetChunkRangeCovering(rect);
 
     for (auto& chunk : m_Chunks)
     {
@@ -1012,6 +1213,30 @@ void Terrain::MarkRegionDirty(const TerrainSampleRect& rect)
         chunk.IsDirty = true;
 
         UpdateChunkBounds(chunk);
+
+        // Detail sits on the ground, so it moves with it.
+        StampDetailRevision(chunk);
+    }
+}
+
+void Terrain::StampDetailRevision(TerrainChunk& chunk)
+{
+    chunk.DetailRevision = m_NextDetailRevision++;
+}
+
+void Terrain::MarkRegionDetailChanged(const TerrainSampleRect& rect)
+{
+    const auto [firstChunk, lastChunk] = GetChunkRangeCovering(rect);
+
+    for (auto& chunk : m_Chunks)
+    {
+        if (chunk.Coordinate.x < firstChunk.x || chunk.Coordinate.x > lastChunk.x ||
+            chunk.Coordinate.y < firstChunk.y || chunk.Coordinate.y > lastChunk.y)
+        {
+            continue;
+        }
+
+        StampDetailRevision(chunk);
     }
 }
 
@@ -1484,6 +1709,32 @@ bool Terrain::LoadAssetData(const ByteSpan& span)
         m_Layers[layer] = layers[layer];
     }
 
+    // Emptied first like the layers, and read entry by entry so that one damaged entry costs only
+    // itself rather than the terrain.
+    m_DetailTypes.clear();
+
+    for (std::size_t index = 0; index < terrainSerializer.DetailTypes.GetDataCount(); index++)
+    {
+        TerrainDetailTypeSerializer detailSerializer;
+
+        if (!detailSerializer.Read(terrainSerializer.DetailTypes.GetData(index)))
+        {
+            PWarning(fmt::format("Terrain '{}' has an unreadable detail type at index {}, skipping it.", m_Path, index));
+            continue;
+        }
+
+        TerrainDetailType detailType;
+
+        detailSerializer.DetailModel.Read(detailType.DetailModel);
+        detailSerializer.Layer.Read(detailType.Layer);
+        detailSerializer.Density.Read(detailType.Density);
+        detailSerializer.ScaleMin.Read(detailType.ScaleMin);
+        detailSerializer.ScaleMax.Read(detailType.ScaleMax);
+        detailSerializer.DrawDistance.Read(detailType.DrawDistance);
+
+        m_DetailTypes.push_back(SanitizeDetailType(detailType));
+    }
+
     // Back to the defaults first, for the same reason as the layers.
     m_NoiseSettings = TerrainNoiseSettings();
 
@@ -1578,6 +1829,20 @@ ByteSpan Terrain::SaveAssetData()
     }
 
     terrainSerializer.Layers.Write(layers);
+
+    for (const auto& detailType : m_DetailTypes)
+    {
+        TerrainDetailTypeSerializer detailSerializer;
+
+        detailSerializer.DetailModel.Write(detailType.DetailModel);
+        detailSerializer.Layer.Write(detailType.Layer);
+        detailSerializer.Density.Write(detailType.Density);
+        detailSerializer.ScaleMin.Write(detailType.ScaleMin);
+        detailSerializer.ScaleMax.Write(detailType.ScaleMax);
+        detailSerializer.DrawDistance.Write(detailType.DrawDistance);
+
+        terrainSerializer.DetailTypes.AddData(detailSerializer.Write());
+    }
 
     TerrainNoiseSerializer noiseSerializer;
 

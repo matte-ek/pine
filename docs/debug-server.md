@@ -221,7 +221,8 @@ Each context's counters sit under `level` and `game`, so a light count is
 `level.lightCount`. Counters include `drawCalls`, `vertexCount` (vertices submitted, so
 index count for an indexed draw), `lightCount`, `visible`/`culledObjects` for the model batch, and
 `visible`/`culledTerrainChunks` for terrain, which culls per chunk rather than per
-component. Each profiling scope has `name` (full signature), `shortName`, `parent`
+component, and `terrainDetailInstances`, the terrain detail copies the scene pass drew. Each
+profiling scope has `name` (full signature), `shortName`, `parent`
 (the calling scope's name, empty at top level), `time` (last frame's total, summed
 over every call that frame), `smoothedTime` and `callCount`. Treat these as
 diagnostics, not as assertions about what is on screen.
@@ -559,6 +560,8 @@ bounds, dirty state and the lights occupying its slots (`lights.point` /
 `lights.spot`, by entity name, nearest first, empty slots omitted). `layers` is one
 entry per splat channel — the material's virtual path, or `null` for an unassigned
 slot — and `splatMapReady` says whether the render path has uploaded the weight field.
+`detailTypes` lists the terrain's detail types in order: `model` (virtual path, or
+`null`), `layer`, `density`, `scaleMin`, `scaleMax` and `drawDistance`.
 
 With `?x=&z=` it also returns the interpolated height at that terrain-local point
 (`null` off the terrain) and `layerWeights`, the four stored weights at the **nearest

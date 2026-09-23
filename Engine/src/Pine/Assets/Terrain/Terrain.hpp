@@ -1,6 +1,7 @@
 #pragma once
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Material/Material.hpp"
+#include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Rendering/Renderer3D/LightSlotData.hpp"
 
@@ -8,6 +9,7 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace Pine
@@ -57,6 +59,46 @@ namespace Pine
         // One renderable mesh per detail level, finest first, built by RebuildDirtyChunkMeshes()
         // and empty until then. Read it through Terrain::GetChunkMesh, which clamps the level.
         std::vector<Mesh*> LodMeshes;
+
+        // Changes whenever something this chunk's detail placements are generated from changes:
+        // its heights, the layer weights it covers, or the terrain's detail types. Unique across
+        // every terrain in the process, so a renderer caching placements can compare it without
+        // also tracking which terrain object stamped it. Runtime only.
+        std::uint64_t DetailRevision = 0;
+    };
+
+    // Small scenery scattered over the ground wherever one layer is painted: a grass clump, a fern,
+    // a pebble. Only the rule is stored. The placements are regenerated from the height field and
+    // the layer weights (Terrain::GenerateDetailInstances), so painting the layer is what adds or
+    // removes it. Rendering::TerrainDetail draws it around the camera.
+    struct TerrainDetailType
+    {
+        AssetHandle<Model> DetailModel;
+
+        // The splat channel whose weight decides where this grows. Density follows the weight, so
+        // ground painted half into this layer grows half as much.
+        std::int32_t Layer = 0;
+
+        // Instances per square world unit where the layer is painted at full weight.
+        float Density = 1.f;
+
+        // Each instance is scaled uniformly by a value picked between these.
+        float ScaleMin = 0.8f;
+        float ScaleMax = 1.2f;
+
+        // In world units from the camera. Instances shrink into the ground as they approach it and
+        // are not drawn past it.
+        float DrawDistance = 40.f;
+    };
+
+    // One placement of a detail type, terrain-local like everything else here.
+    struct TerrainDetailInstance
+    {
+        Vector3f Position{};
+        float Scale = 1.f;
+
+        // Rotation about the vertical axis, in radians.
+        float Yaw = 0.f;
     };
 
     // One band of noise summed into the height field. Each band is an octave stack of its own at
@@ -179,6 +221,8 @@ namespace Pine
         // one. Uploaded as the splat texture below.
         std::vector<std::uint8_t> m_LayerWeights;
 
+        std::vector<TerrainDetailType> m_DetailTypes;
+
         // Runtime only, never serialized.
         std::vector<TerrainChunk> m_Chunks;
 
@@ -211,6 +255,20 @@ namespace Pine
             // count.
             PINE_SERIALIZE_ARRAY_FIXED(Layers, UId);
             PINE_SERIALIZE_ARRAY_FIXED(LayerWeights, std::uint8_t);
+
+            // A list of data blocks, one per detail type. Terrains saved before it existed have
+            // none.
+            PINE_SERIALIZE_ARRAY(DetailTypes);
+        };
+
+        struct TerrainDetailTypeSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ASSET(DetailModel);
+            PINE_SERIALIZE_PRIMITIVE(Layer, Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(Density, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(ScaleMin, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(ScaleMax, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(DrawDistance, Serialization::DataType::Float32);
         };
 
         // The bands are a list of data blocks, so BandCount can change without changing the format.
@@ -269,6 +327,22 @@ namespace Pine
         void ResetLayerWeights();
 
         void UpdateChunkBounds(TerrainChunk& chunk) const;
+
+        // The chunk coordinates whose samples a sample rectangle touches, as an inclusive
+        // (first, last) pair. A sample on a chunk edge belongs to the chunks on both sides of it.
+        std::pair<Vector2i, Vector2i> GetChunkRangeCovering(const TerrainSampleRect& rect) const;
+
+        // Gives the chunk a new DetailRevision, from a counter shared by every terrain.
+        static void StampDetailRevision(TerrainChunk& chunk);
+
+        // Stamps every chunk covering a sample rectangle, for a change that moves detail
+        // placements without moving the ground, such as a repaint.
+        void MarkRegionDetailChanged(const TerrainSampleRect& rect);
+
+        // One layer's weight at a terrain-local point, interpolated bilinearly between the four
+        // samples around it - the way the splat texture is filtered, so detail grows where the
+        // ground looks painted. Zero off the terrain.
+        float GetLayerWeightAt(int layer, float x, float z) const;
 
         // Height at a sample, with coordinates outside the field clamped onto its rim. For the
         // normals' central differences along the terrain's outer edge.
@@ -433,6 +507,26 @@ namespace Pine
         // Uploads the weight field if it has changed since the last upload. Needs a graphics
         // context, so the renderer calls it once per frame alongside the chunk mesh rebuild.
         void RebuildDirtySplatMap();
+
+        /* Detail */
+
+        // How many placements one chunk may carry for one detail type. Generation stops here, so a
+        // density typed in by mistake cannot allocate without bound; SetDetailTypes warns when a
+        // type would reach it.
+        static constexpr int MaximumDetailInstancesPerChunk = 1 << 16;
+
+        const std::vector<TerrainDetailType>& GetDetailTypes() const;
+
+        // Replaces the whole list and restamps every chunk, since any field can move placements.
+        // Values out of range are clamped rather than rejected: a layer onto an existing channel,
+        // a negative density to zero, and the scale range into a positive, ordered pair.
+        void SetDetailTypes(const std::vector<TerrainDetailType>& detailTypes);
+
+        // Where one detail type grows within one chunk. The same inputs always give the same
+        // placements, and every candidate point draws its random numbers whether it is kept or
+        // not, so repainting one patch of ground adds and removes instances there without
+        // shuffling the rest. Empty for a detail type index out of range.
+        std::vector<TerrainDetailInstance> GenerateDetailInstances(const TerrainChunk& chunk, int detailType) const;
 
         /* Noise */
 

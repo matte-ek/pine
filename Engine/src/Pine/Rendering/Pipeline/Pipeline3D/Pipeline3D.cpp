@@ -8,6 +8,7 @@
 #include "Pine/Rendering/Features/RenderCulling/RenderCulling.hpp"
 #include "Pine/Rendering/Features/Shadows/Shadows.hpp"
 #include "Pine/Rendering/Features/Skybox/Skybox.hpp"
+#include "Pine/Rendering/Features/TerrainDetail/TerrainDetail.hpp"
 #include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
 #include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
@@ -226,6 +227,9 @@ namespace
 
 		RenderBatch(m_DrawList);
 
+		// Alpha-tested like the Discard batch above, and for the same reason absent from the pre-pass.
+		Rendering::TerrainDetail::Render(context);
+
 		// Skybox before the blended geometry, which blends against it.
 		if (context.Skybox != nullptr)
 		{
@@ -435,6 +439,7 @@ void Pipeline3D::Shutdown()
 	Rendering::AmbientOcclusion::Shutdown();
 	Rendering::Skybox::Shutdown();
 	Rendering::Shadows::Shutdown();
+	Rendering::TerrainDetail::Shutdown();
 }
 
 void Pipeline3D::Prepare()
@@ -447,6 +452,9 @@ void Pipeline3D::Prepare()
 
 	// Once for all contexts, after SceneProcessor::Prepare has gathered the lights.
 	Rendering::TerrainRenderer::Prepare(m_SceneContext);
+
+	// After the terrain, whose chunk light slots the detail is lit through.
+	Rendering::TerrainDetail::Prepare();
 
 	// Local light shadows are viewer-independent, so they render once here rather than per context.
 	if (m_Configuration.RenderShadows)

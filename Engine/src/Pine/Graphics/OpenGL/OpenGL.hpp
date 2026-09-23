@@ -69,6 +69,9 @@ namespace Pine::Graphics
         IUniformBuffer* CreateUniformBuffer() override;
         void DestroyUniformBuffer(IUniformBuffer* buffer) override;
 
+        IStorageBuffer* CreateStorageBuffer() override;
+        void DestroyStorageBuffer(IStorageBuffer* buffer) override;
+
         IFrameBuffer* CreateFrameBuffer() override;
         void DestroyFrameBuffer(IFrameBuffer* buffer) override;
         void BindFrameBuffer(IFrameBuffer* buffer) override;
