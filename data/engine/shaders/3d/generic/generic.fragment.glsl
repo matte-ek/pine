@@ -30,7 +30,7 @@ Surface CreateSurface()
     surface.shininess = material.shininess;
 
     if (hasTangentData)
-        surface.normal = normalize((2.0 * texture(matSamplers.normal, vIn.uv * material.uvScale) - 1.0).xyz);
+        surface.normal = DecodeNormalMap(texture(matSamplers.normal, vIn.uv * material.uvScale));
     else
         surface.normal = vIn.normalDir;
 

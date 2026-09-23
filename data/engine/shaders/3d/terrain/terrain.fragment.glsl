@@ -88,7 +88,7 @@ void AddLayer(inout Surface surface,
     // Summed in tangent space and normalized once at the end, rather than normalized per layer:
     // the weighted sum of unit vectors is what makes two layers meeting produce the average of
     // their bumps instead of whichever one happens to win.
-    tangentNormal += weight * normalize((2.0 * texture(normalMap, layerUv) - 1.0).xyz);
+    tangentNormal += weight * DecodeNormalMap(texture(normalMap, layerUv));
 }
 
 Surface CreateSurface()

@@ -96,9 +96,19 @@ struct MaterialProperties
 
 struct MaterialSamplers
 {
-	sampler2D diffuse;  
-    sampler2D specular;  
+	sampler2D diffuse;
+    sampler2D specular;
     sampler2D normal;
 };
+
+// Decodes a tangent-space normal from a normal map sample. Only x and y are read, and z is rebuilt
+// from them: normal maps are imported as BC5, which stores two channels, so blue samples as 0.
+vec3 DecodeNormalMap(vec4 texel)
+{
+    vec2 xy = 2.0 * texel.xy - 1.0;
+    float z = sqrt(max(1.0 - dot(xy, xy), 0.0));
+
+    return normalize(vec3(xy, z));
+}
 
 #include "shared/uniform-buffers.glsl"
