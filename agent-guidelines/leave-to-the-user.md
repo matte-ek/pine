@@ -17,5 +17,7 @@ whole purpose is to let an agent start the editor, look at engine state and insp
 Running it *is* the development loop, not a way of trying a change out on the user's behalf.
 
 So: launch the Editor, GameHost or EngineCli whenever it helps you verify or investigate something.
-Keep it tidy - run it with `PINE_DEBUG_SERVER` set when you need the endpoints, and shut down
-anything you started once you are done rather than leaving processes running in the background.
+Keep it tidy - run it with `PINE_DEBUG_SERVER` set when you need the endpoints, from a disposable
+data directory rather than the repo's `data/` (see
+[`docs/editor.md`](../docs/editor.md#running-it-headlessly)), and shut down anything you started
+once you are done rather than leaving processes running in the background.

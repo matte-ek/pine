@@ -86,4 +86,43 @@ So: an editor needs a project name as `argv[1]`, and must run with `data/` as th
   icons too: `Gizmo3D` draws them through an ImGui draw list, not into the scene. Their usage
   hint is recorded with `TextureUsageHintSource::User` so a re-import cannot quietly undo it.
 
+## Running it headlessly
+
+How to launch the Editor with no display, usually to drive it through the
+[debug server](debug-server.md).
+
+**Use a disposable data directory, never the repo's `data/`.** The editor rewrites
+`data/imgui.ini` on exit, and a verification run can write Levels and imported assets into the
+project it opened.
+
+```sh
+DATA=$(mktemp -d)/data
+mkdir -p "$DATA/projects/scratch/assets"
+cp -a data/engine data/editor data/imgui.ini "$DATA/"
+
+cd "$DATA"
+ALSOFT_DRIVERS=null PINE_X11=1 PINE_DEBUG_SERVER=19100 \
+    xvfb-run -a /path/to/cmake-build-debug-agent/Editor/Editor scratch
+```
+
+- **Copy with `cp -a`, not `cp -r`.** `cp -r` makes every engine source look newer than its
+  `.passet`, and the editor then re-imports all of them on boot.
+- **Copy `imgui.ini` too.** Without the saved panel layout there is no open viewport, and
+  endpoints that need one (`/camera/frame`, `/observe` on the game view) answer 409.
+- **The working directory must be the data directory itself.** Engine assets, and
+  `engine/script/Pine.dll` for the script runtime, are resolved against the cwd. Getting it wrong
+  gives "Failed to load engine assets" and a scripting error, which is easy to mistake for a code
+  regression.
+- **The project argument is the bare name** (`scratch`). The editor prepends `projects/` itself.
+- `ALSOFT_DRIVERS=null` gives OpenAL a real context with a mixer running at the real sample rate,
+  so audio behaves as it would on a sound card. The editor still boots without it.
+- `xvfb-run -a` gives a 640x480 screen. To screenshot the ImGui UI itself (which `/observe` and
+  `/viewport.png` do not capture), use `xvfb-run -n <display> -s "-screen 0 1920x1080x24"` and grab
+  that display, for example with `import -window root` or `ffmpeg -f x11grab`.
+- Nothing delivers GLFW window-focus events without a window manager, so anything behind
+  `WindowManager::AddWindowFocusCallback` (the editor's `Game.dll` hot reload, for one) cannot be
+  triggered headlessly. Call `Script::Manager::ReloadGameAssembly()` from a native probe instead.
+- When you are done, stop only the Editor and Xvfb processes you started. A developer may have their
+  own running.
+
 Related: [data-and-projects.md](data-and-projects.md) · [rendering.md](rendering.md) · [assets.md](assets.md) · [scripting.md](scripting.md)

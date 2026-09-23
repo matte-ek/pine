@@ -16,6 +16,13 @@ relative to `Engine/src/Pine/`.
 - **`Entity`** owns a `vector<Component*>`, a parent/child hierarchy, a `UId`, flags, and a paired managed (C#) object. Always has a `Transform`. Use `AddComponent<T>()` / `GetComponent<T>()` / `RemoveComponent<T>()`.
 - **"Systems" are not objects.** Behavior lives either in the component virtuals or in subsystem `Update()` functions. `World::Update()` drives physics, then `Audio::Update()`, then (unless paused) script updates; the renderer iterates component blocks directly (see [rendering.md](rendering.md)).
 - Access storage via `Components::Get<T>()` (typed block for iteration), `Components::Create<T>()`, `GetType<T>()`, `FindById`, `GetByInternalId`.
+- **Pooled components never run a constructor or destructor.** `Components::Create` copies the
+  prototype's bytes into the slot with `memcpy`, and `Components::Destroy` only calls
+  `OnDestroyed()` and marks the slot free. So a component that owns heap memory (a `std::vector`,
+  a `std::string`) must release it in `OnDestroyed()`, or it leaks. Use
+  `std::vector<T>().swap(member)` rather than `clear()`, because only the swap gives the capacity
+  back. `ScriptComponent::OnDestroyed` shows the pattern. Moving the bytes around is fine: the heap
+  pointer travels with them.
 - **`SaveData()/LoadData()` cover a component's own fields only** - not the base `Component`
   state such as the active flag. Anything that round-trips a component through them (blueprint
   serialization and copying, the editor's undo/redo commands) has to carry that flag itself.

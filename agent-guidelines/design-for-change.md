@@ -24,7 +24,14 @@ Tell the user before you edit when a change meets any of these conditions:
 - It removes, replaces, or relocates an established pattern.
 - It touches code outside the surface of the feature being implemented.
 
-Name the parts you propose to change, why the change helps, and the effects on existing behavior or interfaces. Give this notice before editing rather than only describing the change afterward, and keep it proportionate to the change.
+In Pine, public interfaces include engine headers that the Editor, GameHost or EngineCli call, the C# API in `ScriptRuntime/`, and anything written to `.passet`, Level or Blueprint data.
+
+Name the parts you propose to change, why the change helps, and the effects on existing behavior or interfaces. Keep the notice proportionate to the change. What happens after the notice depends on the condition:
+
+- **Existing behavior or a public interface changes:** stop after the notice and wait for the user to confirm before editing.
+- **Otherwise:** give the notice, then continue with the edit. The notice is there so the user can steer; it does not need an answer.
+
+Once the user has agreed to a change in the current conversation, do not ask about it again.
 
 Routine changes within the agreed scope need no advance notice; make them and report what you changed. Discuss material changes to the goal or scope with the user first.
 

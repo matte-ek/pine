@@ -22,6 +22,8 @@ For routine, reversible details, use your judgment and keep moving. State assump
 
 Treat feedback as part of the work. Update your understanding and approach as the user clarifies their priorities. Make important decisions and remaining uncertainties visible so the user can steer without having to supervise every implementation detail.
 
+Plans in `docs/plans/` guide the work; they are not a contract. When following a plan to the letter would leave the code worse, for example by keeping a parameter that is now unused because the plan said signatures would not change, make the cleaner change. Keep the deviation small and local, and record it in an "As built" note in that section of the plan. The advance notice in [Design for likely changes](design-for-change.md) still applies.
+
 ## Name code precisely when you refer to it
 
 When your prose mentions a function, type, or field, qualify it the way the codebase declares it, so the user can place it without searching. Write `Entity::AddComponent`, not `AddComponent`; `Components::Setup`, not `Setup`.

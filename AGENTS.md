@@ -36,6 +36,23 @@ Apply these preferences alongside the target project's instructions and tooling.
 
 - **Naming:** namespaces mirror directories; config/member fields commonly use an `m_` prefix.
 
+## Build and verify
+
+- **Native:** agents build into `cmake-build-debug-agent/`, or `cmake-build-release-agent/` when a release build is needed. Leave the other `cmake-build-*` directories to the developer. Use Ninja: the verification recipes and native probes read the build through `ninja -t commands`.
+
+  ```sh
+  cmake -S . -B cmake-build-debug-agent -G Ninja -DCMAKE_BUILD_TYPE=Debug
+  cmake --build cmake-build-debug-agent --target Editor -j4
+  ```
+
+  The recipes in `Editor/src/DebugServer/Verification/` use `cmake-build-debug-agent/` unless given `--build`.
+
+- **Managed:** after changing `ScriptRuntime/`, run `dotnet build -c Release` in that folder. It writes `Pine.dll` to `data/engine/script/`, where the engine loads it from.
+
+- **There are no unit tests.** A change is verified by building it and then running it: launch the Editor headlessly with the debug server enabled ([`docs/editor.md`](docs/editor.md#running-it-headlessly)) and inspect the state or the viewport through the routes in [`docs/debug-server.md`](docs/debug-server.md). `Editor/src/DebugServer/Verification/` holds the existing `verify-<area>.py` recipes and native probes; reuse one when it covers your area.
+
+- **Performance:** judge speed from a release build only. Debug is `-O0` and makes per-object CPU loops look many times more expensive than they are. On a machine that renders through a software rasterizer (`glxinfo -B` reports `llvmpipe`), take no timings at all. Reason from the code, name the `PINE_PF_SCOPE` scopes worth watching, and leave the measuring to the user.
+
 ## Architecture (the parts that span multiple files)
 
 The summaries below are the map; **`docs/` holds a one-page orientation doc per subsystem** (key files, how the pieces fit, gotchas) — read the relevant one before working in that area. Index: [`docs/README.md`](docs/README.md).

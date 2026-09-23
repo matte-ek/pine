@@ -99,7 +99,7 @@ listed in `Audio/TODO.md`.
 ## Verification
 
 ```sh
-python3 Editor/src/DebugServer/Verification/verify-audio-playback.py --build build
+python3 Editor/src/DebugServer/Verification/verify-audio-playback.py --build cmake-build-debug-agent
 ```
 
 A native probe (the `verify-physics-native.py` pattern) because `/edit` has no `AudioSource`

@@ -19,7 +19,7 @@ import zlib
 
 repo = Path(__file__).resolve().parents[4]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--build', type=Path, default=repo / 'build')
+parser.add_argument('--build', type=Path, default=repo / 'cmake-build-debug-agent')
 parser.add_argument('--port', type=int, default=19038)
 parser.add_argument('--output', type=Path, default=Path('/tmp/pine-terrain-sculpt-results'))
 args = parser.parse_args()

@@ -479,9 +479,9 @@ per-area Python recipes (`verify-<area>.py`) that drive a running Editor over HT
 check state the HTTP API deliberately does not expose.
 
 ```sh
-cmake -S . -B build
-cmake --build build --target Editor -j4
-python3 Editor/src/DebugServer/Verification/verify-<area>.py --build build
+cmake -S . -B cmake-build-debug-agent -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build cmake-build-debug-agent --target Editor -j4
+python3 Editor/src/DebugServer/Verification/verify-<area>.py --build cmake-build-debug-agent
 ```
 
 Recipes that take `--build` launch and shut down their own disposable project under

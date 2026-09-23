@@ -27,26 +27,26 @@ Use blank lines to separate changes in purpose: validating input, loading data, 
 
 Do not write long, uninterrupted walls of code. Do not insert blank lines mechanically between every statement either. Let the spacing show the structure of the work, using the project's formatting conventions.
 
-For example, this C# fragment groups work into readable steps:
+For example, this fragment groups work into readable steps:
 
-```csharp
-if (player == null)
+```cpp
+if (entity == nullptr)
 {
     return;
 }
 
-var queue = lobby.HostQueue;
-var currentPosition = queue.IndexOf(player);
+auto& spawnQueue = m_PendingSpawns;
+const auto currentPosition = std::find(spawnQueue.begin(), spawnQueue.end(), entity);
 
-if (currentPosition < 0)
+if (currentPosition == spawnQueue.end())
 {
     return;
 }
 
-queue.RemoveAt(currentPosition);
-queue.Add(player);
+spawnQueue.erase(currentPosition);
+spawnQueue.push_back(entity);
 
-lobby.SendMessage($"{player.Name} moved to the end of the queue.");
+PInfo(fmt::format("Moved {} to the end of the spawn queue.", entity->GetName()));
 ```
 
 Before finishing, read the changed code as a coworker encountering it for the first time. Simplify anything that makes them decode several ideas at once.

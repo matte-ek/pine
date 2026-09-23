@@ -15,7 +15,7 @@ import urllib.request
 
 repo = Path(__file__).resolve().parents[4]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--build', type=Path, default=repo / 'build')
+parser.add_argument('--build', type=Path, default=repo / 'cmake-build-debug-agent')
 parser.add_argument('--port', type=int, default=19053)
 args = parser.parse_args()
 build = args.build.resolve()

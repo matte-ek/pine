@@ -53,7 +53,7 @@ above 120 fps is not this frame.
 ### Verification
 
 ```sh
-python3 Editor/src/DebugServer/Verification/verify-character-controller.py --build build
+python3 Editor/src/DebugServer/Verification/verify-character-controller.py --build cmake-build-debug-agent
 ```
 
 A native probe (the `verify-physics-native.py` pattern) because `/edit` has no CharacterController
@@ -119,7 +119,7 @@ call it too, or the ground you walk on stops matching the ground you see.
 ### Verification
 
 ```sh
-python3 Editor/src/DebugServer/Verification/verify-terrain-physics.py --build build
+python3 Editor/src/DebugServer/Verification/verify-terrain-physics.py --build cmake-build-debug-agent
 ```
 
 Builds a probe out of the Editor's boot sequence (the `verify-physics-native.py` pattern) because

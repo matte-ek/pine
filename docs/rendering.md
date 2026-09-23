@@ -248,8 +248,8 @@ has no such problem.
 ### Verification
 
 ```sh
-python3 Editor/src/DebugServer/Verification/verify-render-face.py --build build
-python3 Editor/src/DebugServer/Verification/verify-blending.py --build build
+python3 Editor/src/DebugServer/Verification/verify-render-face.py --build cmake-build-debug-agent
+python3 Editor/src/DebugServer/Verification/verify-blending.py --build cmake-build-debug-agent
 ```
 
 The first puts the camera inside a large cube — every wall it looks at presents a back face, which
@@ -515,10 +515,10 @@ units — all eight, through the sculpting brush and layer painting, are done.
 After building Editor with Ninja, run (requires Xvfb):
 
 ```sh
-python3 Editor/src/DebugServer/Verification/verify-terrain-render.py --build build
-python3 Editor/src/DebugServer/Verification/verify-terrain-lighting.py --build build
-python3 Editor/src/DebugServer/Verification/verify-terrain-layers.py --build build
-python3 Editor/src/DebugServer/Verification/verify-terrain-sculpt.py --build build
+python3 Editor/src/DebugServer/Verification/verify-terrain-render.py --build cmake-build-debug-agent
+python3 Editor/src/DebugServer/Verification/verify-terrain-lighting.py --build cmake-build-debug-agent
+python3 Editor/src/DebugServer/Verification/verify-terrain-layers.py --build cmake-build-debug-agent
+python3 Editor/src/DebugServer/Verification/verify-terrain-sculpt.py --build cmake-build-debug-agent
 ```
 
 `/edit` has no TerrainRenderer operation and nothing creates an asset over HTTP, so this builds a
