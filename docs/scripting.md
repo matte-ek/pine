@@ -166,6 +166,31 @@ still read "Script".
 There are also **no collision or trigger callbacks** - `Physics3D` exposes `RayCast` and nothing
 else, so a pickup or a proximity check is a distance test or a ray, not an `OnTriggerEnter`.
 
+## Level rendering settings
+
+`Level.Active.Rendering` exposes the rendering half of `Pine::LevelSettings` (fog, ambient colour,
+exposure, bloom, grain and vignette), through `Pine.Assets.LevelRenderingSettings`
+(`ScriptRuntime/Assets/`). The bindings are in `Script/Interfaces/ScriptInterfaceAsset.cpp`.
+
+```csharp
+var rendering = Level.Active.Rendering;
+rendering.FogDistance = 15f;
+rendering.FogIntensity = 1f;
+```
+
+- **A write changes the level asset itself**, not a runtime copy. The renderer reads it each frame,
+  so a change shows on the next one. The editor's `PlayHandler::Stop` puts the active level's
+  settings back to what they were at `PlayHandler::Play`. A running game keeps a change for the rest
+  of the session, even if the same level is loaded again, so set the values in `OnStart` rather
+  than relying on the authored ones after a restart.
+- **The bindings find the level by `UId`, checking the active level first.** The editor's untitled
+  level was never registered, so `Assets::GetAssetByUId` alone would not find it.
+- Setters clamp to the minimums the debug server's level-settings route enforces: nothing below
+  zero, and a fog distance of at least 0.01.
+- The skybox and the level's camera are not exposed.
+
+`verify-script-level-rendering.py` is the recipe for this API.
+
 ## `CSharpScript` is a source-backed asset
 A `CSharpScript` `.passet` is **not** the C# code — it's a thin identity asset. Its payload
 stores the fully-qualified managed **type name** (e.g. `Game.Player`), and the editable `.cs`

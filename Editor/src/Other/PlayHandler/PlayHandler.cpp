@@ -10,6 +10,11 @@ namespace
     PlayHandler::EditorGameState m_GameState = PlayHandler::EditorGameState::Stopped;
 
     Pine::Level m_LevelSnapshot;
+
+    // The snapshot above only captures entities; the level's own settings, which scripts can change
+    // through Level.Rendering, are kept here along with the level they belong to.
+    Pine::Level* m_PlayedLevel = nullptr;
+    Pine::LevelSettings m_PlayedLevelSettings;
 }
 
 void PlayHandler::Play()
@@ -18,6 +23,12 @@ void PlayHandler::Play()
 
     m_GameState = EditorGameState::Playing;
     m_LevelSnapshot.CreateFromWorld();
+
+    m_PlayedLevel = Pine::World::GetActiveLevel();
+    if (m_PlayedLevel != nullptr)
+    {
+        m_PlayedLevelSettings = m_PlayedLevel->GetLevelSettings();
+    }
 
     Pine::World::SetPaused(false);
     Pine::World::OnStart();
@@ -44,6 +55,13 @@ void PlayHandler::Stop()
 
     Pine::World::SetActiveLevel(oldLoadedLevel, true);
     Pine::World::SetPaused(true);
+
+    if (oldLoadedLevel != nullptr && oldLoadedLevel == m_PlayedLevel)
+    {
+        oldLoadedLevel->GetLevelSettings() = m_PlayedLevelSettings;
+    }
+
+    m_PlayedLevel = nullptr;
 
     Selection::Clear();
 

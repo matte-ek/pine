@@ -1,4 +1,5 @@
 using System;
+using Pine.Math;
 
 namespace Pine.Core.Bindings
 {
@@ -18,6 +19,26 @@ namespace Pine.Core.Bindings
 
         public static delegate* unmanaged<UId, void> LevelCreateFromWorld;
         public static delegate* unmanaged<UId, void> LevelLoad;
+        public static delegate* unmanaged<ulong> LevelGetActive;
+
+        public static delegate* unmanaged<UId, Vector3*, void> LevelGetAmbientColor;
+        public static delegate* unmanaged<UId, Vector3*, void> LevelSetAmbientColor;
+        public static delegate* unmanaged<UId, Vector4*, void> LevelGetFogColor;
+        public static delegate* unmanaged<UId, Vector4*, void> LevelSetFogColor;
+        public static delegate* unmanaged<UId, float> LevelGetFogDistance;
+        public static delegate* unmanaged<UId, float, void> LevelSetFogDistance;
+        public static delegate* unmanaged<UId, float> LevelGetFogIntensity;
+        public static delegate* unmanaged<UId, float, void> LevelSetFogIntensity;
+        public static delegate* unmanaged<UId, float> LevelGetExposure;
+        public static delegate* unmanaged<UId, float, void> LevelSetExposure;
+        public static delegate* unmanaged<UId, float> LevelGetBloomThreshold;
+        public static delegate* unmanaged<UId, float, void> LevelSetBloomThreshold;
+        public static delegate* unmanaged<UId, float> LevelGetBloomIntensity;
+        public static delegate* unmanaged<UId, float, void> LevelSetBloomIntensity;
+        public static delegate* unmanaged<UId, float> LevelGetGrainStrength;
+        public static delegate* unmanaged<UId, float, void> LevelSetGrainStrength;
+        public static delegate* unmanaged<UId, float> LevelGetVignetteStrength;
+        public static delegate* unmanaged<UId, float, void> LevelSetVignetteStrength;
 
         public static void Bind()
         {
@@ -34,6 +55,26 @@ namespace Pine.Core.Bindings
 
             LevelCreateFromWorld = (delegate* unmanaged<UId, void>)Interop.Resolve("Pine.Assets.Level::CreateFromWorld");
             LevelLoad = (delegate* unmanaged<UId, void>)Interop.Resolve("Pine.Assets.Level::Load");
+            LevelGetActive = (delegate* unmanaged<ulong>)Interop.Resolve("Pine.Assets.Level::GetActive");
+
+            LevelGetAmbientColor = (delegate* unmanaged<UId, Vector3*, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetAmbientColor");
+            LevelSetAmbientColor = (delegate* unmanaged<UId, Vector3*, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetAmbientColor");
+            LevelGetFogColor = (delegate* unmanaged<UId, Vector4*, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetFogColor");
+            LevelSetFogColor = (delegate* unmanaged<UId, Vector4*, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetFogColor");
+            LevelGetFogDistance = (delegate* unmanaged<UId, float>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetFogDistance");
+            LevelSetFogDistance = (delegate* unmanaged<UId, float, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetFogDistance");
+            LevelGetFogIntensity = (delegate* unmanaged<UId, float>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetFogIntensity");
+            LevelSetFogIntensity = (delegate* unmanaged<UId, float, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetFogIntensity");
+            LevelGetExposure = (delegate* unmanaged<UId, float>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetExposure");
+            LevelSetExposure = (delegate* unmanaged<UId, float, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetExposure");
+            LevelGetBloomThreshold = (delegate* unmanaged<UId, float>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetBloomThreshold");
+            LevelSetBloomThreshold = (delegate* unmanaged<UId, float, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetBloomThreshold");
+            LevelGetBloomIntensity = (delegate* unmanaged<UId, float>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetBloomIntensity");
+            LevelSetBloomIntensity = (delegate* unmanaged<UId, float, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetBloomIntensity");
+            LevelGetGrainStrength = (delegate* unmanaged<UId, float>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetGrainStrength");
+            LevelSetGrainStrength = (delegate* unmanaged<UId, float, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetGrainStrength");
+            LevelGetVignetteStrength = (delegate* unmanaged<UId, float>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::GetVignetteStrength");
+            LevelSetVignetteStrength = (delegate* unmanaged<UId, float, void>)Interop.Resolve("Pine.Assets.LevelRenderingSettings::SetVignetteStrength");
         }
     }
 }
