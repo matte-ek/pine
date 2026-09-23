@@ -102,6 +102,11 @@ Pine::Material *Pine::Mesh::GetMaterial() const
     return m_Material.Get();
 }
 
+const Pine::UId& Pine::Mesh::GetMaterialUId() const
+{
+    return m_Material.GetUId();
+}
+
 Pine::Model *Pine::Mesh::GetModel() const
 {
     return m_Model;

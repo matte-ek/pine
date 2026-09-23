@@ -1,5 +1,7 @@
 ﻿#include "SceneProcessor.hpp"
 
+#include <algorithm>
+
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
@@ -54,6 +56,42 @@ namespace
         return data.BoundsMin != data.PreviousBoundsMin || data.BoundsMax != data.PreviousBoundsMax;
     }
 
+    // The model this renderer draws this frame, measured from the reference position to the
+    // middle of its world bounds. See Model::SelectLod.
+    Pine::Model* SelectLodModel(Pine::ModelRenderer& modelRenderer, const std::optional<Pine::Vector3f>& referencePosition)
+    {
+        const auto model = modelRenderer.GetModel();
+
+        if (model->GetLodLevels().empty() && model->GetLodCullDistance() <= 0.f)
+        {
+            return model;
+        }
+
+        // A renderer drawing one mesh of its model picks that mesh by index, and the index means
+        // nothing in the other levels' models.
+        if (!referencePosition.has_value() || modelRenderer.GetModelMeshIndex() >= 0)
+        {
+            return model;
+        }
+
+        const auto& data = modelRenderer.GetRenderingHintData();
+        const auto centre = (data.BoundsMin + data.BoundsMax) * 0.5f;
+
+        // Divided by the largest axis, so an object scaled up keeps its detail proportionally
+        // further out, and the distances set on the model hold for every copy of it.
+        const auto scale = glm::abs(modelRenderer.GetTransform()->GetScale());
+        const float largestScale = std::max({ scale.x, scale.y, scale.z });
+
+        if (largestScale <= 0.f)
+        {
+            return model;
+        }
+
+        const float scaledDistance = glm::length(centre - referencePosition.value()) / largestScale;
+
+        return model->SelectLod(scaledDistance);
+    }
+
     // Find and sort all active ModelRenderers in the scene. Will make sure to group together models using the
     // same mesh and material to allow for effective batch rendering. We also make sure to figure out which
     // materials will require discarding and blending.
@@ -80,19 +118,35 @@ namespace
 
             UpdateWorldBounds(modelRenderer);
 
-            if (HasBoundsChanged(modelRenderer.GetRenderingHintData()))
+            auto& hintData = modelRenderer.GetRenderingHintData();
+
+            const auto previousLodModel = hintData.LodModel;
+            hintData.LodModel = SelectLodModel(modelRenderer, context.LodReferencePosition);
+
+            if (HasBoundsChanged(hintData) || hintData.LodModel != previousLodModel)
             {
                 context.MovedCasters.push_back(&modelRenderer);
             }
 
+            // Kept up to date while the object is hidden by distance as well. The slot cache is
+            // invalidated through per-frame dirty flags, so an object that moved while hidden would
+            // otherwise come back lit by wherever it used to be.
             Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(context, &modelRenderer);
+
+            const auto model = hintData.LodModel;
+
+            // Past its model's cull distance.
+            if (model == nullptr)
+            {
+                continue;
+            }
 
             // Resolved the way the draw list resolves it: an override material replaces every
             // mesh's own.
             auto* overrideMaterial = modelRenderer.GetOverrideMaterial();
 
             bool hasTransparentMaterial = false;
-            for (const auto& mesh : modelRenderer.GetModel()->GetMeshes())
+            for (const auto& mesh : model->GetMeshes())
             {
                 const auto* material = overrideMaterial != nullptr ? overrideMaterial : mesh->GetMaterial();
 
@@ -102,7 +156,7 @@ namespace
                 }
             }
 
-            const Pine::Rendering::RenderObject uniqueObject = { modelRenderer.GetModel(), modelRenderer.GetOverrideMaterial() };
+            const Pine::Rendering::RenderObject uniqueObject = { model, overrideMaterial };
 
             // Find out if we have a hint on how many instances this model has, we do this to avoid
             // having to re-allocate the vector too much.

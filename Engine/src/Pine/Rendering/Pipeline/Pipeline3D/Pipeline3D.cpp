@@ -34,6 +34,24 @@ namespace
 
 	PipelineConfiguration m_Configuration;
 
+	// Where LOD distances are measured from: the camera of the first context that draws the scene
+	// this frame. One position for the whole frame, so a second viewport open at the same time
+	// shows the levels chosen for the first.
+	std::optional<Vector3f> FindLodReferencePosition()
+	{
+		for (const auto context : RenderManager::GetRenderingContexts())
+		{
+			if (context == nullptr || !context->Active || !context->UseRenderPipeline || context->SceneCamera == nullptr)
+			{
+				continue;
+			}
+
+			return context->SceneCamera->GetParent()->GetTransform()->GetPosition();
+		}
+
+		return std::nullopt;
+	}
+
 	// Terrain is not part of the object batch; it culls and picks detail levels against this
 	// context's frustum and camera. Without a camera the frustum is left over from an earlier one.
 	void RenderTerrain(RenderingContext& renderingContext)
@@ -422,6 +440,8 @@ void Pipeline3D::Shutdown()
 void Pipeline3D::Prepare()
 {
 	PINE_PF_SCOPE();
+
+	m_SceneContext.LodReferencePosition = FindLodReferencePosition();
 
     Rendering::SceneProcessor::Prepare(m_SceneContext);
 

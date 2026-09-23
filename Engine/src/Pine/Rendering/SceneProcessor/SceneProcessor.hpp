@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <optional>
 #include <unordered_map>
 
 #include "Pine/Assets/Material/Material.hpp"
@@ -57,21 +58,29 @@ namespace Pine::Rendering::SceneProcessor
 {
     struct SceneProcessorContext
     {
+        // Where LOD distances are measured from this frame, written by Pipeline3D::Prepare before
+        // Prepare runs. Unset when no context has a camera, and every renderer then draws the model
+        // it names.
+        std::optional<Vector3f> LodReferencePosition;
+
         std::unordered_map<RenderObject, std::uint32_t, RenderObjectHash> ModelInstanceCountHint;
 
         ObjectBatchData RenderingBatch;
 
         std::vector<Light*> Lights;
 
-        // Renderers whose world bounds differ from last frame's. A list rather than a per-object
-        // flag, so a consumer asking "did anything move inside this volume" walks only the movers.
+        // Renderers whose world bounds or LOD level differ from last frame's. A list rather than a
+        // per-object flag, so a consumer asking "did anything move inside this volume" walks only
+        // the movers.
         std::vector<ModelRenderer*> MovedCasters;
 
         // Something was added, removed, disabled or had its model swapped this frame. Consumers
         // should treat it as "assume everything moved".
         bool CasterSetChanged = false;
 
-        // How many renderers were gathered, which is what CasterSetChanged is derived from.
+        // How many renderers were gathered, which is what CasterSetChanged is derived from. Counts
+        // the ones hidden by distance too: those come and go through MovedCasters instead, which
+        // invalidates only the shadow views they are in.
         std::size_t CasterCount = 0;
 
         // A light moved, changed type, or was created or destroyed this frame, so every cached

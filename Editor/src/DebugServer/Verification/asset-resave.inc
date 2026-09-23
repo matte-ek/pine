@@ -56,6 +56,10 @@
 
             check(meshCount > 0, "The model this probe re-saves has no meshes to lose");
 
+            // Stored before models had LOD settings, so this is also the old-file path.
+            check(model->GetLodLevels().empty() && model->GetLodCullDistance() == 0.f,
+                "A model stored without LOD settings loaded with some");
+
             model->ReLoad();
 
             check(model->GetMeshes().size() == meshCount,
@@ -162,10 +166,158 @@
                 "An audio clip lost its samples on the second re-save");
         }
 
+        // Part 4 - what a model saves from memory next to the geometry it recovers: its LOD
+        // settings and its embedded materials. Recovering the geometry reads the whole stored
+        // payload, and reading an array appends to it, so either one could be written twice.
+        {
+            {
+                std::ofstream obj("projects/resave/content/probe.obj");
+
+                obj << "mtllib probe.mtl\n"
+                       "v 0 0 0\n"
+                       "v 1 0 0\n"
+                       "v 0 1 0\n"
+                       "usemtl Red\n"
+                       "f 1 2 3\n";
+
+                std::ofstream mtl("projects/resave/content/probe.mtl");
+
+                mtl << "newmtl Red\n"
+                       "Kd 1 0 0\n";
+            }
+
+            auto context = Pine::Importer::CreateContext();
+
+            Pine::Importer::AddFile(context, "projects/resave/content/probe.obj", "projects/resave/assets/probe");
+            Pine::Importer::Run(context);
+
+            const auto imported = context->Imports.front()->ImportStatus == Pine::AssetImportStatus::Imported
+                ? context->Imports.front()->AssetPtr : nullptr;
+
+            Pine::Importer::DeleteContext(context);
+
+            const auto model = dynamic_cast<Pine::Model*>(imported);
+
+            check(model != nullptr, "The model this probe re-saves did not import");
+
+            // Counted in the '.passet' itself, which is what the next run loads. Memory would not
+            // show a duplicate until then.
+            const auto storedEmbeddedMaterialCount = [&]()
+            {
+                struct EnvelopeSerializer : Pine::Serialization::Serializer
+                {
+                    PINE_SERIALIZE_DATA(Data);
+                };
+
+                struct PayloadSerializer : Pine::Serialization::Serializer
+                {
+                    PINE_SERIALIZE_ARRAY(EmbeddedMaterials);
+                };
+
+                EnvelopeSerializer envelope;
+                PayloadSerializer payload;
+
+                check(envelope.Read(Pine::File::ReadCompressed(model->GetFilePath())),
+                    "Could not read the re-saved model's '.passet'");
+                check(payload.Read(envelope.Data.Read()),
+                    "Could not read the re-saved model's payload");
+
+                return payload.EmbeddedMaterials.GetDataCount();
+            };
+
+            check(storedEmbeddedMaterialCount() == 1, "The imported model should embed exactly one material");
+
+            const auto cube = Pine::Assets::Get<Pine::Model>("engine/primitive/cube");
+            const auto sphere = Pine::Assets::Get<Pine::Model>("engine/primitive/sphere");
+
+            check(cube != nullptr && sphere != nullptr, "Missing the primitives used as LOD levels");
+
+            std::vector<Pine::ModelLodLevel> levels(2);
+
+            levels[0].LodModel = cube;
+            levels[0].Distance = 12.5f;
+            levels[1].LodModel = sphere;
+            levels[1].Distance = 40.f;
+
+            model->SetLodLevels(levels);
+            model->SetLodCullDistance(75.f);
+
+            const auto checkLodSettings = [&](const std::string& when)
+            {
+                const auto& stored = model->GetLodLevels();
+
+                check(stored.size() == 2, "The LOD levels did not survive " + when);
+                check(stored[0].LodModel.Get() == cube && stored[0].Distance == 12.5f &&
+                      stored[1].LodModel.Get() == sphere && stored[1].Distance == 40.f,
+                    "The LOD levels changed across " + when);
+                check(model->GetLodCullDistance() == 75.f, "The LOD cull distance did not survive " + when);
+            };
+
+            model->ReLoad();
+            checkLodSettings("a re-save");
+
+            model->ReLoad();
+            checkLodSettings("a second re-save");
+
+            check(storedEmbeddedMaterialCount() == 1, "Re-saving a model wrote its embedded materials again");
+
+            // A mesh pointed at another material in the editor, then saved. Done before the
+            // re-import below, which rightly gives each mesh the source file's material back.
+            {
+                auto* replacement = dynamic_cast<Pine::Material*>(
+                    Pine::Assets::CreateAsset(Pine::AssetType::Material, "projects/resave/assets/replacement"));
+
+                check(replacement != nullptr, "Could not create the replacement material");
+
+                // As every material the editor's picker offers is.
+                Pine::Assets::Internal::RegisterAsset(replacement);
+
+                model->GetMeshes().front()->SetMaterial(replacement);
+
+                model->ReLoad();
+
+                check(model->GetMeshes().front()->GetMaterial() == replacement,
+                    "Re-saving a model reverted a mesh to the material it was loaded with");
+
+                model->ReLoad();
+
+                check(model->GetMeshes().front()->GetMaterial() == replacement,
+                    "A mesh's material reverted on the second re-save");
+            }
+
+            // The importer rebuilds the geometry and materials from the source file, and must leave
+            // the settings made in the editor alone. Through the importer's Update action, as the
+            // editor re-imports - Asset::ReImport hands a Model no import context, which its
+            // importer does not handle.
+            {
+                auto reimportContext = Pine::Importer::CreateContext();
+
+                Pine::Importer::AddFile(reimportContext, "projects/resave/content/probe.obj", "projects/resave/assets/probe");
+                Pine::Importer::Resolve(reimportContext);
+
+                const auto& reimport = *reimportContext->Imports.front();
+
+                check(reimport.Action == Pine::AssetImportAction::Update && reimport.AssetPtr == model,
+                    "Importing the model's source again did not target the existing model");
+
+                Pine::Importer::Run(reimportContext);
+
+                check(reimport.ImportStatus == Pine::AssetImportStatus::Imported, "Re-importing the model failed");
+
+                Pine::Importer::DeleteContext(reimportContext);
+            }
+
+            checkLodSettings("a re-import");
+
+            check(storedEmbeddedMaterialCount() == 1, "Re-importing a model changed how many materials it embeds");
+        }
+
         std::cout << "PASS(native): a texture's mips, a model's meshes and bounds, and an audio "
                      "clip's samples all\n              surviving repeated saves of an asset that "
                      "was not just imported - the path that\n              has to recover them from "
-                     "the '.passet' it is about to overwrite." << std::endl;
+                     "the '.passet' it is about to overwrite - and a model's LOD settings,\n"
+                     "              mesh materials and embedded materials saved alongside, once "
+                     "each, through re-saves and a re-import." << std::endl;
     }
     catch (const std::exception& exception)
     {

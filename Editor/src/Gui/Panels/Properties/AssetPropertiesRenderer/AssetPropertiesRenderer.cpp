@@ -263,6 +263,79 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
+    // Edited on a copy and handed back whole, like the terrain's noise settings.
+    void RenderModelLevelsOfDetail(Pine::Model *model)
+    {
+        if (!ImGui::CollapsingHeader("Level of Detail"))
+        {
+            return;
+        }
+
+        ImGui::TextDisabled("Distances are in world units from the camera, for an object at scale 1.");
+        ImGui::TextDisabled("Each level is drawn from its distance onwards, until a further one takes over.");
+        ImGui::Spacing();
+
+        auto lodLevels = model->GetLodLevels();
+        bool levelsChanged = false;
+        int removedLevel = -1;
+
+        for (int i = 0; i < lodLevels.size(); i++)
+        {
+            auto& level = lodLevels[i];
+
+            ImGui::PushID(i);
+
+            ImGui::SeparatorText(fmt::format("Level {}", i + 1).c_str());
+
+            const auto newModel = Widgets::AssetPicker("Model", level.LodModel.Get(), Pine::AssetType::Model);
+            if (newModel.hasResult)
+            {
+                level.LodModel = newModel.asset;
+                levelsChanged = true;
+            }
+
+            levelsChanged |= Widgets::InputFloat("Distance", &level.Distance);
+
+            if (ImGui::Button(ICON_MD_DELETE " Remove"))
+            {
+                removedLevel = i;
+            }
+
+            ImGui::PopID();
+        }
+
+        if (removedLevel >= 0)
+        {
+            lodLevels.erase(lodLevels.begin() + removedLevel);
+            levelsChanged = true;
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button(ICON_MD_ADD " Add Level"))
+        {
+            lodLevels.push_back({});
+            levelsChanged = true;
+        }
+
+        if (levelsChanged)
+        {
+            model->SetLodLevels(lodLevels);
+            model->MarkAsModified();
+        }
+
+        ImGui::Spacing();
+
+        auto cullDistance = model->GetLodCullDistance();
+        if (Widgets::InputFloat("Cull Distance", &cullDistance))
+        {
+            model->SetLodCullDistance(cullDistance);
+            model->MarkAsModified();
+        }
+
+        ImGui::TextDisabled("Not drawn at all past the cull distance. 0 draws it at any distance.");
+    }
+
     void RenderModel(Pine::Model *model)
     {
         ImGui::Text("Mesh count: %d", model->GetMeshes().size());
@@ -294,6 +367,8 @@ namespace
                 }
             }
         }
+
+        RenderModelLevelsOfDetail(model);
 
         ImGui::Separator();
 

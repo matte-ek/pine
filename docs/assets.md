@@ -42,6 +42,13 @@ dropped, `ReLoad()` writes that over the only good copy, and nothing about the a
 looks wrong at the time. `Texture2D` and `Model` both did exactly this; `verify-asset-resave.py`
 is what keeps them from doing it again.
 
+That read fills **every** field of the payload serializer, not only the bulk data, and reading an
+array appends to it. Anything the same save then writes from memory has to be reset first, or it
+is stored twice. `Model::SaveAssetData` resets `EmbeddedMaterials` and `LodLevels` for that reason.
+The stored meshes are the opposite case: their geometry is carried forward as read, but each one's
+`Material` is written again from `Mesh::GetMaterialUId()`, because the editor can point a mesh at
+another material after loading.
+
 ### The import phases
 
 `Assets/Importer/AssetImporter.hpp` splits an import into phases, and a caller can stop between
@@ -257,6 +264,28 @@ Nothing in the runtime decodes anything - `AudioFile::LoadAssetData` uploads the
 `Engine/src/Pine/Audio/` is the other half: `IAudioAPI` (OpenAL) creates the `IAudioBuffer` a clip
 uploads into, and the voice pool and the `AudioSource`/`AudioListener` components play it. See
 [audio.md](audio.md).
+
+### Model LOD settings
+
+A `Model` carries its own level-of-detail chain: `Model::GetLodLevels()`, each a handle to another
+`Model` asset plus the distance it takes over from, and `Model::GetLodCullDistance()`, past which
+the object is not drawn (0 means never). They are set on the model's page in the Editor's asset
+properties, and saved in the `LodLevels` and `LodCullDistance` fields of the payload. A model
+stored before those fields existed loads with no levels.
+
+- **One model per level**, referenced by `UId`. A pack that ships `rock_LOD0.fbx`, `rock_LOD1.fbx`
+  imports each file as its own model and lists the others on `rock_LOD0`. An importer that splits
+  one file's `_LOD0`/`_LOD1` meshes into models would fill the same list.
+- **Only the list on the model a renderer names is read.** A model used as a level is drawn as it
+  is, whatever levels it has of its own.
+- **Not kept sorted.** `Model::SelectLod` picks the furthest level reached, so the Editor can show
+  the levels in the order they were entered. A level whose model is missing is skipped.
+- **The importer leaves them alone**, so they survive a re-import of the source file.
+- **Materials are per file.** Each level's model embeds its own materials, so editing LOD0's does
+  not change LOD1's, and the levels never batch with each other. A `ModelRenderer` override
+  material applies to whichever level is drawn.
+
+How a level is chosen at draw time is in [rendering.md](rendering.md#model-lod).
 
 ### Reading geometry back out
 

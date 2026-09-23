@@ -37,6 +37,12 @@ namespace Pine
             // and the new box have to be testable.
             Vector3f PreviousBoundsMin = Vector3f(0.f);
             Vector3f PreviousBoundsMax = Vector3f(0.f);
+
+            // The model drawn this frame once its LOD is chosen, or null while the object is past
+            // its model's cull distance. Chosen once per frame by the scene processor, which also
+            // compares it against last frame's: a change of level moves no bounds, but it still
+            // changes what the object casts into a cached shadow view.
+            Model* LodModel = nullptr;
         };
     }
 

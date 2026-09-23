@@ -36,6 +36,18 @@ namespace Pine
         UId Material;
     };
 
+    class Model;
+
+    // One step of a model's level-of-detail chain: the model drawn from 'Distance' onwards.
+    struct ModelLodLevel
+    {
+        AssetHandle<Model> LodModel;
+
+        // In world units from the LOD reference camera, for an object at scale 1. Larger objects
+        // switch proportionally later - see Model::SelectLod.
+        float Distance = 0.f;
+    };
+
     class Model : public Asset
     {
     protected:
@@ -49,6 +61,14 @@ namespace Pine
         Vector3f m_BoundingBoxMax = {};
 
         bool m_UsedAsCollider = false;
+
+        // Only read from the model a ModelRenderer points at: a model used as one of these levels
+        // is drawn as it is, whatever LOD levels it has of its own.
+        std::vector<ModelLodLevel> m_LodLevels;
+
+        // Past this distance, measured like ModelLodLevel::Distance, the object is not drawn at
+        // all. 0 draws it at any distance.
+        float m_LodCullDistance = 0.f;
 
         bool LoadAssetData(const ByteSpan& span) override;
         ByteSpan SaveAssetData() override;
@@ -67,10 +87,19 @@ namespace Pine
             PINE_SERIALIZE_PRIMITIVE(Material, Serialization::DataType::UId);
         };
 
+        struct LodLevelSerializer : Serialization::Serializer
+        {
+            PINE_SERIALIZE_ASSET(LodModel);
+            PINE_SERIALIZE_PRIMITIVE(Distance, Serialization::DataType::Float32);
+        };
+
         struct ModelSerializer : Serialization::Serializer
         {
             PINE_SERIALIZE_ARRAY(EmbeddedMaterials);
             PINE_SERIALIZE_ARRAY(Meshes);
+
+            PINE_SERIALIZE_ARRAY(LodLevels);
+            PINE_SERIALIZE_PRIMITIVE(LodCullDistance, Serialization::DataType::Float32);
         };
     public:
         Model();
@@ -81,6 +110,17 @@ namespace Pine
 
         const Vector3f& GetBoundingBoxMin() const;
         const Vector3f& GetBoundingBoxMax() const;
+
+        void SetLodLevels(const std::vector<ModelLodLevel>& levels);
+        const std::vector<ModelLodLevel>& GetLodLevels() const;
+
+        void SetLodCullDistance(float distance);
+        float GetLodCullDistance() const;
+
+        // The model to draw for an object 'scaledDistance' away from the LOD reference camera,
+        // already divided by the object's scale: this model, one of its LOD levels, or nullptr past
+        // the cull distance. A level whose model is missing is skipped, so the nearer one stays.
+        Model* SelectLod(float scaledDistance);
 
         bool Import(Importer::AssetImport* context) override;
 

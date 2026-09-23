@@ -72,6 +72,10 @@ namespace Pine
 
         Material* GetMaterial() const;
 
+        // The material this mesh names, whether or not it is loaded. What a save writes, so a
+        // material that is missing right now is still referenced once it comes back.
+        const UId& GetMaterialUId() const;
+
         Model* GetModel() const;
 
         const Vector3f& GetBoundingBoxMin() const;

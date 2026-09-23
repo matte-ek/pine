@@ -274,6 +274,47 @@ The per-phase line it prints carries the draw-call count, which is the cheapest 
 blend pass working: two objects cost four draws with both opaque (pre-pass and scene pass each), and
 three once the near one is blended, since the blend pass draws it and the pre-pass does not.
 
+## Model LOD
+
+A `Model` can name other models to draw from given distances, and a distance past which the object
+is not drawn at all (the settings are on the asset: see [assets.md](assets.md#model-lod-settings)).
+`SceneProcessor::PrepareRenderingBatch` picks each renderer's level once per frame and keys the
+scene batch by the model it picked, so the draw lists, the blend pass and the shadow passes all draw
+the chosen level without knowing LOD exists.
+
+- **Measured from one position per frame**, `SceneProcessorContext::LodReferencePosition`, which
+  `Pipeline3D::Prepare` takes from the camera of the first context that is `Active`, runs the render
+  pipeline and has a `SceneCamera`. A second viewport open at the same time shows the levels chosen
+  for the first. In the Editor that means the game view whenever it is visible and has a camera, and
+  the level viewport otherwise. Choosing per view would mean a `VisibilitySet` holding a level per
+  object and `DrawList::Build` filtering on it; the settings on the asset would not change.
+- **The distance** runs from that position to the centre of the object's world bounds, divided by
+  its largest scale axis, so the distances set on a model hold for every copy of it whatever its
+  size. `Model::SelectLod` then picks the furthest level reached.
+- **Bounds stay LOD0's.** `ModelRendererHintData::BoundsMin/Max` come from the model the renderer
+  names, so culling and the shadow tile cache do not see a box change size whenever a level switches.
+- **Past the cull distance** the renderer is left out of the batch, `ModelRendererHintData::LodModel`
+  is null, and `RenderCulling::Cull` counts it as culled in every view. It is still counted in
+  `CasterCount` and still has its light slots kept up to date, so it reappears correctly lit.
+- **A change of level is a moved caster.** It moves no bounds but changes what a shadow view holds,
+  so it goes into `MovedCasters` like a move does, hiding and reappearing included. Only the shadow
+  views it is in are re-rendered.
+- **Not applied** to a renderer drawing one mesh by index (`ModelRenderer::GetModelMeshIndex() >= 0`),
+  since the other levels' meshes do not line up with its index, nor when no context has a camera.
+- **Only the renderer sees levels.** Everything else reads `ModelRenderer::GetModel()`, which is
+  LOD0: colliders, the editor's click selection, the debug server's spatial queries and picking,
+  and scripts. So clicking where a distance-hidden object stands still selects it.
+
+```sh
+python3 Editor/src/DebugServer/Verification/verify-lod.py --build cmake-build-debug-agent
+```
+
+Moves three copies of the sphere primitive along the level camera's view, with the cube primitive
+as its level from 10 and a cull distance of 30. It checks the level each one draws: at scale 1, at
+scale 3 (which must keep detail three times further out), and drawing one mesh by index (never
+swapped, never hidden). It also checks that a missing level is skipped, and that the viewport's
+visible count and submitted vertex count follow the swaps.
+
 ## Visibility & culling
 
 Visibility is a property of **(object, frustum)**, not of the object. That distinction is the whole

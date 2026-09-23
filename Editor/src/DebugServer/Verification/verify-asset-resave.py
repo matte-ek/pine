@@ -37,9 +37,11 @@ includes = '''#include <cmath>
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
+#include "Pine/Assets/Material/Material.hpp"
 #include "Pine/Assets/Importer/AssetImporter.hpp"
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Assets/Texture2D/Texture2D.hpp"
+#include "Pine/Core/File/File.hpp"
 '''
 body = Path(__file__).with_name('asset-resave.inc').read_text()
 (root / 'probe.cpp').write_text(includes + source.replace(marker, body))

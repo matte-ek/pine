@@ -61,6 +61,28 @@ bool Model::LoadAssetData(const ByteSpan& span)
         m_MeshData.push_back(std::move(data));
     }
 
+    m_LodLevels.clear();
+
+    for (size_t i{}; i < modelSerializer.LodLevels.GetDataCount(); i++)
+    {
+        LodLevelSerializer lodLevelSerializer;
+
+        if (!lodLevelSerializer.Read(modelSerializer.LodLevels.GetData(i)))
+        {
+            return false;
+        }
+
+        ModelLodLevel level;
+
+        lodLevelSerializer.LodModel.Read(level.LodModel);
+        lodLevelSerializer.Distance.Read(level.Distance);
+
+        m_LodLevels.push_back(level);
+    }
+
+    m_LodCullDistance = 0.f;
+    modelSerializer.LodCullDistance.Read(m_LodCullDistance);
+
     auto task = Threading::QueueTask<void>([this]()
     {
         // Reload replaces the GPU meshes as well as their serialized data.
@@ -140,6 +162,36 @@ ByteSpan Model::SaveAssetData()
         // serializer's own path overload, which reads it raw - so it did not even get as far as
         // inflating the '.passet', let alone finding the geometry inside it.
         modelSerializer.Read(ReadStoredAssetData());
+
+        // That read fills every field, not only the geometry this branch is after, and reading an
+        // array appends to it. The fields below are written from memory, so they start empty.
+        modelSerializer.EmbeddedMaterials.Reset();
+        modelSerializer.LodLevels.Reset();
+
+        // The geometry is carried forward as stored, but the material each mesh uses can be
+        // changed in the editor after loading, so that part is taken from memory.
+        std::vector<ByteSpan> storedMeshes;
+
+        for (size_t i{}; i < modelSerializer.Meshes.GetDataCount(); i++)
+        {
+            MeshSerializer meshSerializer;
+
+            meshSerializer.Read(modelSerializer.Meshes.GetData(i));
+
+            if (i < m_Meshes.size())
+            {
+                meshSerializer.Material.Write(m_Meshes[i]->GetMaterialUId());
+            }
+
+            storedMeshes.push_back(meshSerializer.Write());
+        }
+
+        modelSerializer.Meshes.Reset();
+
+        for (const auto& storedMesh : storedMeshes)
+        {
+            modelSerializer.Meshes.AddData(storedMesh);
+        }
     }
     else
     {
@@ -164,6 +216,18 @@ ByteSpan Model::SaveAssetData()
     {
         modelSerializer.EmbeddedMaterials.AddData(embeddedMaterial->Save());
     }
+
+    for (const auto& level : m_LodLevels)
+    {
+        LodLevelSerializer lodLevelSerializer;
+
+        lodLevelSerializer.LodModel.Write(level.LodModel);
+        lodLevelSerializer.Distance.Write(level.Distance);
+
+        modelSerializer.LodLevels.AddData(lodLevelSerializer.Write());
+    }
+
+    modelSerializer.LodCullDistance.Write(m_LodCullDistance);
 
     return modelSerializer.Write();
 }
@@ -195,6 +259,59 @@ const Vector3f& Model::GetBoundingBoxMin() const
 const Vector3f& Model::GetBoundingBoxMax() const
 {
     return m_BoundingBoxMax;
+}
+
+void Model::SetLodLevels(const std::vector<ModelLodLevel>& levels)
+{
+    m_LodLevels = levels;
+}
+
+const std::vector<ModelLodLevel>& Model::GetLodLevels() const
+{
+    return m_LodLevels;
+}
+
+void Model::SetLodCullDistance(const float distance)
+{
+    m_LodCullDistance = distance;
+}
+
+float Model::GetLodCullDistance() const
+{
+    return m_LodCullDistance;
+}
+
+Model* Model::SelectLod(const float scaledDistance)
+{
+    if (m_LodCullDistance > 0.f && scaledDistance >= m_LodCullDistance)
+    {
+        return nullptr;
+    }
+
+    // The furthest level the object has reached. The levels are not kept sorted, so the editor can
+    // show them in the order they were entered.
+    Model* selectedModel = this;
+    float selectedDistance = 0.f;
+
+    for (const auto& level : m_LodLevels)
+    {
+        if (scaledDistance < level.Distance || level.Distance < selectedDistance)
+        {
+            continue;
+        }
+
+        const auto lodModel = level.LodModel.Get();
+
+        if (lodModel == nullptr)
+        {
+            continue;
+        }
+
+        selectedModel = lodModel;
+        selectedDistance = level.Distance;
+    }
+
+    return selectedModel;
 }
 
 bool Model::Import(Importer::AssetImport* context)

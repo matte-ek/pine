@@ -8,6 +8,13 @@
 namespace
 {
     constexpr std::size_t BitsPerWord = 64;
+
+    // Past its model's cull distance, as the scene processor decided for this frame. Not drawn for
+    // any view, so it counts as culled in every one of them.
+    bool IsHiddenByDistance(const Pine::Renderer3D::ModelRendererHintData& data)
+    {
+        return data.LodModel == nullptr;
+    }
 }
 
 void Pine::Rendering::RenderCulling::VisibilitySet::Reset(const std::size_t capacity)
@@ -72,6 +79,12 @@ Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cu
 
         const auto& data = modelRenderer.GetRenderingHintData();
 
+        if (IsHiddenByDistance(data))
+        {
+            result.CulledObjectCount++;
+            continue;
+        }
+
         if (frustum.Intersects(data.BoundsMin, data.BoundsMax))
         {
             visibility.Set(modelRenderer.GetInternalId());
@@ -108,6 +121,12 @@ Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cu
         }
 
         const auto& data = modelRenderer.GetRenderingHintData();
+
+        if (IsHiddenByDistance(data))
+        {
+            result.CulledObjectCount++;
+            continue;
+        }
 
         // Closest point on the box to the sphere centre. Clamping the centre into the box gives it
         // directly, with no case analysis over faces, edges and corners.
