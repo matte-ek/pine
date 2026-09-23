@@ -16,8 +16,6 @@ Respect local conventions while keeping the new logic straightforward and well s
 
 Consistency does not make the existing structure immutable. Refactor nearby code when doing so makes the requested feature cleaner and easier to maintain, keeping the resulting code coherent with the project's conventions.
 
-Keep formatting changes and refactoring focused on the requested work. When a change departs from an established pattern, give the advance notice described in [Design for likely changes](design-for-change.md).
-
 For a new area with no established conventions, use simple, idiomatic patterns suited to the project's language and tooling. Keep those choices consistent throughout the addition.
 
 Before finishing, compare the change with its surroundings. It should read as a natural continuation of the codebase and be easy for its maintainers to review.

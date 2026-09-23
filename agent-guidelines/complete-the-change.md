@@ -1,6 +1,6 @@
 # Complete the change
 
-A working method is not a finished feature. Before reporting code work as done, trace the change through the integration points the project actually uses, and ask: **What would a developer most likely forget when implementing this?**
+Before reporting code work as done, trace the change through the integration points the project actually uses, and ask: **What would a developer most likely forget when implementing this?**
 
 ## Trace the feature end to end
 
@@ -24,12 +24,8 @@ Establish the applicable pattern from comparable cases rather than assuming ever
 
 ## Verify what you changed
 
-Build the project and run whatever verification covers the area you touched. Report the outcome, including failures you did not fix and anything you could not run. Never present unverified work as verified. Pine has no unit tests. "Build and verify" in [`AGENTS.md`](../AGENTS.md) says what verification means here.
+Build the project and run whatever verification covers the area you touched. Report the outcome, including failures you did not fix and anything you could not run. "Build and verify" in [`AGENTS.md`](../AGENTS.md) says what verification means here.
 
 Match the verification to the change. Prefer the narrowest run that would actually catch a mistake over the full suite, and re-run what your change could plausibly have broken.
-
-Fix the tests your own change broke. A failure you caused is part of the work, not a separate task to hand back. Correct the code, or update the test when the requested change deliberately changed the expected behavior, and say which one you did. Do not weaken, skip, or delete a test to make it pass.
-
-Failures that were already present before your change are not yours to fix. Report them and leave them alone unless the user asks.
 
 Add tests only when the project already has them. Follow the existing tests' structure, naming, and assertion style, and cover the behavior you added or changed. In a project with no tests, do not introduce a test framework as part of another change; say what you would test instead. The debug server's `verify-<area>.py` recipes are the exception in Pine: when you change a route, add to or extend its recipe (see [`docs/debug-server-workflow.md`](../docs/debug-server-workflow.md)).
