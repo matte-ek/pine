@@ -34,8 +34,10 @@ includes = '''#include <cmath>
 #include <vector>
 #include "physx/PxPhysicsAPI.h"
 #include "Other/PlayHandler/PlayHandler.hpp"
+#include "Other/TerrainSculpting/TerrainSculpting.hpp"
 #include "Pine/Assets/Terrain/Terrain.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
+#include "Pine/Physics/Physics3D/TerrainCollision/TerrainCollision.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
 #include "Pine/World/Components/TerrainRenderer/TerrainRendererComponent.hpp"

@@ -113,6 +113,7 @@ namespace
         scriptData->ClassId = resolved.Id;
         scriptData->HasOnStart = resolved.HasOnStart;
         scriptData->HasOnUpdate = resolved.HasOnUpdate;
+        scriptData->HasOnRender = resolved.HasOnRender;
         scriptData->IsReady = true;
 
         ProcessScriptFields(scriptData);
@@ -243,8 +244,8 @@ void Pine::Script::Manager::ReloadScripts()
 }
 
 // Whatever a script throws is caught, logged with its stack trace and swallowed by managed code
-// - nothing may be thrown back across the boundary - so neither loop below has anything to
-// report.
+// - nothing may be thrown back across the boundary - so none of the loops below has anything
+// to report.
 void Pine::Script::Manager::OnStart()
 {
     PINE_PF_SCOPE();
@@ -281,4 +282,17 @@ void Pine::Script::Manager::OnUpdate(float deltaTime)
 
 void Pine::Script::Manager::OnRender(float deltaTime)
 {
+    PINE_PF_SCOPE();
+
+    for (auto& scriptComponent : Components::Get<ScriptComponent>())
+    {
+        const auto scriptData = DispatchableScript(scriptComponent);
+
+        if (!scriptData || !scriptData->HasOnRender)
+        {
+            continue;
+        }
+
+        GameAssembly::OnRender(*scriptComponent.GetScriptObjectHandle(), scriptData->ClassId, deltaTime);
+    }
 }

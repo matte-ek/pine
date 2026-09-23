@@ -4,6 +4,10 @@
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Physics/Physics3D/Physics3D.hpp"
+#include "Pine/World/Components/Components.hpp"
+#include "Pine/World/Components/Collider/Collider.hpp"
+#include "Pine/World/Components/TerrainRenderer/TerrainRendererComponent.hpp"
+#include "Pine/World/Entity/Entity.hpp"
 
 #include "physx/PxPhysicsAPI.h"
 
@@ -128,4 +132,25 @@ physx::PxShape* Pine::Physics3D::TerrainCollision::CreateShape(const Terrain& te
     shape->setLocalPose(localPose);
 
     return shape;
+}
+
+void Pine::Physics3D::TerrainCollision::RebuildColliders(const Terrain& terrain)
+{
+    // Disabled colliders too, so one switched back on does not come back with the old ground.
+    for (auto& collider : Components::Get<Collider>(true))
+    {
+        if (collider.GetColliderType() != ColliderType::HeightField)
+        {
+            continue;
+        }
+
+        const auto terrainRenderer = collider.GetParent()->GetComponent<TerrainRendererComponent>();
+
+        if (terrainRenderer == nullptr || terrainRenderer->GetTerrain() != &terrain)
+        {
+            continue;
+        }
+
+        collider.Reset();
+    }
 }

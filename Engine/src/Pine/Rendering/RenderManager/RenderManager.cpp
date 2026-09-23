@@ -4,6 +4,7 @@
 #include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
+#include "Pine/Script/ScriptManager.hpp"
 #include <algorithm>
 #include <vector>
 #include <GLFW/glfw3.h>
@@ -149,6 +150,15 @@ void Pine::RenderManager::Run()
     m_LastFrameTime = currentFrameTime;
 
     CallRenderCallback(nullptr, RenderStage::PreRender, fDeltaTime);
+
+    // Once per frame, after physics and every OnUpdate, and before any transform or camera below
+    // is read for drawing - so a script can make last-moment changes, such as a camera following a
+    // body physics just moved, and have this frame show them. Gated exactly like OnUpdate, so
+    // scripts never run in the editor outside play mode, nor when nothing updates the world.
+    if (!engineConfig.m_Standalone && !World::IsPaused())
+    {
+        Script::Manager::OnRender(fDeltaTime);
+    }
 
     // If we're in for example the editor, we'll always want to update
     // the transformation matrices etc.

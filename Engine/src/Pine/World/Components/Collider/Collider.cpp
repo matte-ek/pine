@@ -188,6 +188,11 @@ std::uint32_t Pine::Collider::GetTriggerMask() const
 
 void Pine::Collider::Reset()
 {
+    if (const auto rigidBody = m_Parent->GetComponent<RigidBody>())
+    {
+        rigidBody->Reset();
+    }
+
     if (!m_CollisionRigidBody)
     {
         return;

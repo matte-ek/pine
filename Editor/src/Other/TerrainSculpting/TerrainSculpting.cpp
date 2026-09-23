@@ -10,6 +10,7 @@
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Terrain/Terrain.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Physics/Physics3D/TerrainCollision/TerrainCollision.hpp"
 #include "Pine/World/Components/Camera/Camera.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/TerrainRenderer/TerrainRendererComponent.hpp"
@@ -21,7 +22,8 @@ namespace
     using namespace Editor::TerrainSculpting;
 
     // The two fields a stroke can write, each as a policy: what one sample of the field is, how
-    // many of them a terrain sample carries, and the rectangle accessors that read and write it.
+    // many of them a terrain sample carries, the rectangle accessors that read and write it, and
+    // what has to follow once a stroke, undo or redo has finished writing it.
     //
     // Named once and used from three places - the stroke's snapshot, the undo command and the
     // brush - because everything around that accessor pair is the same story for both fields. The
@@ -41,6 +43,12 @@ namespace
         {
             return terrain->SetSampleHeightRect(rect, samples);
         }
+
+        // Collision is cooked from the heights, too slowly to redo on every brush step.
+        static void OnWritten(const Pine::Terrain* terrain)
+        {
+            Pine::Physics3D::TerrainCollision::RebuildColliders(*terrain);
+        }
     };
 
     struct WeightField
@@ -57,6 +65,11 @@ namespace
         static bool Write(Pine::Terrain* terrain, const Pine::TerrainSampleRect& rect, const std::vector<Sample>& samples)
         {
             return terrain->SetSampleWeightRect(rect, samples);
+        }
+
+        // Layer weights only change how the ground looks.
+        static void OnWritten(const Pine::Terrain*)
+        {
         }
     };
 
@@ -132,6 +145,8 @@ namespace
             }
 
             terrain->MarkAsModified();
+
+            Field::OnWritten(terrain);
         }
     };
 
@@ -275,6 +290,8 @@ namespace
             {
                 Editor::Actions::RegisterCommand(std::make_unique<StrokeCommand<Field>>(
                     stroke.Terrain, stroke.Rect, stroke.Before, std::move(after)));
+
+                Field::OnWritten(terrain);
             }
         }
 

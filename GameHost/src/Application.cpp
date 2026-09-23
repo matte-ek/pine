@@ -34,6 +34,7 @@ int main()
     engineConfiguration.m_WindowTitle = "Pine Game Host";
     engineConfiguration.m_WindowSize = Pine::Vector2i(1920, 1080);
     engineConfiguration.m_WindowUseX11 = std::getenv("PINE_X11") != nullptr;
+    engineConfiguration.m_VerboseLogging = std::getenv("PINE_VERBOSE") != nullptr;
 
     if (!Pine::Engine::Setup(engineConfiguration))
     {

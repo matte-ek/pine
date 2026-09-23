@@ -12,7 +12,8 @@ namespace
     enum ScriptMethods : std::int32_t
     {
         ScriptMethod_OnStart = 1 << 0,
-        ScriptMethod_OnUpdate = 1 << 1
+        ScriptMethod_OnUpdate = 1 << 1,
+        ScriptMethod_OnRender = 1 << 2
     };
 
     // The managed side's entry points, resolved once. All of them are static, and all of them
@@ -28,6 +29,7 @@ namespace
 
         void (*OnStart)(std::uint64_t script, std::int32_t classId) = nullptr;
         void (*OnUpdate)(std::uint64_t script, std::int32_t classId, float deltaTime) = nullptr;
+        void (*OnRender)(std::uint64_t script, std::int32_t classId, float deltaTime) = nullptr;
     };
 
     EntryPoints m_EntryPoints;
@@ -51,6 +53,8 @@ void Pine::Script::GameAssembly::Setup()
         GameAssemblyTypeName, "InvokeOnStart");
     m_EntryPoints.OnUpdate = ManagedCall::Find<decltype(EntryPoints::OnUpdate)>(
         GameAssemblyTypeName, "InvokeOnUpdate");
+    m_EntryPoints.OnRender = ManagedCall::Find<decltype(EntryPoints::OnRender)>(
+        GameAssemblyTypeName, "InvokeOnRender");
 }
 
 bool Pine::Script::GameAssembly::Load(const std::filesystem::path& path)
@@ -94,6 +98,7 @@ Pine::Script::ResolvedScriptClass Pine::Script::GameAssembly::ResolveClass(
 
     resolved.HasOnStart = (methods & ScriptMethod_OnStart) != 0;
     resolved.HasOnUpdate = (methods & ScriptMethod_OnUpdate) != 0;
+    resolved.HasOnRender = (methods & ScriptMethod_OnRender) != 0;
 
     return resolved;
 }
@@ -144,4 +149,15 @@ void Pine::Script::GameAssembly::OnUpdate(const ObjectHandle& script, const int 
     }
 
     m_EntryPoints.OnUpdate(script.Id, classId, deltaTime);
+}
+
+void Pine::Script::GameAssembly::OnRender(const ObjectHandle& script, const int classId,
+    const float deltaTime)
+{
+    if (m_EntryPoints.OnRender == nullptr)
+    {
+        return;
+    }
+
+    m_EntryPoints.OnRender(script.Id, classId, deltaTime);
 }

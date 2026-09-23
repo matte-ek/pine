@@ -96,6 +96,10 @@ namespace Pine
 
         bool IsColliderAttached(const Collider *collider) const;
 
+        // Drops the PhysX actor, so the next physics update builds a new one from the current
+        // properties and collider shape. A dynamic body loses its velocity with it.
+        void Reset();
+
         void OnPrePhysicsUpdate() override;
         void OnPostPhysicsUpdate() override;
 

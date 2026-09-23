@@ -38,8 +38,9 @@ a result comes back. This is why the API behaves the way it does:
   no partial-frame state and no torn read.
 - A handler that blocks the main thread blocks rendering. Hence the five-second
   deadline on every request.
-- Reads that need a rendered frame (`/observe`, `/pick`) are deferred and resumed
-  after rendering, before ImGui and queued writes.
+- Reads that need a rendered frame (`/observe`, `POST /render`) are deferred and
+  resumed after rendering, before ImGui and queued writes. `/pick` is not deferred: it
+  answers straight away from the capture a picking `/observe` retained.
 
 Pine's own `Threading` system is deliberately not used here: `PumpMainThreadTasks()`
 is only called from inside `AwaitTaskResult`/`AwaitTaskPool` and `Engine::Run()`
@@ -50,10 +51,14 @@ never pumps, so a queued main-thread task awaited from an HTTP worker would hang
 These apply to every route unless its entry says otherwise.
 
 **Bodies and encoding.** POST bodies are JSON with `Content-Type: application/json`.
-Query values must be URL-encoded. Unknown fields and unexpected query parameters are
-rejected rather than ignored — a typo fails loudly instead of silently doing
-something else. Responses are pretty-printed JSON; invalid UTF-8 in entity names or
-asset paths is replaced rather than throwing.
+Query values must be URL-encoded. Routes that take a JSON body reject unknown fields,
+so a typo fails loudly instead of silently doing something else — except
+`POST /terrain/sculpt` and `POST /level/load`, which ignore fields they do not read.
+Query parameters are looser: `POST /entities/query`, `/spatial/*`, `/pick` and
+`/assets/import` reject any query parameter, but every other route ignores parameters
+it does not know (`/viewport.png?widht=200` returns a full-size image). Responses are
+pretty-printed JSON, except `POST /entities/query`, which sends compact JSON; invalid
+UTF-8 in entity names or asset paths is replaced rather than throwing.
 
 **Vectors and rotations.** Vectors are strict `{"x":…,"y":…,"z":…}` objects with all
 three coordinates required. Rotations are `{"x":…,"y":…,"z":…,"w":…}` quaternions,
@@ -63,7 +68,9 @@ on the geometric routes.
 
 **Identifiers.** Entities and components have persistent `UId`s: 1–16 hexadecimal
 digits, a dash, and 16 hexadecimal digits, first group nonzero. These survive
-save/reload of the objects they name and are what every route wants. `internalId`
+undo/redo of the objects they name and are what every route wants. They do not
+survive a save and reload: loading a Level creates fresh IDs (see
+[`POST /level/load`](#post-levelload)). `internalId`
 (a pool slot) exists on reads for debugging; prefer the persistent ID. An entity ID
 and a component ID are not interchangeable — `component.update` wants a component
 ID, `component.add` wants an entity ID, and mixing them is a validation error.
@@ -111,7 +118,7 @@ zero-based `operation` index.
 | 400 | Malformed or invalid request. Nothing was changed. |
 | 404 | Unknown entity, component or asset ID. |
 | 409 | Precondition failed: wrong play mode, hidden viewport, stale token, conflicting retry identity, capacity or work limit exceeded. Nothing was changed. |
-| 413 | Response or request body exceeds its byte cap. |
+| 413 | A mutation body over the generic 256 KiB cap, or a `POST /entities/query` response over 1 MiB. The smaller per-route request caps return 400. |
 | 500 | Execution failed **after** mutation started. State may have changed; the body says what completed. |
 | 503 | Shutting down, or the request registry is at capacity. |
 | 504 | The five-second deadline expired. For a mutation this does **not** mean it was cancelled. |
@@ -120,8 +127,10 @@ zero-based `operation` index.
 
 Every successful mutation returns an `observationToken`: an object holding the
 server `session`, `sceneGeneration`, the debug mutation `revision`, the `frame` the
-operation ran on, and a `logsSince` log cursor sampled just before it. Execution
-failures that may have changed state get one too; validation failures do not.
+operation ran on, and a `logsSince` log cursor sampled just before it. Validation
+failures do not get one. Among execution failures (500), only those from `POST /edit`,
+`POST /assets/import`, `POST /level/camera` and `POST /level/settings` carry a token;
+a 500 from saving or from undo/redo does not, even though state may have changed.
 
 Pass a token to `POST /observe` as `after` to capture a frame that is guaranteed to
 come after that operation, with no client-side sleeping. A token is an **ordering
@@ -208,8 +217,9 @@ returned so a client can filter without breaking cursor continuity.
 
 ### `GET /stats`
 Level and Game context counters, sizes, render times, and tracked profiling scopes.
-Counters include `drawCalls`, `vertexCount` (vertices submitted, so index count for
-an indexed draw), `visible`/`culledObjects` for the model batch, and
+Each context's counters sit under `level` and `game`, so a light count is
+`level.lightCount`. Counters include `drawCalls`, `vertexCount` (vertices submitted, so
+index count for an indexed draw), `lightCount`, `visible`/`culledObjects` for the model batch, and
 `visible`/`culledTerrainChunks` for terrain, which culls per chunk rather than per
 component. Each profiling scope has `name` (full signature), `shortName`, `parent`
 (the calling scope's name, empty at top level), `time` (last frame's total, summed
@@ -450,8 +460,9 @@ navigation.
 **When it fails.** Before restoring, history checks entity state, scene membership
 and ordering, asset and property validity, and pool capacity. Direct UI or native
 changes outside recorded commands can make a snapshot inapplicable. A restoration
-failure returns 500 with `historyCleared: true`, `stateMayHaveChanged: true` and an
-observation token, and clears both stacks. A preflight failure changes nothing; a
+failure returns 500 with `historyCleared: true` and `stateMayHaveChanged: true`, and
+clears both stacks. It carries **no** observation token, so reread state rather than
+waiting on one. A preflight failure changes nothing; a
 failure during application can leave partial restoration.
 
 Loading or replacing a scene, including stopping play mode, invalidates history
@@ -460,12 +471,13 @@ through its scene generation. Saving does not.
 ### `POST /terrain/sculpt`
 One brush stroke against a terrain, recorded as **one undo step** that
 `/history/undo` reverses exactly. `?path=` or `?id=` names the terrain; everything
-else is the JSON body. Stopped mode only.
+else is the JSON body. Stopped mode only. Unlike most write routes, body fields it does
+not read are ignored rather than rejected.
 
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `mode` | `raise` | `raise`, `lower`, `smooth` (towards the neighbouring samples' average), `flatten` (towards one height) or `paint` (towards one layer). The first four move the height field; `paint` writes layer weights without moving the ground. |
-| `x`, `z` | — | One terrain-local point for a single dab. Mutually exclusive with `points`. |
+| `x`, `z` | — | One terrain-local point for a single dab. Ignored when `points` is present. |
 | `points` | — | Up to 256 `{"x":…,"z":…}` for a drag. Every point gets a full `duration`, so a longer stroke moves the ground further — as holding the brush still for more frames would. |
 | `radius` | `8` | World units. The brush is round, not square; samples further out are untouched. |
 | `strength` | `8` | Per second. For the height modes that is world units, and `smooth`/`flatten` move a sample *towards* their target by at most this much. For `paint` it is the share of the layer handed over, approaching full coverage rather than reaching it. |
@@ -502,7 +514,8 @@ material IDs. Geometry buffers are opaque size descriptors, not vertex arrays.
 
 ### `POST /assets/summary`
 The live details of 1–256 named assets in one reply, for shortlisting candidates
-without a `GET /asset` per entry.
+without a `GET /asset` per entry. The body is capped at 16 KiB, which a full list of
+long paths can exceed; split it if you get that 400.
 
 ```json
 {"assets": [{"path": "psx/props/crate_1"}, {"id": "<asset-id>"}]}
@@ -606,6 +619,7 @@ until it is saved again.
 ### `POST /level/save`
 Empty body or `{}`. Saves the active Level to its current project destination. An
 untitled Level returns 409 and needs save-as. Does not save other modified assets.
+Bodies for this route and save-as are capped at 4 KiB.
 
 ### `POST /level/save-as`
 `{"path": "levels/prototype", "overwrite": false}`. Saves the current scene to that
@@ -615,8 +629,8 @@ created. Absolute paths, traversal, symbolic links, noncanonical separators and
 conflicts with another asset type are rejected; the destination always stays inside
 the project's assets directory.
 
-`overwrite: false` rejects an existing destination, including one created by another
-writer after validation. `overwrite: true` requires the destination to be a loaded
+`overwrite: false` rejects an existing destination with a 400, including one created by
+another writer after validation. `overwrite: true` requires the destination to be a loaded
 project Level backed by a regular file, and preserves its asset ID; a new destination
 gets a new ID. A `.passet` that appeared outside the asset manager must be loaded
 before it can be overwritten.
@@ -635,6 +649,9 @@ registration step failed. Saving is not undoable and undo never rewrites files.
 ### `POST /level/load`
 `{"path": "levels/prototype"}`, or `?path=…`. Loads an already-loaded Level asset,
 replacing the scene entities. **It does not guard against unsaved changes.**
+
+The reply carries `loaded`, the Level's path, and `entityCount`, the entity total after
+loading (temporary editor entities included, as in `/status.entityCount`).
 
 Loading creates fresh scene IDs, clears history and invalidates every observation
 token and picking capture. Reacquire IDs from `/entities` and `/entity` afterwards.
@@ -672,7 +689,8 @@ reconstructed automatically.
 The active Level's atmosphere and post-processing: skybox, ambient light, fog, exposure,
 bloom and the film-grain/vignette look. GET returns `level` (`path` and `id`) and
 `properties`; POST takes `{"properties": {…}}` and returns the same reply plus
-`history: "recorded"`.
+`history: "recorded"`. Both return 409 when no Level is active. POST bodies are capped
+at 4 KiB.
 
 ```json
 {"properties": {"AmbientColor": {"x": 0.12, "y": 0.13, "z": 0.18},
@@ -791,7 +809,9 @@ defaults to `level`. `width` accepts 1–4096 and only **downsizes**, preserving
 ratio — omit for native resolution. `entities` accepts up to 128 existing scene
 entity IDs, default none. An optional top-level `logsSince` overrides the token's
 cursor, which is how you capture a later camera-framing token while covering logs
-from the earlier edit. `{}` is valid and means "a fresh view after this request was
+from the earlier edit. `"picking": true` also retains a picking capture for
+[`POST /pick`](#post-pick); it requires stopped mode and returns 409 otherwise.
+`{}` is valid and means "a fresh view after this request was
 accepted", with logs from acceptance — which can miss errors from earlier edits.
 Bodies are capped at 16 KiB and eight nesting levels.
 
@@ -1223,7 +1243,8 @@ descendants.
 ```
 
 `padding` is optional and nonnegative, and grows every half-extent, so the box clears
-the model by that much on all six sides.
+the model on all six sides. It is in **model units before world scale**, like `Size`:
+the world clearance is `padding` times the entity's scale on that axis.
 
 **It fits in model space, which is the point.** `Size` is half-extents *before* world
 scale and the shape turns with the entity, so the resulting box stays tight on a
@@ -1286,7 +1307,7 @@ Entity update properties are advertised separately at `entity.properties`: `name
 model; clearing `Model` requires `MeshIndex` to be `-1` too.
 
 **Light.** `Type` is `Directional`, `PointLight` or `SpotLight`. `Color` is linear
-RGB, `Intensity` nonnegative, `Range` at least 0.01 world units. Spotlight half-angles
+RGB with every channel nonnegative, `Intensity` nonnegative, `Range` at least 0.01 world units. Spotlight half-angles
 satisfy `0 <= inner <= outer` with outer between 1 and 89 degrees, checked as a pair
 before any setter runs.
 
@@ -1399,8 +1420,9 @@ through its owning subsystem first.
 ones are skipped, `history` reports `"cleared"` and **both undo and redo stacks are
 cleared — there is no rollback**. When known, the failing operation's created entity
 is `createdEntityId`; a `component.add` that attached a component before failing to
-apply properties also reports `createdComponentId` and `entityId`. Inspect the live
-scene before continuing.
+apply properties also reports `createdComponentId` and `entityId`, and a failed
+`entity.duplicate` reports the copies it made so far as `createdEntities` (`sourceId`,
+`id` and `componentIds` each). Inspect the live scene before continuing.
 
 Success is HTTP 200 with `completed` equal to the operation count, `refs` mapping
 request names to entity IDs, `results` with per-operation IDs and resulting writable

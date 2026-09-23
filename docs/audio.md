@@ -7,7 +7,7 @@ Two layers, the same split as `Graphics/` → `Rendering/`. Paths relative to `E
 - `Audio/Interfaces/IAudioAPI.hpp` — the backend seam: buffers, voices, and the one listener.
 - `Audio/Interfaces/IAudioSource.hpp`, `IAudioBuffer.hpp` — a voice and a decoded clip.
 - `Audio/OpenAL/` — the only implementation. `Source/ALSource`, `Buffer/ALBuffer`.
-- `World/Components/AudioSource/`, `World/Components/AudioListener/` — the components, which hold data and nothing else.
+- `World/Components/AudioSource/`, `World/Components/AudioListener/` — the components. They hold playback state; the one device-side thing they do is hand their voice back in `AudioSource::OnDestroyed`.
 - `Assets/AudioFile/` — the clip asset and its importer; see [assets.md](assets.md).
 
 ## How it fits together
@@ -86,8 +86,9 @@ source in the editor — the asset panel needs a preview button (see `Audio/TODO
 that has just been switched off still holds a voice, and the default iterator would skip the one
 frame where it needs collecting.
 
-⚠ **Shutdown order matters.** `Engine::Shutdown` runs `Components::Shutdown()` before
-`Audio::Shutdown()`, so components release their voices before the pool destroys them.
+⚠ **Engine shutdown does not return voices.** `Components::Shutdown()` frees the component pools
+without running `OnDestroyed`, so `AudioSource::OnDestroyed` never releases its voice then;
+`Audio::Shutdown()` destroys every voice in the pool itself.
 
 ⚠ **Hot-reloading a clip while it is playing leaks an AL buffer.** `AudioFile::Dispose` deletes the
 buffer without checking whether a voice has it bound; OpenAL refuses the delete with

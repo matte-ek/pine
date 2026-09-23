@@ -12,10 +12,10 @@ relative to `Engine/src/Pine/`.
 
 ## How it fits together
 - **`Graphics/`** is the API seam. `Graphics/Interfaces/I*.hpp` declares the abstraction (`IGraphicsAPI`, framebuffers, shader programs, textures, VAOs, buffers, UBOs); `Graphics/OpenGL/` is the only implementation today (a `Vulkan` enum value is stubbed). Also here: `Graphics/ShaderStorage/`, `Graphics/TextureAtlas/`.
-- **`RenderManager`** owns the contexts and the stage model — `RenderStage` (Pre/PostRender, RenderContext, Pre/PostRender2D, Pre/PostRender3D, PostProcessing) and `PipelineStage` (Prepass, Default). External code hooks in via `AddRenderCallback(fn(context, stage, dt))`.
-- Per context it runs **`Rendering/Pipeline/Pipeline3D/`** or **`Pipeline2D/`** depending on the context config.
+- **`RenderManager`** owns the contexts and the stage model — `RenderStage` (Pre/PostRender, RenderContext, Pre/PostRender2D, Pre/PostRender3D, PostProcessing) and `PipelineStage` (Prepass, Default). External code hooks in via `AddRenderCallback(fn(context, stage, dt))`. Right after the `PreRender` callback, and only while the world is running, `RenderManager::Run` dispatches the scripts' `OnRender` (see [scripting.md](scripting.md)), so anything a script moves there is drawn this frame.
+- Per context with `UseRenderPipeline` set (the default) it runs **`Rendering/Pipeline/Pipeline3D/`**, then **`Pipeline2D/`**, then bloom and post-processing. A context with it cleared, such as the editor's entity-selection context, gets only the clear and the `RenderContext` callback and draws for itself.
 - **`Rendering/SceneProcessor/`** (incl. `SceneLightsProcessor/`) walks the ECS component blocks to gather what to draw and light — this is the bridge from the ECS to the renderer.
-- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`), ordering in `Rendering/RenderGraph/`, and the quality presets in `Rendering/GraphicsSettings/`.
+- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`) and the quality presets in `Rendering/GraphicsSettings/`. `Rendering/RenderGraph/` is an empty placeholder; pass order is the fixed sequence in `RenderManager::Run` and `Pipeline3D::Run`.
 - **`Renderer2D/`** mirrors `Renderer3D/` for sprites/tilemaps.
 
 ## The shared scene buffers & internal resolution
@@ -118,6 +118,10 @@ runs and with it the overdraw, which measured anywhere from 725k to 880k across 
 build. An unordered pass has no particular cost, it has an arbitrary one. The ordered rows and the
 `BackToFront` bound are stable to within a percent.
 
+Timings are not in these tables on purpose: they were taken under a software rasterizer, where
+repeated runs of an identical build varied by more than the differences being measured. `GET /stats` on the debug server reports every profiler scope, so the same comparison is
+one request on real hardware.
+
 ### The depth pre-pass feeds the scene pass
 
 The pre-pass renders at the **context's viewport**, into the same corner of the shared buffers the
@@ -144,21 +148,10 @@ Three details that are load-bearing:
   Change one of them and the depth it writes stops matching what the scene pass computes, which
   `LessEqual` turns into missing surfaces rather than an error.
 
-One consequence worth knowing: **ambient occlusion now reads a viewport-resolution buffer.** It used
-to read a pre-pass that filled the whole internal resolution — effectively supersampled relative to
-the viewport — and it now reads the same corner as everything else, scaling its lookups by a
-`viewportScale` uniform the way `post-process` does. Slightly less fine-scale occlusion is found;
-measured on the terrain verification scene, the ground came out 1.4% brighter.
-
-**The depth pre-pass is `Batched`**, despite being the pass that would most obviously want
-front-to-back: its depth is handed to the scene pass (below), so the shading that ordering would
-save has already been saved. Ordering it would only make the pre-pass's own depth writes cheaper,
-and on this content that costs more in draw calls than it returns.
-
-Timings in that comparison are not in the table on purpose: they were taken under a software
-rasterizer, where repeated runs of an identical build varied by more than the differences being
-measured. `GET /stats` on the debug server reports every profiler scope, so the same comparison is
-one request on real hardware.
+One consequence worth knowing: **ambient occlusion reads a viewport-resolution buffer.** It samples
+the same corner of the internal-resolution targets as everything else, scaling its lookups by a
+`viewportScale` uniform the way `post-process` does, so its fine-scale detail is limited to the
+viewport's resolution rather than the full internal one.
 
 ## Materials & transparency
 
@@ -233,11 +226,19 @@ surface and it shadows itself. `ShadowPass` therefore gives a two-sided run the 
 everything at, because a local view cannot cull front faces either. One pair, declared in
 `ShadowView.hpp`, read by all three.
 
-**The lighting half is in the shader.** `generic.fragment.glsl` negates `surface.normal` when
-`gl_FrontFacing` is false, so the far side of a card is lit as the near side's mirror instead of by
-a normal pointing away from the viewer. It is unconditional and has no shader version of its own: a
-face that gets culled never reaches the fragment stage through that face, so for everything else
-`gl_FrontFacing` is always true and the flip is dead code the driver folds away.
+**The lighting half is in the shaders.** Three places flip a normal when `gl_FrontFacing` is false,
+so the far side of a card is treated as the near side's mirror instead of by a normal pointing away
+from the viewer:
+
+- `generic.fragment.glsl` negates `surface.normal`, for lighting.
+- `depth.fragment.glsl` negates the normal it writes to the pre-pass buffer ambient occlusion reads.
+- `FacingWorldNormal()` in `shared/vertex-data.glsl` is the normal the shadow lookups in
+  `shared/lightning/lightning.glsl` offset their sample along; the authored one would push the
+  sample into the surface and shadow it.
+
+Each flip is unconditional and has no shader version of its own: a face that gets culled never
+reaches the fragment stage through that face, so for everything else `gl_FrontFacing` is always
+true and the flip is dead code the driver folds away.
 
 What this does **not** do is make a two-sided surface sort correctly against itself. A `Transparent`
 material set to `Both` composites its two faces in whatever order they rasterize; the blend pass
@@ -376,18 +377,20 @@ there when they don't.
 (`Renderer3D::Specifications::ObjectLightSlots`): slots 0-4 are the nearest point lights, slots 5-6
 the nearest two spots — `COUNT` is 7. Two spot slots rather than one so a hand-held light and a
 world light can reach the same surface. The directional light is global and always light index 0.
-`SceneLightsProcessor` assigns slots per object by distance and caches them until a light moves, is
-added/removed, or changes type.
+`SceneProcessor::Lights::ProcessModelRenderer` assigns slots per object by distance and caches them
+until the object or a light moves, a light is added/removed, or a light changes type.
 
-⚠ **`COUNT` is capped at 7 by the shader, not by anything in C++.** The generic shader's varying
-block carries `lightDir[8]`, of which `[0]` is the directional light and `[1..7]` are these slots.
+⚠ **`COUNT` is capped at 7 by the shader, not by anything in C++.** The varying block in
+`shared/vertex-data.glsl`, used by both the generic and terrain shaders, carries `lightDir[8]`, of which `[0]` is the directional light and `[1..7]` are these slots.
 Going past 7 means growing that array and costs three interpolated floats per fragment on *every*
 material, so 6→7 was free in a way 7→8 is not.
 
-⚠ **The layout is asserted in several places with nothing tying them together**:
-`Specifications.hpp`, `SceneLightsProcessing.cpp`, `Renderer3D::AddLight`, and the hand-unrolled
-subscripts in both `generic.vertex.glsl` and `generic.fragment.glsl`. Change one and nothing tells
-you about the others.
+⚠ **The C++ side derives from `Specifications::ObjectLightSlots`; the shaders do not.**
+`SceneLightsProcessing.cpp` and `Renderer3D::AddLight` use its constants, but the shader side is
+hard-coded: the unrolled subscripts in `shared/vertex-data.glsl` (`writeLightIndices`,
+`writeLightDirections`), `generic.fragment.glsl` and `terrain.fragment.glsl`, plus the literal
+sizes in `ShaderStorages.hpp` (`LightIndices[8]`), `shared/common.glsl` (`ivec4 lightIndices[2]`)
+and the `8` loop in `Renderer3D::FrameReset`. Change the layout and nothing tells you about these.
 
 **Direction convention.** `Light.directionToLight` in the UBO points *towards* the light — the
 opposite of where the lamp shines — matching `vIn.lightDir[]`. `AddLight` uploads `-forward` to make
@@ -403,17 +406,19 @@ escape both attenuation and the cone mask.
 
 ⚠ **Never index `vIn.lightDir[]` with a variable.** Dynamically subscripting that varying array
 returns garbage on some drivers (seen on NVIDIA), silently zeroing N·L. The loops in
-`generic.fragment.glsl` are hand-unrolled with literal subscripts for this reason.
+`generic.fragment.glsl` and `terrain.fragment.glsl` are hand-unrolled with literal subscripts for
+this reason.
 
 Slots live in a **`Renderer3D::LightSlotData`** (`Renderer3D/LightSlotData.hpp`), which is what
 `AddInstance`/`RenderMesh` take and all that they read. A `ModelRenderer` carries one inside its
-hint data; a terrain chunk carries one of its own. `SceneLightsProcessor::AssignSlots(context,
+hint data; a terrain chunk carries one of its own. `SceneProcessor::Lights::AssignSlots(context,
 position, slots)` is the shared rule — it takes a point rather than the thing at that point, because
 a chunk is not a component and has no transform to be lit at.
 
-⚠ **Editor gizmos draw with no light hint data**, so they fall back to whatever `AddLight` left in
-`Instances[0]` — an arbitrary global subset (first five point lights in pool order, last two spots)
-and its shadow views with it. Terrain no longer does; see below.
+⚠ **Editor gizmos draw with no light hint data**, and a null `LightSlotData` leaves
+`Instances[0]` as the previous draw wrote it (`Renderer3D::AddInstance`). Every run in
+`Pipeline3D::RenderBatch` rewrites that instance, so gizmos are lit by the slots of whatever object
+was drawn last, and its shadow views with it.
 
 ## Terrain
 
@@ -464,7 +469,7 @@ from the object counts — a whole terrain is one object, and folding its chunks
 pass by `TerrainRenderer::BeginPass`, because terrain culls in each pass rather than once per frame.
 
 **Lighting is per chunk.** `TerrainRenderer::Prepare` gives every chunk its own `LightSlotData`,
-assigned from the centre of the chunk's box by the same `SceneLightsProcessor::AssignSlots` that
+assigned from the centre of the chunk's box by the same `SceneProcessor::Lights::AssignSlots` that
 lights a model renderer. Per chunk rather than per terrain because a terrain is far too large to be
 lit at one point — the whole ground would take the five lights nearest its middle and nothing else.
 Chunk granularity is still coarse: a 64-unit chunk gets one set of five point and two spot lights.
@@ -502,8 +507,8 @@ texel — half a texel out and the ground shows a blend of the wrong two samples
 to invalidate cached shadow tiles, which hold depth; weights change what the ground looks like and
 not what shape it is.
 
-See [`plans/terrain-system.md`](plans/terrain-system.md) for what the remaining units add — physics,
-layer blending and the sculpting brush are done, layer painting is not.
+See [`plans/terrain-system.md`](plans/terrain-system.md) for how the terrain system was divided into
+units — all eight, through the sculpting brush and layer painting, are done.
 
 ### Verification
 
@@ -613,13 +618,20 @@ Its HTTP half sculpts **flat** ground, so that how far the brush moved something
 zero rather than against noise that already varies by more than the stroke does. It checks the
 brush's shape (falling off from the centre at full falloff, flat topped with none, radially
 symmetric, and nothing outside the radius including the corners of the rectangle the brush reads),
-each of the four modes, and that one stroke is one undo step whose undo restores the probed heights
-*identically* rather than approximately. A twenty-four point drag checks the part most likely to be
+each of the four height modes, and that one stroke is one undo step whose undo restores the probed
+heights *identically* rather than approximately. A twenty-four point drag checks the part most likely to be
 wrong — a stroke growing its recorded region must keep the heights it first recorded, not re-read
 ground it has already moved — and a stroke off the terrain has to record nothing at all, or it would
 swallow the author's next undo. Smoothing is checked on a one-sample spike in an untouched corner,
 and has to *both* bring the peak down and raise the ground beside it: a brush that only pushed
 samples down would pass half of that.
+
+**Paint** mode gets the same treatment on another flat corner, reading layer weights instead of
+heights: the same falloff and radius, weights that still sum to one after painting and after a
+second layer goes over the first, no height change, one undo step restored exactly, nothing recorded
+off the terrain, and a layer index outside the four rejected. A final frame checks that painted
+ground actually turns green, since the splat texture is a separate upload from anything the numbers
+went through.
 
 The overlay gets its own pair of frames: one over the ring and one over ground far from it,
 counting strongly warm pixels in each. On this scene the ring reaches a red-blue difference of 38
@@ -644,6 +656,6 @@ box has grown taller.
 
 ## Notes
 - Shaders, materials, meshes and models are all **assets** (see [assets.md](assets.md)); the renderer pulls them from the asset system rather than owning GPU resources directly.
-- To add a screen-space effect, add a pass under `Rendering/Features/` and wire it into the pipeline setup, rather than editing `RenderManager` directly.
+- Screen-space effects live under `Rendering/Features/`, but there is no registration hook: `Bloom` and `PostProcessing` are set up, shut down and run directly from `RenderManager`, and `AmbientOcclusion` from `Pipeline3D`. A new pass is wired into whichever of those it belongs to.
 
 Related: [world-ecs.md](world-ecs.md) · [assets.md](assets.md)

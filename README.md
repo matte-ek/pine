@@ -80,7 +80,8 @@ Each project owns its game assembly: `data/projects/<name>/runtime/Game.csproj` 
 `.cs` files in the project's `assets/` tree and outputs `Game.dll` to
 `data/projects/<name>/runtime-bin/`, which the Editor loads once a project is open. It builds
 the same way (`dotnet build -c Release`), and new projects inherit the csproj from
-`data/projects/project-template/runtime/`. GameHost uses `data/game/runtime` instead.
+`data/projects/project-template/runtime/`. GameHost loads the same `runtime-bin/Game.dll`,
+found through the `assetRoot` in `data/game/game.json`.
 
 Engine-side C# (`Pine.dll`) is loaded once at boot, so changing it needs an editor restart;
 a rebuilt `Game.dll` is hot-reloaded when the editor regains focus. An IDE such as Rider is

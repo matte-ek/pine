@@ -10,8 +10,9 @@
 // name and calls them through a function pointer.
 //
 // Names are resolved rather than positional on purpose: a binding Pine.dll asks for and the
-// engine never registered - or the other way about - is a line in the log naming it, at startup,
-// instead of a call that quietly lands on the wrong function.
+// engine never registered is a line in the log naming it, at startup, instead of a call that
+// quietly lands on the wrong function. The other way about - a binding nothing asks for - goes
+// unreported.
 namespace Pine::Script::Bindings
 {
     // Register every binding. Called once, before Pine.dll is told how to find them.

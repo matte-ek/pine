@@ -14,10 +14,11 @@ A `.passet` file is the engine's **own compressed binary container** (`Core/File
 - a **header** (UId, timestamp, `AssetType`, virtual path, source-file list), then
 - an opaque **payload** the concrete asset writes via `SaveAssetData()` / reads via `LoadAssetData()`.
 
-`Asset::Load()` reads the header, instantiates the right subclass by `AssetType`, dedups by
-UId+time, then hands the payload to the subclass. Raw sources (`.png`, models, `.cs`) are
-*imported* into `.passet` through `Assets/Importer/` (with per-type `Importer/` subfolders
-under `Texture2D/`, `Model/`, `Shader/`).
+`Asset::Load()` reads the header and looks the UId up first: an asset already loaded with the same
+timestamp is returned as is, and one with a different timestamp is reloaded in place. Only an
+unknown UId gets a new subclass instance by `AssetType`. The payload then goes to the subclass.
+Raw sources (`.png`, models, `.cs`) are *imported* into `.passet` through `Assets/Importer/` (with
+per-type `Importer/` subfolders under `Texture2D/`, `Model/`, `Shader/`, `AudioFile/`).
 
 Not every asset type has a source format. A `Terrain` is authored in the editor and only ever
 exists as a `.passet`, so its row in `m_AssetImportFactories` (`Assets.cpp`) carries no file
@@ -147,8 +148,8 @@ An `.ih` is small JSON, e.g. `data/engine/shaders/post-processing/ambient-occlus
 - **`Data.TextureSamplers`** — sampler name → binding unit (mirrors the `#shader bind <name> <unit>`
   directives at the top of the GLSL).
 - **`Data.Versions`** (optional) — preprocessor `#define` variants (e.g. `VERSION_DISCARD`) the
-  shader can be compiled with. **Only `EngineCli --batch-import` reads this**, and that reminting
-  every UId it touches (below) makes it unusable on an existing shader — so declare a *new* version
+  shader can be compiled with. **Only `EngineCli --batch-import` reads this**, and it refuses a
+  shader that already has a `.passet` (below), so it is no use on an existing one — declare a *new* version
   in the GLSL instead, with `#shader version <NAME> <bit>` next to the `#ifdef` it guards
   (`terrain.fragment.glsl` does). That goes through the ordinary importer, so a re-import picks it
   up and writes it into the `.passet` like any other source change. Any other `#shader <anything>`
@@ -165,29 +166,37 @@ shaders just expose it as editable text with a sidecar hint.
 
 ### Regenerating a `.passet` after editing source
 
-**Just open the editor.** On window focus, `HotReload::UpdateAssets` compares each tracked
-source's write time and calls `Asset::ReImport()` → `ReLoad()` → `File::WriteCompressed(...)`
+**Just open the editor.** On window focus, `Utilities/HotReload/HotReload.cpp` compares each
+tracked source's write time and calls `Asset::ReImport()` → `ReLoad()` → `File::WriteCompressed(...)`
 (`Asset.cpp`). That rewrites the `.passet` **on disk**, operating on the already-loaded asset so
-the **UId is preserved**. Commit the rewritten `.passet`; that is what makes GameHost and fresh
-clones (neither of which hot-reloads) correct. There is no CLI step for editing an existing asset.
+the **UId is preserved**. Commit the rewritten `.passet`; that is what makes fresh clones correct.
+There is no CLI step for editing an existing asset.
 
-Two things that bite:
+Hot reload is set up by `Engine::Setup` whenever `m_EnableDebugTools` is on (the default), so
+GameHost does it too. The tracked set is a snapshot `Utilities::HotReload::ReloadCache` takes once,
+at the end of `Engine::Setup`: that is the `engine/` assets only. The editor's own assets and a
+project's, loaded afterwards, are not hot-reloaded.
+
+Things that bite:
 
 - **Shared `#include`s are not tracked sources.** The importer inlines `#include`d files
   (recursively, through the same line processor — so `#shader bind` directives inside an include
   *are* picked up), but it never adds them to the shader's `SourceFiles`. Editing
-  `shared/common.glsl` or `shared/lightning/*.glsl` alone therefore triggers no reload. Touch a
+  `data/engine/shaders/3d/shared/common.glsl` or `3d/shared/lightning/*.glsl` alone therefore
+  triggers no reload. Touch a
   top-level `.vertex.glsl`/`.fragment.glsl` of every shader that includes it.
 - **Never `EngineCli --import` an asset that already has a `.passet`.** It constructs a *new*
   asset, so it would mint a **new UId** — and assets reference each other by UId
   (`PINE_SERIALIZE_ASSET`, plus a hard-coded shader UId in `Material.hpp`), so every material
-  pointing at that shader would silently break. The importer now refuses this outright
-  (`AssetImportAction::Conflict`) rather than doing it quietly, so you get an error instead of a
-  corrupted project — but it still means there is no CLI path for re-importing. It also never
-  reads the `.ih`, so `Data.Versions` is lost. `--batch-import` does read the `.ih`, but its "already imported" dedup scan is a
-  non-recursive `directory_iterator("data")`, so it never finds the nested engine shaders and
-  remints their UIds too. `--import` is for **first-time** imports of new assets only. This is the
-  reason a new shader version belongs in the GLSL rather than in the `.ih`.
+  pointing at that shader would silently break. The importer refuses this outright
+  (`AssetImportAction::Conflict` from `Importer::Resolve`), so you get an error instead of a
+  corrupted project — but it means there is no CLI path for re-importing. `--import` also never
+  reads the `.ih`, so `Data.Versions` is lost. `--batch-import` does read the `.ih`, but it imports
+  through the same `Importer::Run`, so an existing shader is refused there too. (Its own "already
+  imported" scan is a non-recursive `directory_iterator("data")` and never finds the nested engine
+  shaders; with a map-root, whose resolved path misses the existing `.passet`, it would still mint a
+  new UId.) `--import` is for **first-time** imports of new assets only. This is the reason a new
+  shader version belongs in the GLSL rather than in the `.ih`.
 - **Run `--import` from inside `data/`, with paths relative to it.** The virtual path is the
   engine path with the asset working directory stripped off, and headless there is no working
   directory to strip — so `EngineCli --import data/engine/shaders/3d/x ...` from the repo root
@@ -209,13 +218,17 @@ One folder per type under `Assets/`, each subclassing `Asset`: `Blueprint`, `Lev
 `Material`, `Mesh`, `Model`, `Shader`, `Texture2D`, `Texture3D`, `Font`, `Tileset`,
 `Tilemap`, `AudioFile`, `CSharpScript`, `Terrain` (+ `InvalidAsset`).
 
-**Two names per type, and they do different jobs.** `AssetTypeToString` is the identifier: it names
-the managed class in `Pine.Assets` that `ObjectFactory::CreateAsset` resolves, the class name
-`ScriptField::GetAssetType` matches a script field's type against, and the `type` token the debug
-server's `/catalog` accepts and reports. Changing one of those strings is therefore a contract
-change, and it has to keep matching `ScriptRuntime/Assets/`. `AssetTypeToHumanString` is the label
-the editor puts in front of a person, and is free to read better - `CSharpScript` is shown as
-"Script", `Tilemap` as "Tile-map". Both live in `Assets/Asset/Asset.hpp`.
+**Two names per type, and they do different jobs.** `AssetTypeToString` is the identifier: the
+`type` token the debug server's `/catalog` accepts and reports, so changing one of those strings is
+a contract change. `AssetTypeToHumanString` is the label the editor puts in front of a person, and
+is free to read better - `CSharpScript` is shown as "Script", `Tilemap` as "Tile-map". Both live in
+`Assets/Asset/Asset.hpp`.
+
+C# never sees either string. `Script::ObjectFactory::CreateAsset` passes the `AssetType` as an
+integer, and the managed side names it through its own `Pine.Assets.AssetType` enum
+(`ScriptRuntime/Assets/Asset.cs`): that name is the class `ObjectFactory.cs` creates and the one
+`FieldRegistry.cs` matches a script field's type against. So the C++ `AssetType` enum's order has
+to match the managed enum, and each managed enum name has to match its class in `ScriptRuntime/Assets/`.
 
 ### Audio: what an `AudioFile` stores
 
@@ -242,10 +255,12 @@ Nothing in the runtime decodes anything - `AudioFile::LoadAssetData` uploads the
   anything already imported.
 
 `Engine/src/Pine/Audio/` is the other half: `IAudioAPI` (OpenAL) creates the `IAudioBuffer` a clip
-uploads into. Playback - sources, the listener, per-frame updates - is not built yet; see
-`Engine/src/Pine/Audio/TODO.md`.
+uploads into, and the voice pool and the `AudioSource`/`AudioListener` components play it. See
+[audio.md](audio.md).
 
-**Reading geometry back out.** A `Mesh` keeps no CPU copy of what it uploaded, so
+### Reading geometry back out
+
+A `Mesh` keeps no CPU copy of what it uploaded, so
 `Mesh::ReadGeometry` asks the graphics API for it — positions, plus indices if the mesh has an
 element buffer. That means it needs the graphics context and stalls until the readback lands, which
 is fine for tooling and not for a frame. What comes back is current, including whatever
@@ -266,9 +281,11 @@ upward face normal of the triangle it met — does not depend on which LOD a chu
 ## Serialization
 Declare a `struct XSerializer : Serialization::Serializer` and list fields with macros:
 `PINE_SERIALIZE_PRIMITIVE(name, DataType)`, `PINE_SERIALIZE_STRING`, `PINE_SERIALIZE_DATA`,
-`PINE_SERIALIZE_ARRAY`, `PINE_SERIALIZE_ASSET` (stores an asset by its UId). The **same**
+`PINE_SERIALIZE_ARRAY`, `PINE_SERIALIZE_ARRAY_FIXED(name, type)` (fixed-size elements, e.g.
+`AudioFile` samples), `PINE_SERIALIZE_ASSET` (stores an asset by its UId). The **same**
 mechanism serializes assets, component `LoadData/SaveData`, and scenes. A JSON variant lives
-in `Core/Serialization/Json/`.
+in `Core/Serialization/Json/`, and `Core/Serialization/Dump/` turns any serialized blob into
+readable JSON - that is what `EngineCli --dump <file>` prints.
 
 Related: [world-ecs.md](world-ecs.md) · [rendering.md](rendering.md) (materials/shaders/meshes are assets)
 

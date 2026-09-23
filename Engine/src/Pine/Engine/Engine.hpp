@@ -39,6 +39,9 @@ namespace Pine::Engine
         // This can be useful because renderdoc does not work with wayland as of writing this.
         bool m_WindowUseX11 = false;
 
+        // Whether PVerbose messages are logged. Off by default; see Log::SetVerboseEnabled.
+        bool m_VerboseLogging = false;
+
         Graphics::GraphicsAPI m_GraphicsAPI = Graphics::GraphicsAPI::OpenGL;
     };
 

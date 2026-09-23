@@ -1,5 +1,6 @@
 #include "Log.hpp"
 
+#include <atomic>
 #include <deque>
 #include <string>
 #include <iostream>
@@ -16,6 +17,9 @@ namespace
     std::deque<Pine::LogMessage> m_LogMessages;
     std::mutex m_LogMutex;
     std::uint64_t m_LogSequence = 0;
+
+    // Atomic rather than under m_LogMutex, so a dropped verbose message costs no lock.
+    std::atomic<bool> m_VerboseEnabled = false;
 
 #ifdef _WIN32
     enum class ConsoleColor
@@ -89,10 +93,25 @@ namespace
     }
 }
 
+void Pine::Log::SetVerboseEnabled(const bool enabled)
+{
+    m_VerboseEnabled = enabled;
+}
+
+bool Pine::Log::IsVerboseEnabled()
+{
+    return m_VerboseEnabled;
+}
+
 void Pine::Log::LogVerbose(const char* fileName, int fileLine, std::string_view str)
 {
-    return;
+    if (!m_VerboseEnabled)
+    {
+        return;
+    }
+
     std::unique_lock lck(m_LogMutex);
+
     PrintMessage("verbose", fileName, fileLine, ConsoleColor::DarkGray, str);
     AddLogMessage({fileName, fileLine, std::string(str), LogSeverity::Verbose});
 }

@@ -17,7 +17,7 @@ For operating a running Editor over HTTP, see the two debug-server pages below.
 | [rendering.md](rendering.md) | Graphics wrapper → Rendering → Renderer3D; pipelines, features, contexts |
 | [scripting.md](scripting.md) | The hosted .NET/C# bridge and the `ScriptRuntime/` project |
 | [audio.md](audio.md) | Device layer, the voice pool, the components, mono vs. `Spatial` |
-| [physics.md](physics.md) | Physics2D / Physics3D (PhysX) and the component coupling |
+| [physics.md](physics.md) | Physics3D (PhysX), the Physics2D stub, and the component coupling |
 | [core.md](core.md) | Core utilities: Math, File, Serialization, UId, Log, WindowManager |
 | [editor.md](editor.md) | The Editor executable: boot, panels, viewports, play mode, tooling |
 | [data-and-projects.md](data-and-projects.md) | The `data/` tree, project structure, asset path resolution |
@@ -31,6 +31,15 @@ scene without a human at the keyboard. Two pages, no overlap:
 |-----|--------|
 | [debug-server.md](debug-server.md) | **Reference.** Every route and its contract: enablement, the main-thread execution model, shared conventions, observation tokens, retry identities, and the full `POST /edit` operation and component-property specification. |
 | [debug-server-workflow.md](debug-server-workflow.md) | **Guide.** How to build a scene with it: orientation reads, asset discovery, measuring, batching edits, placement, capturing the result, saving, recovery and troubleshooting. Also how to verify a change to the debug server itself. |
+
+## Game ideas
+
+The games planned for Pine, and the engine features each one needs. Start at
+[games/README.md](games/README.md), which has the feature table across all games.
+
+| Doc | Covers |
+|-----|--------|
+| [games/slender.md](games/slender.md) | Slender-style forest game: find eight pages while being hunted. **Idea** |
 
 ## Plans and reports
 

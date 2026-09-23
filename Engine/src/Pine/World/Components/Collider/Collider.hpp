@@ -97,6 +97,9 @@ namespace Pine
         physx::PxShape* CreateCollisionShape() const;
         physx::PxFilterData GetFilterData() const;
 
+        // Drops the actor carrying this collider's shape, so the next physics update builds it
+        // again from the current properties - including a height field re-cooked from its terrain.
+        // With a sibling RigidBody that actor is the body's, so the body is reset instead.
         void Reset();
 
         void OnPrePhysicsUpdate() override;

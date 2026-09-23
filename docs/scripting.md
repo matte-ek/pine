@@ -10,9 +10,9 @@ project (builds `Pine.dll`, targeting `net10.0`). Paths below are relative to
 - `Script/Runtime/` — the host (`Pine::Script::Runtime`): starting CoreCLR, loading `Pine.dll`, GC.
 - `Script/GameAssembly/` — the game's own assembly and its script classes, in a load context that
   can be replaced (`Pine::Script::GameAssembly`).
-- `Script/Factory/` — `ScriptObjectFactory`, which pairs each engine object with a managed one.
+- `Script/Factory/` — `Pine::Script::ObjectFactory`, which pairs each engine object with a managed one.
 - `Script/Bindings/` — the name-to-function table of everything C# may call (`Pine::Script::Bindings`).
-- `Script/ManagedCall.hpp` — the plumbing behind every call the engine makes *into* `Pine.dll`.
+- `Script/ManagedCall/` — the plumbing behind every call the engine makes *into* `Pine.dll`.
 - `Script/Interfaces/` — the engine functions that fill that table: Log, Input, Entity, Component,
   Asset, Physics.
 - `Script/Scripts/ScriptFieldRegistry.hpp` — the engine's half of the field reflection that lives in
@@ -22,13 +22,13 @@ project (builds `Pine.dll`, targeting `net10.0`). Paths below are relative to
 ## How it fits together
 - **`Script::Runtime`** starts CoreCLR from `data/engine/script/Pine.runtimeconfig.json` and loads `Pine.dll` into the **default** load context. Both happen once, at boot, **very early** (before Assets/World) so other systems can register bindings. A machine with no .NET runtime installed is not an error the engine stops for: it logs, and `Runtime::IsAvailable()` stays false.
 - **`Script::GameAssembly`** owns the game's `Game.dll`, in a **collectible** load context of its own so a rebuild can replace it while the editor runs. The engine holds nothing of that assembly except integer ids — a managed type or method it held would keep the old assembly alive and turn every reload into a leak.
-- **`Script::Manager`** drives gameplay: `LoadGameAssembly(path)`, `ReloadScripts()` / `ReloadGameAssembly()` (hot reload), and the per-frame `OnStart()` / `OnUpdate(dt)` / `OnRender(dt)` dispatch (called from `World`). It keeps a `ScriptData` per C# class — the class' id in the game assembly, which lifecycle methods it has, and the fields `Pine.dll` reflected for it (`Script/Scripts/ScriptField.hpp`).
+- **`Script::Manager`** drives gameplay: `LoadGameAssembly(path)`, `ReloadScripts()` / `ReloadGameAssembly()` (hot reload), and the lifecycle dispatch: `OnStart()` and `OnUpdate(dt)` from `World`, and `OnRender(dt)` from `RenderManager::Run`, once per frame after physics and every `OnUpdate` and before any transform or camera is read for drawing - the place for last-moment changes such as a camera following a body. Both per-frame calls are skipped while the world is paused, so scripts only run in the editor in play mode. A script declares any of the three by name (`void OnStart()`, `void OnUpdate(float)`, `void OnRender(float)`, any accessibility, possibly inherited); `Pine.Core.GameAssembly` finds them by reflection and reports which exist as flags. It keeps a `ScriptData` per C# class — the class' id in the game assembly, which lifecycle methods it has, and the fields `Pine.dll` reflected for it (`Script/Scripts/ScriptField.hpp`).
 - **`Script::ObjectFactory`** gives every `Entity`, `Component` and `Asset` a paired managed object via an embedded `ObjectHandle`, so engine objects and their C# mirrors stay linked. `ObjectHandle` is opaque — a `GCHandle` value plus `IsValid()` — and **nothing native dereferences it**: the engine passes the value back and managed code resolves it, with `Interop.ObjectFrom<T>` (`ScriptRuntime/Core/Interop.cs`).
 - **Making those objects is managed code.** `Pine::Script::ObjectFactory` keeps its signatures, but its body is a call into `Pine.Core.ObjectFactory` (`ScriptRuntime/Core/ObjectFactory.cs`), which finds the class, creates the instance, writes the identity the engine addresses it by, and anchors it behind a GC handle. Disposing goes the same way, and is what clears the mirror's valid flag so a script still holding a destroyed entity is told so.
 - **`Script::ManagedCall`** is how the engine reaches any of that: it resolves a static `[UnmanagedCallersOnly]` entry point in `Pine.dll` by name, once, and the caller holds it as an ordinary typed function pointer. `ObjectFactory`, `FieldRegistry` and `GameAssembly` all go through it. **Nothing may be thrown out of an entry point** — there is no managed frame above one to unwind into, so an escaping exception kills the process; every one of them catches, logs and answers with a failure value.
-- **C# reaches the engine through a name-resolved table.** `Script::Bindings` maps a name to an engine function; the six `Interfaces::*::Setup` tables fill it at boot, and `Pine.Core.Interop.Initialize` asks for each one back by the same name into a `delegate* unmanaged<>` field (`ScriptRuntime/Core/Bindings/`). A binding one side has and the other does not is a named error at startup, not a call that lands somewhere unexpected. Two marshalling rules go with it: a `bool` crosses as a **`byte`**, because a C++ `bool` is one byte and P/Invoke's default is four; and a `string` crosses as UTF-8, `Interop.Utf8Scope` going out and `Bindings::ReturnString` plus `Interop.StringFrom` coming back.
+- **C# reaches the engine through a name-resolved table.** `Script::Bindings` maps a name to an engine function; the six `Interfaces::*::Setup` tables fill it at boot, and `Pine.Core.Interop.Initialize` asks for each one back by the same name into a `delegate* unmanaged<>` field (`ScriptRuntime/Core/Bindings/`). A name `Pine.dll` asks for that the engine never registered is a named error at startup (`Bindings::Resolve`), not a call that lands somewhere unexpected; the reverse, a registered binding `Pine.dll` never asks for, is silent. Two marshalling rules go with it: a `bool` crosses as a **`byte`**, because a C++ `bool` is one byte and P/Invoke's default is four; and a `string` crosses as UTF-8, `Interop.Utf8Scope` going out and `Bindings::ReturnString` plus `Interop.StringFrom` coming back.
 - **Nothing native allocates a managed array.** Every C# API that hands back a set of objects — `Entity.Children`, `Entity.GetComponents<T>`, `EntityList.Find(tag)`, `EntityList.GetAll`, `Physics3D.RayCast` — is a count binding plus an indexed read of one handle, and the managed side builds the array.
-- **`Script/Interfaces/`** is where those engine functions are written and named: Log, Input, Entity, Component, Asset, Physics. Each has a matching class on the C# side (`ScriptRuntime/Core`, `/Input`, `/World`, `/Assets`, `/Physics`, `/Math`).
+- **`Script/Interfaces/`** is where those engine functions are written and named: Log, Input, Entity, Component, Asset, Physics. Each has a matching `*Bindings.cs` class in `ScriptRuntime/Core/Bindings/` holding its function pointers; the public API over them lives in `ScriptRuntime/Core`, `/Input`, `/World`, `/Assets` and `/Physics`. `ScriptRuntime/Math` is pure managed code with no interface behind it.
 
 ## Two script component kinds
 - **`ScriptComponent`** (`World/Components/Script/`) — a managed C# script, backed by a `CSharpScript` asset (`Assets/CSharpScript/`). This is the normal one.
@@ -144,8 +144,9 @@ mirror is made, and the generic methods log an error and behave as though the en
 component. The attribute is inherited, so a game's own `class Player : Script` resolves to `Script`.
 
 A component type with no class at all is warned about once per type rather than every time one is
-created. The individual properties still need their internal calls in
-`Script/Interfaces/ScriptInterfaceComponent.cpp`.
+created. The individual properties still need their bindings: a `Bindings::Register` in
+`Script/Interfaces/ScriptInterfaceComponent.cpp` and the matching `delegate* unmanaged<>` field in
+`ScriptRuntime/Core/Bindings/ComponentBindings.cs`.
 
 Bound today: `Transform`, `ModelRenderer`, `RigidBody`, `CharacterController`, `Script`, `Light`,
 `Camera`, `Collider`, `AudioSource`, `AudioListener`. Not bound: `SpriteRenderer`,

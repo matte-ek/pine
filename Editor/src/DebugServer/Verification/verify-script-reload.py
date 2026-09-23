@@ -37,6 +37,7 @@ includes = '''#include <cstdlib>
 #include "Other/PlayHandler/PlayHandler.hpp"
 #include "Pine/Assets/CSharpScript/CSharpScript.hpp"
 #include "Pine/Core/Log/Log.hpp"
+#include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Script/ScriptManager.hpp"
 #include "Pine/Script/Scripts/ScriptData.hpp"
 #include "Pine/Script/Scripts/ScriptField.hpp"
@@ -135,10 +136,16 @@ namespace Game
     public class Ticker : Script
     {
         public int Ticks;
+        public int Renders;
 
         public void OnUpdate(float deltaTime)
         {
             Ticks++;
+        }
+
+        public void OnRender(float deltaTime)
+        {
+            Renders++;
         }
     }
 }

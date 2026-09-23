@@ -1,22 +1,24 @@
 # Physics
 
-Pine has separate 2D and 3D physics subsystems, each a `namespace Pine::Physics*`. Paths
-relative to `Engine/src/Pine/`.
+Pine has separate 2D and 3D physics subsystems, each a `namespace Pine::Physics*`. Only 3D is
+implemented; 2D is a stub (see below). Paths relative to `Engine/src/Pine/`.
 
 ## Start here
 - `Physics/Physics3D/Physics3D.{hpp,cpp}` — 3D physics, backed by **PhysX 5**.
-- `Physics/Physics2D/` — 2D physics.
+- `Physics/Physics2D/` — 2D physics, **a stub**: no backend is linked and nothing simulates.
 - `Physics/Physics3D/TerrainCollision/` — cooks a `Terrain` into a heightfield collision shape.
 
 ## How it fits together
 - Both subsystems follow the namespace-subsystem pattern: `Setup()`, `Update(deltaTime)`, `Shutdown()`. `World::Update()` calls `Physics3D::Update()` and `Physics2D::Update()` each frame (see [world-ecs.md](world-ecs.md)).
-- The component ↔ physics coupling runs through the component virtuals `OnPrePhysicsUpdate` / `OnPostPhysicsUpdate` on the relevant components:
+- The component ↔ physics coupling runs through the component virtuals `OnPrePhysicsUpdate` / `OnPostPhysicsUpdate`:
   - 3D: `World/Components/RigidBody/`, `World/Components/Collider/`.
   - 2D: `World/Components/RigidBody2D/`, `World/Components/Collider2D/`.
-- **PhysX** is the 3D backend. Its headers/libs live in `third-party/physx/` and are **not committed** (see root `README.md` / `setup-env.sh`); the CMake `physx` target links the static libs. PhysX types (`Px*`) appear only inside `Physics/Physics3D/` — keep them there and expose engine-level types outward.
+  - `Collider` and `Collider2D` override only `OnPrePhysicsUpdate`; the post hook matters for the rigid bodies.
+- `Physics3D::Update` runs, per tick: every `Collider`'s pre hook, then every `RigidBody`'s, then `CharacterController::Simulate`, then `simulate`/`fetchResults`, then the colliders' post hooks, then the rigid bodies'.
+- **PhysX** is the 3D backend. Its headers/libs live in `third-party/physx/` and are **not committed** (see root `README.md` / `setup-env.sh`); the CMake `physx` target links the static libs. PhysX types are **not** confined to `Physics/Physics3D/`: `Collider.hpp`, `RigidBody.hpp` and `CharacterController.hpp` include PhysX and expose `physx::` types in their public API (e.g. `RigidBody::GetRigidBody()`, `RigidBody::ApplyForce(..., physx::PxForceMode::Enum)`, `Collider::CreateCollisionShape()`), `Physics3D.hpp` returns `physx::` pointers, and the script interfaces (`Script/Interfaces/ScriptInterfacePhysics.cpp`, `ScriptInterfaceComponent.cpp`) use them directly. Prefer engine-level types in new public API rather than adding to that.
 
 ## Notes
-- 3D and 2D are independent worlds; a given entity uses one or the other via its component set.
+- **2D physics is a stub.** `Physics2D::Setup`/`Physics2D::Shutdown` are empty, the `b2World` behind `Physics2D::GetWorld()` is always `nullptr`, and Box2D is only forward-declared — it is not linked. `Physics2D::Update` still runs the `Collider2D`/`RigidBody2D` hooks on its own 1/120 s accumulator, but nothing is stepped and `RigidBody2D::OnPostPhysicsUpdate` writes nothing back, so 2D bodies do not move.
 - Component properties are **applied when the PhysX actor is created**, not when the setter runs — `RigidBody::CreateActor()` reads mass, gravity, locks and limits once, and mass goes through `PxRigidBodyExt::setMassAndUpdateInertia` so the inertia tensor follows the collider's shape. Changing a property on a live actor means recreating it.
 
 ## Character controller
@@ -65,7 +67,7 @@ to come down — without the ceiling clamp the controller hangs there spending s
 ## Terrain collision
 
 A terrain gets collision through an ordinary `Collider` of `ColliderType::HeightField`, which sources
-its geometry from the sibling `TerrainRenderer`'s terrain. That is not a terrain special case:
+its geometry from the sibling `TerrainRendererComponent`'s terrain. That is not a terrain special case:
 `ColliderType::ConvexMesh` and `ConcaveMesh` will read their mesh off the sibling `ModelRenderer` in
 exactly the same way. The alternative — the terrain component creating its own actor — would hide
 collision inside a *renderer*, which is the last place anyone would look for it.
@@ -94,14 +96,25 @@ Three things have to agree with the renderer, and all three are derived rather t
 the terrain stores its field row-major in Z. Transposing beats rotating the shape: a rotated height
 field makes every later question about the collision only answerable after applying that rotation.
 
-⚠ **Rotation is ignored** for a height field collider (`Collider::UpdateBody`). A height field has
+⚠ **Rotation is ignored** for a height field collider on its own (`Collider::UpdateBody`). A height field has
 one surface per column by construction, so a rotated terrain is not something the asset or the
 renderer can represent — `TerrainRenderer` places chunks by position alone. Rotating only the
-collision would make the ground you walk on disagree with the ground you see.
+collision would make the ground you walk on disagree with the ground you see. This only holds when
+the entity has no `RigidBody`: then the shape sits on `RigidBody`'s actor, and `RigidBody::UpdateBody`
+applies the transform's rotation whatever the collider type, so keep terrain entities unrotated or
+without a `RigidBody`.
 
 Cooking is fast (a 257² field is a millisecond) but far too slow per frame, so collision is built
-once when the actor is created. **Rebuild by calling `Collider::Reset()`**, which drops the actor and
-lets the next physics update cook a new one — that is what a sculpting stroke will do on mouse-up.
+once when the actor is created. **Rebuild with
+`Physics3D::TerrainCollision::RebuildColliders(terrain)`** once an edit is complete: it calls
+`Collider::Reset()` on every height field collider whose entity renders that terrain, which drops
+the actor carrying the shape - the collider's own, or the sibling `RigidBody`'s through
+`RigidBody::Reset()` - and the next physics update cooks a new one.
+
+The editor calls it at the end of a sculpt stroke (not on each step), when a height stroke is undone
+or redone, and after the terrain properties panel's **Apply Layout** and **Generate From Noise**.
+Painting layer weights does not touch collision. Anything else that edits a terrain's heights has to
+call it too, or the ground you walk on stops matching the ground you see.
 
 ### Verification
 
@@ -116,6 +129,9 @@ that happens to vanish at the origin does not survive one. It repeats that under
 negative chunk origin and a rotated entity, checks the quad diagonal against a hand-built wedge where
 the two possible diagonals differ by the whole raised height, drops a body and requires it to come to
 rest on the ground *where it landed*, and checks that a height field collider with no terrain
-produces no actor at all.
+produces no actor at all. Last, one terrain under two entities - a bare collider and one with a
+static `RigidBody` - is edited: the collision must keep the old ground until
+`TerrainCollision::RebuildColliders` runs and then match the new one on both, and a sculpt stroke
+must leave the collision alone mid-stroke and rebuild it once the stroke ends.
 
 Related: [world-ecs.md](world-ecs.md)

@@ -26,8 +26,12 @@ namespace Pine::Physics3D::TerrainCollision
     // what frees it - there is no second handle to keep, and none to forget.
     //
     // The trade is that any edit re-cooks the whole field. At the sizes a terrain is built for that
-    // is a millisecond, but it is far too slow to run per frame: rebuild on the end of a sculpt
-    // stroke or on save, which for a Collider means calling Reset() and letting the next physics
-    // update build a new actor.
+    // is a millisecond, but it is far too slow to run per frame, so a height field is only rebuilt
+    // once an edit has finished - see RebuildColliders.
     physx::PxShape* CreateShape(const Terrain& terrain, physx::PxMaterial& material);
+
+    // Resets every height field Collider on an entity rendering this terrain, so the next physics
+    // update cooks the terrain's current heights. Call it once an edit to the heights or layout is
+    // complete - at the end of a sculpt stroke, not on each step of one.
+    void RebuildColliders(const Terrain& terrain);
 }

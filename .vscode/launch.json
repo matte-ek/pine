@@ -15,7 +15,11 @@
                 // Enables the localhost HTTP API described in docs/debug-server.md. Harmless
                 // when you are driving the editor by hand; drop it if you would rather not have
                 // the listener running.
-                { "name": "PINE_DEBUG_SERVER", "value": "1" }
+                { "name": "PINE_DEBUG_SERVER", "value": "1" },
+
+                // Logs PVerbose messages, which are dropped otherwise. In the console panel they
+                // stay hidden until "View Verbose" is ticked.
+                { "name": "PINE_VERBOSE", "value": "1" }
 
                 // Forces GLFW onto X11/XWayland. Uncomment on Wayland, e.g. for RenderDoc.
                 // ,{ "name": "PINE_X11", "value": "1" }

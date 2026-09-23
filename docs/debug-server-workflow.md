@@ -188,9 +188,11 @@ Keep a local map from your layout names to the returned IDs and component types.
 
 Four things trip people up here:
 
-- **`ref` names are parent references only.** They address parents of later creations
-  and reparents *within the same request*. To update something you just created, use
-  its returned ID in the next request.
+- **`ref` names reach only a few fields.** Within the same request they address the
+  `parent` of later creations and reparents, and the `target` of `entity.place`,
+  `entity.aim` and `entity.fitCollider` (see [section 5](#5-place-things-accurately)). Every
+  other target, including `entity.update` and all component operations, needs the
+  returned ID in the next request.
 - **Component operations take component IDs**, not entity IDs. `component.add` is the
   exception — it takes the entity.
 - **`properties` is the editing format, `data` is not.** The serialized `data` dump
@@ -247,6 +249,8 @@ bounds, so a prop sitting at 45° gets a box √2 too wide and full of empty spa
 rotated prop keeps a tight volume. It also saves you the two things that are easy to
 get wrong: `Size` is **half-extents before world scale**, and `Position` is an
 unscaled, unrotated world-axis offset that has to account for an off-centre pivot.
+`padding` is pre-scale like `Size`, so on a prop scaled by 3 a `padding` of 0.02 clears
+it by 0.06 world units.
 
 `entity.place`, `entity.aim` and `entity.fitCollider` all accept a batch `ref` as their
 target, so a prop can be created, stood on the ground, turned and given a fitted
@@ -451,7 +455,7 @@ after a level load returns its old result with IDs that no longer exist.
 | --- | --- |
 | Connection refused | Port, Editor process, `PINE_DEBUG_SERVER`, and whether your sandbox shares a network with the Editor. |
 | 400 on an edit | The error's `path` and `operation` index, the running schema, exact property case, entity vs. component ID, all three vector coordinates, and the batch limits. |
-| 409 on a write | Play state is not `stopped`; an import dialog is open; a destination conflict; mouse capture held for an editor-camera write. Read the actual error. |
+| 409 on a write | Play state is not `stopped`; an import dialog is open; an import destination conflict; mouse capture held for an editor-camera write. Read the actual error. A save-as destination conflict is a 400. |
 | 409 on a capture | Viewport selected and visible, perspective camera, valid scene token, entities still alive. A Game capture also needs a selected scene Camera. `/render` needs none of that — use it when the viewport is the problem. |
 | 409 on an asset preview | Only Model and Material assets have one. Everything else is identity and bounds through `/assets/summary`. |
 | 409 on a pick | Capture expired, was evicted, or belongs to a replaced scene. Take a new `/observe` with `picking: true` while stopped. |
@@ -463,7 +467,7 @@ after a level load returns its old result with IDs that no longer exist.
 | 400 from `entity.fitCollider` | No Collider on the entity, no ModelRenderer geometry, a non-Box collider, or a model that is flat on one axis — the last needs `padding`. |
 | Counters disagree with the picture | `/stats` counters are diagnostics. One run reported zero `lightCount` and `vertexCount` over visibly lit geometry; that was never diagnosed. |
 | Preview colours look wrong | Expected. `/asset/preview.png` is the icon pass and gets no display transform; it separates variants, it does not show final appearance. Use `/render`. |
-| Setting the atmosphere changed nothing visible | A scene with no `Light` renders black whatever `AmbientColor` is. Check `/stats.lightCount` before blaming the setting. |
+| Setting the atmosphere changed nothing visible | A scene with no `Light` renders black whatever `AmbientColor` is. Check `/stats.level.lightCount` (or `game.lightCount`) before blaming the setting. |
 | Two captures differ for no reason | `GrainStrength` is animated. Set it to 0 through `/level/settings` before comparing. |
 | Feature missing entirely | Blueprint spawning, play control, material authoring, 2D and viewport switching are not exposed. Use the UI. |
 
@@ -487,8 +491,10 @@ started, with the relevant viewport open.
 Two things to know before running them:
 
 - **Point them at a disposable project, never the user's.** They create entities,
-  import fixtures and write Level files, and not all of them clean up. Each defaults
-  to a different port for this reason.
+  import fixtures and write Level files, and not all of them clean up. Most default to
+  a port of their own for this reason, but `verify-aim.py`, `verify-placement.py` and
+  `verify-spatial.py` share 19041, and `verify-duplication.py` and `verify-import.py`
+  share 19029. Pass `--url` or `--port` to run those side by side.
 - **Order matters between recipes sharing an Editor.** `verify-schema.py` asserts
   `/entities` is unchanged and fails if another recipe ran against that Editor first.
 

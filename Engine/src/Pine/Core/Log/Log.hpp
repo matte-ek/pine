@@ -51,6 +51,12 @@ namespace Pine::Log
     void LogError(const char* fileName, int fileLine, std::string_view str);
     void LogFatal(const char* fileName, int fileLine, std::string_view str);
 
+    // Verbose messages are dropped unless this is on, which it is not by default. They are chatty
+    // enough - every asset load, every undo step - to push real warnings out of the message
+    // history, so they are something to switch on while looking for them.
+    void SetVerboseEnabled(bool enabled);
+    bool IsVerboseEnabled();
+
     // A consistent copy of the message history. Returns a copy rather than a reference because
     // background tasks log too, and the deque is mutated under a lock this leaves held.
     std::deque<LogMessage> GetLogSnapshot();

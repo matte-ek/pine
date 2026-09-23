@@ -6,10 +6,11 @@ doc explains what lives where and how asset paths resolve — easy things to get
 
 ## Top-level layout
 - **`data/engine/`** — built-in engine assets, always loaded (`Assets::LoadAssetsFromDirectory("engine")` during `Engine::Setup`). Holds `shaders/`, `materials/`, `primitive/` (built-in meshes), and `script/` (the compiled `Pine.dll` runtime — see [scripting.md](scripting.md)).
-- **`data/editor/`** — editor-only assets, loaded by the Editor: `fonts/`, `icons/`, `models/` (gizmos), `shaders/`.
-- **`data/game/`** — the standalone game: `game.json` (the game file GameHost reads) and `runtime/`. Not committed.
-- **`data/projects/`** — user projects, one folder each (`gm`, `stress`, `project-template`).
-- **`data/cache/`** — derived data, e.g. `cache/import/`. Safe to delete; regenerated.
+- **`data/editor/`** — editor-only assets, loaded by the Editor: `fonts/`, `icons/`, `models/` (the asset-preview sphere), `shaders/`.
+- **`data/game/`** — the standalone game: `game.json` (the game file GameHost reads). Committed. Its `runtime/` folder is unused; GameHost loads the gameplay assembly from the project (see below).
+- **`data/projects/`** — user projects, one folder each (`gm`, `stress`, `project-template`). Git-ignored, including `project-template`.
+- **`data/import-cache/`** — scratch space the model importer writes embedded textures to while importing (`ModelImporter.cpp`); each file is removed once imported. Safe to delete.
+- **`data/graphics.json`** — the graphics settings the engine reads and writes (`Rendering/GraphicsSettings/`). Git-ignored.
 
 ## Project structure
 A project (`data/projects/<name>/`) has:

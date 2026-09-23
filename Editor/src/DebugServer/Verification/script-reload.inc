@@ -76,6 +76,7 @@
             for (int frame = 0; frame < frames; frame++)
             {
                 Pine::Script::Manager::OnUpdate(1.f / 60.f);
+                Pine::Script::Manager::OnRender(1.f / 60.f);
             }
         };
 
@@ -114,6 +115,17 @@
             "The holder script did not pick up the entity, component, asset and peer script it holds");
         check(reported("Derived", "Acquired") == 1,
             "The derived holder script did not pick up what it holds");
+
+        // OnRender comes from the renderer rather than from World, so it is checked through the
+        // real call site once, on top of the direct dispatch tick() does.
+        {
+            const auto rendersBefore = reported("Ticker", "Renders");
+
+            Pine::RenderManager::Run();
+
+            check(reported("Ticker", "Renders") == rendersBefore + 1,
+                "RenderManager::Run did not dispatch OnRender to a running script exactly once");
+        }
 
         // Pine.Core.GameAssembly.Unload says this when the context it just unloaded is still alive
         // two collections later. It is the only outward sign of a reload that leaked, so the probe
@@ -179,6 +191,8 @@
                 "The holder script lost what it holds after reload " + std::to_string(iteration));
             check(reported("Ticker", "Ticks") > 0,
                 "A script stopped running after reload " + std::to_string(iteration));
+            check(reported("Ticker", "Renders") > 0,
+                "A script stopped rendering after reload " + std::to_string(iteration));
             check(reported("Thrower", "Attempts") > 0,
                 "The throwing script stopped running after reload " + std::to_string(iteration));
 
@@ -203,6 +217,16 @@
         // rebuilds every script instance through a different path than a reload does. A reload
         // after that is the one place the two interact.
         PlayHandler::Stop();
+
+        // A stopped editor renders every frame but must not run scripts in it.
+        {
+            const auto rendersBefore = reported("Ticker", "Renders");
+
+            Pine::RenderManager::Run();
+
+            check(reported("Ticker", "Renders") == rendersBefore,
+                "RenderManager::Run dispatched OnRender with play mode stopped");
+        }
 
         Pine::Script::Manager::ReloadGameAssembly();
 

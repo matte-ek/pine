@@ -300,6 +300,11 @@ void Pine::RigidBody::OnCopied()
     m_EngineCollider = nullptr;
 }
 
+void Pine::RigidBody::Reset()
+{
+    DestroyActor();
+}
+
 void Pine::RigidBody::OnDestroyed()
 {
     Component::OnDestroyed();

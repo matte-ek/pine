@@ -294,12 +294,107 @@
             }
 
             PlayHandler::Stop();
+            resetScene();
+        }
+
+        // Part 5 - edits reach the collision. One terrain under two entities: a bare collider, whose
+        // shape sits on its own actor, and one with a static RigidBody, whose shape sits on the
+        // body's actor instead - the case Collider::Reset has to hand over to RigidBody::Reset.
+        {
+            auto [edited, editedEntity] = buildTerrain("edited", Pine::Vector3f(0.f));
+
+            edited->SetChunkQuads(8);
+            edited->SetChunkSize(8.f);
+            edited->Resize({ 0, 0 }, { 2, 2 });
+
+            const Pine::Vector3f bodyOrigin(100.f, 0.f, 0.f);
+
+            auto bodyEntity = Pine::Entities::Create("edited-body");
+
+            bodyEntity->GetTransform()->SetLocalPosition(bodyOrigin);
+            bodyEntity->AddComponent<Pine::TerrainRendererComponent>()->SetTerrain(edited);
+            bodyEntity->AddComponent<Pine::Collider>()->SetColliderType(Pine::ColliderType::HeightField);
+            bodyEntity->AddComponent<Pine::RigidBody>()->SetRigidBodyType(Pine::RigidBodyType::Static);
+
+            PlayHandler::Play();
+            step(2);
+
+            // Both copies of the ground, checked in one call so neither can be forgotten.
+            const auto sweepBoth = [&](const std::string& what)
+            {
+                sweep((what + ", bare collider").c_str(), edited, Pine::Vector3f(0.f), 9);
+                sweep((what + ", with a RigidBody").c_str(), edited, bodyOrigin, 9);
+            };
+
+            sweepBoth("flat terrain before any edit");
+
+            const float centre = 8.f;
+            const float ceilingY = edited->GetHeightMax() + 10.f;
+            const auto flatHeight = *edited->GetHeightAt(centre, centre);
+
+            for (int z = 6; z <= 10; z++)
+            {
+                for (int x = 6; x <= 10; x++)
+                {
+                    check(edited->SetSampleHeight({ x, z }, flatHeight + 10.f), "The raised block fell outside the field");
+                }
+            }
+
+            // Cooked once, not per frame: until something asks for a rebuild, the collision keeps
+            // the ground it was cooked from. This is also what shows the checks below can fail.
+            step(2);
+
+            const auto stale = groundUnder(centre, centre, ceilingY);
+
+            check(stale.has_value() && close(*stale, flatHeight, 0.05f),
+                "The collision followed a height edit nobody asked it to rebuild for");
+
+            Pine::Physics3D::TerrainCollision::RebuildColliders(*edited);
+            step(2);
+
+            sweepBoth("after RebuildColliders");
+
+            {
+                auto body = bodyEntity->GetComponent<Pine::RigidBody>();
+
+                check(body->GetRigidBody() == nullptr, "The rebuilt static body came back as a dynamic actor");
+            }
+
+            // A sculpt stroke rebuilds once, when it ends. The editor only sculpts while stopped,
+            // when no actors exist to go stale, so this drives TerrainSculpting directly in play
+            // mode to hold the brush to the same rule as every other height edit.
+            Editor::TerrainSculpting::Brush brush;
+
+            brush.Mode = Editor::TerrainSculpting::BrushMode::Raise;
+            brush.Radius = 3.f;
+            brush.Strength = 20.f;
+
+            const Pine::Vector2f strokePoint(4.f, 4.f);
+            const auto beforeStroke = *edited->GetHeightAt(strokePoint.x, strokePoint.y);
+
+            check(Editor::TerrainSculpting::Apply(edited, brush, strokePoint, 0.5f), "The sculpt stroke changed nothing");
+            step(2);
+
+            const auto midStroke = groundUnder(strokePoint.x, strokePoint.y, ceilingY);
+
+            check(midStroke.has_value() && close(*midStroke, beforeStroke, 0.05f),
+                "The collision was rebuilt in the middle of a stroke rather than at its end");
+
+            Editor::TerrainSculpting::EndStroke();
+            step(2);
+
+            check(*edited->GetHeightAt(strokePoint.x, strokePoint.y) > beforeStroke + 1.f, "The stroke did not raise the ground");
+
+            sweepBoth("after a sculpt stroke");
+
+            PlayHandler::Stop();
         }
 
         std::cout << "PASS: one height field shape per terrain, collision matching GetHeightAt across a\n"
                      "      terrain with relief, under an entity offset, a negative chunk origin and a\n"
-                     "      rotated entity, the quad diagonal, a settling dropped body and a collider\n"
-                     "      with no terrain.\n";
+                     "      rotated entity, the quad diagonal, a settling dropped body, a collider\n"
+                     "      with no terrain, and collision rebuilt after RebuildColliders and at the\n"
+                     "      end of a sculpt stroke, with and without a RigidBody.\n";
     }
     catch (const std::exception& exception)
     {

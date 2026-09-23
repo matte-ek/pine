@@ -152,6 +152,11 @@ namespace Pine.Core
                     methods |= ScriptMethods.OnUpdate;
                 }
 
+                if (scriptClass.OnRender != null)
+                {
+                    methods |= ScriptMethods.OnRender;
+                }
+
                 return (int)methods;
             }
             catch (Exception exception)
@@ -202,6 +207,15 @@ namespace Pine.Core
             Invoke(objectHandle, classId, scriptClass => scriptClass.OnUpdate, UpdateArguments);
         }
 
+        [UnmanagedCallersOnly]
+        public static void InvokeOnRender(ulong objectHandle, int classId, float deltaTime)
+        {
+            // Reused for the same reason as UpdateArguments.
+            RenderArguments[0] = deltaTime;
+
+            Invoke(objectHandle, classId, scriptClass => scriptClass.OnRender, RenderArguments);
+        }
+
         // -------------------------------------------------------------------------------------
 
         [Flags]
@@ -209,7 +223,8 @@ namespace Pine.Core
         {
             None = 0,
             OnStart = 1 << 0,
-            OnUpdate = 1 << 1
+            OnUpdate = 1 << 1,
+            OnRender = 1 << 2
         }
 
         // How many collect-and-finalize cycles to give the unload before reporting it as failed.
@@ -221,6 +236,7 @@ namespace Pine.Core
         private static readonly List<ScriptClass> Classes = new List<ScriptClass>();
 
         private static readonly object[] UpdateArguments = new object[1];
+        private static readonly object[] RenderArguments = new object[1];
 
         private static GameLoadContext _context;
         private static Assembly _assembly;
@@ -254,11 +270,13 @@ namespace Pine.Core
                 // here, and the engine has no reason to insist on a particular shape of it.
                 OnStart = MethodOf(type, "OnStart", Type.EmptyTypes);
                 OnUpdate = MethodOf(type, "OnUpdate", new[] { typeof(float) });
+                OnRender = MethodOf(type, "OnRender", new[] { typeof(float) });
             }
 
             public Type Type { get; }
             public MethodInfo OnStart { get; }
             public MethodInfo OnUpdate { get; }
+            public MethodInfo OnRender { get; }
 
             private static MethodInfo MethodOf(Type type, string name, Type[] parameters)
             {

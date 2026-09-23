@@ -22,6 +22,7 @@
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
+#include "Pine/Physics/Physics3D/TerrainCollision/TerrainCollision.hpp"
 #include "Pine/Rendering/Rendering.hpp"
 #include "Pine/World/World.hpp"
 
@@ -626,6 +627,8 @@ namespace
             terrain->SetHeightRange(pendingHeightMin, pendingHeightMax);
             terrain->MarkAsModified();
 
+            Pine::Physics3D::TerrainCollision::RebuildColliders(*terrain);
+
             // The setters reject values they cannot honour, so read back what was actually taken
             // rather than leaving a rejected value sitting in the fields.
             readPendingFromTerrain();
@@ -710,6 +713,8 @@ namespace
         {
             terrain->GenerateFromNoise();
             terrain->MarkAsModified();
+
+            Pine::Physics3D::TerrainCollision::RebuildColliders(*terrain);
         }
     }
 }

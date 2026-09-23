@@ -2,7 +2,7 @@
 
 // The scripting runtime's lifecycle, which is all the rest of the engine needs from it. Hosting
 // the runtime, loading assemblies and reaching managed objects is Script/'s business - see
-// Script/ManagedCall.hpp and Script/GameAssembly/GameAssembly.hpp.
+// Script/ManagedCall/ManagedCall.hpp and Script/GameAssembly/GameAssembly.hpp.
 namespace Pine::Script::Runtime
 {
     // Collect whatever managed objects nothing refers to any more. The editor asks for this after

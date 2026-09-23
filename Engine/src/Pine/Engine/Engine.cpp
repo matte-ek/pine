@@ -39,6 +39,8 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
 {
     m_EngineConfiguration = engineConfiguration;
 
+    Log::SetVerboseEnabled(engineConfiguration.m_VerboseLogging);
+
     // Initially we need to initialize some core stuff, such as libraries
     // and a window (therefore graphics context) before initializing the rest
     // of the engine.

@@ -19,6 +19,7 @@ namespace Pine::Script
         // the ones a class actually declares - or inherits from a script it derives from.
         bool HasOnStart = false;
         bool HasOnUpdate = false;
+        bool HasOnRender = false;
     };
 
     // The game's own managed assembly.
@@ -65,5 +66,6 @@ namespace Pine::Script
 
         void OnStart(const ObjectHandle& script, int classId);
         void OnUpdate(const ObjectHandle& script, int classId, float deltaTime);
+        void OnRender(const ObjectHandle& script, int classId, float deltaTime);
     }
 }

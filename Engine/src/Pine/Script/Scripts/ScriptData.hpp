@@ -25,6 +25,7 @@ namespace Pine
         // class does not have the one about to be dispatched is skipped rather than called.
         bool HasOnStart = false;
         bool HasOnUpdate = false;
+        bool HasOnRender = false;
 
         // The fields of this script the editor shows and the engine stores
         std::vector<ScriptField*> Fields;

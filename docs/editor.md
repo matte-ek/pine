@@ -1,7 +1,10 @@
 # Editor
 
 The `Editor` executable — an ImGui-based scene/asset editor that links the `Engine`
-library. Source is under `Editor/src/` (namespace `Editor`). It is a *host* for the engine:
+library. Source is under `Editor/src/`. Most of it is in `namespace Editor` (`Editor::Gui`,
+`Editor::Projects`, `Editor::DebugServer`, `Editor::Utilities`, ...), but a number of UI pieces are
+top-level namespaces: `PlayHandler`, `Selection`, `Panels::*`, `MenuBar`, `KeybindSystem`, `Gizmo`,
+`Widgets`, `EntityPropertiesPanel`. It is a *host* for the engine:
 it boots the engine, then adds its own UI, rendering contexts and tooling on top.
 
 To operate a running Editor through HTTP, read the
@@ -26,8 +29,11 @@ workflow that uses them.
     queries, bounds and transforms; `Spatial/` shares its model measurement with camera framing.
   - `Observation/`, `Picking/`, `Screenshot/`, `Camera/` — frame-aware captures, retained
     surface picking, PNG output and editor-camera control.
-  - `Persistence/`, `LevelCamera/`, `Import/`, `LogHistory/` — level save/load, game-camera
-    selection, asset import and incremental logs.
+  - `Capture/` — `GET /asset/preview.png` and `POST /render`, offscreen renders of an asset or
+    the scene.
+  - `Catalog/` — `/assets`, `/asset` and `/assets/summary`, asset discovery.
+  - `Persistence/`, `LevelCamera/`, `LevelSettings/`, `Import/`, `LogHistory/` — level
+    save/load, game-camera selection, `/level/settings`, asset import and incremental logs.
   - `Verification/` — per-area Python recipes and native probes; see the
     [workflow guide](debug-server-workflow.md#verifying-a-change-to-the-debug-server-itself).
 
@@ -37,9 +43,10 @@ workflow that uses them.
 1. `Pine::Engine::Setup(...)` with `m_ProductionMode = false` (editor behavior, not game).
 2. `Assets::LoadAssetsFromDirectory("editor")` — load editor-only assets (icons, fonts, gizmo models).
 3. `Projects::SetProject(argv[1])` then `Projects::LoadProjectAssets()` — load the user's project (see [data-and-projects.md](data-and-projects.md)).
-4. `World::SetPaused(true)` — never auto-start simulation in the editor.
-5. Editor subsystems: `LevelEntity::Setup()`, `RenderHandler::Setup()`, `Gui::Setup()`, `Utilities::Script::Setup()`.
-6. `Pine::Engine::Run()` (blocks), then symmetric shutdown.
+4. `Script::Manager::LoadGameAssembly()` on `<project>/runtime-bin/Game.dll` if it exists; otherwise a warning, and scripts are unavailable until the project is built.
+5. `World::SetPaused(true)` — never auto-start simulation in the editor.
+6. Editor subsystems, in order: `LevelEntity::Setup()`, `RenderHandler::Setup()`, `DebugServer::SetupRenderObservation()`, `Gui::Setup()`, `Utilities::Script::Setup()`, and last `DebugServer::Setup()` (a no-op unless `PINE_DEBUG_SERVER` is set).
+7. `Pine::Engine::Run()` (blocks), then shutdown: `DebugServer::Shutdown()`, `Gui::Shutdown()`, `RenderHandler::Shutdown()`, `LevelEntity::Dispose()`, `Pine::Engine::Shutdown()`. `Utilities::Script` has no shutdown.
 
 So: an editor needs a project name as `argv[1]`, and must run with `data/` as the working directory.
 
@@ -50,7 +57,7 @@ So: an editor needs a project name as `argv[1]`, and must run with `data/` as th
 - **Shared UI tooling** in `Gui/Shared/`: `Gizmo/` (2D/3D transform gizmos), `Selection/` + `Other/EntitySelection`, `KeybindSystem/`, `Commands/` (undo/redo-style actions, see `Other/Actions/`), `Widgets/`, `IconStorage/`, `AssetImportSettings/` (the import-settings widgets, shared by the properties panel and the import dialog so the two can't drift).
 - **Dialogs** live in `Gui/Dialogs/`. `AssetImport/` is the import review: dropping files onto the window only *stashes* the paths (the GLFW drop callback runs inside `glfwPollEvents`, no place to compile textures), and the next frame resolves them, shows what each file will do — new, replaces-existing, unsupported, blocked — lets the selection's import settings be edited, and then runs the import a time-budgeted slice per frame. See [assets.md](assets.md) for the phases it drives. Cancelling restores the settings of every row that was re-importing a live asset.
 - **`Other/EditorEntity` / `LevelEntity`** is the editor-only camera/entity used to fly around the Level view; it is *not* part of the user's scene.
-- **Play mode** (`Other/PlayHandler`): `EditorGameState` = Stopped / Playing / Paused; `Play()`/`Pause()`/`Stop()` toggle `World` simulation and script updates without leaving the editor.
+- **Play mode** (`Other/PlayHandler`): `EditorGameState` = Stopped / Playing / Paused. `PlayHandler::Play()` snapshots the level (`Level::CreateFromWorld`) and unpauses `World`; `PlayHandler::Stop()` restores that snapshot, re-pauses, clears the selection and runs the managed GC — **anything changed during play is thrown away on Stop**. The viewport panels only offer Play and Stop: `PlayHandler::Pause()` is called only by the native verification probes, and there is no resume, since `PlayHandler::Play()` asserts the state is Stopped.
 - **Terrain sculpting and painting** (`Gui/Panels/TerrainTools/` + `Other/TerrainSculpting/`): the
   panel carries the brush — mode, radius, strength, falloff, and a layer while painting — and a
   switch that hands the Level viewport's left button over to it, suppressing ImGuizmo and entity
@@ -66,7 +73,7 @@ So: an editor needs a project name as `argv[1]`, and must run with `data/` as th
   the brush is a shader version of the terrain shader (see [rendering.md](rendering.md)), not an
   overlay drawn on top, so it follows uneven ground exactly. `POST /terrain/sculpt` drives the same
   brush over HTTP, painting included.
-- **Editor utilities** in `Utilities/`: `Assets/` (build an import context for dropped files, create/delete assets, refresh), `Scripts/` (compile/reload the project's C# assembly).
+- **Editor utilities** in `Utilities/`: `Assets/` (build an import context for dropped files, create/delete assets, refresh), `Scripts/` (`Utilities::Script`: create a C# source from the template, delete a script's source, and on window focus hot-reload `<project>/runtime-bin/Game.dll` when its write time changed and the game is stopped). The editor does not compile C#; `Game.dll` is built externally, e.g. by the user's IDE.
 
 ## Conventions
 - Panels are stateless-ish immediate-mode code: they read/write engine + selection state each frame rather than holding models. Add a panel by creating a `Gui/Panels/<Name>/` folder and registering it in the `Gui` panel loop.
