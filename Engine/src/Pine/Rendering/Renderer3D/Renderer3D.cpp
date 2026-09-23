@@ -40,9 +40,9 @@ namespace
     // material to carry one.
     Shader* m_TerrainShader = nullptr;
 
-    // What terrain detail always draws with, since only this shader has the detail version. See
-    // PrepareTerrainDetailMesh.
-    Shader* m_GenericShader = nullptr;
+    // What terrain detail always draws with, whatever shader its material names: no other shader
+    // reads placements from the detail storage buffer. See PrepareTerrainDetailMesh.
+    Shader* m_TerrainDetailShader = nullptr;
 
     Graphics::IShaderProgram* m_Shader = nullptr;
     ShaderVersion m_ShaderVersion = 0;
@@ -208,7 +208,7 @@ void Renderer3D::Setup()
     m_DefaultNormalTexture->UploadTextureData(1, 1, 0, Graphics::TextureFormat::RGBA, Graphics::TextureDataFormat::UnsignedByte, flatNormal);
 
     m_TerrainShader = Assets::Get<Shader>("engine/shaders/3d/terrain");
-    m_GenericShader = Assets::Get<Shader>("engine/shaders/3d/generic");
+    m_TerrainDetailShader = Assets::Get<Shader>("engine/shaders/3d/terrain-detail");
 
     ShaderStorages::Matrix.Create();
     ShaderStorages::Instance.Create();
@@ -226,7 +226,7 @@ void Renderer3D::Shutdown()
     m_DefaultTexture = nullptr;
     m_DefaultNormalTexture = nullptr;
     m_TerrainShader = nullptr;
-    m_GenericShader = nullptr;
+    m_TerrainDetailShader = nullptr;
 
     ShaderStorages::Matrix.Dispose();
     ShaderStorages::Instance.Dispose();
@@ -327,30 +327,27 @@ bool Renderer3D::PrepareTerrainDetailMesh(Mesh* mesh)
 
     m_Material = ResolveMaterial(mesh);
 
-    if (m_Material == nullptr || m_GenericShader == nullptr || !m_GenericShader->HasShaderVersion(0))
+    if (m_Material == nullptr || m_TerrainDetailShader == nullptr || !m_TerrainDetailShader->HasShaderVersion(0))
     {
         return false;
     }
 
-    auto version = static_cast<ShaderVersion>(Specifications::ShaderVersions::Generic::TerrainDetail);
+    const auto version = static_cast<ShaderVersion>(m_Material->GetRenderingMode() == MaterialRenderingMode::Opaque
+        ? Specifications::ShaderVersions::TerrainDetail::Default
+        : Specifications::ShaderVersions::TerrainDetail::Discard);
 
-    if (m_Material->GetRenderingMode() != MaterialRenderingMode::Opaque)
-    {
-        version |= static_cast<ShaderVersion>(Specifications::ShaderVersions::Generic::Discard);
-    }
-
-    const bool isVersionCompiled = m_GenericShader->HasShaderVersion(version);
+    const bool isVersionCompiled = m_TerrainDetailShader->HasShaderVersion(version);
 
     if (!isVersionCompiled ||
-        m_GenericShader->GetProgram(version) != m_Shader ||
+        m_TerrainDetailShader->GetProgram(version) != m_Shader ||
         m_ShaderVersion != version ||
-        !m_GenericShader->IsRendererReady(version))
+        !m_TerrainDetailShader->IsRendererReady(version))
     {
-        SetShader(m_GenericShader, version);
+        SetShader(m_TerrainDetailShader, version);
     }
 
     // SetShader falls back to the default program when the version does not compile, and that
-    // program would place every copy from the Instances block.
+    // program has no alpha test: foliage would draw as solid cards.
     if (m_Shader == nullptr || m_ShaderVersion != version)
     {
         return false;
@@ -656,12 +653,8 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
         ? m_Shader->GetUniformVariable("brushRing")
         : nullptr;
 
-    // Only exists in the generic shader's terrain detail versions, for the same reason.
-    const auto detailBit = static_cast<ShaderVersion>(Specifications::ShaderVersions::Generic::TerrainDetail);
-
-    m_DetailFade = shader == m_GenericShader && (version & detailBit) != 0
-        ? m_Shader->GetUniformVariable("detailFade")
-        : nullptr;
+    // Only exists in the terrain detail shader, for the same reason.
+    m_DetailFade = shader == m_TerrainDetailShader ? m_Shader->GetUniformVariable("detailFade") : nullptr;
 }
 
 void Renderer3D::PrepareScene(const Vector3f ambientColor, const Vector4f fogColor, const float fogDistance, const float fogIntensity)

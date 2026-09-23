@@ -99,13 +99,7 @@ namespace Pine::Renderer3D::Specifications
             // Writes the surface's real alpha instead of a constant 1. Only this version does:
             // the resolve pass forwards the scene buffer's alpha to the final image, so an
             // opaque surface writing anything below 1 would show through the composite.
-            Transparent = (1 << 2),
-
-            // Draws terrain detail: every instance's placement is read from the storage buffer at
-            // StorageBuffers::TERRAIN_DETAIL_INSTANCES rather than from the Instances block, which
-            // keeps one transform and one set of light slots for the whole draw. See
-            // Renderer3D::RenderTerrainDetail.
-            TerrainDetail = (1 << 3)
+            Transparent = (1 << 2)
         };
 
         enum class Terrain
@@ -115,6 +109,16 @@ namespace Pine::Renderer3D::Specifications
             // Tints the ground under the editor's sculpting brush. Editor-only: nothing in a built
             // game asks for this version, so the shader is never compiled with it.
             Brush = (1 << 0)
+        };
+
+        // The terrain detail shader always reads each copy's placement from the storage buffer at
+        // StorageBuffers::TERRAIN_DETAIL_INSTANCES; see Renderer3D::RenderTerrainDetail.
+        enum class TerrainDetail
+        {
+            Default = 0,
+
+            // Alpha-tested, for every material that is not Opaque.
+            Discard = (1 << 0)
         };
     }
 

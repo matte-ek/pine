@@ -116,7 +116,8 @@ namespace Pine::Renderer3D::ShaderStorages
     };
 
     // One terrain detail placement as the storage buffer holds it. Mirrors 'TerrainDetailInstance'
-    // in shaders/3d/generic/generic.vertex.glsl, laid out for std430: two vec4s, so no padding.
+    // in shaders/3d/terrain-detail/terrain-detail.vertex.glsl, laid out for std430: two vec4s, so no
+    // padding.
     struct TerrainDetailInstanceData
     {
         // xyz the terrain-local position, w the uniform scale.

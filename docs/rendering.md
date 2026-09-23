@@ -422,14 +422,15 @@ world light can reach the same surface. The directional light is global and alwa
 until the object or a light moves, a light is added/removed, or a light changes type.
 
 ⚠ **`COUNT` is capped at 7 by the shader, not by anything in C++.** The varying block in
-`shared/vertex-data.glsl`, used by both the generic and terrain shaders, carries `lightDir[8]`, of which `[0]` is the directional light and `[1..7]` are these slots.
+`shared/vertex-data.glsl`, used by the generic, terrain and terrain detail shaders, carries `lightDir[8]`, of which `[0]` is the directional light and `[1..7]` are these slots.
 Going past 7 means growing that array and costs three interpolated floats per fragment on *every*
 material, so 6→7 was free in a way 7→8 is not.
 
 ⚠ **The C++ side derives from `Specifications::ObjectLightSlots`; the shaders do not.**
 `SceneLightsProcessing.cpp` and `Renderer3D::AddLight` use its constants, but the shader side is
 hard-coded: the unrolled subscripts in `shared/vertex-data.glsl` (`writeLightIndices`,
-`writeLightDirections`), `generic.fragment.glsl` and `terrain.fragment.glsl`, plus the literal
+`writeLightDirections`) and `shared/lightning/lightning.glsl` (`CalculatePointLights`,
+`CalculateSpotLights`, which every lit shader calls rather than copying), plus the literal
 sizes in `ShaderStorages.hpp` (`LightIndices[8]`), `shared/common.glsl` (`ivec4 lightIndices[2]`)
 and the `8` loop in `Renderer3D::FrameReset`. Change the layout and nothing tells you about these.
 
@@ -733,27 +734,27 @@ stalling one.
 
 **Drawing** happens in the scene pass only, right after the `Discard` batch: one instanced draw per
 (visible chunk, detail type, mesh), culled against the chunk's box grown by the model's reach.
-`Renderer3D::PrepareTerrainDetailMesh` selects the generic shader's `VERSION_TERRAIN_DETAIL`
-(bit 8). That version reads each copy's placement from a shader storage block at
+`Renderer3D::PrepareTerrainDetailMesh` draws them with their own shader,
+`engine/shaders/3d/terrain-detail`. It reads each copy's placement from a shader storage block at
 `Specifications::StorageBuffers::TERRAIN_DETAIL_INSTANCES`, which `Shader::CompileShader` injects as
 `TERRAIN_DETAIL_INSTANCE_BINDING`, instead of from `instances[gl_InstanceID]`. `instances[0]` still
 carries what every copy shares: the terrain's translation and the chunk's light slots
-(`writeLightIndices(0)`). The storage block is why `generic.vertex.glsl` is `#version 430`. Copies
+(`writeLightIndices(0)`). The storage block is why `terrain-detail.vertex.glsl` is `#version 430`.
+Lighting, shadows and fog come from the same `shared/` includes the generic and terrain shaders
+use, so foliage-only shading belongs in this shader rather than in `generic`. Copies
 shrink into the ground between 80% and 100% of the draw distance instead of popping out.
 
 Things worth knowing:
 
-- ⚠ **Detail always draws through `engine/shaders/3d/generic`**, whatever shader the model's
-  material names, because no other shader has the detail version. Any other program would place
-  every copy from the Instances block, which is why `PrepareTerrainDetailMesh` returns false (and
-  the draw is skipped) rather than falling back. The material still supplies the textures, colours,
-  rendering mode and render face.
+- ⚠ **Detail always draws through `engine/shaders/3d/terrain-detail`**, whatever shader the
+  model's material names, because no other shader reads the placements. The material still supplies
+  the textures, colours, rendering mode and render face.
 - **`Transparent` materials are drawn as `Discard`**: there is no sorted blend pass around the
   detail. A `Both` material turns face culling off for its draws, the same as the object batch.
 - **No depth pre-pass and no shadows.** Like a `Discard` material, detail is absent from the
   pre-pass, so ambient occlusion does not see it. It casts no shadows, which also keeps it out of
-  the flashlight's per-frame shadow redraw. It does *receive* them through the generic fragment
-  path.
+  the flashlight's per-frame shadow redraw. It does *receive* them, through the shared
+  lighting includes.
 - **No model LOD and no collision.** Detail always draws LOD0, and nothing collides with it.
 - `RenderingStatistics::TerrainDetailInstanceCount` counts the copies the scene pass drew. `/stats`
   reports it as `terrainDetailInstances`, and the profiler panel as "Terrain detail".

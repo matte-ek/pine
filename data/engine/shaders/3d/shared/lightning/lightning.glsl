@@ -136,3 +136,30 @@ vec3 CalculateSpotLight(Surface surface, int index, vec3 lightDirection)
 
     return result.diffuse + result.specular;
 }
+
+// Point lights occupy instance light slots 0-4; their directions are vIn.lightDir[1..5]. Written
+// out with literal subscripts for the reason given in shared/vertex-data.glsl.
+vec3 CalculatePointLights(Surface surface)
+{
+    vec3 lightColorOutput = vec3(0.f);
+
+    if (vIn.lightIndices[0] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[0], vIn.lightDir[1]);
+    if (vIn.lightIndices[1] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[1], vIn.lightDir[2]);
+    if (vIn.lightIndices[2] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[2], vIn.lightDir[3]);
+    if (vIn.lightIndices[3] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[3], vIn.lightDir[4]);
+    if (vIn.lightIndices[4] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[4], vIn.lightDir[5]);
+
+    return lightColorOutput;
+}
+
+// Spot lights occupy instance light slots 5-6; their directions are vIn.lightDir[6..7]. Same
+// literal-subscript rule as the point lights above.
+vec3 CalculateSpotLights(Surface surface)
+{
+    vec3 lightColorOutput = vec3(0.f);
+
+    if (vIn.lightIndices[5] != 0) lightColorOutput += CalculateSpotLight(surface, vIn.lightIndices[5], vIn.lightDir[6]);
+    if (vIn.lightIndices[6] != 0) lightColorOutput += CalculateSpotLight(surface, vIn.lightIndices[6], vIn.lightDir[7]);
+
+    return lightColorOutput;
+}

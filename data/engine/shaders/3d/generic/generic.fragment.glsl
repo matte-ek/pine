@@ -9,6 +9,7 @@ layout(location = 0) out vec4 m_OutputColor;
 #include "shared/common.glsl"
 #include "shared/vertex-data.glsl"
 #include "shared/lightning/lightning.glsl"
+#include "shared/fog.glsl"
 
 uniform MaterialSamplers matSamplers;
 uniform bool hasTangentData;
@@ -43,34 +44,6 @@ Surface CreateSurface()
     }
 
     return surface;
-}
-
-// Point lights occupy instance light slots 0-4; their directions are vIn.lightDir[1..5].
-// Literal subscripts on purpose: indexing vIn.lightDir[i + 1] in a loop reads garbage on some
-// drivers (seen on NVIDIA).
-vec3 CalculatePointLights(Surface surface)
-{
-    vec3 lightColorOutput = vec3(0.f);
-
-    if (vIn.lightIndices[0] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[0], vIn.lightDir[1]);
-    if (vIn.lightIndices[1] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[1], vIn.lightDir[2]);
-    if (vIn.lightIndices[2] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[2], vIn.lightDir[3]);
-    if (vIn.lightIndices[3] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[3], vIn.lightDir[4]);
-    if (vIn.lightIndices[4] != 0) lightColorOutput += CalculatePointLight(surface, vIn.lightIndices[4], vIn.lightDir[5]);
-
-    return lightColorOutput;
-}
-
-// Spot lights occupy instance light slots 5-6; their directions are vIn.lightDir[6..7]. Same
-// literal-subscript rule as the point lights above.
-vec3 CalculateSpotLights(Surface surface)
-{
-    vec3 ret = vec3(0.f);
-
-    if (vIn.lightIndices[5] != 0) ret += CalculateSpotLight(surface, vIn.lightIndices[5], vIn.lightDir[6]);
-    if (vIn.lightIndices[6] != 0) ret += CalculateSpotLight(surface, vIn.lightIndices[6], vIn.lightDir[7]);
-
-    return ret;
 }
 
 void main(void)
@@ -121,13 +94,7 @@ void main(void)
     m_OutputColor.a = surfaceAlpha;
 #endif
 
-    // Distance fog. fogSettings.x = view distance, fogSettings.y = intensity (0 disables it).
-    // Classic linear fog: blends toward fogColor from the camera out to the view distance.
-    if (world.fogSettings.y > 0.0)
-    {
-        float fogFactor = clamp(vIn.cameraDistance / max(world.fogSettings.x, 0.001), 0.0, 1.0) * world.fogSettings.y;
-        m_OutputColor.rgb = mix(m_OutputColor.rgb, world.fogColor.rgb, fogFactor);
-    }
+    m_OutputColor.rgb = ApplyDistanceFog(m_OutputColor.rgb);
 
     #shader postFragment
 }

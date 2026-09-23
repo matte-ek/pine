@@ -1,0 +1,8 @@
+{
+	"SourceFiles": [
+		"terrain-detail/terrain-detail.vertex.glsl",
+		"terrain-detail/terrain-detail.fragment.glsl"
+	],
+	"Data": {
+	}
+}
