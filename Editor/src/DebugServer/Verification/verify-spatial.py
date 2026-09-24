@@ -167,9 +167,9 @@ try:
     assert entries[0]['bounds'] == entries[1]['bounds'] == result['combinedBounds']
     assert entries[2]['bounds'] is None and entries[3]['bounds'] is None
     close_vector(entries[1]['bounds']['dimensions'], (12, 4, 6))
-    close_vector(entries[1]['bounds']['center'], (11, 3, 3))
+    close_vector(entries[1]['bounds']['center'], (4, 3, 3))
     close_vector(entries[1]['localTransform']['position'], (1, 2, 3))
-    close_vector(entries[1]['worldTransform']['position'], (11, 3, 3))
+    close_vector(entries[1]['worldTransform']['position'], (4, 3, 3))
     close_vector(entries[1]['worldTransform']['scale'], (-2, 6, 3))
     close_vector(entries[1]['right'], (0, 1, 0))
     close_vector(entries[1]['up'], (-1, 0, 0))
@@ -194,11 +194,11 @@ try:
     temporary = next(item['id'] for item in baseline_entities['entities'] if item['temporary'])
     request('/spatial/query', {'entities': [{'id': temporary}]}, expected=400)
 
-    ray = {'origin': vector(11, 3, 10), 'direction': vector(0, 0, -5), 'maxDistance': 10}
+    ray = {'origin': vector(4, 3, 10), 'direction': vector(0, 0, -5), 'maxDistance': 10}
     hit = request('/spatial/raycast', ray)
     assert hit['sceneGeneration'] == result['sceneGeneration']
     assert hit['hit']['entity'] == box and hit['hit']['geometry'] == 'model-surface'
-    close_vector(hit['hit']['position'], (11, 3, 6))
+    close_vector(hit['hit']['position'], (4, 3, 6))
     close_vector(hit['hit']['normal'], (0, 0, 1))
     assert abs(hit['hit']['distance'] - 4) < .0001
     tiny_direction = request('/spatial/raycast', {**ray, 'direction': vector(0, 0, -1e-200)})
@@ -206,15 +206,15 @@ try:
     assert request('/spatial/raycast', {**ray, 'maxDistance': 3})['hit'] is None
     assert request('/spatial/raycast', {**ray, 'maxDistance': 4})['hit'] is not None
     assert request('/spatial/raycast', {**ray, 'exclude': [{'id': parent}]})['hit'] is None
-    inside = request('/spatial/raycast', {**ray, 'origin': vector(11, 3, 3)})['hit']
-    close_vector(inside['position'], (11, 3, 0))
+    inside = request('/spatial/raycast', {**ray, 'origin': vector(4, 3, 3)})['hit']
+    close_vector(inside['position'], (4, 3, 0))
     close_vector(inside['normal'], (0, 0, 1))
-    overlap = {'bounds': {'min': vector(10, 2, 2), 'max': vector(12, 4, 4)}}
+    overlap = {'bounds': {'min': vector(3, 2, 2), 'max': vector(5, 4, 4)}}
     matches = request('/spatial/overlap', overlap)
     assert matches['geometry'] == 'world-bounds' and matches['total'] == 1 and not matches['truncated']
     assert matches['entities'][0]['id'] == box
     assert request('/spatial/overlap', {**overlap, 'exclude': [{'id': parent}]})['total'] == 0
-    touching = {'bounds': {'min': vector(11, 3, 6), 'max': vector(11, 3, 6)}}
+    touching = {'bounds': {'min': vector(4, 3, 6), 'max': vector(4, 3, 6)}}
     assert request('/spatial/overlap', touching)['total'] == 1
 
     for path, payload in [('/spatial/raycast', ray), ('/spatial/overlap', overlap)]:
@@ -239,16 +239,18 @@ try:
     assert request('/level/status') == baseline_level
     assert request('/entities') == baseline_entities
 
-    # An immediate read sees edits, including inactive/static models; no capture or sleep.
+    # An immediate read sees edits, including inactive/static models; no capture or sleep. The new
+    # local position moves the box by (3, 3, 3) through the parent's rotation and scale, which keeps
+    # it inside the overlap query.
     edit([{'op': 'entity.update', 'target': {'id': box}, 'properties': {'static': True, 'active': False}},
           {'op': 'component.update', 'target': {'id': box_transform},
-           'properties': {'LocalPosition': vector(4, 5, 6)}}])
+           'properties': {'LocalPosition': vector(2.5, 1, 6)}}])
     changed = measure([box])['entities'][0]['bounds']
-    close_vector(changed['center'], (14, 6, 6))
-    moved_ray = {**ray, 'origin': vector(14, 6, 12)}
+    close_vector(changed['center'], (7, 6, 6))
+    moved_ray = {**ray, 'origin': vector(7, 6, 12)}
     assert request('/spatial/raycast', moved_ray)['hit'] is None
     moved_hit = request('/spatial/raycast', {**moved_ray, 'includeInactive': True})['hit']
-    close_vector(moved_hit['position'], (14, 6, 9))
+    close_vector(moved_hit['position'], (7, 6, 9))
     assert request('/spatial/overlap', overlap)['total'] == 0
     assert request('/spatial/overlap', {**overlap, 'includeInactive': True})['total'] == 1
     framed = request('/camera/frame', {'entities': [{'id': box}], 'includeChildren': False})

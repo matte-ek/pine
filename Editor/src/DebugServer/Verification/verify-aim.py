@@ -232,7 +232,8 @@ invalid += [{key: value for key, value in operation.items() if key != field}
 for bad in invalid:
     states = [entity(item) for item in watched]
     history, level, tree = request('/history'), request('/level/status'), request('/entities')
-    rejected = edit([update(parent, {'LocalScale': vec(1, 2, 3)}), bad], expected=400)
+    # A valid earlier operation that leaves the lamp where `position` measured it; a parent edit would move it.
+    rejected = edit([update(wall, {'LocalScale': vec(1, 2, 3)}), bad], expected=400)
     assert rejected['phase'] == 'validation' and rejected['completed'] == 0 and rejected['operation'] == 1
     assert [entity(item) for item in watched] == states
     assert request('/history') == history and request('/level/status') == level and request('/entities') == tree

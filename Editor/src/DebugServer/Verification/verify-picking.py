@@ -177,13 +177,22 @@ try:
 
     angle = math.radians(25)
     normal = vector(math.sin(angle), 0, math.cos(angle))
+    parent_position = vector(1, 2, 0)
+    parent_scale = vector(2, 1.5, 1)
+
+    def wall_local(world):
+        """The wall's local position for a world position: the parent's translation, rotation and scale undone."""
+        x, y, z = (world[axis] - parent_position[axis] for axis in 'xyz')
+        x, z = x * math.cos(angle) - z * math.sin(angle), x * math.sin(angle) + z * math.cos(angle)
+        return vector(x / parent_scale['x'], y / parent_scale['y'], z / parent_scale['z'])
+
     created = edit([
         {'op': 'entity.create', 'ref': 'parent', 'components': [
-            {'type': 'Transform', 'properties': {'LocalPosition': vector(1, 2, 0),
-             'LocalScale': vector(2, 1.5, 1),
+            {'type': 'Transform', 'properties': {'LocalPosition': parent_position,
+             'LocalScale': parent_scale,
              'LocalRotation': {'x': 0, 'y': math.sin(angle / 2), 'z': 0, 'w': math.cos(angle / 2)}}}]},
         {'op': 'entity.create', 'ref': 'wall', 'parent': {'ref': 'parent'}, 'components': [
-            {'type': 'Transform', 'properties': {'LocalPosition': vector(-1, -2, 0), 'LocalScale': vector(2, 2, .25)}},
+            {'type': 'Transform', 'properties': {'LocalPosition': wall_local(vector(0, 0, 0)), 'LocalScale': vector(2, 2, .25)}},
             {'type': 'ModelRenderer', 'properties': {'Model': {'path': 'engine/primitive/cube'}}}]},
         {'op': 'entity.create', 'ref': 'light', 'components': [
             {'type': 'Transform', 'properties': {'LocalPosition': vector(2, 4, 5)}},
@@ -228,7 +237,7 @@ try:
     check_wall_hit(pick(back), wall, {axis: -normal[axis] for axis in 'xyz'}, .25)
     request('/camera', camera['state'])
     edit([{'op': 'component.update', 'target': {'id': ids['Transform']},
-           'properties': {'LocalPosition': vector(-1, -2, -2)}}])
+           'properties': {'LocalPosition': wall_local(vector(0, 0, -2))}}])
     assert pick(first) == centre
     moved = observe('moved-wall')
     check_wall_hit(pick(moved), wall, normal, .25 - 2 * normal['z'])

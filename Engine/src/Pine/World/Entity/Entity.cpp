@@ -155,6 +155,13 @@ const std::string& Pine::Entity::GetName() const
 void Pine::Entity::SetParent(Entity* entity)
 {
     m_Parent = entity;
+
+    // The world transform is composed from the parent's. An entity that is still being loaded, or
+    // is being destroyed, has no Transform to update.
+    if (!m_Components.empty())
+    {
+        GetTransform()->SetDirty();
+    }
 }
 
 Pine::Entity* Pine::Entity::GetParent() const

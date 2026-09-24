@@ -11,9 +11,6 @@
 namespace
 {
     // Recompute the object's world-space bounds from the model's local bounding box.
-    //
-    // Built from the transform's position/rotation/scale rather than its transformation matrix,
-    // which in production mode is not rebuilt until RenderBatch, after culling needs this.
     void UpdateWorldBounds(Pine::ModelRenderer& modelRenderer)
     {
         auto& data = modelRenderer.GetRenderingHintData();

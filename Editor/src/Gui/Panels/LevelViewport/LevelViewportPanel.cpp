@@ -163,8 +163,6 @@ namespace
         auto selectedEntity = Selection::GetSelectedEntities()[0];
         auto transform = selectedEntity->GetTransform();
 
-        transform->SetDirty();
-
         Pine::Matrix4f matrix = transform->GetTransformationMatrix();
         Pine::Matrix4f deltaMatrix;
 
@@ -212,26 +210,15 @@ namespace
 
             selectedEntity->SetDirty(true);
 
-            if (selectedEntity->GetParent() != nullptr)
-            {
-                glm::decompose(deltaMatrix, scale, rotation, position, skew, perspective);
+            // The manipulated matrix is the world transform, so it goes through the world setters.
+            glm::decompose(matrix, scale, rotation, position, skew, perspective);
 
-                if (m_GizmoMode == GizmoMode::Translate)
-                    transform->SetLocalPosition(transform->GetLocalPosition() + position);
-                if (m_GizmoMode == GizmoMode::Rotate)
-                    transform->SetLocalRotation(transform->GetLocalRotation() * rotation);
-            }
-            else
-            {
-                glm::decompose(matrix, scale, rotation, position, skew, perspective);
-
-                if (m_GizmoMode == GizmoMode::Translate)
-                    transform->SetLocalPosition(position);
-                if (m_GizmoMode == GizmoMode::Rotate)
-                    transform->SetLocalRotation(rotation);
-                if (m_GizmoMode == GizmoMode::Scale)
-                    transform->SetLocalScale(scale);
-            }
+            if (m_GizmoMode == GizmoMode::Translate)
+                transform->SetPosition(position);
+            if (m_GizmoMode == GizmoMode::Rotate)
+                transform->SetRotation(rotation);
+            if (m_GizmoMode == GizmoMode::Scale)
+                transform->SetScale(scale);
 
             if (Selection::GetSelectedEntities().size() > 1)
             {
@@ -245,18 +232,15 @@ namespace
                     auto entityTransform = entity->GetTransform();
 
                     if (m_GizmoMode == GizmoMode::Translate)
-                        entityTransform->SetLocalPosition(entityTransform->GetLocalPosition() + position);
+                        entityTransform->SetPosition(entityTransform->GetPosition() + position);
                     if (m_GizmoMode == GizmoMode::Rotate)
                         entityTransform->SetLocalRotation(entityTransform->GetLocalRotation() * rotation);
                     if (m_GizmoMode == GizmoMode::Scale)
                         entityTransform->SetLocalScale(entityTransform->GetLocalScale() + scale);
 
-                    entityTransform->OnRender(0.f);
                     entity->SetDirty(true);
                 }
             }
-
-            transform->OnRender(0.f);
         }
 
         ImGui::GetWindowDrawList()->PopClipRect();

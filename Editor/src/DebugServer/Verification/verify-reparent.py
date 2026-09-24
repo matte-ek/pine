@@ -135,8 +135,8 @@ edit([{'op': 'entity.update', 'target': {'id': target}, 'properties': properties
 original_components = {target: entity(target)['components'] for target in [group, cube]}
 
 # Local values and identities survive attach/detach, including static descendants.
-# Pine adds positions independently of rotation/scale. Rotation order is parent * local.
-original_half = bounds(cube, (-2, 1, 0))
+# A child sits in its parent's space: scaled, rotated, then translated. Rotation order is parent * local.
+original_half = bounds(cube, (-2, 0, 1))
 wide_view = request('/camera/frame', {'entities': [{'id': left}, {'id': right}], 'padding': 3})
 camera_state = request('/camera')['state']
 before = observe(wide_view['observationToken'], entity_ids, 'before')
@@ -145,7 +145,7 @@ assert moved['results'][0]['entity']['parent'] == {'id': right}
 after = observe(moved['observationToken'], entity_ids, 'reparented')
 assert after != before
 assert_tree({left: None, right: None, group: right, cube: group})
-moved_half = bounds(cube, (4, 1, 0))
+moved_half = bounds(cube, (3, 2, 3))
 expected_half = [original_half[1], original_half[0] * 2, original_half[2] * 3]
 assert all(math.isclose(a, b, abs_tol=1e-5) for a, b in zip(moved_half, expected_half))
 for target in [group, cube]:
@@ -160,7 +160,7 @@ detached = edit([reparent(group, None)])
 detached_png = observe(detached['observationToken'], entity_ids, 'detached')
 assert detached_png != after
 assert_tree({left: None, right: None, group: None, cube: group})
-bounds(cube, (1, 1, 0))
+bounds(cube, (1, 0, 1))
 for target in [group, cube]:
     assert entity(target)['components'] == original_components[target]
 root_tree = request('/entities')
@@ -223,7 +223,7 @@ patched = edit([
     reparent(group, {'id': right})
 ])
 assert patched['results'][1]['entity']['components'][0]['properties']['LocalPosition'] == vector(2, 0, 0)
-bounds(cube, (5, 1, 0))
+bounds(cube, (3, 4, 3))
 
 # Identified retries must not move the entity back after another edit.
 key = uuid.uuid4().hex

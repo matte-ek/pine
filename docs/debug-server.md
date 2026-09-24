@@ -89,17 +89,15 @@ Reads stay available during play; so do the editor-camera routes. `/spatial/rayc
 and `/spatial/overlap` are reads that nonetheless require stopped mode, because they
 read live GPU mesh data.
 
-**Coordinate and hierarchy semantics.** Pine's `Transform` is not a conventional
-scene graph, and the API exposes that faithfully:
+**Coordinate and hierarchy semantics.** A child is placed in its parent's space:
 
-- World position = parent world position **+** local position. Parent rotation and
-  scale do **not** rotate or scale the child's positional offset.
+- World position = parent world position + parent world rotation × (parent world
+  scale × local position). Rotating or scaling a group moves its children with it.
 - World rotation = parent world rotation × local rotation.
-- World scale = parent world scale × local scale, component by component.
+- World scale = parent world scale × local scale, component by component. A
+  non-uniform scale never skews a rotated child, as in Unreal's `FTransform`.
 
-So scaling or rotating a group does not lay out its children the way a conventional
-engine would. Use explicit positions for repeated modules. Entity `active` and
-`static` flags likewise apply only to the entity itself and do not propagate to
+Entity `active` and `static` flags apply only to the entity itself and do not propagate to
 children; an inactive parent gates its own components without disabling descendants.
 Zero and negative scales are valid throughout.
 
@@ -1047,9 +1045,9 @@ are fine. Flags accept JSON booleans only. Calls `SetName`/`SetActive`/`SetStati
 and marks the entity dirty. Static entities remain editable through this API.
 
 ### `entity.reparent`
-Preserves **local** position, rotation and scale exactly. There is no
-world-preservation mode and no matrix decomposition — see the hierarchy semantics
-under [Conventions](#conventions) for what that means in practice.
+Preserves **local** position, rotation and scale exactly, so the target moves with
+its new parent's transform. There is no world-preservation mode and no matrix
+decomposition — see the hierarchy semantics under [Conventions](#conventions).
 `/edit/schema` advertises this at `entity.reparent.transformPreservation`.
 
 Moves the target with all descendants, preserving entity and component IDs, local

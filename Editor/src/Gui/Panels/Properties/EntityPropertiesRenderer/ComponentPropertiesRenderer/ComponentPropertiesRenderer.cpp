@@ -45,8 +45,6 @@ namespace
         auto rotation = isApplyingRotation ? eulerAngles : transform->GetEulerAngles();
         auto scale = transform->GetLocalScale();
 
-        transform->SetDirty();
-
         if (Widgets::Vector3("Position", position))
         {
             CreateComponentCommand updateCmd(transform, CommandType::Update);

@@ -197,11 +197,10 @@ Four things trip people up here:
   exception — it takes the entity.
 - **`properties` is the editing format, `data` is not.** The serialized `data` dump
   from `/entity` contains numeric enums and opaque fields. Send back `properties`.
-- **Pine's hierarchy is additive, not a scene graph.** Parent position adds to child
-  position, but parent rotation and scale do **not** rotate or scale the child's
-  positional offset. Rotations compose and scales multiply. So a scaled group does not
-  lay out like you expect — use explicit positions and scales for repeated modules.
-  Entity `active`/`static` flags likewise do not propagate to children.
+- **Groups carry their children.** A child's local position is in its parent's
+  space, so rotating or scaling a group rotates and spreads the children with it.
+  Scales still multiply down the hierarchy (see above). Entity `active`/`static`
+  flags do not propagate to children.
 
 Execute dependent mutations sequentially. Everything runs on the editor's main thread,
 and racing edits against camera moves and saves only makes ordering harder to reason

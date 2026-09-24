@@ -64,6 +64,16 @@ namespace
         }
     }
 
+    // The local position that puts an entity at a world position under this parent: Transform's
+    // composition undone. Under a parent scaled to zero on some axis it is not finite, which
+    // RequireFinite then rejects.
+    glm::dvec3 LocalPosition(const Placement::WorldTransform& parent, const glm::dvec3& position)
+    {
+        const auto offset = glm::inverse(glm::dquat(parent.Rotation)) * (position - glm::dvec3(parent.Position));
+
+        return offset / glm::dvec3(parent.Scale);
+    }
+
     Editor::DebugServer::Spatial::Bounds ModelBounds(
         const Editor::DebugServer::Editing::Duplication::EntityState& entity, const std::string& path,
         const Placement::WorldTransform& transform = {})
@@ -269,9 +279,10 @@ Placement::WorldTransform Placement::Compose(const WorldTransform& parent, const
 
     WorldTransform world;
 
-    // These are Pine's public GetPosition/GetRotation/GetScale semantics, not matrix parenting.
-    // Validation normalizes quaternions, but untouched ancestors must retain their actual values.
-    world.Position = parent.Position + Values::Vector3(local.at("LocalPosition"));
+    // Transform's composition, in the same float arithmetic: the local position is scaled, rotated
+    // and translated into the parent. Validation normalizes quaternions, but untouched ancestors
+    // must retain their actual values.
+    world.Position = parent.Position + parent.Rotation * (parent.Scale * Values::Vector3(local.at("LocalPosition")));
     world.Rotation = parent.Rotation * rotation;
     world.Scale = parent.Scale * Values::Vector3(local.at("LocalScale"));
 
@@ -453,7 +464,7 @@ nlohmann::json Placement::Prepare(const json& input, const Duplication::EntitySt
     }
 
     const auto position = point + normal * input.at("clearance").get<double>() - contactOffset;
-    const auto localPosition = position - glm::dvec3(parent.Position);
+    const auto localPosition = LocalPosition(parent, position);
 
     RequireFinite(position, path + "/surface/point");
     RequireFinite(localPosition, path + "/target");
@@ -497,7 +508,7 @@ nlohmann::json Placement::PrepareRelative(const json& input, const Duplication::
         position += translation;
     }
 
-    const auto localPosition = position - glm::dvec3(parent.Position);
+    const auto localPosition = LocalPosition(parent, position);
 
     RequireFinite(position, path + "/target");
     RequireFinite(localPosition, path + "/target");

@@ -43,7 +43,6 @@ namespace Pine
         void CreateController();
         void ApplyFilterData() const;
         void WriteBackTransform() const;
-        void SetTransformFromWorldPosition(const Vector3f& worldPosition) const;
 
         struct CharacterControllerSerializer : Serialization::Serializer
         {

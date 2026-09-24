@@ -286,8 +286,8 @@ void Pine::RigidBody::OnPostPhysicsUpdate()
     const auto transform = GetParent()->GetTransform();
     const auto pose = m_Actor->getGlobalPose();
 
-    transform->SetLocalPosition(Vector3f(pose.p.x, pose.p.y, pose.p.z) - m_EngineCollider->GetPosition());
-    transform->SetLocalRotation({pose.q.w, pose.q.x, pose.q.y, pose.q.z});
+    transform->SetPosition(Vector3f(pose.p.x, pose.p.y, pose.p.z) - m_EngineCollider->GetPosition());
+    transform->SetRotation({pose.q.w, pose.q.x, pose.q.y, pose.q.z});
 }
 
 void Pine::RigidBody::OnCopied()

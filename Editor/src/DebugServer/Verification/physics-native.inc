@@ -92,6 +92,17 @@
         create("MutedTrigger", vector(-8, 4, 0), {{"IsTrigger", true}, {"TriggerMask", 0}}, nullptr);
         create("MutedVisitor", vector(-8, 4, 0), {{"Type", "Sphere"}}, {{"GravityEnabled", false}});
 
+        // A dynamic body under a rotated, non-uniformly scaled parent, placed at world (0, 4, -8).
+        // Its pose is written back in world space, so it has to fall straight down from there.
+        const auto quarterTurnY = json{{"x", 0}, {"y", std::sqrt(0.5f)}, {"z", 0}, {"w", std::sqrt(0.5f)}};
+        edit({{{"op", "entity.create"}, {"ref", "carrier"}, {"name", "Carrier"}, {"components", {
+                  {{"type", "Transform"}, {"properties", {{"LocalPosition", vector(-6, 0, -4)},
+                      {"LocalRotation", quarterTurnY}, {"LocalScale", vector(2, 1, 0.5f)}}}}}}},
+              {{"op", "entity.create"}, {"name", "Rider"}, {"parent", {{"ref", "carrier"}}}, {"components", {
+                  {{"type", "Transform"}, {"properties", {{"LocalPosition", vector(2, 4, 12)}}}},
+                  {{"type", "Collider"}, {"properties", {{"Size", vector(0.5f, 0.5f, 0.5f)}}}},
+                  {{"type", "RigidBody"}, {"properties", json::object()}}}}}});
+
         struct TriggerEvents final : PxSimulationEventCallback
         {
             int Entered = 0;
@@ -149,6 +160,10 @@
         step(180);
         check(std::abs(find("Falling")->GetTransform()->GetPosition().y - 0.5f) < 0.1f,
             "Falling box did not settle on the floor");
+        const auto rider = find("Rider")->GetTransform()->GetPosition();
+        check(std::abs(rider.x) < 0.1f && std::abs(rider.y - 0.5f) < 0.1f && std::abs(rider.z + 8.f) < 0.1f,
+            "Parented body did not fall straight onto the floor: " + std::to_string(rider.x) + ", "
+                + std::to_string(rider.y) + ", " + std::to_string(rider.z));
         check(find("Frozen")->GetTransform()->GetPosition().y == 4.f, "Gravity-disabled sphere moved");
         PlayHandler::Pause();
         edit({{{"op", "entity.create"}}}, 409);
@@ -191,7 +206,8 @@
         PlayHandler::Stop();
         noActors();
         std::cout << "PASS: actual actors/shapes, primitive dimensions, triggers/masks, mass/gravity/locks/limits,\n"
-                     "      falling contacts, play guards, stop/edit/undo/redo/play recreation and component removal.\n";
+                     "      falling contacts, a parented body, play guards, stop/edit/undo/redo/play recreation\n"
+                     "      and component removal.\n";
     }
     catch (const std::exception& exception)
     {

@@ -14,6 +14,15 @@ relative to `Engine/src/Pine/`.
 - Each component type gets a **`ComponentDataBlock<T>`**: one contiguous array of instances plus a parallel occupation array, iterated by a custom iterator that skips empty/disabled slots. The array holds `m_MaxObjectCount` instances unless `Components::Setup()` passes a smaller count (`TerrainRendererComponent` and `Camera` get 32, `NativeScript` 1). New components take the first free slot, initialized by copying a default-constructed prototype. Overflow throws.
 - **`Component`** defines the virtual lifecycle everything relies on: `OnCreated/OnDestroyed/OnCopied/OnSetup/OnUpdate/OnRender/OnPre|PostPhysicsUpdate` plus `LoadData/SaveData` (serialization). Each folder under `World/Components/` subclasses it.
 - **`Entity`** owns a `vector<Component*>`, a parent/child hierarchy, a `UId`, flags, and a paired managed (C#) object. Always has a `Transform`. Use `AddComponent<T>()` / `GetComponent<T>()` / `RemoveComponent<T>()`.
+- **`Transform` stores local values and caches world ones.** A child sits in its parent's space:
+  world position = parent position + parent rotation × (parent scale × local position), while
+  rotations compose and scales multiply component by component (no shear, as in Unreal's
+  `FTransform`). The world getters and `GetTransformationMatrix()` recompute lazily. Every setter,
+  and `Entity::SetParent`, calls `Transform::SetDirty`, which marks the whole subtree.
+  `SetPosition/SetRotation/SetScale` take world values and store the matching local ones.
+  `Transform::IsDirty` is a separate signal for the renderer's caches ("changed since the last
+  `Transform::OnRender`"), and it reaches descendants as well. `verify-transform.py` (in
+  `Editor/src/DebugServer/Verification/`) checks all of this through a native probe.
 - **"Systems" are not objects.** Behavior lives either in the component virtuals or in subsystem `Update()` functions. `World::Update()` drives physics, then `Audio::Update()`, then (unless paused) script updates; the renderer iterates component blocks directly (see [rendering.md](rendering.md)).
 - Access storage via `Components::Get<T>()` (typed block for iteration), `Components::Create<T>()`, `GetType<T>()`, `FindById`, `GetByInternalId`.
 - **Pooled components never run a constructor or destructor.** `Components::Create` copies the

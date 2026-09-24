@@ -160,8 +160,8 @@ void Pine::RenderManager::Run()
         Script::Manager::OnRender(fDeltaTime);
     }
 
-    // If we're in for example the editor, we'll always want to update
-    // the transformation matrices etc.
+    // In the editor every transform's change is consumed each frame, not only the drawn ones'
+    // (see Transform::IsDirty). The matrices themselves need no update here; they are computed on read.
     if (!engineConfig.m_ProductionMode)
     {
         for (auto& transform : Components::Get<Transform>(true))

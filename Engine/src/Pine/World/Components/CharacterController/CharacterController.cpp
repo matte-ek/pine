@@ -183,25 +183,11 @@ void Pine::CharacterController::WriteBackTransform() const
 {
     const auto foot = m_Controller->getFootPosition();
 
-    SetTransformFromWorldPosition(Vector3f(
+    m_Parent->GetTransform()->SetPosition(Vector3f(
         static_cast<float>(foot.x),
         static_cast<float>(foot.y),
         static_cast<float>(foot.z)
     ));
-}
-
-void Pine::CharacterController::SetTransformFromWorldPosition(const Vector3f& worldPosition) const
-{
-    Vector3f localPosition = worldPosition;
-
-    // Transform only exposes a local setter; convert world -> local by subtracting the parent's
-    // world position (mirroring how Transform::GetPosition() sums parent positions).
-    if (const auto parentEntity = m_Parent->GetParent())
-    {
-        localPosition = localPosition - parentEntity->GetTransform()->GetPosition();
-    }
-
-    m_Parent->GetTransform()->SetLocalPosition(localPosition);
 }
 
 void Pine::CharacterController::SetPosition(const Vector3f& position)
@@ -217,7 +203,7 @@ void Pine::CharacterController::SetPosition(const Vector3f& position)
     // the transform - so writing the transform is enough, the controller starts in the right place.
     if (m_Controller == nullptr)
     {
-        SetTransformFromWorldPosition(position);
+        m_Parent->GetTransform()->SetPosition(position);
         return;
     }
 

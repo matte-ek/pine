@@ -9,15 +9,51 @@ namespace
 {
 }
 
-void Transform::CalculateTransformationMatrix()
+const Transform* Transform::GetParentTransform() const
 {
+    // m_Parent is the entity this transform belongs to, so the parent transform is that entity's
+    // parent's.
+    if (m_Parent == nullptr || m_Parent->GetParent() == nullptr)
+    {
+        return nullptr;
+    }
+
+    return m_Parent->GetParent()->GetTransform();
+}
+
+void Transform::UpdateWorldTransform() const
+{
+    if (!m_IsWorldStale)
+    {
+        return;
+    }
+
+    const auto parent = GetParentTransform();
+
+    if (parent == nullptr)
+    {
+        m_Position = m_LocalPosition;
+        m_Rotation = m_LocalRotation;
+        m_Scale = m_LocalScale;
+    }
+    else
+    {
+        const auto parentPosition = parent->GetPosition();
+        const auto parentRotation = parent->GetRotation();
+        const auto parentScale = parent->GetScale();
+
+        m_Position = parentPosition + parentRotation * (parentScale * m_LocalPosition);
+        m_Rotation = parentRotation * m_LocalRotation;
+        m_Scale = parentScale * m_LocalScale;
+    }
+
     m_TransformationMatrix = Matrix4f(1.f);
 
-    m_TransformationMatrix = translate(m_TransformationMatrix, GetPosition());
-    m_TransformationMatrix *= toMat4(GetRotation());
-    m_TransformationMatrix = scale(m_TransformationMatrix, GetScale());
+    m_TransformationMatrix = translate(m_TransformationMatrix, m_Position);
+    m_TransformationMatrix *= toMat4(m_Rotation);
+    m_TransformationMatrix = scale(m_TransformationMatrix, m_Scale);
 
-    m_IsDirty = false;
+    m_IsWorldStale = false;
 }
 
 Transform::Transform() :
@@ -28,6 +64,23 @@ Transform::Transform() :
 void Transform::SetDirty()
 {
     m_IsDirty = true;
+    m_IsWorldStale = true;
+
+    if (m_Parent == nullptr)
+    {
+        return;
+    }
+
+    for (const auto child : m_Parent->GetChildren())
+    {
+        // Entity::LoadData attaches a child before creating its components.
+        if (child->GetComponents().empty())
+        {
+            continue;
+        }
+
+        child->GetTransform()->SetDirty();
+    }
 }
 
 bool Transform::IsDirty() const
@@ -35,14 +88,18 @@ bool Transform::IsDirty() const
     return m_IsDirty;
 }
 
+void Transform::OnCreated()
+{
+    Component::OnCreated();
+
+    // Entity::LoadData can attach a new transform to an entity whose children were placed by the
+    // transform it replaced.
+    SetDirty();
+}
+
 void Transform::OnRender(float deltaTime)
 {
-    if (!m_IsDirty)
-    {
-        return;
-    }
-
-    CalculateTransformationMatrix();
+    m_IsDirty = false;
 }
 
 void Transform::LoadData(const ByteSpan& span)
@@ -55,7 +112,7 @@ void Transform::LoadData(const ByteSpan& span)
     serializer.LocalRotation.Read(m_LocalRotation);
     serializer.LocalScale.Read(m_LocalScale);
 
-    m_IsDirty = true;
+    SetDirty();
 }
 
 ByteSpan Transform::SaveData()
@@ -77,7 +134,7 @@ const Vector3f& Transform::GetLocalPosition() const
 void Transform::SetLocalPosition(const Vector3f& position)
 {
     m_LocalPosition = position;
-    m_IsDirty = true;
+    SetDirty();
 }
 
 const Quaternion& Transform::GetLocalRotation() const
@@ -88,7 +145,7 @@ const Quaternion& Transform::GetLocalRotation() const
 void Transform::SetLocalRotation(const Quaternion& rotation)
 {
     m_LocalRotation = rotation;
-    m_IsDirty = true;
+    SetDirty();
 }
 
 const Vector3f& Transform::GetLocalScale() const
@@ -99,44 +156,59 @@ const Vector3f& Transform::GetLocalScale() const
 void Transform::SetLocalScale(const Vector3f& scale)
 {
     m_LocalScale = scale;
-    m_IsDirty = true;
+    SetDirty();
 }
 
 Vector3f Transform::GetPosition() const
 {
-    Vector3f position = m_LocalPosition;
+    UpdateWorldTransform();
 
-    if (m_Parent->GetParent() != nullptr)
+    return m_Position;
+}
+
+void Transform::SetPosition(const Vector3f& position)
+{
+    const auto parent = GetParentTransform();
+
+    if (parent == nullptr)
     {
-        position += m_Parent->GetParent()->GetTransform()->GetPosition();
+        SetLocalPosition(position);
+        return;
     }
 
-    return position;
+    // Undoes the parent's translation, rotation and scale, in the reverse of the order
+    // UpdateWorldTransform() applies them.
+    const auto offset = inverse(parent->GetRotation()) * (position - parent->GetPosition());
+
+    SetLocalPosition(offset / parent->GetScale());
 }
 
 Quaternion Transform::GetRotation() const
 {
-    Quaternion rotation = m_LocalRotation;
+    UpdateWorldTransform();
 
-    if (m_Parent->GetParent() != nullptr)
-    {
-        rotation = m_Parent->GetParent()->GetTransform()->GetRotation();
-        rotation *= m_LocalRotation;
-    }
+    return m_Rotation;
+}
 
-    return rotation;
+void Transform::SetRotation(const Quaternion& rotation)
+{
+    const auto parent = GetParentTransform();
+
+    SetLocalRotation(parent == nullptr ? rotation : inverse(parent->GetRotation()) * rotation);
 }
 
 Vector3f Transform::GetScale() const
 {
-    Vector3f scale = m_LocalScale;
+    UpdateWorldTransform();
 
-    if (m_Parent->GetParent() != nullptr)
-    {
-        scale *= m_Parent->GetParent()->GetTransform()->GetScale();
-    }
+    return m_Scale;
+}
 
-    return scale;
+void Transform::SetScale(const Vector3f& scale)
+{
+    const auto parent = GetParentTransform();
+
+    SetLocalScale(parent == nullptr ? scale : scale / parent->GetScale());
 }
 
 // World-space basis vectors, so these use GetRotation() and not m_LocalRotation. For an entity with
@@ -160,6 +232,8 @@ Vector3f Transform::GetUp() const
 
 const Matrix4f &Transform::GetTransformationMatrix() const
 {
+    UpdateWorldTransform();
+
     return m_TransformationMatrix;
 }
 
@@ -171,5 +245,5 @@ Vector3f Transform::GetEulerAngles() const
 void Transform::SetEulerAngles(const Vector3f angle)
 {
     m_LocalRotation = glm::quat(radians(angle));
-    m_IsDirty = true;
+    SetDirty();
 }

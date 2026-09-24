@@ -345,9 +345,8 @@ design:
   than one camera, and both stages of a context read the same set.
 - World-space bounds *are* cached per object per frame (`ModelRendererHintData::BoundsMin/Max`,
   filled by `SceneProcessor`) — bounds belong to the object alone, and computing them once beats
-  recomputing per frustum. They are built from `Transform::GetPosition/GetRotation/GetScale`, **not**
-  `GetTransformationMatrix()`: the matrix is only rebuilt in `Transform::OnRender`, which in
-  production mode does not run until `RenderBatch`, after culling needs it.
+  recomputing per frustum. They are built from `Transform::GetPosition/GetRotation/GetScale`, which
+  the transform caches: reading them costs a flag check unless it or an ancestor changed.
 
 Shadow passes use the same mechanism: every `ShadowView` owns a `VisibilitySet` and is culled
 against its own frustum, so there is no second visibility concept to keep in sync.

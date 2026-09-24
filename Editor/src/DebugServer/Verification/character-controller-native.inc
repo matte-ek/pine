@@ -150,11 +150,49 @@
         check(ceilingTicks < openTicks, "Controller hung under the ceiling for as long as an open jump lasted: "
             + std::to_string(ceilingTicks) + " vs " + std::to_string(openTicks));
 
+        // Under a rotated, non-uniformly scaled parent the write-back has to undo all of the
+        // parent's transform, or the rider's world position would disagree with the controller's.
+        auto rig = Pine::Entities::Create("Rig");
+        rig->GetTransform()->SetLocalPosition(Pine::Vector3f(3.f, 0.f, -4.f));
+        rig->GetTransform()->SetLocalRotation(glm::angleAxis(glm::radians(90.f), Pine::Vector3f(0.f, 1.f, 0.f)));
+        rig->GetTransform()->SetLocalScale(Pine::Vector3f(2.f, 1.f, 0.5f));
+
+        auto rider = rig->CreateChild();
+        rider->GetTransform()->SetPosition(Pine::Vector3f(-4.f, 1.f, 3.f));
+        auto riderController = rider->AddComponent<Pine::CharacterController>();
+
+        const auto riderAt = [&](float x, float z, float tolerance)
+        {
+            const auto position = rider->GetTransform()->GetPosition();
+            return std::abs(position.x - x) < tolerance && std::abs(position.z - z) < tolerance;
+        };
+        const auto describeRider = [&]()
+        {
+            const auto position = rider->GetTransform()->GetPosition();
+            return std::to_string(position.x) + ", " + std::to_string(position.y) + ", " + std::to_string(position.z);
+        };
+
+        step(60);
+        check(riderController->IsGrounded(), "Parented controller did not land");
+        check(riderAt(-4.f, 3.f, 0.05f) && std::abs(rider->GetTransform()->GetPosition().y) < 0.2f,
+            "Parented controller did not land below where it was placed: " + describeRider());
+
+        for (int i = 0; i < 30; ++i)
+        {
+            riderController->Move(Pine::Vector3f(0.f, 0.f, 3.f) * (1.f / 60.f));
+            step(1);
+        }
+        check(riderAt(-4.f, 4.5f, 0.2f), "Parented controller did not walk along world +Z: " + describeRider());
+
+        riderController->SetPosition(Pine::Vector3f(-6.f, 0.2f, 0.f));
+        step(1);
+        check(riderAt(-6.f, 0.f, 0.05f), "Parented controller did not teleport to a world position: " + describeRider());
+
         PlayHandler::Stop();
 
         std::cout << "PASS: grounding, reported velocity on open ground and against a wall, side contacts,\n"
-                     "      velocity cleared by teleport, jump apex from an assigned vertical velocity\n"
-                     "      and the ceiling ending the climb.\n";
+                     "      velocity cleared by teleport, jump apex from an assigned vertical velocity,\n"
+                     "      the ceiling ending the climb, and a controller under a rotated, scaled parent.\n";
     }
     catch (const std::exception& exception)
     {

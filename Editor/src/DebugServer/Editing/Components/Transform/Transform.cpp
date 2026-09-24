@@ -27,7 +27,7 @@ namespace
         transform->SetLocalRotation(Values::Quaternion(state.at("LocalRotation")));
         transform->SetLocalScale(Values::Vector3(state.at("LocalScale")));
 
-        // Descendants, including static ones, cache transforms derived from this parent.
+        // The setters reach the descendants' transforms, but not their entities' dirty flags.
         Editor::DebugServer::Editing::Components::Transform::MarkHierarchyDirty(transform->GetParent());
     }
 }
@@ -35,7 +35,6 @@ namespace
 void Editor::DebugServer::Editing::Components::Transform::MarkHierarchyDirty(Pine::Entity* entity)
 {
     entity->SetDirty(true);
-    entity->GetTransform()->SetDirty();
     for (const auto child : entity->GetChildren())
     {
         MarkHierarchyDirty(child);

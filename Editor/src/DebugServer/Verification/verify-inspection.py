@@ -143,13 +143,15 @@ try:
         {'op': 'entity.create', 'name': 'Inspection group', 'ref': 'group', 'components': [
             {'type': 'Transform', 'properties': {'LocalPosition': vec(10, 3, 20),
              'LocalRotation': {'x': 0, 'y': 0, 'z': 1, 'w': 1}, 'LocalScale': vec(2, 3, 4)}}]},
+        # Offset along the group's rotation axis: the scale stretches it to (0, 0, 2) and the
+        # rotation leaves it exact, which the equality and touching checks below rely on.
         {'op': 'entity.create', 'name': 'Inspection Lamp', 'ref': 'lamp', 'parent': {'ref': 'group'}, 'components': [
-            {'type': 'Transform', 'properties': {'LocalPosition': vec(2, 0, 0)}},
+            {'type': 'Transform', 'properties': {'LocalPosition': vec(0, 0, .5)}},
             {'type': 'Light', 'properties': {'Type': 'SpotLight', 'Intensity': 42, 'Range': 8}}]},
         {'op': 'entity.create', 'name': 'Inspection nested lamp', 'ref': 'nested', 'parent': {'ref': 'lamp'},
          'components': [{'type': 'Light'}]},
         {'op': 'entity.create', 'name': 'Inspection crate', 'ref': 'crate', 'components': [
-            {'type': 'Transform', 'properties': {'LocalPosition': vec(16, 3, 20), 'LocalScale': vec(-2, 0, 3)}},
+            {'type': 'Transform', 'properties': {'LocalPosition': vec(14, 3, 22), 'LocalScale': vec(-2, 0, 3)}},
             {'type': 'ModelRenderer', 'properties': {'Model': {'path': 'engine/primitive/cube'}, 'MeshIndex': 0}}]},
         {'op': 'entity.create', 'name': 'Inspection lamp', 'ref': 'other', 'components': [
             {'type': 'Transform', 'properties': {'LocalPosition': vec(100, 0, 0)}}, {'type': 'Light'}]}
@@ -164,8 +166,8 @@ try:
     assert lights['sceneGeneration'] == generation
     lamp_state = next(item for item in lights['entities'] if item['id'] == lamp)
     assert lamp_state['parent'] == group
-    assert lamp_state['worldTransform']['position'] == vec(12, 3, 20)
-    assert lamp_state['localTransform']['position'] == vec(2, 0, 0)
+    assert lamp_state['worldTransform']['position'] == vec(10, 3, 22)
+    assert lamp_state['localTransform']['position'] == vec(0, 0, .5)
     for item in lights['entities']:
         individual = request('/entity?id=' + item['id'])
         assert item['properties'] == individual['properties']
@@ -198,8 +200,8 @@ try:
     assert set(ids(nearby)) == {group, lamp, nested}
     assert ids(query(filter={'spatial': {**spatial, 'test': 'bounds'}})) == [crate]
     assert ids(query(filter={'spatial': {**spatial, 'test': 'bounds'}, 'component': 'Light'})) == []
-    # The flattened, mirrored cube reaches x=14; its pivot is x=16. Touching counts.
-    box = {'min': vec(14, 3, 20), 'max': vec(14, 3, 20)}
+    # The flattened, mirrored cube reaches x=12; its pivot is x=14. Touching counts.
+    box = {'min': vec(12, 3, 22), 'max': vec(12, 3, 22)}
     assert ids(query(filter={'spatial': {'test': 'pivot', 'bounds': box}})) == []
     assert ids(query(filter={'spatial': {'test': 'bounds', 'bounds': box}})) == [crate]
     zero = {'test': 'pivot', 'radius': {'center': center, 'distance': 0}}
@@ -247,8 +249,8 @@ try:
     assert set(ids(query(filter={'component': 'Light'}))) == {lamp, nested, other}
     assert set(ids(query(filter={'component': 'Light', 'includeInactive': False}))) == {lamp, nested}
     lamp_transform = next(c['id'] for c in request('/entity?id=' + lamp)['components'] if c['type'] == 'Transform')
-    edit([{'op': 'component.update', 'target': {'id': lamp_transform}, 'properties': {'LocalPosition': vec(7, 0, 0)}}])
-    assert batch([lamp], include={'worldTransform': True})['entities'][0]['worldTransform']['position'] == vec(17, 3, 20)
+    edit([{'op': 'component.update', 'target': {'id': lamp_transform}, 'properties': {'LocalPosition': vec(0, 0, 1.75)}}])
+    assert batch([lamp], include={'worldTransform': True})['entities'][0]['worldTransform']['position'] == vec(10, 3, 27)
     assert query()['sceneGeneration'] == generation, 'Ordinary edits should not change generation'
     edit([{'op': 'entity.delete', 'target': {'id': other}}])
     request('/entities/query', {'entities': [{'id': lamp}, {'id': other}]}, expected=400)
