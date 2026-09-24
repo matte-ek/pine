@@ -20,6 +20,8 @@ relative to `Engine/src/Pine/`.
   `FTransform`). The world getters and `GetTransformationMatrix()` recompute lazily. Every setter,
   and `Entity::SetParent`, calls `Transform::SetDirty`, which marks the whole subtree.
   `SetPosition/SetRotation/SetScale` take world values and store the matching local ones.
+  `Transform::GetWorldVersion` advances whenever `SetDirty` reaches a transform, and is never reused,
+  so a cache built from the world transform stores the version it was built at and compares.
   `verify-transform.py` (in `Editor/src/DebugServer/Verification/`) checks all of this through a
   native probe.
 - **"Systems" are not objects.** Behavior lives either in the component virtuals or in subsystem `Update()` functions. `World::Update()` drives physics, then `Audio::Update()`, then (unless paused) script updates; the renderer iterates component blocks directly (see [rendering.md](rendering.md)).

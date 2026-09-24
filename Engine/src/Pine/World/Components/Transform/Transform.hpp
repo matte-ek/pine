@@ -29,6 +29,8 @@ namespace Pine
 
         mutable bool m_IsWorldStale = true;
 
+        std::uint64_t m_WorldVersion = 0;
+
         const Transform* GetParentTransform() const;
         void UpdateWorldTransform() const;
 
@@ -44,6 +46,12 @@ namespace Pine
         // Marks this transform and every transform below it as changed, so their world values are
         // recomputed on the next read. Every setter calls this, and so does Entity::SetParent.
         void SetDirty();
+
+        // Advances every time SetDirty() reaches this transform, so whenever its world values may
+        // have changed. Versions are never reused, not even across transforms, and a transform on an
+        // entity never has version 0. A cache built from the world transform can therefore store
+        // the version it was built at, starting from 0, and rebuild when it differs.
+        std::uint64_t GetWorldVersion() const;
 
         void OnCreated() override;
 

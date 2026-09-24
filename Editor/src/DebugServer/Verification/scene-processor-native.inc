@@ -60,10 +60,48 @@
         Pine::RenderManager::Run();
         check(nearestLight() == eastLight, "The cube kept a deleted lamp");
 
-        Pine::Entities::Delete(cube);
+        // World bounds are kept while the transform and the model's bounds are unchanged, and
+        // rebuilt when either changes, including through a parent.
+        const auto& hintData = renderer->GetRenderingHintData();
+        const auto boundsCentre = [&]()
+        {
+            return (hintData.BoundsMin + hintData.BoundsMax) * 0.5f;
+        };
+        const auto near = [](const Pine::Vector3f& a, const Pine::Vector3f& b)
+        {
+            return glm::length(a - b) < 1e-4f;
+        };
+        const auto hasMoved = [&]()
+        {
+            return hintData.BoundsMin != hintData.PreviousBoundsMin || hintData.BoundsMax != hintData.PreviousBoundsMax;
+        };
+
+        check(near(boundsCentre(), {45, 0, 0}), "The cube's bounds are not where the cube is");
+        Pine::RenderManager::Run();
+        check(!hasMoved(), "A cube that did not move was reported as moved");
+
+        auto stand = Pine::Entities::Create("Cube stand");
+        stand->AddChild(cube);
+        stand->GetTransform()->SetLocalPosition({0, 10, 0});
+        Pine::RenderManager::Run();
+        check(near(boundsCentre(), {45, 10, 0}), "The cube's bounds did not follow its moved parent");
+        check(hasMoved(), "A cube carried by its parent was not reported as moved");
+
+        // A model with no meshes has empty bounds at its origin, so swapping it in has to rebuild
+        // the bounds with the transform unchanged.
+        auto emptyModel = new Pine::Model();
+        emptyModel->SetPath("scene-processor-empty");
+        Pine::Assets::Internal::RegisterAsset(emptyModel);
+        renderer->SetModel(emptyModel);
+        Pine::RenderManager::Run();
+        check(hintData.BoundsMin == hintData.BoundsMax && near(hintData.BoundsMin, {45, 10, 0}),
+            "Swapping the model did not rebuild the bounds");
+
+        Pine::Entities::Delete(stand);
         Pine::Entities::Delete(east);
 
-        std::cout << "PASS: light slots follow a moved object, a lamp carried by its parent and a deleted lamp.\n";
+        std::cout << "PASS: light slots follow a moved object, a lamp carried by its parent and a deleted lamp;\n"
+                     "      world bounds are kept while nothing changes and follow a moved parent and a swapped model.\n";
     }
     catch (const std::exception& exception)
     {

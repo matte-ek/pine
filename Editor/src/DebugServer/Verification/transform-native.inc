@@ -28,6 +28,10 @@
         {
             return Pine::Vector3f(entity->GetTransform()->GetTransformationMatrix()[3]);
         };
+        const auto version = [](const Pine::Entity* entity)
+        {
+            return entity->GetTransform()->GetWorldVersion();
+        };
 
         // Under a uniformly scaled parent, the composition has to agree with multiplying the
         // parent's matrix by the child's local one, as a conventional scene graph does.
@@ -69,10 +73,21 @@
         check(near(matrixPosition(grandchild), position(grandchild)), "Matrix disagrees with the world position");
         check(composesLikeMatrices(child) && composesLikeMatrices(grandchild), "Composition differs from matrix parenting");
 
-        // Moving only the group has to reach the descendants' cached matrices.
+        // Moving only the group has to reach the descendants' cached matrices, and advance the
+        // world versions the renderer's caches compare against.
+        const auto childVersion = version(child);
+        const auto grandchildVersion = version(grandchild);
         group->GetTransform()->SetLocalPosition({0, 5, 0});
         check(near(matrixPosition(grandchild), {6, 5, -2}),
             "Grandchild's matrix is stale after its group moved: " + describe(matrixPosition(grandchild)));
+        check(version(child) > childVersion && version(grandchild) > grandchildVersion,
+            "Moving a parent did not advance its descendants' world versions");
+        check(version(group) != version(child) && version(child) != version(grandchild) && version(group) != version(grandchild),
+            "Two transforms share a world version");
+
+        const auto settledVersion = version(grandchild);
+        position(grandchild);
+        check(version(grandchild) == settledVersion, "Reading a transform advanced its world version");
 
         // World setters under a rotated, non-uniformly scaled parent store the local value that
         // reads back as the requested world value, and leave the parent alone.
@@ -92,8 +107,10 @@
         auto carrier = Pine::Entities::Create("Transform probe carrier");
         carrier->GetTransform()->SetLocalPosition({0, 0, 20});
         carrier->GetTransform()->SetLocalRotation(quarterTurn({0, 0, 1}));
+        const auto versionBeforeReparent = version(grandchild);
         group->RemoveChild(child);
         carrier->AddChild(child);
+        check(version(grandchild) > versionBeforeReparent, "Reparenting did not advance a descendant's world version");
         check(child->GetTransform()->GetLocalPosition() == Pine::Vector3f(1, 0, 0), "Reparenting changed the local position");
         check(near(position(child), {0, 1, 20}), "Reparented child is not placed by its new parent: " + describe(position(child)));
         check(composesLikeMatrices(grandchild), "Grandchild did not follow its reparented parent");
@@ -115,7 +132,7 @@
         check(Pine::Entities::GetList().size() == countBefore - 7, "Deleting the hierarchies left entities behind");
 
         std::cout << "PASS: rotation and scale carried to children, matrix-parenting agreement, cached matrices\n"
-                     "      following a moved parent, world setters, reparenting and spawning.\n";
+                     "      and world versions following a moved parent, world setters, reparenting and spawning.\n";
     }
     catch (const std::exception& exception)
     {

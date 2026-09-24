@@ -7,6 +7,9 @@ using namespace Pine;
 
 namespace
 {
+    // The last world version handed out. Shared by every transform, so a pool slot reused by a new
+    // transform cannot hand a cache a version it has already seen.
+    std::uint64_t m_LastWorldVersion = 0;
 }
 
 const Transform* Transform::GetParentTransform() const
@@ -64,6 +67,7 @@ Transform::Transform() :
 void Transform::SetDirty()
 {
     m_IsWorldStale = true;
+    m_WorldVersion = ++m_LastWorldVersion;
 
     if (m_Parent == nullptr)
     {
@@ -80,6 +84,11 @@ void Transform::SetDirty()
 
         child->GetTransform()->SetDirty();
     }
+}
+
+std::uint64_t Transform::GetWorldVersion() const
+{
+    return m_WorldVersion;
 }
 
 void Transform::OnCreated()

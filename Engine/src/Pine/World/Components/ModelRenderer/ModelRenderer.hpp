@@ -18,7 +18,7 @@ namespace Pine
             // because terrain chunks are lit by the same rule and the same code assigns both.
             LightSlotData Lights;
 
-            // World-space bounds, recomputed once per frame by the scene processor.
+            // World-space bounds, kept up to date by the scene processor.
             //
             // Cached on the object because bounds belong to the object alone - unlike visibility,
             // which belongs to (object, frustum) and therefore lives in a VisibilitySet. With
@@ -26,6 +26,13 @@ namespace Pine
             // difference that matters.
             Vector3f BoundsMin = Vector3f(0.f);
             Vector3f BoundsMax = Vector3f(0.f);
+
+            // What the bounds were built from: the transform's world version and the model's own
+            // bounds. The model's bounds rather than the model, because a re-import rebuilds them on
+            // the same object. While neither changes, the bounds are kept rather than rebuilt.
+            std::uint64_t BoundsTransformVersion = 0;
+            Vector3f BoundsModelMin = Vector3f(0.f);
+            Vector3f BoundsModelMax = Vector3f(0.f);
 
             // Last frame's bounds, so "did this object move" is answered by comparing boxes. A
             // transform can be written without moving, and only a box that actually changed should

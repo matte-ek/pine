@@ -10,20 +10,30 @@
 
 namespace
 {
-    // Recompute the object's world-space bounds from the model's local bounding box.
+    // Recompute the object's world-space bounds from the model's local bounding box, unless neither
+    // the transform nor the model's bounds changed since they were last built.
     void UpdateWorldBounds(Pine::ModelRenderer& modelRenderer)
     {
         auto& data = modelRenderer.GetRenderingHintData();
 
+        data.PreviousBoundsMin = data.BoundsMin;
+        data.PreviousBoundsMax = data.BoundsMax;
+
         const auto* model = modelRenderer.GetModel();
         const auto* transform = modelRenderer.GetTransform();
+
+        const auto transformVersion = transform->GetWorldVersion();
+        const auto localMin = model->GetBoundingBoxMin();
+        const auto localMax = model->GetBoundingBoxMax();
+
+        if (transformVersion == data.BoundsTransformVersion && localMin == data.BoundsModelMin && localMax == data.BoundsModelMax)
+        {
+            return;
+        }
 
         const auto position = transform->GetPosition();
         const auto rotation = transform->GetRotation();
         const auto scale = transform->GetScale();
-
-        const auto localMin = model->GetBoundingBoxMin();
-        const auto localMax = model->GetBoundingBoxMax();
 
         // The transform's linear part: the rotation with the scale folded into its columns.
         // Negative scale needs no special case.
@@ -39,11 +49,12 @@ namespace
 
         Pine::Math::TransformBounds(linear, position, localMin, localMax, worldMin, worldMax);
 
-        data.PreviousBoundsMin = data.BoundsMin;
-        data.PreviousBoundsMax = data.BoundsMax;
-
         data.BoundsMin = worldMin;
         data.BoundsMax = worldMax;
+
+        data.BoundsTransformVersion = transformVersion;
+        data.BoundsModelMin = localMin;
+        data.BoundsModelMax = localMax;
     }
 
     // Whether the object's bounds changed since last frame. Compared exactly: an object that did
