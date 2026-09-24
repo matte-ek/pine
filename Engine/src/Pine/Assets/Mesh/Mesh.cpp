@@ -87,7 +87,7 @@ void Pine::Mesh::SetMaterial(Material*material)
 {
     m_Material = material;
 
-    if (material && !material->IsMeshGenerated() && m_Model)
+    if (material && !material->IsEmbedded() && m_Model)
     {
     }
 }

@@ -384,10 +384,14 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
                 }
             }
 
-            if (!engineMaterial)
+            const bool isNewMaterial = engineMaterial == nullptr;
+
+            if (isNewMaterial)
             {
                 engineMaterial = dynamic_cast<Material*>(Assets::CreateAsset(AssetType::Material, materialPath));
             }
+
+            const auto previousDiffuse = engineMaterial->GetDiffuse();
 
             aiColor3D diffuse_color(1.f, 1.f, 1.f);
             aiColor3D ambient_color(0.f, 0.f, 0.f);
@@ -417,15 +421,18 @@ bool Pine::Importer::ModelImporter::Import(AssetImport* importContext, Model* mo
 
             engineMaterial->SetNormal(normalMapTexture);
 
-            // The diffuse texture has been imported by now, so its alpha has been measured. A
-            // material a model file generates cannot be edited in the editor, so this is the only
-            // chance it gets to end up in the right pass.
-            engineMaterial->ResolveRenderingModeFromDiffuse();
+            // The diffuse texture has been imported by now, so its alpha has been measured. On a
+            // re-import the mode may have been set in the editor since, so it is only derived again
+            // when the file now names a different diffuse map, as picking one in the editor does.
+            if (isNewMaterial || engineMaterial->GetDiffuse() != previousDiffuse)
+            {
+                engineMaterial->ResolveRenderingModeFromDiffuse();
+            }
 
             // glTF's doubleSided, and the equivalent flag in the formats that carry one. Most
             // content does not set it - foliage exported as plain planes almost never does - and
-            // there is nothing to infer it from here, so the fallback is the editor: generate a
-            // material from this one and set its render face, the route the model panel points at.
+            // there is nothing to infer it from here, so the fallback is setting the render face on
+            // the material in the editor. Never reset to Default, so that setting survives a re-import.
             int isTwoSided = 0;
 
             if (material->Get(AI_MATKEY_TWOSIDED, isTwoSided) == aiReturn_SUCCESS && isTwoSided != 0)

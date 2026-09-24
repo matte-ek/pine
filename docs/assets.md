@@ -134,8 +134,8 @@ Two things read the result:
 
 - **`Material::ResolveRenderingModeFromDiffuse()`** maps it onto `MaterialRenderingMode`
   (Opaque / Discard / Transparent). Anything that hands a material a new diffuse map calls it: the
-  model importer, so a model's own materials - which the editor will not let you edit - land in the
-  right pass, and the editor's diffuse picker. `Unknown` leaves the material's mode alone.
+  model importer, so a model's own materials land in the right pass without being touched, and the
+  editor's diffuse picker. `Unknown` leaves the material's mode alone.
 - **The compression format.** BC1 holds no alpha and BC1a holds one bit of it, so a texture that
   genuinely fades is moved off the fast `AlbedoFaster` default onto `Albedo` (BC7). That goes
   through `ApplyTextureUsageHint` at the `Heuristic` tier, so it can override the default and the
@@ -299,6 +299,26 @@ stored before those fields existed loads with no levels.
   material applies to whichever level is drawn.
 
 How a level is chosen at draw time is in [rendering.md](rendering.md#model-lod).
+
+### A model's embedded materials
+
+The materials a model file defines are not assets of their own. Each one is stored inside the
+model's payload (`EmbeddedMaterials`), has no `.passet` and no file path, and is registered under
+the virtual path `<model path>-<material name>` by `Model::LoadAssetData`, which also records the
+model on it. `Material::IsEmbedded()` and `Material::GetEmbeddingModel()` read that back.
+
+- **Editing one saves the model.** The editor lets you edit an embedded material like any other,
+  but marks its *model* as modified, because the model's `.passet` is what has to be rewritten.
+  `Model::SaveAssetData` writes every embedded material from memory. Saving all assets skips
+  anything without a file path, so marking the material itself would save nothing.
+- **Re-importing keeps what was set in the editor, except what the file defines.** The importer
+  finds each material again by its path and updates it in place, so its UId survives. It sets the
+  colors, the shininess and the three texture maps from the file again. It re-derives the rendering
+  mode only when the file now names a different diffuse map, and it only ever sets the render face
+  to `Both` (for a file that says the material is two-sided), never back to `Default`. The fields
+  a model file has no say in (specular color, shader, texture scale, alpha) are left alone.
+- A material that disappears from the file on re-import stays registered until the next start,
+  but the model no longer stores it.
 
 ### Reading geometry back out
 

@@ -5,8 +5,10 @@ import json
 import os
 from pathlib import Path
 import shlex
+import struct
 import subprocess
 import tempfile
+import zlib
 
 from headless import headless_command
 
@@ -35,6 +37,7 @@ includes = '''#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Assets/Assets.hpp"
@@ -69,6 +72,20 @@ for name in ['engine', 'editor']:
     subprocess.run(['cp', '-a', str(repo / 'data' / name), str(data / name)], check=True)
 subprocess.run(['cp', '-a', str(Path(__file__).with_name('verification-layout.ini')),
                 str(data / 'imgui.ini')], check=True)
+
+# The diffuse map of the model the probe imports: a hard alpha mask, left half clear and right half
+# solid, so its material is imported into the discard pass rather than left at the default.
+def png_chunk(kind, payload):
+    return struct.pack('>I', len(payload)) + kind + payload + struct.pack('>I', zlib.crc32(kind + payload))
+
+size = 8
+clear_pixel = bytes([255, 255, 255, 0])
+solid_pixel = bytes([255, 255, 255, 255])
+row = b'\x00' + clear_pixel * (size // 2) + solid_pixel * (size // 2)
+header = struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0)  # 8-bit RGBA
+(data / 'projects/resave/content/probe.png').write_bytes(
+    b'\x89PNG\r\n\x1a\n' + png_chunk(b'IHDR', header) + png_chunk(b'IDAT', zlib.compress(row * size)) +
+    png_chunk(b'IEND', b''))
 
 environment = {**os.environ, 'PINE_X11': '1', 'ALSOFT_DRIVERS': 'null'}
 result = subprocess.run(headless_command(root / 'probe', 'resave'), cwd=data,

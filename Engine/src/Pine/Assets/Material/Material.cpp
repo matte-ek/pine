@@ -1,6 +1,8 @@
 #include "Material.hpp"
 
 #include "../../Core/Serialization/Json/SerializationJson.hpp"
+#include "Pine/Assets/Assets.hpp"
+#include "Pine/Assets/Model/Model.hpp"
 
 bool Pine::Material::LoadAssetData(const ByteSpan& span)
 {
@@ -25,8 +27,6 @@ bool Pine::Material::LoadAssetData(const ByteSpan& span)
     materialSerializer.Alpha.Read(m_Alpha);
     materialSerializer.Shininess.Read(m_Shininess);
     materialSerializer.TextureScale.Read(m_TextureScale);
-
-    m_IsMeshGeneratedMaterial = false;
 
     return true;
 }
@@ -196,9 +196,19 @@ float Pine::Material::GetTextureScale() const
     return m_TextureScale;
 }
 
-bool Pine::Material::IsMeshGenerated() const
+bool Pine::Material::IsEmbedded() const
 {
-    return m_IsMeshGeneratedMaterial;
+    return m_EmbeddingModel != UId::Empty();
+}
+
+Pine::Model* Pine::Material::GetEmbeddingModel() const
+{
+    if (!IsEmbedded())
+    {
+        return nullptr;
+    }
+
+    return dynamic_cast<Model*>(Assets::GetAssetByUId(m_EmbeddingModel));
 }
 
 Pine::ByteSpan Pine::Material::SaveAssetData()

@@ -26,7 +26,7 @@ bool Model::LoadAssetData(const ByteSpan& span)
     // Load embedded materials
     for (size_t i{}; i < modelSerializer.EmbeddedMaterials.GetDataCount();i++)
     {
-        auto material = Load(modelSerializer.EmbeddedMaterials.GetData(i));
+        auto material = dynamic_cast<Material*>(Load(modelSerializer.EmbeddedMaterials.GetData(i)));
 
         if (!material)
         {
@@ -35,7 +35,10 @@ bool Model::LoadAssetData(const ByteSpan& span)
 
         Assets::Internal::RegisterAsset(material);
 
-        m_EmbeddedMaterials.push_back(dynamic_cast<Material*>(material));
+        // Lets the editor save an edit to the material by saving this model, which stores it.
+        material->m_EmbeddingModel = m_UId;
+
+        m_EmbeddedMaterials.push_back(material);
     }
 
     for (size_t i{}; i < modelSerializer.Meshes.GetDataCount();i++)

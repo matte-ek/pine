@@ -183,7 +183,8 @@
                 std::ofstream mtl("projects/resave/content/probe.mtl");
 
                 mtl << "newmtl Red\n"
-                       "Kd 1 0 0\n";
+                       "Kd 1 0 0\n"
+                       "map_Kd probe.png\n";
             }
 
             auto context = Pine::Importer::CreateContext();
@@ -226,6 +227,82 @@
             };
 
             check(storedEmbeddedMaterialCount() == 1, "The imported model should embed exactly one material");
+
+            // The settings of the embedded material, read from the model's '.passet' too.
+            const auto storedEmbeddedMaterial = [&]()
+            {
+                struct EnvelopeSerializer : Pine::Serialization::Serializer
+                {
+                    PINE_SERIALIZE_DATA(Data);
+                };
+
+                struct PayloadSerializer : Pine::Serialization::Serializer
+                {
+                    PINE_SERIALIZE_ARRAY(EmbeddedMaterials);
+                };
+
+                struct MaterialSettingsSerializer : Pine::Serialization::Serializer
+                {
+                    PINE_SERIALIZE_PRIMITIVE(RenderingMode, Pine::Serialization::DataType::Int32);
+                    PINE_SERIALIZE_PRIMITIVE(RenderFace, Pine::Serialization::DataType::Int32);
+                };
+
+                EnvelopeSerializer modelEnvelope;
+                PayloadSerializer payload;
+                EnvelopeSerializer materialEnvelope;
+                MaterialSettingsSerializer settings;
+
+                check(modelEnvelope.Read(Pine::File::ReadCompressed(model->GetFilePath())) &&
+                      payload.Read(modelEnvelope.Data.Read()) &&
+                      payload.EmbeddedMaterials.GetDataCount() == 1 &&
+                      materialEnvelope.Read(payload.EmbeddedMaterials.GetData(0)) &&
+                      settings.Read(materialEnvelope.Data.Read()),
+                    "Could not read the embedded material out of the model's '.passet'");
+
+                auto renderingMode = Pine::MaterialRenderingMode::Opaque;
+                auto renderFace = Pine::MaterialRenderFace::Default;
+
+                settings.RenderingMode.Read(renderingMode);
+                settings.RenderFace.Read(renderFace);
+
+                return std::make_pair(renderingMode, renderFace);
+            };
+
+            // An embedded material edited in the editor, and saved the way the editor saves it:
+            // the material has no file of its own, so the edit marks its model, and saving all
+            // modified assets writes the model.
+            {
+                const auto material = model->GetMeshes().front()->GetMaterial();
+
+                check(material != nullptr && material->IsEmbedded() && material->GetEmbeddingModel() == model,
+                    "The imported model's material does not know the model it is embedded in");
+                check(material->GetFilePath().empty(),
+                    "An embedded material has a file of its own, which saving all assets would write");
+                check(material->GetDiffuse() != nullptr &&
+                      material->GetDiffuse()->GetAlphaMode() == Pine::TextureAlphaMode::Cutout,
+                    "The model's diffuse map did not import as a cutout");
+                check(material->GetRenderingMode() == Pine::MaterialRenderingMode::Discard,
+                    "A new embedded material did not take its rendering mode from its diffuse map");
+
+                material->SetRenderingMode(Pine::MaterialRenderingMode::Transparent);
+                material->SetRenderFace(Pine::MaterialRenderFace::Both);
+
+                material->GetEmbeddingModel()->SaveToFile();
+
+                check(storedEmbeddedMaterial() == std::make_pair(Pine::MaterialRenderingMode::Transparent,
+                                                                 Pine::MaterialRenderFace::Both),
+                    "Saving the model did not store the edit to its embedded material");
+
+                model->ReLoad();
+
+                const auto reloaded = model->GetMeshes().front()->GetMaterial();
+
+                check(reloaded == material && reloaded->IsEmbedded(),
+                    "Re-saving the model replaced its embedded material");
+                check(reloaded->GetRenderingMode() == Pine::MaterialRenderingMode::Transparent &&
+                      reloaded->GetRenderFace() == Pine::MaterialRenderFace::Both,
+                    "Re-saving the model lost the edit to its embedded material");
+            }
 
             const auto cube = Pine::Assets::Get<Pine::Model>("engine/primitive/cube");
             const auto sphere = Pine::Assets::Get<Pine::Model>("engine/primitive/sphere");
@@ -310,6 +387,21 @@
             checkLodSettings("a re-import");
 
             check(storedEmbeddedMaterialCount() == 1, "Re-importing a model changed how many materials it embeds");
+
+            // The file names the same diffuse map as before, so the mode set in the editor stands,
+            // and the file does not ask for both faces, which is no reason to stop drawing them.
+            {
+                const auto material = model->GetMeshes().front()->GetMaterial();
+
+                check(material != nullptr && material->IsEmbedded() && material->GetEmbeddingModel() == model,
+                    "The re-imported model's material does not know the model it is embedded in");
+                check(material->GetRenderingMode() == Pine::MaterialRenderingMode::Transparent &&
+                      material->GetRenderFace() == Pine::MaterialRenderFace::Both,
+                    "Re-importing a model reset the settings made on its embedded material");
+                check(storedEmbeddedMaterial() == std::make_pair(Pine::MaterialRenderingMode::Transparent,
+                                                                 Pine::MaterialRenderFace::Both),
+                    "Re-importing a model stored its embedded material without the settings made on it");
+            }
         }
 
         std::cout << "PASS(native): a texture's mips, a model's meshes and bounds, and an audio "
@@ -317,7 +409,8 @@
                      "was not just imported - the path that\n              has to recover them from "
                      "the '.passet' it is about to overwrite - and a model's LOD settings,\n"
                      "              mesh materials and embedded materials saved alongside, once "
-                     "each, through re-saves and a re-import." << std::endl;
+                     "each, through re-saves and a re-import,\n              with an edit to an "
+                     "embedded material stored by saving its model and kept by a re-import." << std::endl;
     }
     catch (const std::exception& exception)
     {

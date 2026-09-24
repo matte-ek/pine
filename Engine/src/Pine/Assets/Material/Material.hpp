@@ -7,6 +7,7 @@
 
 namespace Pine
 {
+	class Model;
 
 	enum class MaterialRenderingMode
 	{
@@ -62,7 +63,10 @@ namespace Pine
 		float m_Shininess = 16.f;
 		float m_TextureScale = 1.f;
 
-        bool m_IsMeshGeneratedMaterial = true;
+		// The model this material is embedded in, or empty for a material with a '.passet' of its
+		// own. An embedded material is stored inside that model's payload, so it has no file to
+		// save to: it is saved by saving the model.
+		UId m_EmbeddingModel;
 
 	    struct MaterialSerializer : Serialization::Serializer
 	    {
@@ -131,10 +135,15 @@ namespace Pine
 		void SetTextureScale(float value);
 		float GetTextureScale() const;
 
-        // If this material is from a model file, instead of an engine material.
-        bool IsMeshGenerated() const;
+		// Whether this material came from a model file and is stored inside that model's '.passet'.
+		bool IsEmbedded() const;
+
+		// The model this material is embedded in, or nullptr for a standalone material.
+		Model* GetEmbeddingModel() const;
 
 		void Dispose() override;
+
+		friend class Model;
 	};
 
 }
