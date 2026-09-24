@@ -37,3 +37,17 @@ This matters more than usual in Pine, where subsystems are namespaces of free fu
 - Add the file when you are pointing at a specific place to change, as in `Entity::AddComponent` in `World/Entity/Entity.hpp`.
 
 This is about how you write to the user. In code you write, follow the surrounding convention as usual.
+
+## Walk the user through traps
+
+The user wants to follow the reasoning. When you report a trap, risk, or design problem, explain each one on its own:
+
+- **Where it comes from:** the specific code (function, file, line) that shows it,
+  and what that code does today.
+- **How it fails:** a concrete sequence of events that leads to the wrong behaviour.
+- **Why it matters:** how likely it is and how bad, or say plainly that it's minor.
+- **Options:** the ways to handle it and what each one costs, then your recommendation.
+
+Prefer fewer traps explained well over a complete but compressed list. If there
+are many, explain the important ones fully and summarise the rest briefly.
+Length is fine here; compression is not.
