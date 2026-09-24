@@ -20,9 +20,8 @@ relative to `Engine/src/Pine/`.
   `FTransform`). The world getters and `GetTransformationMatrix()` recompute lazily. Every setter,
   and `Entity::SetParent`, calls `Transform::SetDirty`, which marks the whole subtree.
   `SetPosition/SetRotation/SetScale` take world values and store the matching local ones.
-  `Transform::IsDirty` is a separate signal for the renderer's caches ("changed since the last
-  `Transform::OnRender`"), and it reaches descendants as well. `verify-transform.py` (in
-  `Editor/src/DebugServer/Verification/`) checks all of this through a native probe.
+  `verify-transform.py` (in `Editor/src/DebugServer/Verification/`) checks all of this through a
+  native probe.
 - **"Systems" are not objects.** Behavior lives either in the component virtuals or in subsystem `Update()` functions. `World::Update()` drives physics, then `Audio::Update()`, then (unless paused) script updates; the renderer iterates component blocks directly (see [rendering.md](rendering.md)).
 - Access storage via `Components::Get<T>()` (typed block for iteration), `Components::Create<T>()`, `GetType<T>()`, `FindById`, `GetByInternalId`.
 - **Pooled components never run a constructor or destructor.** `Components::Create` copies the

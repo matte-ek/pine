@@ -398,8 +398,6 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 		{
 			const auto modelRenderer = items[i].Renderer;
 
-			modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
-
 			if (modelRenderer->GetOverrideStencilBuffer())
 			{
 				hasStencilBufferOverride = true;
@@ -427,8 +425,6 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 				{
 					continue;
 				}
-
-				modelRenderer->GetParent()->GetTransform()->OnRender(0.f);
 
 				Renderer3D::RenderMesh(
 				    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),

@@ -432,7 +432,11 @@ there when they don't.
 the nearest two spots — `COUNT` is 7. Two spot slots rather than one so a hand-held light and a
 world light can reach the same surface. The directional light is global and always light index 0.
 `SceneProcessor::Lights::ProcessModelRenderer` assigns slots per object by distance and caches them
-until the object or a light moves, a light is added/removed, or a light changes type.
+until the object or a light moves, a light is added/removed, or a light changes type. Movement is
+compared against the positions recorded when the slots were picked (`LightSlotData::Origin`,
+`LightHintData::SlotPosition`), so turning an object or a light keeps its slots.
+`verify-scene-processor.py` checks that the slots follow a moved object, a lamp carried by its
+parent and a deleted lamp.
 
 ⚠ **`COUNT` is capped at 7 by the shader, not by anything in C++.** The varying block in
 `shared/vertex-data.glsl`, used by the generic, terrain and terrain detail shaders, carries `lightDir[8]`, of which `[0]` is the directional light and `[1..7]` are these slots.
@@ -533,8 +537,7 @@ The slots survive between frames and are recomputed when the light set changes
 (`SceneProcessorContext::LightSetChanged`), when the terrain moves, or when a chunk's box moves —
 the last raised from `Terrain::UpdateChunkBounds`, so the sculpting brush gets it without having to
 remember. Terrain movement is compared against the position the slots were assigned at
-(`TerrainRendererComponent::GetLightSlotOrigin`) rather than read off `Transform::IsDirty()`: no
-pass calls `OnRender` on a terrain's transform, so that flag is never cleared.
+(`TerrainRendererComponent::GetLightSlotOrigin`), the same rule a model renderer's slots follow.
 
 ⚠ The slots live on the chunk, which lives on the **asset**. Two entities sharing one terrain asset
 would therefore light it from whichever placement was processed last. One terrain per placement is

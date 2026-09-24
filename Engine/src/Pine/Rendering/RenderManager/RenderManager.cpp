@@ -160,16 +160,6 @@ void Pine::RenderManager::Run()
         Script::Manager::OnRender(fDeltaTime);
     }
 
-    // In the editor every transform's change is consumed each frame, not only the drawn ones'
-    // (see Transform::IsDirty). The matrices themselves need no update here; they are computed on read.
-    if (!engineConfig.m_ProductionMode)
-    {
-        for (auto& transform : Components::Get<Transform>(true))
-        {
-            transform.OnRender(fDeltaTime);
-        }
-    }
-
     Pipeline3D::Prepare();
 
     for (const auto renderingContext : m_RenderingContexts)
@@ -203,7 +193,6 @@ void Pine::RenderManager::Run()
             // Make sure we got the camera's projection and view matrix ready for the scene
             if (renderingContext->SceneCamera)
             {
-                renderingContext->SceneCamera->GetParent()->GetTransform()->OnRender(0.f);
                 renderingContext->SceneCamera->OnRender(0.f);
             }
         }

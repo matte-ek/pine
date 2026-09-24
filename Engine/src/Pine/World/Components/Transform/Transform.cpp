@@ -63,7 +63,6 @@ Transform::Transform() :
 
 void Transform::SetDirty()
 {
-    m_IsDirty = true;
     m_IsWorldStale = true;
 
     if (m_Parent == nullptr)
@@ -83,11 +82,6 @@ void Transform::SetDirty()
     }
 }
 
-bool Transform::IsDirty() const
-{
-    return m_IsDirty;
-}
-
 void Transform::OnCreated()
 {
     Component::OnCreated();
@@ -95,11 +89,6 @@ void Transform::OnCreated()
     // Entity::LoadData can attach a new transform to an entity whose children were placed by the
     // transform it replaced.
     SetDirty();
-}
-
-void Transform::OnRender(float deltaTime)
-{
-    m_IsDirty = false;
 }
 
 void Transform::LoadData(const ByteSpan& span)

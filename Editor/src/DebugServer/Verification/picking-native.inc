@@ -36,7 +36,6 @@
         auto entity = Pine::Entities::Create("Picking triangles");
         auto renderer = entity->AddComponent<Pine::ModelRenderer>();
         renderer->SetModel(model);
-        entity->GetTransform()->OnRender(0);
         context.Visibility.Set(renderer->GetInternalId());
 
         auto capture = Picking::Capture(context, viewProjection, 101, 101, frame);

@@ -59,11 +59,6 @@ void Pine::World::SetActiveLevel(Level *level, const bool ignoreLoad)
     }
 
     m_Level = level;
-
-    for (auto& transform : Components::Get<Transform>())
-    {
-        transform.OnRender(0.f);
-    }
 }
 
 Pine::Level *Pine::World::GetActiveLevel()

@@ -77,11 +77,8 @@ namespace
         return level;
     }
 
-    // Whether this terrain has been moved since its chunks were last lit.
-    //
-    // Compared against the position the slots were picked at rather than read off
-    // Transform::IsDirty(): no pass calls OnRender on a terrain's transform, so that flag is never
-    // cleared and would read as permanently moved.
+    // Whether this terrain has been moved since its chunks were last lit, compared against the
+    // position the slots were picked at.
     bool HasTerrainMoved(const TerrainRendererComponent& component, const Vector3f& entityPosition)
     {
         const auto& slotOrigin = component.GetLightSlotOrigin();

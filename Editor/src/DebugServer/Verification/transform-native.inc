@@ -69,17 +69,8 @@
         check(near(matrixPosition(grandchild), position(grandchild)), "Matrix disagrees with the world position");
         check(composesLikeMatrices(child) && composesLikeMatrices(grandchild), "Composition differs from matrix parenting");
 
-        // Moving only the group has to reach the descendants' cached matrices and their change
-        // flags, which the renderer consumes through OnRender.
-        for (const auto entity : {group, child, grandchild})
-        {
-            entity->GetTransform()->OnRender(0.f);
-        }
-        check(!grandchild->GetTransform()->IsDirty(), "OnRender did not consume the change");
-
+        // Moving only the group has to reach the descendants' cached matrices.
         group->GetTransform()->SetLocalPosition({0, 5, 0});
-        check(child->GetTransform()->IsDirty() && grandchild->GetTransform()->IsDirty(),
-            "Moving a parent did not mark its descendants as changed");
         check(near(matrixPosition(grandchild), {6, 5, -2}),
             "Grandchild's matrix is stale after its group moved: " + describe(matrixPosition(grandchild)));
 
@@ -124,7 +115,7 @@
         check(Pine::Entities::GetList().size() == countBefore - 7, "Deleting the hierarchies left entities behind");
 
         std::cout << "PASS: rotation and scale carried to children, matrix-parenting agreement, cached matrices\n"
-                     "      and change flags following a moved parent, world setters, reparenting and spawning.\n";
+                     "      following a moved parent, world setters, reparenting and spawning.\n";
     }
     catch (const std::exception& exception)
     {

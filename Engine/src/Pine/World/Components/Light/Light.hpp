@@ -1,4 +1,6 @@
 #pragma once
+#include <optional>
+
 #include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/Core/Serialization/Serialization.hpp"
@@ -28,6 +30,10 @@ namespace Pine
             // to survive the gap between them.
             int ShadowViewIndex = -1;
             int ShadowViewCount = 0;
+
+            // Where the light was when the objects' light slots were last checked against it, so
+            // moving it can be told apart from turning it. Empty until the first check.
+            std::optional<Vector3f> SlotPosition;
         };
     }
 

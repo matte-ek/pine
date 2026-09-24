@@ -100,7 +100,6 @@ namespace
             subjectEntity = new Pine::Entity(Pine::UId::Empty());
 
             subjectEntity->AddComponent(new Pine::Transform());
-            subjectEntity->GetTransform()->OnRender(0.f);
         }
 
         return subjectEntity->GetTransform()->GetTransformationMatrix();

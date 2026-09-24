@@ -29,8 +29,6 @@ namespace Pine
 
         mutable bool m_IsWorldStale = true;
 
-        bool m_IsDirty = true;
-
         const Transform* GetParentTransform() const;
         void UpdateWorldTransform() const;
 
@@ -43,16 +41,11 @@ namespace Pine
     public:
         explicit Transform();
 
-        // Marks this transform and every transform below it as changed. Every setter calls this, and
-        // so does Entity::SetParent.
+        // Marks this transform and every transform below it as changed, so their world values are
+        // recomputed on the next read. Every setter calls this, and so does Entity::SetParent.
         void SetDirty();
 
-        // Whether this transform or one of its ancestors changed since the last OnRender(). The
-        // renderer's caches read it; the world-space getters never need it.
-        bool IsDirty() const;
-
         void OnCreated() override;
-        void OnRender(float deltaTime) override;
 
         void LoadData(const ByteSpan& span) override;
         ByteSpan SaveData() override;

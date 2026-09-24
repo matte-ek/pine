@@ -59,15 +59,6 @@ namespace
         }
     };
 
-    // True if anything changed that the cached light slots depend on. The transform flag covers
-    // movement (slots are picked by distance); the entity flag is the general "something about
-    // this entity changed" signal, which Light::SetLightType raises since the type decides which
-    // slot bucket a light competes for. SceneProcessor::EndFrame clears the entity flag each frame.
-    bool HasSlotInputChanged(const Component& component)
-    {
-        return component.GetParent()->IsDirty() || component.GetTransform()->IsDirty();
-    }
-
     // Gathers the lights of the world for this frame. Returns true if the set of lights changed in a
     // way that invalidates the light slots computed for the objects during the previous frame.
     bool CollectWorldLights(std::vector<Light*>& lights)
@@ -93,10 +84,19 @@ namespace
             // for shadows, so it is deliberately not bundled in here.
             lights.push_back(&light);
 
-            if (HasSlotInputChanged(light))
+            // Slots are picked by distance, so moving a light changes them and turning it does not.
+            // The entity flag is the general "something about this entity changed" signal, which
+            // Light::SetLightType raises since the type decides which slot bucket a light competes
+            // for. SceneProcessor::EndFrame clears it each frame.
+            auto& hintData = light.GetLightHintData();
+            const auto position = light.GetTransform()->GetPosition();
+
+            if (hintData.SlotPosition != position || light.GetParent()->IsDirty())
             {
                 lightsChanged = true;
             }
+
+            hintData.SlotPosition = position;
         }
 
         // A light being created or destroyed changes which lights are the nearest ones as well.
@@ -167,18 +167,20 @@ void Pine::Rendering::SceneProcessor::Lights::AssignSlots(const SceneProcessorCo
     }
 
     slots.HasComputedData = true;
+    slots.Origin = position;
 }
 
 void Pine::Rendering::SceneProcessor::Lights::ProcessModelRenderer(const SceneProcessorContext& context, ModelRenderer* modelRenderer)
 {
     auto& slots = modelRenderer->GetRenderingHintData().Lights;
+    const auto position = modelRenderer->GetTransform()->GetPosition();
 
     // Which lights an object ends up with only depends on where it and the lights are, so unless one
     // of them moved (Prepare clears HasComputedData then) the previous frame's slots still hold.
-    if (slots.HasComputedData && !HasSlotInputChanged(*modelRenderer))
+    if (slots.HasComputedData && slots.Origin == position)
     {
         return;
     }
 
-    AssignSlots(context, modelRenderer->GetTransform()->GetPosition(), slots);
+    AssignSlots(context, position, slots);
 }
