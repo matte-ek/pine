@@ -167,7 +167,7 @@ namespace
         {
             instanceData.push_back({
                 Vector4f(placement.Position, placement.Scale),
-                Vector4f(std::cos(placement.Yaw), std::sin(placement.Yaw), 0.f, 0.f)
+                Vector4f(std::cos(placement.Yaw), std::sin(placement.Yaw), placement.GroundNormal.x, placement.GroundNormal.z)
             });
         }
 

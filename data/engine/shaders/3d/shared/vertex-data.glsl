@@ -120,9 +120,17 @@ in VertexData
 //
 // For anything drawn with a face culled this is vIn.worldNormal unchanged: the culled face never
 // reaches the fragment stage, so gl_FrontFacing is always true there.
+//
+// A shader whose normal belongs to neither face defines PINE_FACE_INDEPENDENT_NORMAL before
+// including this file, and gets vIn.worldNormal on both. Terrain detail does: it shades with the
+// ground's normal, which flipping would point into the ground.
 vec3 FacingWorldNormal()
 {
+#ifdef PINE_FACE_INDEPENDENT_NORMAL
+	return vIn.worldNormal;
+#else
 	return gl_FrontFacing ? vIn.worldNormal : -vIn.worldNormal;
+#endif
 }
 
 #endif

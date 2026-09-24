@@ -123,8 +123,9 @@ namespace Pine::Renderer3D::ShaderStorages
         // xyz the terrain-local position, w the uniform scale.
         Vector4f PositionScale;
 
-        // x = cos(yaw), y = sin(yaw), zw unused. Precomputed so the vertex stage does no trig.
-        Vector4f Rotation;
+        // x = cos(yaw), y = sin(yaw), precomputed so the vertex stage does no trig. zw = the ground
+        // normal's x and z; its y is the positive rest of a unit vector, since ground faces up.
+        Vector4f Orientation;
     };
 
     inline Graphics::ShaderStorage<MatrixData> Matrix(Specifications::ShaderStorages::MATRICES, "Matrices");

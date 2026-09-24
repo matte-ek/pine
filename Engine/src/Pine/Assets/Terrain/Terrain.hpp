@@ -99,6 +99,10 @@ namespace Pine
 
         // Rotation about the vertical axis, in radians.
         float Yaw = 0.f;
+
+        // The normal the ground is shaded with where this placement stands (Terrain::GetNormalAt),
+        // so the renderer can light the placement the way it lights the ground around it.
+        Vector3f GroundNormal = { 0.f, 1.f, 0.f };
     };
 
     // One band of noise summed into the height field. Each band is an octave stack of its own at
@@ -352,6 +356,21 @@ namespace Pine
         // tangents come out of it.
         Vector2f ComputeSampleSlopes(Vector2i sample) const;
 
+        // The unit normal of a surface with these slopes, which is what a chunk mesh's vertex at
+        // that sample carries.
+        static Vector3f NormalFromSlopes(Vector2f slopes);
+
+        // Where a terrain-local point falls in the sample grid: the quad whose low corner is sample
+        // Quad, and the point's position within that quad, each coordinate in [0, 1].
+        struct QuadPoint
+        {
+            Vector2i Quad{};
+            Vector2f Offset{};
+        };
+
+        // Empty outside the terrain. A point exactly on the far rim belongs to the last quad.
+        std::optional<QuadPoint> LocateQuadPoint(float x, float z) const;
+
         // Builds one detail level of one chunk. Level l keeps every 2^l-th sample along both axes,
         // so the mesh is a quarter of the size of the level below it and still lands exactly on
         // real samples - no resampling, and the chunk's corner samples are in every level.
@@ -437,6 +456,12 @@ namespace Pine
         // it matches the rendered and simulated surface. The diagonal follows
         // IsInFirstQuadTriangle, as do the mesh generator and the PhysX tessellation flags.
         std::optional<float> GetHeightAt(float x, float z) const;
+
+        // The unit normal the ground is shaded with at a terrain-local point, empty outside the
+        // terrain. The vertex normals of the triangle the point falls in, interpolated the way
+        // GetHeightAt interpolates heights, which is how the rasterizer blends them across the
+        // finest detail level.
+        std::optional<Vector3f> GetNormalAt(float x, float z) const;
 
         // Where a ray first meets the ground, or empty when it misses the terrain entirely.
         //

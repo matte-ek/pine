@@ -240,6 +240,10 @@ Each flip is unconditional and has no shader version of its own: a face that get
 reaches the fragment stage through that face, so for everything else `gl_FrontFacing` is always
 true and the flip is dead code the driver folds away.
 
+Terrain detail is the exception. It shades with a normal leaned onto the ground's, which belongs to
+neither face, so its fragment stage flips nothing and defines `PINE_FACE_INDEPENDENT_NORMAL` to
+turn `FacingWorldNormal()`'s flip off as well (see [Terrain detail](#terrain-detail)).
+
 What this does **not** do is make a two-sided surface sort correctly against itself. A `Transparent`
 material set to `Both` composites its two faces in whatever order they rasterize; the blend pass
 sorts per object-mesh by centre distance and cannot see inside one. Foliage wants `Discard`, which
@@ -743,6 +747,17 @@ carries what every copy shares: the terrain's translation and the chunk's light 
 Lighting, shadows and fog come from the same `shared/` includes the generic and terrain shaders
 use, so foliage-only shading belongs in this shader rather than in `generic`. Copies
 shrink into the ground between 80% and 100% of the draw distance instead of popping out.
+
+**Detail is lit like the ground it stands on.** Shaded by their own normals, grass cards that face
+away from a light go black beside ground that light reaches, because Pine has no bounced light,
+only the level's flat ambient. So every placement carries `GroundNormal`, the normal
+`Terrain::GetNormalAt` gives where it stands: the triangle's vertex normals interpolated the way
+`Terrain::GetHeightAt` interpolates heights, from the same `Terrain::NormalFromSlopes` the chunk
+meshes use. The GPU copy packs its x and z into the free half of `Orientation` and the vertex stage
+rebuilds y. The shading normal is the mesh normal leaned `GroundNormalWeight` (0.8) of the way onto
+it, which removes the black cards and keeps a little of the model's shape; 1.0 lights every copy
+exactly like the ground. The same normal offsets the shadow lookups, so detail picks up shadows
+the way the ground does.
 
 Things worth knowing:
 

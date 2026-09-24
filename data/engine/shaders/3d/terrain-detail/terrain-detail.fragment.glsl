@@ -10,6 +10,10 @@
 
 layout(location = 0) out vec4 m_OutputColor;
 
+// The normal leans towards the ground's (see the vertex stage), so it belongs to neither face and
+// both faces of a two-sided card shade with it unflipped.
+#define PINE_FACE_INDEPENDENT_NORMAL
+
 #include "shared/common.glsl"
 #include "shared/vertex-data.glsl"
 #include "shared/lightning/lightning.glsl"
@@ -36,13 +40,6 @@ Surface CreateSurface()
     else
     {
         surface.normal = vIn.normalDir;
-    }
-
-    // A card drawn with MaterialRenderFace::Both seen from behind needs its normal flipped, or it
-    // shades as if lit from behind. A no-op when back faces are culled.
-    if (!gl_FrontFacing)
-    {
-        surface.normal = -surface.normal;
     }
 
     return surface;

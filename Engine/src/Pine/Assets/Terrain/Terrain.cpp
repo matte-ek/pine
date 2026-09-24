@@ -626,7 +626,7 @@ std::optional<TerrainRayHit> Terrain::Raycast(const Vector3f& origin, const Vect
     return std::nullopt;
 }
 
-std::optional<float> Terrain::GetHeightAt(const float x, const float z) const
+std::optional<Terrain::QuadPoint> Terrain::LocateQuadPoint(const float x, const float z) const
 {
     const float spacing = GetSampleSpacing();
 
@@ -648,8 +648,21 @@ std::optional<float> Terrain::GetHeightAt(const float x, const float z) const
         std::min(static_cast<int>(std::floor(sampleZ)), sampleMax.y - 1)
     };
 
-    const float quadX = sampleX - static_cast<float>(quad.x);
-    const float quadZ = sampleZ - static_cast<float>(quad.y);
+    return QuadPoint{ quad, { sampleX - static_cast<float>(quad.x), sampleZ - static_cast<float>(quad.y) } };
+}
+
+std::optional<float> Terrain::GetHeightAt(const float x, const float z) const
+{
+    const auto point = LocateQuadPoint(x, z);
+
+    if (!point.has_value())
+    {
+        return std::nullopt;
+    }
+
+    const auto quad = point->Quad;
+    const float quadX = point->Offset.x;
+    const float quadZ = point->Offset.y;
 
     const float lowLow = DecodeHeight(m_Heights[GetSampleIndex({ quad.x, quad.y })]);
     const float highLow = DecodeHeight(m_Heights[GetSampleIndex({ quad.x + 1, quad.y })]);
@@ -662,6 +675,32 @@ std::optional<float> Terrain::GetHeightAt(const float x, const float z) const
     }
 
     return highHigh + (lowHigh - highHigh) * (1.f - quadX) + (highLow - highHigh) * (1.f - quadZ);
+}
+
+std::optional<Vector3f> Terrain::GetNormalAt(const float x, const float z) const
+{
+    const auto point = LocateQuadPoint(x, z);
+
+    if (!point.has_value())
+    {
+        return std::nullopt;
+    }
+
+    const auto quad = point->Quad;
+    const float quadX = point->Offset.x;
+    const float quadZ = point->Offset.y;
+
+    const auto lowLow = NormalFromSlopes(ComputeSampleSlopes({ quad.x, quad.y }));
+    const auto highLow = NormalFromSlopes(ComputeSampleSlopes({ quad.x + 1, quad.y }));
+    const auto lowHigh = NormalFromSlopes(ComputeSampleSlopes({ quad.x, quad.y + 1 }));
+    const auto highHigh = NormalFromSlopes(ComputeSampleSlopes({ quad.x + 1, quad.y + 1 }));
+
+    // The same interpolation GetHeightAt uses, then back to unit length.
+    const auto interpolated = IsInFirstQuadTriangle(quadX, quadZ)
+        ? lowLow + (highLow - lowLow) * quadX + (lowHigh - lowLow) * quadZ
+        : highHigh + (lowHigh - highHigh) * (1.f - quadX) + (highLow - highHigh) * (1.f - quadZ);
+
+    return glm::normalize(interpolated);
 }
 
 float Terrain::DecodeHeight(const std::uint16_t sample) const
@@ -1052,8 +1091,9 @@ std::vector<TerrainDetailInstance> Terrain::GenerateDetailInstances(const Terrai
         }
 
         const auto height = GetHeightAt(x, z);
+        const auto groundNormal = GetNormalAt(x, z);
 
-        if (!height.has_value())
+        if (!height.has_value() || !groundNormal.has_value())
         {
             continue;
         }
@@ -1063,6 +1103,7 @@ std::vector<TerrainDetailInstance> Terrain::GenerateDetailInstances(const Terrai
         instance.Position = { x, height.value(), z };
         instance.Scale = glm::mix(type.ScaleMin, type.ScaleMax, scaleFraction);
         instance.Yaw = yawFraction * glm::two_pi<float>();
+        instance.GroundNormal = groundNormal.value();
 
         instances.push_back(instance);
     }
@@ -1347,6 +1388,11 @@ Vector2f Terrain::ComputeSampleSlopes(const Vector2i sample) const
     return { slopeAlong({ 1, 0 }), slopeAlong({ 0, 1 }) };
 }
 
+Vector3f Terrain::NormalFromSlopes(const Vector2f slopes)
+{
+    return glm::normalize(Vector3f(-slopes.x, 1.f, -slopes.y));
+}
+
 void Terrain::AppendChunkSkirt(const int quads,
                                const float skirtDepth,
                                std::vector<Vector3f>& vertices,
@@ -1469,7 +1515,7 @@ void Terrain::BuildChunkMesh(TerrainChunk& chunk, const int lodLevel) const
             // Chunk-local positions; the renderer's transform carries the chunk's offset.
             vertices[vertex] = { static_cast<float>(x) * vertexSpacing, height, static_cast<float>(z) * vertexSpacing };
 
-            normals[vertex] = glm::normalize(Vector3f(-slopes.x, 1.f, -slopes.y));
+            normals[vertex] = NormalFromSlopes(slopes);
 
             // The surface tangent along +x, the direction u runs in.
             tangents[vertex] = glm::normalize(Vector3f(1.f, slopes.x, 0.f));

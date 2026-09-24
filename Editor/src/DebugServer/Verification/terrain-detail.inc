@@ -42,7 +42,8 @@
 
             for (std::size_t i = 0; i < a.size(); i++)
             {
-                if (a[i].Position != b[i].Position || a[i].Scale != b[i].Scale || a[i].Yaw != b[i].Yaw)
+                if (a[i].Position != b[i].Position || a[i].Scale != b[i].Scale || a[i].Yaw != b[i].Yaw ||
+                    a[i].GroundNormal != b[i].GroundNormal)
                 {
                     return false;
                 }
@@ -55,7 +56,8 @@
         {
             for (const auto& candidate : set)
             {
-                if (candidate.Position == instance.Position && candidate.Scale == instance.Scale && candidate.Yaw == instance.Yaw)
+                if (candidate.Position == instance.Position && candidate.Scale == instance.Scale && candidate.Yaw == instance.Yaw &&
+                    candidate.GroundNormal == instance.GroundNormal)
                 {
                     return true;
                 }
@@ -117,6 +119,8 @@
 
                     check(placement.Scale >= 0.5f && placement.Scale <= 1.5f, "A placement's scale is outside the detail type's range");
                     check(placement.Yaw >= 0.f && placement.Yaw < 6.2832f, "A placement's yaw is outside one turn");
+                    check(glm::length(placement.GroundNormal - Pine::Vector3f(0.f, 1.f, 0.f)) < 0.0001f,
+                        "A placement on flat ground does not have a straight-up ground normal");
                 }
             }
 
@@ -129,6 +133,42 @@
 
                 check(ground.has_value() && std::abs(ground.value() - placement.Position.y) < 0.0001f,
                     "A placement is not standing on sculpted ground");
+            }
+
+            // Placements carry the normal the ground is shaded with where they stand, so the
+            // renderer can light them like the ground around them.
+            {
+                int tiltedCount = 0;
+
+                for (const auto& placement : scratch->GenerateDetailInstances(findChunk(scratch, { 0, 0 }), 0))
+                {
+                    const auto groundNormal = scratch->GetNormalAt(placement.Position.x, placement.Position.z);
+
+                    check(groundNormal.has_value() && glm::length(groundNormal.value() - placement.GroundNormal) < 0.0001f,
+                        "A placement's ground normal is not the ground's normal where it stands");
+                    check(std::abs(glm::length(placement.GroundNormal) - 1.f) < 0.0001f && placement.GroundNormal.y > 0.f,
+                        "A placement's ground normal is not a unit vector out of the ground");
+
+                    if (placement.GroundNormal.y < 0.99f)
+                    {
+                        tiltedCount++;
+                    }
+                }
+
+                check(tiltedCount > 0, "No placement near the raised sample has a tilted ground normal");
+
+                // At a sample, GetNormalAt is that sample's vertex normal: the central differences
+                // of the stored heights around it, one unit apart here.
+                const auto height = [&](const float x, const float z) { return scratch->GetHeightAt(x, z).value(); };
+
+                const auto slopeX = (height(3.f, 3.f) - height(1.f, 3.f)) / 2.f;
+                const auto slopeZ = (height(2.f, 4.f) - height(2.f, 2.f)) / 2.f;
+                const auto besidePeak = scratch->GetNormalAt(2.f, 3.f);
+
+                check(slopeX > 0.5f, "The raised sample did not raise the ground beside it");
+                check(besidePeak.has_value() &&
+                      glm::length(besidePeak.value() - glm::normalize(Pine::Vector3f(-slopeX, 1.f, -slopeZ))) < 0.0001f,
+                    "GetNormalAt beside a raised sample is not the mesh's vertex normal there");
             }
 
             const auto& chunkA = findChunk(scratch, { 0, 0 });

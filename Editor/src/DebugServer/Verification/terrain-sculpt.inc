@@ -291,16 +291,23 @@
             const auto brush = shader->GetProgram(brushVersion);
 
             check(plain != brush, "The brush version handed back the same program as the default one");
+
+            // A program has to be in use for its uniforms to be looked up.
+            brush->Use();
+
             check(brush->GetUniformVariable("brushRing") != nullptr,
                 "The brush version has no 'brushRing' uniform - the VERSION_BRUSH macro never reached the source");
-            check(plain->GetUniformVariable("brushRing") == nullptr,
-                "The default version carries the brush uniform, so a built game would pay for it");
 
             // Both versions still have to be usable terrain shaders, not just distinct programs.
-            check(plain->GetUniformVariable("splatTransform") != nullptr,
-                "The default terrain program lost its splat transform");
             check(brush->GetUniformVariable("splatTransform") != nullptr,
                 "The brush terrain program lost its splat transform");
+
+            plain->Use();
+
+            check(plain->GetUniformVariable("brushRing") == nullptr,
+                "The default version carries the brush uniform, so a built game would pay for it");
+            check(plain->GetUniformVariable("splatTransform") != nullptr,
+                "The default terrain program lost its splat transform");
 
             // And again after re-importing the source, which is what a shader file saved while the
             // editor is open goes through. Registered once however many times that happens: a
