@@ -22,6 +22,7 @@
 #include "Pine/Assets/Texture3D/Texture3D.hpp"
 #include "Pine/Assets/Tilemap/Tilemap.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
+#include "Pine/Audio/Audio.hpp"
 #include "Pine/Physics/Physics3D/TerrainCollision/TerrainCollision.hpp"
 #include "Pine/Rendering/Rendering.hpp"
 #include "Pine/World/World.hpp"
@@ -613,12 +614,55 @@ namespace
         return fmt::format("{:.1f} MB", static_cast<float>(bytes) / megabyte);
     }
 
+    void RenderAudioPreview(Pine::AudioFile *audiofile)
+    {
+        // A clip only has a buffer once it has loaded onto an audio device.
+        const auto canPreview = audiofile->GetBuffer() != nullptr;
+        const auto isPreviewing = Pine::Audio::GetPreviewClip() == audiofile;
+
+        if (!canPreview)
+        {
+            Widgets::PushDisabled();
+        }
+
+        if (isPreviewing)
+        {
+            if (ImGui::Button(ICON_MD_STOP, ImVec2(45.f, 0.f)))
+            {
+                Pine::Audio::StopPreview();
+            }
+        }
+        else if (ImGui::Button(ICON_MD_PLAY_ARROW, ImVec2(45.f, 0.f)))
+        {
+            Pine::Audio::PlayPreview(audiofile);
+        }
+
+        ImGui::SameLine();
+
+        const auto duration = audiofile->GetDuration();
+        const auto position = isPreviewing ? Pine::Audio::GetPreviewPosition() : 0.f;
+        const auto progress = duration > 0.f ? position / duration : 0.f;
+
+        ImGui::ProgressBar(progress, ImVec2(-1.f, 0.f), fmt::format("{:.2f} / {:.2f} s", position, duration).c_str());
+
+        if (!canPreview)
+        {
+            Widgets::PopDisabled();
+
+            ImGui::TextDisabled("There is no audio device to preview on.");
+        }
+    }
+
     void RenderAudioFile(Pine::AudioFile *audiofile)
     {
         Widgets::Text("Format", Pine::Audio::AudioFormatToString(audiofile->GetFormat()));
         Widgets::Text("Sample Rate", fmt::format("{} Hz", audiofile->GetSampleRate()));
         Widgets::Text("Duration", fmt::format("{:.2f} s", audiofile->GetDuration()));
         Widgets::Text("Size", FormatSampleDataSize(audiofile->GetSampleDataSize()));
+
+        ImGui::Spacing();
+
+        RenderAudioPreview(audiofile);
 
         ImGui::Spacing();
         ImGui::Separator();

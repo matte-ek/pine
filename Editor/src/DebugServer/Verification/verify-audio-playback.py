@@ -44,6 +44,7 @@ includes = '''#include <chrono>
 #include "Pine/Audio/OpenAL/Source/ALSource.hpp"
 #include "Pine/World/Components/AudioListener/AudioListener.hpp"
 #include "Pine/World/Components/AudioSource/AudioSource.hpp"
+#include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Transform/Transform.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Entity/Entity.hpp"

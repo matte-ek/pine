@@ -55,6 +55,13 @@ namespace
 
     std::vector<Voice> m_Voices;
 
+    // The voice clips are previewed on. Kept out of the pool, whose voices belong to AudioSource
+    // components, and created on first use so a game that never previews anything never pays for it.
+    Audio::IAudioSource* m_PreviewVoice = nullptr;
+
+    // Re-validates on access, which is how a preview notices that its clip has been deleted.
+    AssetHandle<AudioFile> m_PreviewClip;
+
     // A level is only ever meant to have one set of ears, so the warning about finding several is
     // worth saying once rather than sixty times a second.
     bool m_HasWarnedAboutMultipleListeners = false;
@@ -201,8 +208,38 @@ namespace
         return activeListener;
     }
 
+    bool IsPreviewing()
+    {
+        return m_PreviewClip != UId::Empty();
+    }
+
+    void UpdatePreview()
+    {
+        if (!IsPreviewing())
+        {
+            return;
+        }
+
+        const auto clipDeleted = m_PreviewClip.Get() == nullptr;
+        const auto reachedEnd = m_PreviewVoice->GetState() == Audio::PlaybackState::Stopped;
+
+        if (clipDeleted || reachedEnd)
+        {
+            Audio::StopPreview();
+        }
+    }
+
     void UpdateListener()
     {
+        // A paused world holds every AudioSource silent, so a preview is the only thing that can be
+        // heard then. It should be heard at full volume, whether or not the level has a listener.
+        if (World::IsPaused() && IsPreviewing())
+        {
+            m_AudioAPI->SetListenerVolume(1.f);
+
+            return;
+        }
+
         const auto listener = FindActiveListener();
 
         // Nothing is listening, so nothing should be heard. Silencing the device beats leaving the
@@ -366,6 +403,13 @@ void Pine::Audio::Shutdown()
 
     m_Voices.clear();
 
+    if (m_PreviewVoice != nullptr)
+    {
+        m_AudioAPI->DestroySource(m_PreviewVoice);
+
+        m_PreviewVoice = nullptr;
+    }
+
     m_AudioAPI->Shutdown();
 
     delete m_AudioAPI;
@@ -383,6 +427,9 @@ void Pine::Audio::Update()
     {
         return;
     }
+
+    // Before the listener, which is set differently while a preview is playing.
+    UpdatePreview();
 
     UpdateListener();
 
@@ -409,6 +456,75 @@ void Pine::Audio::Internal::ReleaseVoice(AudioSource& source)
 
     hintData.VoiceIndex = -1;
     hintData.VoiceGeneration = 0;
+}
+
+void Pine::Audio::Internal::StopPreviewOf(const AudioFile& clip)
+{
+    if (m_PreviewClip == clip.GetUId())
+    {
+        StopPreview();
+    }
+}
+
+void Pine::Audio::PlayPreview(AudioFile* clip)
+{
+    const auto buffer = clip != nullptr ? clip->GetBuffer() : nullptr;
+
+    // No device to play on, or a clip that has not loaded onto it.
+    if (m_AudioAPI == nullptr || buffer == nullptr)
+    {
+        return;
+    }
+
+    if (m_PreviewVoice == nullptr)
+    {
+        m_PreviewVoice = m_AudioAPI->CreateSource();
+
+        if (m_PreviewVoice == nullptr)
+        {
+            PWarning("The audio device would not provide a voice to preview clips with.");
+
+            return;
+        }
+
+        m_PreviewVoice->SetSpatial(false);
+        m_PreviewVoice->SetVolume(1.f);
+        m_PreviewVoice->SetPitch(1.f);
+        m_PreviewVoice->SetLooping(false);
+    }
+
+    // Binding a clip stops whatever the voice was playing, so previewing the clip that is already
+    // playing starts it over.
+    m_PreviewVoice->SetBuffer(buffer);
+    m_PreviewVoice->Play();
+
+    m_PreviewClip = clip;
+}
+
+void Pine::Audio::StopPreview()
+{
+    // Unbinding stops the voice too, and leaves the clip's buffer free to be rewritten or deleted.
+    if (m_PreviewVoice != nullptr)
+    {
+        m_PreviewVoice->SetBuffer(nullptr);
+    }
+
+    m_PreviewClip = nullptr;
+}
+
+Pine::AudioFile* Pine::Audio::GetPreviewClip()
+{
+    return m_PreviewClip.Get();
+}
+
+float Pine::Audio::GetPreviewPosition()
+{
+    if (!IsPreviewing())
+    {
+        return 0.f;
+    }
+
+    return m_PreviewVoice->GetPlaybackPosition();
 }
 
 Pine::Audio::IAudioAPI* Pine::Audio::GetAudioAPI()

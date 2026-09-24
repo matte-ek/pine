@@ -564,12 +564,128 @@
             Pine::Entities::Delete(restoredListenerEntity);
         }
 
+        // Part 10 - the editor's clip preview. It has to be heard in the paused world the editor
+        // keeps outside play mode, with or without a listener, and must let go of its clip's buffer
+        // whenever that clip is re-imported or deleted.
+        {
+            const auto listenerGain = []()
+            {
+                ALfloat gain = 0.f;
+
+                alGetListenerf(AL_GAIN, &gain);
+
+                return gain;
+            };
+
+            const auto bufferSize = [](const Pine::AudioFile* audioFile)
+            {
+                ALint size = 0;
+
+                alGetBufferi(*static_cast<std::uint32_t*>(audioFile->GetBuffer()->GetAudioIdentifier()), AL_SIZE, &size);
+
+                return size;
+            };
+
+            writeWave("projects/audio/content/preview.wav", SampleRate, static_cast<int>(SampleRate * ClipDuration));
+
+            const auto previewClip = importAudio("projects/audio/content/preview.wav", "projects/audio/assets/preview");
+
+            check(previewClip != nullptr && previewClip->GetBuffer() != nullptr,
+                "The preview clip did not import and upload");
+
+            // Part 2's listener is still around. Switch every listener off, so this starts out as a
+            // level with nothing listening.
+            std::vector<Pine::Entity*> listenerEntities;
+
+            for (auto& listener : Pine::Components::Get<Pine::AudioListener>())
+            {
+                listenerEntities.push_back(listener.GetParent());
+            }
+
+            for (const auto entity : listenerEntities)
+            {
+                entity->SetActive(false);
+            }
+
+            Pine::World::SetPaused(true);
+
+            pump(0.02);
+
+            check(Pine::Audio::GetPreviewClip() == nullptr, "A preview was playing before one was asked for");
+            check(near(listenerGain(), 0.f, 0.001f), "A paused world with no listener was left audible");
+
+            Pine::Audio::PlayPreview(previewClip);
+
+            pump(ClipDuration * 0.4f);
+
+            check(Pine::Audio::GetPreviewClip() == previewClip, "A preview stopped before its clip ran out");
+            check(Pine::Audio::GetPreviewPosition() > 0.f, "A preview did not advance in a paused world");
+            check(near(listenerGain(), 1.f, 0.001f),
+                "A preview in a paused world with no listener was not heard at full volume");
+
+            pump(ClipDuration);
+
+            check(Pine::Audio::GetPreviewClip() == nullptr, "A preview that ran out did not end");
+            check(Pine::Audio::GetPreviewPosition() == 0.f, "A finished preview still reported a position");
+            check(near(listenerGain(), 0.f, 0.001f), "The listener stayed audible after the preview ended");
+
+            // Stopping, and one preview replacing another.
+            Pine::Audio::PlayPreview(previewClip);
+            Pine::Audio::PlayPreview(clip);
+
+            check(Pine::Audio::GetPreviewClip() == clip, "A second preview did not replace the first");
+
+            Pine::Audio::StopPreview();
+
+            pump(0.02);
+
+            check(Pine::Audio::GetPreviewClip() == nullptr, "Stopping a preview did not end it");
+
+            // In play mode a preview is part of the game's mix, heard through its listener.
+            for (const auto entity : listenerEntities)
+            {
+                entity->SetActive(true);
+            }
+
+            Pine::World::SetPaused(false);
+
+            Pine::Audio::PlayPreview(previewClip);
+
+            pump(0.05);
+
+            check(Pine::Audio::GetPreviewPosition() > 0.f, "A preview did not play in a running world");
+            check(near(listenerGain(), 0.75f, 0.001f),
+                "A preview in a running world overrode the listener's volume");
+
+            // A re-import writes the new samples into the buffer the preview has bound, which
+            // OpenAL refuses unless the preview lets go of it first.
+            writeWave("projects/audio/content/preview.wav", SampleRate, static_cast<int>(SampleRate * ClipDuration * 2.f));
+
+            previewClip->ReImport();
+
+            check(Pine::Audio::GetPreviewClip() == nullptr, "Re-importing a clip did not end its preview");
+            check(bufferSize(previewClip) == static_cast<int>(SampleRate * ClipDuration * 2.f) * 2,
+                "A clip re-imported while previewing did not reach the audio device");
+
+            // Deleting the clip ends its preview on the next update.
+            Pine::Audio::PlayPreview(previewClip);
+
+            pump(0.02);
+
+            Pine::Assets::Internal::DeleteAsset(previewClip);
+
+            Pine::Audio::Update();
+
+            check(Pine::Audio::GetPreviewClip() == nullptr, "Deleting a clip did not end its preview");
+        }
+
         std::cout << "PASS(native): every IAudioSource setter reaching OpenAL, the listener following its\n"
                      "              entity and falling silent without one, a one-shot advancing and ending on\n"
                      "              its own, looping, pause/stop/seek, voices handed back by disabled and\n"
                      "              destroyed sources, a 48-source crowd staying inside the pool and passing a\n"
-                     "              freed voice on, a paused world holding its sounds, and both components\n"
-                     "              surviving a save and a load." << std::endl;
+                     "              freed voice on, a paused world holding its sounds, both components\n"
+                     "              surviving a save and a load, and a clip preview heard in a paused world\n"
+                     "              that lets go of its clip on a re-import or a delete." << std::endl;
     }
     catch (const std::exception& exception)
     {

@@ -73,6 +73,9 @@ So: an editor needs a project name as `argv[1]`, and must run with `data/` as th
   the brush is a shader version of the terrain shader (see [rendering.md](rendering.md)), not an
   overlay drawn on top, so it follows uneven ground exactly. `POST /terrain/sculpt` drives the same
   brush over HTTP, painting included.
+- **Audio clip preview**: the Properties panel's audio clip section has a play/stop button and a
+  progress bar, built on `Audio::PlayPreview` (see [audio.md](audio.md#previewing-a-clip)).
+  `Panels::Properties::Render` stops the preview once the panel is no longer showing that clip.
 - **Editor utilities** in `Utilities/`: `Assets/` (build an import context for dropped files, create/delete assets, refresh), `Scripts/` (`Utilities::Script`: create a C# source from the template, delete a script's source, and on window focus hot-reload `<project>/runtime-bin/Game.dll` when its write time changed and the game is stopped). The editor does not compile C#; `Game.dll` is built externally, e.g. by the user's IDE.
 
 ## Conventions

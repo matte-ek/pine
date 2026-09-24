@@ -80,7 +80,27 @@ is no separate path for it.
 ⚠ **`Audio::Update` gates on `World::IsPaused()`**, pausing every voice rather than stopping it, so
 leaving play mode and going back in continues a clip instead of restarting it. The editor keeps the
 world paused outside play mode, which is also why you cannot audition a clip by pressing play on a
-source in the editor — the asset panel needs a preview button (see `Audio/TODO.md`).
+source in the editor. Use the clip preview below.
+
+## Previewing a clip
+
+The Properties panel shows a play button and a progress bar for a selected audio clip. The button
+calls `Audio::PlayPreview`, and `Audio::StopPreview` ends the preview. `Audio::GetPreviewClip` says
+what is playing, if anything. The preview is separate from the ECS:
+
+- **It has a voice of its own**, created the first time a clip is previewed and kept out of the
+  pool, so it never takes a voice from a level's sources.
+- **It ignores `World::IsPaused()`**, and while the world is paused `Audio::Update` sets the
+  listener to full volume. A paused world holds every `AudioSource` silent, so the preview is the
+  only thing that can be heard, and it is heard even in a level with no `AudioListener`. In play
+  mode the level's listener rules apply as usual: the preview plays at the listener's volume, and
+  is silent if the level has no listener.
+- **One at a time.** A second `PlayPreview` replaces the first. The panel stops the preview once it
+  is no longer showing that clip (another selection, or the panel closed).
+- **It lets go of its clip before the clip's buffer changes.** `AudioFile` calls
+  `Audio::Internal::StopPreviewOf` before a re-import uploads into the buffer and before `Dispose`
+  deletes it, because OpenAL refuses both while a voice has the buffer bound. A deleted clip ends
+  its preview on the next `Audio::Update`.
 
 ⚠ **It iterates disabled components on purpose** (`Components::Get<AudioSource>(true)`). A source
 that has just been switched off still holds a voice, and the default iterator would skip the one
@@ -105,15 +125,16 @@ python3 Editor/src/DebugServer/Verification/verify-audio-playback.py --build cma
 A native probe (the `verify-physics-native.py` pattern) because `/edit` has no `AudioSource`
 operation. It drives `Audio::Update()` over real time under the **null OpenAL backend**, which gives
 a real context, real sources and a mixer at the real sample rate with no output device — so playback
-is genuinely timed rather than mocked. Nine parts: every `IAudioSource` setter read back off
+is genuinely timed rather than mocked. Ten parts: every `IAudioSource` setter read back off
 OpenAL, the listener following its entity and falling silent without one, a one-shot advancing and
 ending on its own, looping, pause/stop/seek, voices handed back by disabled and destroyed sources, a
 48-source crowd staying inside the pool and passing a freed voice on, a paused world holding its
-sounds, and both components surviving a save and a load.
+sounds, both components surviving a save and a load, and the clip preview: heard in a paused world
+with no listener, ending on its own, and letting go of its clip on a re-import or a delete.
 
 `verify-audio-asset.py` covers the import and `.passet` half separately, and
 `verify-script-components.py` covers the C# bindings alongside the other bound components.
 
 Related: [assets.md](assets.md), [scripting.md](scripting.md), [world-ecs.md](world-ecs.md).
-`Engine/src/Pine/Audio/TODO.md` lists what is still missing — voice priority, `/edit` adapters, an
-asset-panel preview button, and streaming for long clips.
+`Engine/src/Pine/Audio/TODO.md` lists what is still missing — voice priority, `/edit` adapters
+and streaming for long clips.

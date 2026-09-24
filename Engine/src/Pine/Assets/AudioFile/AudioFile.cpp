@@ -55,6 +55,11 @@ bool Pine::AudioFile::LoadAssetData(const ByteSpan& span)
         {
             m_Buffer = Audio::GetAudioAPI()->CreateBuffer();
         }
+        else
+        {
+            // A re-import uploads into the buffer already there, and OpenAL refuses while a voice has it bound.
+            Audio::Internal::StopPreviewOf(*this);
+        }
 
         uploaded = m_Buffer->Upload(samples.data(), m_Format, m_SampleRate, m_SampleCount);
     },
@@ -113,6 +118,8 @@ void Pine::AudioFile::Dispose()
     {
         if (Audio::HasInitializedAudioAPI())
         {
+            Audio::Internal::StopPreviewOf(*this);
+
             Audio::GetAudioAPI()->DestroyBuffer(m_Buffer);
         }
 

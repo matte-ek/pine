@@ -29,13 +29,14 @@ with no output device. Clips still import and load there; they just get no buffe
       `AcquireVoice`, which is the only place that hands a voice out.
 - [ ] `/edit` adapters for both components, under `Editor/src/DebugServer/Editing/Components/`.
       Without them an audio scene cannot be built over HTTP, so verifying one means a native probe.
-- [ ] A preview button in the editor's asset properties panel. There is a playback API to build it
-      on now - a standalone `AudioSource`, or a voice taken straight off `IAudioAPI`.
 - [ ] Free a voice before the clip it is playing is disposed. `AudioFile::Dispose` deletes its
       buffer without checking whether anything has it bound, so hot-reloading a clip mid-playback
       leaks one: OpenAL refuses the delete with `AL_INVALID_OPERATION` and the id is dropped
       anyway. Nothing crashes - the voice is released on the next `Audio::Update` - but the fix
       wants a `Audio::Internal` entry point that stops whatever is playing a given `AudioFile`.
+      The editor's clip preview already does this through `Audio::Internal::StopPreviewOf`; the
+      pool's voices still need it. Note that `FreeVoice` only stops a voice without unbinding its
+      clip, so a voice that has finished with a clip still blocks that clip's re-import upload.
 - [ ] Doppler, if it turns out to be wanted. `IAudioSource` has no velocity, and nothing tracks how
       fast an emitter is moving.
 

@@ -6,6 +6,7 @@
 
 namespace Pine
 {
+    class AudioFile;
     class AudioSource;
 }
 
@@ -50,11 +51,30 @@ namespace Pine::Audio
     bool HasInitializedAudioAPI();
     IAudioAPI* GetAudioAPI();
 
+    // Auditions a clip outside the world, for the editor's asset panel. A preview plays flat on a
+    // voice of its own, and keeps playing while the world is paused - which the editor's world is
+    // outside play mode. While the world is paused it is also heard at full volume, listener or
+    // not; in play mode it is heard through the game's listener like everything else. There is
+    // one preview at a time, so starting another replaces it.
+    void PlayPreview(AudioFile* clip);
+    void StopPreview();
+
+    // The clip being previewed, or nullptr once the preview has been stopped or reached its end.
+    AudioFile* GetPreviewClip();
+
+    // How far into the clip the preview has got, in seconds.
+    float GetPreviewPosition();
+
     namespace Internal
     {
         // Hands a source's voice straight back, instead of waiting for the next Update() to notice
         // it is no longer wanted. AudioSource calls this as it is destroyed, so a sound ends with
         // its component rather than a frame later.
         void ReleaseVoice(AudioSource& source);
+
+        // Stops the preview if it is playing 'clip' and unbinds the clip from its voice. OpenAL
+        // refuses to rewrite or delete a buffer that a voice has bound, so AudioFile calls this
+        // before doing either.
+        void StopPreviewOf(const AudioFile& clip);
     }
 }
