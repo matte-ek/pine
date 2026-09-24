@@ -29,4 +29,7 @@ layout(std140) uniform World
     vec4 ambientColor;
     vec4 fogColor;
     vec4 fogSettings;
+
+    // xy = the direction the wind blows along the ground (x, z), z = strength, w = phase.
+    vec4 wind;
 }world;

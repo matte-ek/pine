@@ -20,6 +20,8 @@
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Entity/Entity.hpp"
 
+#include <cmath>
+
 namespace
 {
 	using namespace Pine;
@@ -34,6 +36,41 @@ namespace
 	Rendering::DrawList m_DrawList;
 
 	PipelineConfiguration m_Configuration;
+
+	// Where the wind's gusts are in their cycle, in radians. Advanced by the frame time whether or
+	// not the world is running, so foliage sways in the editor too.
+	float m_WindPhase = 0.f;
+
+	void AdvanceWind()
+	{
+		const auto level = World::GetActiveLevel();
+
+		if (level == nullptr)
+		{
+			return;
+		}
+
+		const float gustsPerSecond = level->GetLevelSettings().WindSpeed;
+		const float deltaTime = static_cast<float>(RenderManager::GetGlobalDeltaTime());
+
+		// Wrapped to one cycle so it keeps its precision however long the editor stays open. Every
+		// wave the shaders make from it repeats a whole number of times per cycle, so the wrap is
+		// invisible.
+		m_WindPhase = std::fmod(m_WindPhase + deltaTime * gustsPerSecond * glm::two_pi<float>(), glm::two_pi<float>());
+	}
+
+	Renderer3D::SceneWind GetSceneWind(const LevelSettings& levelSettings)
+	{
+		const float directionRadians = glm::radians(levelSettings.WindDirection);
+
+		Renderer3D::SceneWind wind;
+
+		wind.Direction = Vector2f(std::cos(directionRadians), std::sin(directionRadians));
+		wind.Strength = levelSettings.WindStrength;
+		wind.Phase = m_WindPhase;
+
+		return wind;
+	}
 
 	// Where LOD distances are measured from: the camera of the first context that draws the scene
 	// this frame. One position for the whole frame, so a second viewport open at the same time
@@ -173,7 +210,8 @@ namespace
 		    levelSettings.AmbientColor,
 		    levelSettings.FogColor,
 		    levelSettings.FogDistance,
-		    levelSettings.FogIntensity);
+		    levelSettings.FogIntensity,
+		    GetSceneWind(levelSettings));
 
 		// Start from the pre-pass's depth, so hidden opaque fragments are rejected before shading. A
 		// copy rather than a shared attachment, because RenderManager clears the scene buffer after
@@ -447,6 +485,8 @@ void Pipeline3D::Prepare()
 	PINE_PF_SCOPE();
 
 	m_SceneContext.LodReferencePosition = FindLodReferencePosition();
+
+	AdvanceWind();
 
     Rendering::SceneProcessor::Prepare(m_SceneContext);
 

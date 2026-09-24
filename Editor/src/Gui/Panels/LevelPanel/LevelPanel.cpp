@@ -51,6 +51,10 @@ void Panels::LevelPanel::Render()
         Widgets::SliderFloat("Grain Strength", &currentLevel->GetLevelSettings().GrainStrength, 0.0f, 0.3f);
         Widgets::SliderFloat("Vignette Strength", &currentLevel->GetLevelSettings().VignetteStrength, 0.0f, 1.0f);
 
+        Widgets::SliderFloat("Wind Direction", &currentLevel->GetLevelSettings().WindDirection, 0.0f, 360.0f);
+        Widgets::SliderFloat("Wind Strength", &currentLevel->GetLevelSettings().WindStrength, 0.0f, 1.0f);
+        Widgets::SliderFloat("Wind Speed", &currentLevel->GetLevelSettings().WindSpeed, 0.0f, 3.0f);
+
         if (newSkybox.hasResult)
         {
             currentLevel->GetLevelSettings().Skybox = dynamic_cast<Pine::Texture3D*>(newSkybox.asset);

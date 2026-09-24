@@ -191,12 +191,17 @@ namespace
     }
 
     // How far a copy of this detail type can reach out of its chunk's box: the model's furthest
-    // extent from its origin at the largest scale, in any direction.
-    float GetDetailReach(const TerrainDetailType& detailType, const Model* model)
+    // extent from its origin at the largest scale, in any direction, plus how far the wind can lean
+    // its top. The shader leans a point at most windStrength times its height above the origin.
+    float GetDetailReach(const TerrainDetailType& detailType, const Model* model, const float windStrength)
     {
         const auto extent = glm::max(glm::abs(model->GetBoundingBoxMin()), glm::abs(model->GetBoundingBoxMax()));
+        const float stillReach = std::max({ extent.x, extent.y, extent.z }) * detailType.ScaleMax;
 
-        return std::max({ extent.x, extent.y, extent.z }) * detailType.ScaleMax;
+        const float height = std::max(model->GetBoundingBoxMax().y, 0.f) * detailType.ScaleMax;
+        const float windReach = height * windStrength;
+
+        return stillReach + windReach;
     }
 
     void RenderTerrain(const TerrainRendererComponent& component, RenderingContext& context, const Vector3f& cameraPosition)
@@ -211,6 +216,9 @@ namespace
 
         const auto& detailTypes = terrain->GetDetailTypes();
 
+        // The strength Renderer3D::PrepareScene gave the shaders for this pass.
+        const float windStrength = Renderer3D::ShaderStorages::World.Data().Wind.z;
+
         // Detail type outermost, so each mesh and material is prepared once and then drawn for
         // every chunk that has it.
         for (int detailIndex = 0; detailIndex < static_cast<int>(detailTypes.size()); detailIndex++)
@@ -224,7 +232,7 @@ namespace
             }
 
             const Vector2f fadeDistances = { detailType.DrawDistance * FadeStartFraction, detailType.DrawDistance };
-            const float reach = GetDetailReach(detailType, model);
+            const float reach = GetDetailReach(detailType, model, windStrength);
 
             for (const auto mesh : model->GetMeshes())
             {

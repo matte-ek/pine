@@ -124,7 +124,7 @@ try:
     defaults = reply['properties']
     expected_properties = {'Skybox', 'AmbientColor', 'FogColor', 'FogDistance', 'FogIntensity',
                            'Exposure', 'BloomThreshold', 'BloomIntensity', 'GrainStrength',
-                           'VignetteStrength'}
+                           'VignetteStrength', 'WindDirection', 'WindStrength', 'WindSpeed'}
     assert set(defaults) == expected_properties, sorted(defaults)
 
     # The engine's own defaults, so a caller can tell an authored value from an untouched one.
@@ -132,6 +132,7 @@ try:
     assert near(defaults['AmbientColor'], vec(0.05, 0.05, 0.05)), defaults['AmbientColor']
     assert near(defaults['FogColor'], {'x': 0.0, 'y': 0.0, 'z': 0.0, 'w': 1.0}), defaults['FogColor']
     assert near(defaults['Exposure'], 1.0) and near(defaults['BloomIntensity'], 0.6)
+    assert near(defaults['WindStrength'], 0.1) and near(defaults['WindSpeed'], 0.5)
 
     # The camera belongs to /level/camera; overlapping the two routes would give two ways to
     # write one field.
@@ -166,6 +167,8 @@ try:
     # ------------------------------------------------------------------ rejection
 
     assert settings({'Exposure': -1}, 400)['path'] == '/properties/Exposure'
+    assert settings({'WindStrength': -0.5}, 400)['path'] == '/properties/WindStrength'
+    assert settings({'WindSpeed': -1}, 400)['path'] == '/properties/WindSpeed'
     assert settings({'FogDistance': 0}, 400)['path'] == '/properties/FogDistance'
     assert settings({'Exposure': 'bright'}, 400)['path'] == '/properties/Exposure'
     assert settings({'Nonsense': 1}, 400)['path'] == '/properties/Nonsense'
@@ -236,7 +239,8 @@ try:
     fetch('/level/save-as', {'path': 'levels/atmosphere'})
     assert fetch('/level/status')['unsavedChanges'] is False
 
-    settings({'Exposure': 4.5, 'BloomThreshold': 2.25, 'FogDistance': 120})
+    settings({'Exposure': 4.5, 'BloomThreshold': 2.25, 'FogDistance': 120,
+              'WindDirection': 135, 'WindStrength': 0.35, 'WindSpeed': 1.25})
     assert fetch('/level/status')['unsavedChanges'] is True, 'a settings change is not authored state'
 
     fetch('/level/save', {})
@@ -247,6 +251,8 @@ try:
     reloaded = read()
     assert reloaded == saved, (saved, reloaded)
     assert near(reloaded['Exposure'], 4.5) and near(reloaded['BloomThreshold'], 2.25)
+    assert near(reloaded['WindDirection'], 135) and near(reloaded['WindStrength'], 0.35)
+    assert near(reloaded['WindSpeed'], 1.25)
 
     print('Level settings verification passed. Images in', args.output, flush=True)
 finally:

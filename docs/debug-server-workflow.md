@@ -356,7 +356,7 @@ scene with no `Light` renders black however bright `AmbientColor` is — and a "
 had no effect" conclusion drawn from that scene is wrong. Place a light first, then tune.
 
 `POST /level/settings` authors the rest of the atmosphere: skybox, ambient, fog, exposure,
-bloom and the grain/vignette look. It merges, so a request names only what it changes:
+bloom, the grain/vignette look and the wind. It merges, so a request names only what it changes:
 
 ```python
 post_json('/level/settings', {'properties': {
@@ -369,8 +369,9 @@ post_json('/level/settings', {'properties': {
 Reach for `Exposure` before scaling every light in the scene: if the whole frame is too
 dark or blown out, one exposure change is the cheaper fix and does not disturb the
 relative balance you already tuned. Each request is one undo step, so an experiment costs
-nothing. **Turn `GrainStrength` off before comparing captures** — the grain is animated,
-so two otherwise identical `/render` calls differ while it is on.
+nothing. **Turn `GrainStrength` and `WindStrength` off before comparing captures** — the
+grain is animated, and so is terrain detail swaying in the wind, so two otherwise identical
+`/render` calls differ while either is on.
 
 ## 8. Save and verify
 
@@ -468,7 +469,7 @@ after a level load returns its old result with IDs that no longer exist.
 | Counters disagree with the picture | `/stats` counters are diagnostics. One run reported zero `lightCount` and `vertexCount` over visibly lit geometry; that was never diagnosed. |
 | Preview colours look wrong | Expected. `/asset/preview.png` is the icon pass and gets no display transform; it separates variants, it does not show final appearance. Use `/render`. |
 | Setting the atmosphere changed nothing visible | A scene with no `Light` renders black whatever `AmbientColor` is. Check `/stats.level.lightCount` (or `game.lightCount`) before blaming the setting. |
-| Two captures differ for no reason | `GrainStrength` is animated. Set it to 0 through `/level/settings` before comparing. |
+| Two captures differ for no reason | `GrainStrength` and the terrain detail's sway (`WindStrength`) are animated. Set both to 0 through `/level/settings` before comparing. |
 | Feature missing entirely | Blueprint spawning, play control, material authoring, 2D and viewport switching are not exposed. Use the UI. |
 
 ## Verifying a change to the debug server itself

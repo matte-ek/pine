@@ -113,6 +113,10 @@ namespace Pine::Renderer3D::ShaderStorages
         Vector4f AmbientColor = Vector4f(0.f);
         Vector4f FogColor = Vector4f(0.f);
         Vector4f FogSettings = Vector4f(0.f);
+
+        // xy = the direction the wind blows along the ground (x, z), z = strength, w = phase.
+        // See Renderer3D::SceneWind.
+        Vector4f Wind = Vector4f(0.f);
     };
 
     // One terrain detail placement as the storage buffer holds it. Mirrors 'TerrainDetailInstance'

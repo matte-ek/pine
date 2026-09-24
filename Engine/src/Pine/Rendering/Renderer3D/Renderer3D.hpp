@@ -138,7 +138,20 @@ namespace Pine::Renderer3D
 
     void SetShader(Shader* shader, ShaderVersion preferredVersion = 0);
 
-    void PrepareScene(Vector3f ambientColor, Vector4f fogColor, float fogDistance, float fogIntensity);
+    // The wind the shaders sway foliage with. The default is still air.
+    struct SceneWind
+    {
+        // The direction the wind blows along the ground, as a unit (x, z).
+        Vector2f Direction = Vector2f(1.f, 0.f);
+
+        // How far a tip leans at most, as a share of its height above the ground.
+        float Strength = 0.f;
+
+        // Where the gusts are in their cycle, in radians.
+        float Phase = 0.f;
+    };
+
+    void PrepareScene(Vector3f ambientColor, Vector4f fogColor, float fogDistance, float fogIntensity, const SceneWind& wind = {});
 
     void UseRenderingContext(RenderingContext* renderingContext);
 }

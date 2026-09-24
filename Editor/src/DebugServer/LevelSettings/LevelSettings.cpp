@@ -33,7 +33,11 @@ namespace
             { "BloomThreshold", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 5 } } } },
             { "BloomIntensity", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 2 } } } },
             { "GrainStrength", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 0.3f } } } },
-            { "VignetteStrength", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 1 } } } }
+            { "VignetteStrength", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 1 } } } },
+            { "WindDirection", { { "type", "number" }, { "units", "degrees" }, { "uiRange", { 0, 360 } } } },
+            { "WindStrength", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 1 } } } },
+            { "WindSpeed", { { "type", "number" }, { "minimum", 0 }, { "units", "gusts per second" },
+                { "uiRange", { 0, 3 } } } }
         };
         return schema;
     }
@@ -60,7 +64,10 @@ json Editor::DebugServer::LevelSettings::Read(const Pine::LevelSettings& setting
         { "BloomThreshold", settings.BloomThreshold },
         { "BloomIntensity", settings.BloomIntensity },
         { "GrainStrength", settings.GrainStrength },
-        { "VignetteStrength", settings.VignetteStrength }
+        { "VignetteStrength", settings.VignetteStrength },
+        { "WindDirection", settings.WindDirection },
+        { "WindStrength", settings.WindStrength },
+        { "WindSpeed", settings.WindSpeed }
     };
 }
 
@@ -76,6 +83,9 @@ void Editor::DebugServer::LevelSettings::Apply(Pine::LevelSettings& settings, co
     settings.BloomIntensity = state.at("BloomIntensity").get<float>();
     settings.GrainStrength = state.at("GrainStrength").get<float>();
     settings.VignetteStrength = state.at("VignetteStrength").get<float>();
+    settings.WindDirection = state.at("WindDirection").get<float>();
+    settings.WindStrength = state.at("WindStrength").get<float>();
+    settings.WindSpeed = state.at("WindSpeed").get<float>();
 }
 
 Editor::DebugServer::Response Editor::DebugServer::LevelSettings::Get(const Request&)

@@ -51,6 +51,9 @@ bool Pine::Level::LoadAssetData(const ByteSpan& span)
     levelSerializer.BloomIntensity.Read(m_LevelSettings.BloomIntensity);
     levelSerializer.GrainStrength.Read(m_LevelSettings.GrainStrength);
     levelSerializer.VignetteStrength.Read(m_LevelSettings.VignetteStrength);
+    levelSerializer.WindDirection.Read(m_LevelSettings.WindDirection);
+    levelSerializer.WindStrength.Read(m_LevelSettings.WindStrength);
+    levelSerializer.WindSpeed.Read(m_LevelSettings.WindSpeed);
     m_LevelSettings.CameraEntity = 0;
     levelSerializer.Camera.Read(m_LevelSettings.CameraEntity);
     m_CameraUsesSerializedOrder = false;
@@ -83,6 +86,9 @@ Pine::ByteSpan Pine::Level::SaveAssetData()
     levelSerializer.BloomIntensity.Write(m_LevelSettings.BloomIntensity);
     levelSerializer.GrainStrength.Write(m_LevelSettings.GrainStrength);
     levelSerializer.VignetteStrength.Write(m_LevelSettings.VignetteStrength);
+    levelSerializer.WindDirection.Write(m_LevelSettings.WindDirection);
+    levelSerializer.WindStrength.Write(m_LevelSettings.WindStrength);
+    levelSerializer.WindSpeed.Write(m_LevelSettings.WindSpeed);
 
     return levelSerializer.Write();
 }

@@ -218,6 +218,66 @@ def block_mean(rows, width, height, pixel, radius=1):
     return [sum(point[channel] for point in points) / float(len(points)) for channel in range(3)]
 
 
+def detail_blobs(mask):
+    """Each connected patch of magenta, as its centre and pixel count."""
+    remaining = set(mask)
+    blobs = []
+
+    while remaining:
+        frontier = [remaining.pop()]
+        pixels = []
+
+        while frontier:
+            x, y = frontier.pop()
+            pixels.append((x, y))
+
+            for neighbour in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if neighbour in remaining:
+                    remaining.remove(neighbour)
+                    frontier.append(neighbour)
+
+        count = float(len(pixels))
+        blobs.append((sum(x for x, _ in pixels) / count, sum(y for _, y in pixels) / count, len(pixels)))
+
+    return blobs
+
+
+def mean_cube_shift(still_blobs, moved_mask):
+    """How far the cubes moved on average, in pixels. Each cube is followed on its own: the whole
+    frame's centroid is no use, because a cube leaning towards or away from the tilted camera shows
+    more or less of its sides, which moves the centroid without the cube going anywhere. Patches
+    that merged or split between the frames are left out."""
+    moved_blobs = detail_blobs(moved_mask)
+    shifts = []
+
+    for x, y, size in still_blobs:
+        nearest = min(moved_blobs, key=lambda blob: (blob[0] - x) ** 2 + (blob[1] - y) ** 2)
+
+        if abs(nearest[2] - size) < 0.25 * size:
+            shifts.append((nearest[0] - x, nearest[1] - y))
+
+    if len(shifts) < len(still_blobs) // 2:
+        fail('only %d of %d cubes could be followed into the windy frame' % (len(shifts), len(still_blobs)))
+
+    return sum(dx for dx, _ in shifts) / len(shifts), sum(dy for _, dy in shifts) / len(shifts)
+
+
+def observe_detail(name):
+    """The magenta pixels of a fresh frame, and the camera it was drawn with."""
+    observation = request('/observe', {'view': 'level', 'width': 900})
+
+    image = base64.b64decode(observation['image']['data'])
+    (args.output / name).write_bytes(image)
+    width, height, rows = decode_png(image)
+
+    mask = frozenset((x, y) for y in range(height) for x in range(width) if is_magenta(rows[y][x]))
+
+    if not mask:
+        fail('%s shows no detail at all' % name)
+
+    return mask, observation['camera'], width, height
+
+
 def detail_instances():
     return request('/stats')['level']['terrainDetailInstances']
 
@@ -273,6 +333,9 @@ try:
         fail('expected one detail type over HTTP, got %d' % len(detail_types))
 
     detail = detail_types[0]
+
+    # Still air until the wind checks at the end, so every placement is drawn exactly where it stands.
+    request('/level/settings', {'properties': {'WindStrength': 0}})
 
     if detail['model'] != 'engine/primitive/cube' or detail['layer'] != 1 or abs(detail['density'] - 0.1) > 1e-6 \
             or detail['scaleMin'] != detail['scaleMax'] or detail['drawDistance'] != 150:
@@ -367,11 +430,67 @@ try:
 
     wait_for_instances(total, 'after undoing the paint stroke')
 
+    # Wind. Grain off, since it would flip pixels on the edge of a cube between frames on its own.
+    request('/level/settings', {'properties': {'GrainStrength': 0, 'WindStrength': 0}})
+
+    still, camera, width, height = observe_detail('still.png')
+
+    if observe_detail('still-again.png')[0] != still:
+        fail('two frames in still air differ, so nothing below could be put down to the wind')
+
+    still_blobs = detail_blobs(still)
+    ground_origin = project(camera, width, height, [centre['x'], 0.0, centre['z']])
+
+    def screen_direction(world_direction):
+        """The unit screen vector a step along the ground in this direction moves by."""
+        point = [centre['x'] + world_direction[0], 0.0, centre['z'] + world_direction[1]]
+        stepped = project(camera, width, height, point)
+        dx, dy = stepped[0] - ground_origin[0], stepped[1] - ground_origin[1]
+        length = (dx * dx + dy * dy) ** 0.5
+
+        return dx / length, dy / length
+
+    # Averaged over the cubes and a few frames, the detail leans downwind whatever the gusts are
+    # doing: the lean swings between a little upwind and the full strength downwind. A direction
+    # read with its axes swapped, or a sign flipped, shows up as the lean going sideways or
+    # backwards. At full strength a cube's top can move 0.6 units, and the average is under half of
+    # that, which is a pixel or two from this camera.
+    leans = []
+
+    for degrees, world_direction in [(0, (1.0, 0.0)), (90, (0.0, 1.0))]:
+        request('/level/settings', {'properties': {'WindStrength': 1.0, 'WindSpeed': 1.0,
+                                                   'WindDirection': degrees}})
+
+        wait_for_instances(total, 'with the wind at %d degrees' % degrees)
+
+        windy = []
+
+        for frame in range(4):
+            time.sleep(0.15)
+            windy.append(observe_detail('wind-%d-%d.png' % (degrees, frame))[0])
+
+        if len(set(windy)) == 1:
+            fail('the detail did not move over four frames of wind at %d degrees' % degrees)
+
+        shifts = [mean_cube_shift(still_blobs, mask) for mask in windy]
+        shift = (sum(dx for dx, _ in shifts) / len(shifts), sum(dy for _, dy in shifts) / len(shifts))
+
+        along_x, along_y = screen_direction(world_direction)
+        downwind = shift[0] * along_x + shift[1] * along_y
+        sideways = abs(shift[0] * along_y - shift[1] * along_x)
+
+        if downwind < 0.5 or sideways > downwind / 2:
+            fail('wind at %d degrees moved the detail by %.2f px downwind and %.2f px sideways'
+                 % (degrees, downwind, sideways))
+
+        leans.append(downwind)
+
     print('PASS: native placement and revisions, detail types over HTTP, %d placements drawn where '
           'the probe put them,\n      only on the painted half (%.1f%% of it covered, %.2f%% of the bare '
-          'half),\n      released past the draw distance and regenerated on return, and a paint stroke '
-          'grew %d more\n      that its undo took away again exactly.'
-          % (total, 100 * painted, 100 * bare, painted_total - total))
+          'half),\n      released past the draw distance and regenerated on return, a paint stroke '
+          'grew %d more\n      that its undo took away again exactly, and the detail stands still in '
+          'still air and sways\n      downwind in wind towards +x (%.1f px) and +z (%.1f px).'
+          % (total, 100 * painted, 100 * bare, painted_total - total, leans[0], leans[1]))
     print('Inspect detail.png in', args.output)
 finally:
     shutdown()

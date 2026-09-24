@@ -657,7 +657,7 @@ void Renderer3D::SetShader(Shader* shader, const ShaderVersion preferredVersion)
     m_DetailFade = shader == m_TerrainDetailShader ? m_Shader->GetUniformVariable("detailFade") : nullptr;
 }
 
-void Renderer3D::PrepareScene(const Vector3f ambientColor, const Vector4f fogColor, const float fogDistance, const float fogIntensity)
+void Renderer3D::PrepareScene(const Vector3f ambientColor, const Vector4f fogColor, const float fogDistance, const float fogIntensity, const SceneWind& wind)
 {
     auto& worldData = ShaderStorages::World.Data();
 
@@ -665,6 +665,7 @@ void Renderer3D::PrepareScene(const Vector3f ambientColor, const Vector4f fogCol
     worldData.AmbientColor = Vector4f(SrgbToLinear(ambientColor), 1.f);
     worldData.FogColor = SrgbToLinear(fogColor);
     worldData.FogSettings  = Vector4f(fogDistance, fogIntensity, 0, 0);
+    worldData.Wind = Vector4f(wind.Direction.x, wind.Direction.y, wind.Strength, wind.Phase);
 
     ShaderStorages::World.Upload();
 }
@@ -808,6 +809,7 @@ void Renderer3D::FrameReset()
     ShaderStorages::World.Data().AmbientColor = Vector4f(0.f, 0.f, 0.f, 1.f);
     ShaderStorages::World.Data().FogColor = Vector4f(0.f, 0.f, 0.f, 0.f);
     ShaderStorages::World.Data().FogSettings = Vector4f(25.f, 0.f, 0.f, 0.f);
+    ShaderStorages::World.Data().Wind = Vector4f(0.f);
     ShaderStorages::World.Upload();
 
     m_RenderingContext = nullptr;

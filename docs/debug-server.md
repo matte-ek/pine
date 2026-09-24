@@ -690,7 +690,7 @@ reconstructed automatically.
 
 ### `GET /level/settings`, `POST /level/settings`
 The active Level's atmosphere and post-processing: skybox, ambient light, fog, exposure,
-bloom and the film-grain/vignette look. GET returns `level` (`path` and `id`) and
+bloom, the film-grain/vignette look, and the wind that sways terrain detail. GET returns `level` (`path` and `id`) and
 `properties`; POST takes `{"properties": {…}}` and returns the same reply plus
 `history: "recorded"`. Both return 409 when no Level is active. POST bodies are capped
 at 4 KiB.
@@ -716,9 +716,12 @@ name — spelling is the engine's, matching the Level Properties panel.
 | `Exposure` | number ≥ 0 | HDR multiplier before tone mapping |
 | `BloomThreshold`, `BloomIntensity` | number ≥ 0 | Brightness extracted, and how strongly it composites |
 | `GrainStrength`, `VignetteStrength` | number ≥ 0 | Film look in the post-process pass |
+| `WindDirection` | number | Degrees the wind blows towards: 0 is +x, 90 is +z |
+| `WindStrength` | number ≥ 0 | How far a tip leans at most, as a share of its height; 0 is still |
+| `WindSpeed` | number ≥ 0 | Gusts per second |
 
-The only enforced bounds are those above: negative values are rejected, and `FogDistance`
-has a floor because it divides. The schema also advertises a `uiRange` per property — the
+The only enforced bounds are those above: negative values are rejected (except for
+`WindDirection`, which is an angle), and `FogDistance` has a floor because it divides. The schema also advertises a `uiRange` per property — the
 span the Level Properties panel's sliders offer. **It is guidance, not a limit**, because
 those sliders deliberately let a value be typed past their ends, and the API does not
 impose a ceiling the editor does not have.

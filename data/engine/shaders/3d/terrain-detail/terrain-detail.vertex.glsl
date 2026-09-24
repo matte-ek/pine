@@ -42,6 +42,11 @@ uniform vec2 detailFade;
 // pointing straight into the ground still leaves a normal pointing out of it.
 const float GroundNormalWeight = 0.8;
 
+const float TwoPi = 6.28318530718;
+
+// How far one gust is from the next along the wind, in world units.
+const float GustLength = 12.0;
+
 // This copy's placement within the terrain, shrunk towards nothing as it nears the draw distance
 // so the edge of the detail sinks into the ground instead of popping.
 mat4 GetDetailPlacement(TerrainDetailInstance detail, mat4 terrainTransform, vec3 cameraPosition)
@@ -70,6 +75,29 @@ vec3 GetGroundNormal(TerrainDetailInstance detail)
 	return vec3(xz.x, sqrt(max(1.0 - dot(xz, xz), 0.0)), xz.y);
 }
 
+// How far the wind pushes a point of this copy, from world.wind (see Renderer3D::SceneWind). Gusts
+// roll across the terrain along the wind, so neighbouring copies lean together without moving in
+// lockstep, and a smaller flutter gives each copy some motion of its own. The lean grows with
+// height, so the base stays planted, and never exceeds the wind's strength times that height:
+// TerrainDetail's culling (GetDetailReach) relies on that bound.
+vec3 GetWindOffset(vec3 worldOrigin, float heightAboveBase)
+{
+	vec2 direction = world.wind.xy;
+	float strength = world.wind.z;
+	float phase = world.wind.w;
+
+	float distanceAlongWind = dot(worldOrigin.xz, direction);
+	float gust = 0.5 + 0.5 * sin(phase - distanceAlongWind * (TwoPi / GustLength));
+
+	// At three times the gust rate, so it also repeats whole cycles within the phase's wrap.
+	float flutter = sin(3.0 * phase + worldOrigin.x * 1.7 + worldOrigin.z * 2.3);
+
+	// Weights summing to 1, so the lean stays within [-strength, strength].
+	float lean = strength * (0.85 * gust + 0.15 * flutter);
+
+	return vec3(direction.x, 0.0, direction.y) * lean * heightAboveBase;
+}
+
 void main()
 {
 	vec4 vertexPosition = vec4(vertex, 1.0);
@@ -81,7 +109,11 @@ void main()
 
 	mat4 transformationMatrix = terrainTransform * GetDetailPlacement(detail, terrainTransform, cameraPosition);
 
+	vec3 worldOrigin = transformationMatrix[3].xyz;
+
 	vOut.worldPosition = (transformationMatrix * vertexPosition).xyz;
+	vOut.worldPosition += GetWindOffset(worldOrigin, max(vOut.worldPosition.y - worldOrigin.y, 0.0));
+
 	vOut.uv = uv;
 	vOut.cameraPos = cameraPosition;
 	vOut.cameraDistance = length(vOut.worldPosition - vOut.cameraPos);
@@ -119,5 +151,6 @@ void main()
 		vOut.normalDir = worldNormalDir;
 	}
 
-	gl_Position = projectionMatrix * viewMatrix * transformationMatrix * vertexPosition;
+	// From the swayed position. Detail is not in the depth pre-pass, so nothing else has to match it.
+	gl_Position = projectionMatrix * viewMatrix * vec4(vOut.worldPosition, 1.0);
 }

@@ -769,6 +769,20 @@ it, which removes the black cards and keeps a little of the model's shape; 1.0 l
 exactly like the ground. The same normal offsets the shadow lookups, so detail picks up shadows
 the way the ground does.
 
+**Detail sways in the level's wind.** `LevelSettings` carries `WindDirection` (degrees, 0 blowing
+towards +x and 90 towards +z), `WindStrength` and `WindSpeed`. They reach the shaders as
+`world.wind` in the `World` block, built by `Renderer3D::PrepareScene` from a
+`Renderer3D::SceneWind`. `terrain-detail.vertex.glsl` pushes each vertex downwind in proportion to
+its height above the copy's origin, so a model has to stand with its base at y = 0 to stay planted.
+Gusts roll across the terrain along the wind, `GustLength` world units apart, with a small
+per-copy flutter on top. The lean never exceeds `WindStrength` times the height, and
+`GetDetailReach` in `TerrainDetail.cpp` grows the culling box by exactly that, so a change to
+the shader's weights that breaks the bound would cull leaning tips at the frame's edge. The gusts' phase lives in `Pipeline3D` and advances by the frame time
+in `Pipeline3D::Prepare`, whether or not the world is running, so detail sways in the editor too.
+Accumulating the phase, rather than multiplying a clock by the speed, keeps a change to
+`WindSpeed` from making every copy jump. It is wrapped to one cycle, and every wave built from it
+repeats a whole number of times per cycle, so the wrap cannot be seen.
+
 Things worth knowing:
 
 - ⚠ **Detail always draws through `engine/shaders/3d/terrain-detail`**, whatever shader the
@@ -777,7 +791,8 @@ Things worth knowing:
 - **`Transparent` materials are drawn as `Discard`**: there is no sorted blend pass around the
   detail. A `Both` material turns face culling off for its draws, the same as the object batch.
 - **No depth pre-pass and no shadows.** Like a `Discard` material, detail is absent from the
-  pre-pass, so ambient occlusion does not see it. It casts no shadows, which also keeps it out of
+  pre-pass, so ambient occlusion does not see it. This is also what lets it sway: no other pass
+  has to compute the same moved `gl_Position`. It casts no shadows, which also keeps it out of
   the flashlight's per-frame shadow redraw. It does *receive* them, through the shared
   lighting includes.
 - **No model LOD and no collision.** Detail always draws LOD0, and nothing collides with it.
