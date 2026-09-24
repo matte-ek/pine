@@ -179,9 +179,16 @@ with nothing solid behind it blends against.
 `ShaderStorages::MaterialProperties`, which mirrors `MaterialProperties` in
 `shaders/3d/shared/common.glsl` member for member — a field added to one has to be added to the
 other in the same position, or every member after it reads the wrong std140 offset. Only the
-generic shader's `VERSION_TRANSPARENT` variant writes that alpha out; every other version writes a
-constant 1, because `post-process.fragment.glsl` forwards the scene buffer's alpha to the final
-image and the editor composites that image with blending on.
+generic shader's `VERSION_TRANSPARENT` variant writes that alpha out.
+
+**The final image is always opaque.** The blend function applies to the alpha channel too, so a
+blended surface leaves the scene buffer's alpha below 1 (`a·a + (1−a)` over an opaque pixel), and
+that value means nothing afterwards. `post-process.fragment.glsl` therefore writes alpha 1, and
+`PostProcessing::Render` draws with blending off. Forwarding the scene alpha, or resolving with
+blending still on, lets the context's `ClearColor` show through at every partly transparent pixel -
+and the editor draws the viewport image with blending on, so the panel behind it shows through too.
+A scene rendered over a see-through background would need alpha kept as coverage instead
+(`glBlendFuncSeparate` with `One, OneMinusSourceAlpha` for alpha); nothing does that today.
 
 Three limits worth knowing:
 
@@ -271,8 +278,11 @@ front of a green one. It then reads the same centre pixel three times: with the 
 semi-transparent at alpha 0.5, and removed. A blend is the only thing that lands between the other
 two readings, and the reading is taken off the level viewport's own framebuffer rather than through
 a capture endpoint. The near cube is coloured through an **override material**, which is the path
-that decides blend membership and the one that was wrong when the pass was first written. The same
-run asserts a `DrawList` comes out descending for `BackToFront` and ascending for `FrontToBack`.
+that decides blend membership and the one that was wrong when the pass was first written. Neither
+cube has any blue and the level viewport clears to a strong one, so the blended reading must gain no
+blue, and every reading must have alpha 255: that is the clear colour kept out of the final image.
+The same run asserts a `DrawList` comes out descending for `BackToFront` and ascending for
+`FrontToBack`.
 
 The per-phase line it prints carries the draw-call count, which is the cheapest signature of the
 blend pass working: two objects cost four draws with both opaque (pre-pass and scene pass each), and

@@ -63,6 +63,9 @@ void Pine::Rendering::PostProcessing::Render(const RenderingContext *renderingCo
     // We don't want any depth testing here as we're just rendering a 2D plane
     Graphics::GetGraphicsAPI()->SetDepthTestEnabled(false);
 
+    // The resolve replaces the target, rather than blending over the clear colour.
+    Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
+
     const auto shaderProgram = m_PostProcessingShader->GetProgram();
 
     shaderProgram->Use();

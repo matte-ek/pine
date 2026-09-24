@@ -141,6 +141,7 @@ void Pine::Pipeline2D::Run(RenderingContext& context)
     Renderer2D::RenderFrame(&context);
 
     Graphics::GetGraphicsAPI()->SetDepthTestEnabled(true);
+    Graphics::GetGraphicsAPI()->SetBlendingEnabled(false);
 
     Renderer2D::SetCoordinateSystem(oldCoordinateSystem);
 }

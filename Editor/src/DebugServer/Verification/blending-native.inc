@@ -83,9 +83,9 @@
             int Frame = 0;
             int NextPhaseFrame = 12;
 
-            Pine::Vector3i Opaque = Pine::Vector3i(0);
-            Pine::Vector3i Blended = Pine::Vector3i(0);
-            Pine::Vector3i BackdropOnly = Pine::Vector3i(0);
+            Pine::Vector4i Opaque = Pine::Vector4i(0);
+            Pine::Vector4i Blended = Pine::Vector4i(0);
+            Pine::Vector4i BackdropOnly = Pine::Vector4i(0);
 
             std::string OrderingError;
         } probe;
@@ -133,12 +133,12 @@
             Pine::Graphics::GetGraphicsAPI()->BindFrameBuffer(nullptr);
 
             const std::size_t centre = (static_cast<std::size_t>(height / 2) * width + width / 2) * 4;
-            const auto sample = Pine::Vector3i(pixels[centre], pixels[centre + 1], pixels[centre + 2]);
+            const auto sample = Pine::Vector4i(pixels[centre], pixels[centre + 1], pixels[centre + 2], pixels[centre + 3]);
 
             // Printed every phase: a frame that renders nothing reads as black at the centre too,
             // and these are what tell the two apart when this fails.
             std::cout << "phase " << probe.Phase
-                      << ": centre " << sample.r << "," << sample.g << "," << sample.b
+                      << ": centre " << sample.r << "," << sample.g << "," << sample.b << "," << sample.a
                       << " viewport " << width << "x" << height
                       << " visible " << context->Statistics.VisibleObjectCount
                       << " draws " << context->Statistics.DrawCalls << std::endl;
@@ -223,11 +223,11 @@
             probe.BackdropOnly = sample;
 
             std::cout << "centre pixel: opaque "
-                      << probe.Opaque.r << "," << probe.Opaque.g << "," << probe.Opaque.b
+                      << probe.Opaque.r << "," << probe.Opaque.g << "," << probe.Opaque.b << "," << probe.Opaque.a
                       << "  blended "
-                      << probe.Blended.r << "," << probe.Blended.g << "," << probe.Blended.b
+                      << probe.Blended.r << "," << probe.Blended.g << "," << probe.Blended.b << "," << probe.Blended.a
                       << "  backdrop only "
-                      << probe.BackdropOnly.r << "," << probe.BackdropOnly.g << "," << probe.BackdropOnly.b
+                      << probe.BackdropOnly.r << "," << probe.BackdropOnly.g << "," << probe.BackdropOnly.b << "," << probe.BackdropOnly.a
                       << std::endl;
 
             try
@@ -255,10 +255,20 @@
                 check(between(probe.Blended.g, probe.Opaque.g, probe.BackdropOnly.g),
                     "Blended green is not between the near cube and the backdrop - nothing blended");
 
+                // Neither cube has any blue, and the level viewport clears to a strong one, so blue
+                // in the blend can only be the clear colour showing through the resolve.
+                check(probe.Blended.b <= std::max(probe.Opaque.b, probe.BackdropOnly.b) + 5,
+                    "Blended blue is above both readings - the clear colour shows through the blend");
+
+                // The editor draws this image with blending on, so anything short of opaque lets
+                // the panel behind it through.
+                check(probe.Opaque.a == 255 && probe.Blended.a == 255 && probe.BackdropOnly.a == 255,
+                    "The final image is not opaque everywhere");
+
                 check(probe.OrderingError.empty(), probe.OrderingError);
 
-                std::cout << "PASS: a Transparent material blends over what is behind it, an override material\n"
-                             "      reaches the blend pass, and the draw list orders both ways as asked.\n";
+                std::cout << "PASS: a Transparent material blends over what is behind it and nothing else, an\n"
+                             "      override material reaches the blend pass, and the draw list orders both ways as asked.\n";
             }
             catch (const std::exception& exception)
             {

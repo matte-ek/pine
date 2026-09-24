@@ -3,6 +3,7 @@
 #include <Pine/World/Components/SpriteRenderer/SpriteRenderer.hpp>
 #include "imgui.h"
 #include "Gui/Shared/Selection/Selection.hpp"
+#include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Rendering/Renderer2D/Renderer2D.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Rendering/RenderHandler.hpp"
@@ -19,10 +20,17 @@ namespace
 
 		if (stage == Pine::RenderStage::PostRender2D)
 		{
+			auto* graphics = Pine::Graphics::GetGraphicsAPI();
+
 			Pine::Renderer2D::PrepareFrame();
 			Pine::Renderer2D::SetCoordinateSystem(Pine::Rendering::CoordinateSystem::Screen);
 
+			graphics->SetBlendingEnabled(true);
+			graphics->SetBlendingFunction(Pine::Graphics::BlendingFunction::SourceAlpha, Pine::Graphics::BlendingFunction::OneMinusSourceAlpha);
+
 			Pine::Renderer2D::RenderFrame(context);
+
+			graphics->SetBlendingEnabled(false);
 		}
 	}
 

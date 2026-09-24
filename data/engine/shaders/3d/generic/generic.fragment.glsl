@@ -89,8 +89,7 @@ void main(void)
     m_OutputColor = vec4(ambient + directionalLight + pointLights + spotLights, 1.0);
 
 #ifdef VERSION_TRANSPARENT
-    // The material's alpha scaled by the diffuse texture's. Every other version must keep 1.0,
-    // because the resolve pass forwards this alpha to the final image.
+    // The material's alpha scaled by the diffuse texture's.
     m_OutputColor.a = surfaceAlpha;
 #endif
 

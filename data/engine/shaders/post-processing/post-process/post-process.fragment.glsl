@@ -76,5 +76,7 @@ void main(void)
     float grain = hash(vec3(gl_FragCoord.xy, floor(time * 24.0))) - 0.5;
     color += grain * grainStrength;
 
-    m_OutputColor = vec4(color, frag.a);
+    // Opaque, whatever the scene buffer's alpha: after the blend pass it no longer means coverage,
+    // and the editor draws this image with blending on.
+    m_OutputColor = vec4(color, 1.0);
 }
