@@ -8,6 +8,8 @@ import shlex
 import subprocess
 import tempfile
 
+from headless import headless_command
+
 
 repo = Path(__file__).resolve().parents[4]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -61,7 +63,7 @@ subprocess.run(['cp', '-a', str(Path(__file__).with_name('verification-layout.in
                 str(data / 'imgui.ini')], check=True)
 
 environment = {**os.environ, 'PINE_X11': '1', 'ALSOFT_DRIVERS': 'null'}
-result = subprocess.run(['xvfb-run', '-a', str(root / 'probe'), 'terrain'], cwd=data,
+result = subprocess.run(headless_command(root / 'probe', 'terrain'), cwd=data,
                         env=environment, capture_output=True, text=True, timeout=300)
 
 if result.returncode != 0 or 'PASS(native)' not in result.stdout:

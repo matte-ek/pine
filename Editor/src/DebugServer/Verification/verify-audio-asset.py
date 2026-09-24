@@ -8,6 +8,8 @@ import shlex
 import subprocess
 import tempfile
 
+from headless import headless_command
+
 
 repo = Path(__file__).resolve().parents[4]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -67,7 +69,7 @@ subprocess.run(['cp', '-a', str(Path(__file__).with_name('verification-layout.in
 # The null OpenAL backend gives a real context and real buffers with no output device, which is
 # what lets this run on a machine with no sound card.
 environment = {**os.environ, 'PINE_X11': '1', 'ALSOFT_DRIVERS': 'null'}
-result = subprocess.run(['xvfb-run', '-a', str(root / 'probe'), 'audio'], cwd=data,
+result = subprocess.run(headless_command(root / 'probe', 'audio'), cwd=data,
                         env=environment, capture_output=True, text=True, timeout=300)
 
 if result.returncode != 0 or 'PASS(native)' not in result.stdout:

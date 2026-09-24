@@ -51,7 +51,12 @@ Apply these preferences alongside the target project's instructions and tooling.
 
 - **There are no unit tests.** A change is verified by building it and then running it: launch the Editor headlessly with the debug server enabled ([`docs/editor.md`](docs/editor.md#running-it-headlessly)) and inspect the state or the viewport through the routes in [`docs/debug-server.md`](docs/debug-server.md). `Editor/src/DebugServer/Verification/` holds the existing `verify-<area>.py` recipes and native probes; reuse one when it covers your area.
 
-- **Performance:** judge speed from a release build only. Debug is `-O0` and makes per-object CPU loops look many times more expensive than they are. On a machine that renders through a software rasterizer (`glxinfo -B` reports `llvmpipe`), take no timings at all. Reason from the code, name the `PINE_PF_SCOPE` scopes worth watching, and leave the measuring to the user.
+- **Performance:** judge speed from a release build only. Debug is `-O0` and makes per-object CPU loops look many times more expensive than they are. Reason from the code first, and name the `PINE_PF_SCOPE` scopes worth watching.
+
+  How far to trust a timing depends on where the Editor renders:
+
+  - **Software rasterizer** (plain Xvfb, or `glxinfo -B` reports `llvmpipe`): take no timings at all, and leave the measuring to the user.
+  - **GPU through VirtualGL** (`vglrun -d egl glxinfo -B` names the GPU): release-build timings are fine for a rough idea, such as whether a change moved a scope a lot or which of two scopes dominates. Treat them with caution. The GPU may also be driving the user's desktop, and VirtualGL copies every frame back to the CPU. Report such numbers as rough, say how they were taken, and leave final measurements to the user.
 
 ## Architecture (the parts that span multiple files)
 

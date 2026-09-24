@@ -14,6 +14,8 @@ import time
 import urllib.error
 import urllib.request
 
+from headless import headless_command
+
 
 repo = Path(__file__).resolve().parents[4]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -78,7 +80,7 @@ for index, section in enumerate(sections):
 environment = {**os.environ, 'PINE_X11': '1', 'ALSOFT_DRIVERS': 'null', 'PINE_DEBUG_SERVER': str(args.port)}
 log_path = root / 'picking.log'
 log = log_path.open('w')
-process = subprocess.Popen(['xvfb-run', '-a', str(root / 'probe'), 'picking'], cwd=data,
+process = subprocess.Popen(headless_command(root / 'probe', 'picking'), cwd=data,
                            env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
 
 

@@ -10,6 +10,8 @@ import signal
 import subprocess
 import tempfile
 
+from headless import headless_command
+
 
 repo = Path(__file__).resolve().parents[4]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -66,7 +68,7 @@ environment = {**os.environ, 'PINE_X11': '1', 'ALSOFT_DRIVERS': 'null'}
 environment.pop('PINE_DEBUG_SERVER', None)
 log_path = root / 'native.log'
 with log_path.open('w') as log:
-    process = subprocess.Popen(['xvfb-run', '-a', str(root / 'probe'), 'lod'], cwd=data,
+    process = subprocess.Popen(headless_command(root / 'probe', 'lod'), cwd=data,
                                env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     try:
         result = process.wait(timeout=240)

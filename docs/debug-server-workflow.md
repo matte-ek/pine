@@ -485,7 +485,8 @@ python3 Editor/src/DebugServer/Verification/verify-<area>.py --build cmake-build
 ```
 
 Recipes that take `--build` launch and shut down their own disposable project under
-Xvfb. The rest take `--url http://127.0.0.1:<port>` and need an Editor you already
+Xvfb, through `headless_command` in `headless.py`. It renders on the GPU through VirtualGL when
+`vglrun` is installed, as described in [editor.md](editor.md#running-it-headlessly). The rest take `--url http://127.0.0.1:<port>` and need an Editor you already
 started, with the relevant viewport open.
 
 Two things to know before running them:

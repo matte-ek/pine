@@ -105,7 +105,7 @@ cp -a data/engine data/editor data/imgui.ini "$DATA/"
 
 cd "$DATA"
 ALSOFT_DRIVERS=null PINE_X11=1 PINE_DEBUG_SERVER=19100 \
-    xvfb-run -a /path/to/cmake-build-debug-agent/Editor/Editor scratch
+    xvfb-run -a vglrun -d egl /path/to/cmake-build-debug-agent/Editor/Editor scratch
 ```
 
 - **Copy with `cp -a`, not `cp -r`.** `cp -r` makes every engine source look newer than its
@@ -117,6 +117,14 @@ ALSOFT_DRIVERS=null PINE_X11=1 PINE_DEBUG_SERVER=19100 \
   gives "Failed to load engine assets" and a scripting error, which is easy to mistake for a code
   regression.
 - **The project argument is the bare name** (`scratch`). The editor prepends `projects/` itself.
+- **`vglrun -d egl` puts rendering on the GPU.** Xvfb has no GPU of its own, so without
+  [VirtualGL](https://virtualgl.org) every GL context falls back to Mesa's llvmpipe software
+  rasterizer. VirtualGL's EGL back end renders on the GPU and copies each frame into the Xvfb
+  window, so UI screenshots and `xdotool` still work. It needs no 3D X server and no
+  `vglserver_config`. `nvidia-smi` listing the Editor process confirms it took effect. Leave the
+  prefix out on a machine without VirtualGL. The `verify-*.py` recipes launch through
+  `headless_command` in `Verification/headless.py`, which adds the prefix when `vglrun` is
+  installed.
 - `ALSOFT_DRIVERS=null` gives OpenAL a real context with a mixer running at the real sample rate,
   so audio behaves as it would on a sound card. The editor still boots without it.
 - `xvfb-run -a` gives a 640x480 screen. To screenshot the ImGui UI itself (which `/observe` and

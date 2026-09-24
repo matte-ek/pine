@@ -12,6 +12,8 @@ import time
 import urllib.error
 import urllib.request
 
+from headless import headless_command
+
 
 repo = Path(__file__).resolve().parents[4]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -80,7 +82,7 @@ subprocess.run(['cp', '-a', str(Path(__file__).with_name('verification-layout.in
 environment = {**os.environ, 'PINE_X11': '1', 'ALSOFT_DRIVERS': 'null', 'PINE_DEBUG_SERVER': str(args.port)}
 log_path = root / 'terrain.log'
 log = log_path.open('w')
-process = subprocess.Popen(['xvfb-run', '-a', str(root / 'probe'), 'terrain'], cwd=data,
+process = subprocess.Popen(headless_command(root / 'probe', 'terrain'), cwd=data,
                            env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
 
 
