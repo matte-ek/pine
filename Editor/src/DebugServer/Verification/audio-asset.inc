@@ -295,11 +295,135 @@
                 "A failed audio import wrote an asset anyway");
         }
 
+        // Part 6 - an Ogg Vorbis clip. The '.passet' keeps the source's own bytes, several times
+        // smaller than the PCM they decode to, and the clip is decoded on every load. The recipe
+        // copies in the source: a quarter second of stereo, 440 Hz left and 880 Hz right.
+        {
+            const auto passetPath = std::string("projects/audio/assets/vorbis.passet");
+
+            std::ifstream sourceStream(content + "vorbis.ogg", std::ios::binary);
+            const std::vector<char> sourceBytes((std::istreambuf_iterator<char>(sourceStream)),
+                                                std::istreambuf_iterator<char>());
+
+            check(!sourceBytes.empty(), "The recipe did not provide the Ogg Vorbis source");
+
+            // Whether the stored '.passet' still carries the source's bytes, unchanged.
+            const auto storesSourceBytes = [&]()
+            {
+                const auto stored = Pine::File::ReadCompressed(passetPath);
+                const auto storedBegin = reinterpret_cast<const char*>(stored.data);
+                const auto storedEnd = storedBegin + stored.size;
+
+                return std::search(storedBegin, storedEnd, sourceBytes.begin(), sourceBytes.end()) != storedEnd;
+            };
+
+            const auto audioFile = importAudio(content + "vorbis.ogg", "projects/audio/assets/vorbis");
+
+            check(audioFile != nullptr, "An Ogg Vorbis file did not import");
+            check(audioFile->GetState() == Pine::AssetState::Loaded, "An imported Vorbis clip did not load");
+            check(audioFile->GetEncoding() == Pine::AudioEncoding::Vorbis, "An Ogg Vorbis file was not stored as Vorbis");
+            check(audioFile->GetFormat() == Pine::Audio::AudioFormat::Stereo16, "A stereo Vorbis clip was not stored as stereo");
+            check(audioFile->GetSampleRate() == SampleRate, "A Vorbis clip lost its sample rate");
+            check(std::abs(audioFile->GetDuration() - 0.25f) < 0.01f, "A Vorbis clip reports the wrong duration");
+
+            check(storesSourceBytes(), "The '.passet' does not hold the source's Vorbis bytes unchanged");
+            check(std::filesystem::file_size(passetPath) < audioFile->GetSampleDataSize() / 2,
+                "A Vorbis clip's '.passet' is not much smaller than the PCM it decodes to");
+
+            check(bufferChannels(audioFile) == 2, "A stereo Vorbis clip reached the audio device as mono");
+            check(bufferSize(audioFile) == audioFile->GetSampleDataSize(),
+                "The audio device holds a different number of bytes than the Vorbis clip decodes to");
+
+            // The read-back save: the Vorbis bytes have to be carried across, not dropped.
+            const auto expected = audioFile->GetSampleDataSize();
+
+            audioFile->Save();
+            audioFile->ReLoad();
+
+            check(audioFile->GetEncoding() == Pine::AudioEncoding::Vorbis && storesSourceBytes(),
+                "A Vorbis clip lost its stored bytes through a save and a load");
+            check(bufferSize(audioFile) == expected,
+                "A Vorbis clip re-uploaded the wrong number of bytes after a save and a load");
+
+            // Force mono keeps the source's stereo bytes and folds them down on every load.
+            audioFile->GetImportConfiguration().ForceMono = true;
+            audioFile->ReImport();
+
+            check(audioFile->GetEncoding() == Pine::AudioEncoding::Vorbis && storesSourceBytes(),
+                "Force mono replaced a Vorbis clip's stored bytes");
+            check(audioFile->GetFormat() == Pine::Audio::AudioFormat::Mono16,
+                "Force mono did not fold a stereo Vorbis clip down");
+            check(bufferChannels(audioFile) == 1, "A force-mono Vorbis clip reached the audio device as stereo");
+            check(bufferSize(audioFile) == expected / 2,
+                "A force-mono Vorbis clip sent the audio device the wrong number of bytes");
+
+            // And the fold is not only applied straight after an import.
+            audioFile->ReLoad();
+
+            check(bufferChannels(audioFile) == 1, "A force-mono Vorbis clip came back as stereo on its next load");
+        }
+
+        // Part 7 - a clip stored before Vorbis was kept, which has no 'Encoding' field. It has to
+        // load as the PCM it is. Written by hand with the payload's old fields, inside the same
+        // envelope fields an asset file has.
+        {
+            struct LegacyAudioSerializer : Pine::Serialization::Serializer
+            {
+                PINE_SERIALIZE_PRIMITIVE(Format, Pine::Serialization::DataType::Int32);
+                PINE_SERIALIZE_PRIMITIVE(SampleRate, Pine::Serialization::DataType::Int32);
+                PINE_SERIALIZE_PRIMITIVE(SampleCount, Pine::Serialization::DataType::Int32);
+                PINE_SERIALIZE_PRIMITIVE(ImportForceMono, Pine::Serialization::DataType::Boolean);
+                PINE_SERIALIZE_ARRAY_FIXED(Samples, std::int16_t);
+            };
+
+            struct EnvelopeSerializer : Pine::Serialization::Serializer
+            {
+                PINE_SERIALIZE_PRIMITIVE(UId, Pine::Serialization::DataType::UId);
+                PINE_SERIALIZE_PRIMITIVE(Time, Pine::Serialization::DataType::Int64);
+                PINE_SERIALIZE_PRIMITIVE(Type, Pine::Serialization::DataType::Int32);
+                PINE_SERIALIZE_STRING(Path);
+                PINE_SERIALIZE_ARRAY(Sources);
+                PINE_SERIALIZE_DATA(Data);
+            };
+
+            std::vector<std::int16_t> samples(Frames, 1000);
+
+            LegacyAudioSerializer legacy;
+
+            legacy.Format.Write(Pine::Audio::AudioFormat::Mono16);
+            legacy.SampleRate.Write(SampleRate);
+            legacy.SampleCount.Write(Frames);
+            legacy.ImportForceMono.Write(false);
+            legacy.Samples.Write(samples);
+
+            EnvelopeSerializer envelope;
+
+            envelope.UId.Write(Pine::UId::New());
+            envelope.Time.Write(static_cast<std::int64_t>(1));
+            envelope.Type.Write(Pine::AssetType::Audio);
+            envelope.Path.Write(std::string("projects/audio/assets/legacy"));
+            envelope.Data.Write(legacy.Write());
+
+            Pine::File::WriteCompressed("projects/audio/assets/legacy.passet", envelope.Write());
+
+            const auto audioFile = dynamic_cast<Pine::AudioFile*>(
+                Pine::Asset::LoadFromFile("projects/audio/assets/legacy.passet"));
+
+            check(audioFile != nullptr, "A clip stored before the 'Encoding' field existed did not load");
+            check(audioFile->GetEncoding() == Pine::AudioEncoding::Pcm, "A clip stored before Vorbis was kept did not load as PCM");
+            check(audioFile->GetSampleCount() == Frames && bufferChannels(audioFile) == 1 &&
+                  bufferSize(audioFile) == static_cast<std::size_t>(Frames) * sizeof(std::int16_t),
+                "A clip stored before Vorbis was kept reached the audio device wrong");
+        }
+
         std::cout << "PASS(native): wave clips decoded to PCM at import and stored in the '.passet', "
                      "odd-length chunks\n              padded past, force mono folding a stereo clip "
                      "down on re-import while keeping its\n              UId, an already-imported clip "
-                     "keeping its samples through a save and a load, and\n              files that cannot "
-                     "be decoded failing rather than registering silent assets." << std::endl;
+                     "keeping its samples through a save and a load, files that\n              cannot "
+                     "be decoded failing rather than registering silent assets, Ogg Vorbis clips\n"
+                     "              storing their source's bytes and decoding them on load (through a "
+                     "save and under\n              force mono), and clips stored before Vorbis was "
+                     "kept still loading as PCM." << std::endl;
     }
     catch (const std::exception& exception)
     {

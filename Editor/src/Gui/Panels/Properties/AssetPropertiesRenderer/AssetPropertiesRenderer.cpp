@@ -599,8 +599,8 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
-    // Audio is stored decoded, so a clip's size on disk is worth showing next to its duration -
-    // it is the one thing about the format that surprises people.
+    // Every clip is decoded in full once loaded, so its decoded size is what it costs in memory -
+    // worth showing next to its duration, since for a long clip it is far more than the source.
     std::string FormatSampleDataSize(const std::size_t bytes)
     {
         constexpr auto kilobyte = 1024.f;
@@ -655,10 +655,11 @@ namespace
 
     void RenderAudioFile(Pine::AudioFile *audiofile)
     {
+        Widgets::Text("Stored As", Pine::AudioEncodingToString(audiofile->GetEncoding()));
         Widgets::Text("Format", Pine::Audio::AudioFormatToString(audiofile->GetFormat()));
         Widgets::Text("Sample Rate", fmt::format("{} Hz", audiofile->GetSampleRate()));
         Widgets::Text("Duration", fmt::format("{:.2f} s", audiofile->GetDuration()));
-        Widgets::Text("Size", FormatSampleDataSize(audiofile->GetSampleDataSize()));
+        Widgets::Text("Decoded Size", FormatSampleDataSize(audiofile->GetSampleDataSize()));
 
         ImGui::Spacing();
 
@@ -671,8 +672,8 @@ namespace
         auto modifiedAudioFile = Editor::Gui::AssetImportSettings::RenderAudio(
             audiofile->GetImportConfiguration()).Any();
 
-        // Force mono changes what gets decoded and stored, so it only takes effect on a re-import
-        // - the stored clip is the import's output, not something that can be converted in place.
+        // Force mono is settled by the import and stored with the clip, so it only takes effect on
+        // a re-import - the stored clip is the import's output, not something converted in place.
         if (ImGui::Button("Re-import"))
         {
             audiofile->ReImport();

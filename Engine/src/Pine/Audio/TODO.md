@@ -1,7 +1,8 @@
 ## Audio to-do list
 
-The asset half is done: `AudioFile` decodes wave and Ogg Vorbis at import, stores interleaved
-16-bit PCM in its `.passet`, and uploads it to an `Audio::IAudioBuffer` on load.
+The asset half is done: `AudioFile` stores an Ogg Vorbis source as its own bytes and decodes them on
+load, stores a wave source as 16-bit PCM decoded at import, and uploads the result to an
+`Audio::IAudioBuffer` on load.
 
 Playback is now done too, and is worth describing rather than listing, because the shape of it is
 what the rest of this file assumes.
@@ -42,13 +43,15 @@ with no output device. Clips still import and load there; they just get no buffe
 
 ### Formats
 
-Clips are stored decoded, which is right for sound effects and expensive for music: a three minute
-stereo track is about 30 MB of PCM, and PCM does not compress. Streaming long clips straight from
-the stored Vorbis is the way out, and `AudioFile`'s payload carries its format explicitly so a
-streamed mode can be added without migrating what is already imported.
+A Vorbis clip is stored as Vorbis, but every clip is still decoded whole on load, which is right
+for sound effects and expensive for music: a three minute stereo track is about 30 MB of PCM in
+memory, and decoding it is part of loading the project.
 
-- [ ] Stream long clips instead of holding them whole. Note that this is the one thing here that
-      the voice pool's shape actually constrains: a streaming voice owns queued buffers of its own,
-      so `Voice` would grow a streaming state rather than just pointing at an `AudioFile`.
+- [ ] Stream long clips from their stored Vorbis instead of decoding them whole. That would be a
+      per-clip load setting next to `ForceMono`, and a clip that streams keeps its Vorbis bytes in
+      memory rather than a buffer. This is the one thing here that the voice pool's shape actually
+      constrains: a streaming voice owns queued buffers of its own, so `Voice` would grow a
+      streaming state rather than just pointing at an `AudioFile`.
+- [ ] Store wave sources as Vorbis too. That needs an encoder (libvorbis); `stb_vorbis` only decodes.
 - [ ] FLAC decoding, if it turns out to be wanted. Ogg FLAC and Speex are not supported either -
       `.oga` is accepted as Vorbis and rejected if it holds anything else.

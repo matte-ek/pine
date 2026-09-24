@@ -5,33 +5,6 @@
 
 using namespace Pine;
 
-namespace
-{
-    // Collapses an interleaved multi-channel clip down to a single channel by averaging across
-    // channels, in place. Accumulating in a wider type matters: summing eight channels of loud
-    // 16-bit samples overflows one, and the result of that is a burst of noise rather than a
-    // quieter clip.
-    void DownmixToMono(Importer::AudioLoader::AudioData& audioData)
-    {
-        const auto channels = audioData.Channels;
-
-        for (int frame = 0; frame < audioData.SampleCount; frame++)
-        {
-            std::int32_t total = 0;
-
-            for (int channel = 0; channel < channels; channel++)
-            {
-                total += audioData.Samples[static_cast<std::size_t>(frame) * channels + channel];
-            }
-
-            audioData.Samples[frame] = static_cast<std::int16_t>(total / channels);
-        }
-
-        audioData.Samples.resize(audioData.SampleCount);
-        audioData.Channels = 1;
-    }
-}
-
 bool Pine::Importer::AudioImporter::Import(AudioFile* audioFile)
 {
     if (audioFile->m_SourceFiles.size() != 1)
@@ -57,21 +30,33 @@ bool Pine::Importer::AudioImporter::Import(AudioFile* audioFile)
     {
         PWarning(fmt::format(
             "Audio file {} has {} channels, downmixing to mono.", file, audioData.Channels));
-
-        DownmixToMono(audioData);
-    }
-    else if (audioFile->m_ImportConfiguration.ForceMono && audioData.Channels > 1)
-    {
-        DownmixToMono(audioData);
     }
 
-    audioFile->m_Format = audioData.Channels == 2 ? Audio::AudioFormat::Stereo16 : Audio::AudioFormat::Mono16;
+    const auto playsAsMono = audioData.Channels != 2 || audioFile->m_ImportConfiguration.ForceMono;
+
+    audioFile->m_Encoding = audioData.Encoding;
+    audioFile->m_Format = playsAsMono ? Audio::AudioFormat::Mono16 : Audio::AudioFormat::Stereo16;
     audioFile->m_SampleRate = audioData.SampleRate;
     audioFile->m_SampleCount = audioData.SampleCount;
-    audioFile->m_ImportSamples = std::move(audioData.Samples);
 
-    PInfo(fmt::format("Imported audio {}: {}, {} Hz, {:.2f} seconds.",
+    // A Vorbis clip keeps its source's bytes as they are and is folded down on every load instead.
+    if (audioData.Encoding == AudioEncoding::Vorbis)
+    {
+        audioFile->m_ImportEncodedData = std::move(audioData.EncodedData);
+    }
+    else
+    {
+        if (playsAsMono && audioData.Channels > 1)
+        {
+            AudioLoader::DownmixToMono(audioData);
+        }
+
+        audioFile->m_ImportSamples = std::move(audioData.Samples);
+    }
+
+    PInfo(fmt::format("Imported audio {}: {}, {}, {} Hz, {:.2f} seconds.",
         file,
+        AudioEncodingToString(audioFile->m_Encoding),
         Audio::AudioFormatToString(audioFile->m_Format),
         audioFile->m_SampleRate,
         audioFile->GetDuration()));

@@ -28,10 +28,13 @@ entry = next(command for command in commands if Path(command['file']) == applica
 source = application.read_text()
 marker = '    Pine::Engine::Run();'
 assert source.count(marker) == 1, 'Editor main-loop entry changed; update this probe.'
-includes = '''#include <cmath>
+includes = '''#include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -40,6 +43,8 @@ includes = '''#include <cmath>
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Assets/Importer/AssetImporter.hpp"
+#include "Pine/Core/File/File.hpp"
+#include "Pine/Core/Serialization/Serialization.hpp"
 '''
 body = Path(__file__).with_name('audio-asset.inc').read_text()
 (root / 'probe.cpp').write_text(includes + source.replace(marker, body))
@@ -65,6 +70,11 @@ for name in ['engine', 'editor']:
     subprocess.run(['cp', '-a', str(repo / 'data' / name), str(data / name)], check=True)
 subprocess.run(['cp', '-a', str(Path(__file__).with_name('verification-layout.ini')),
                 str(data / 'imgui.ini')], check=True)
+
+# Ogg Vorbis cannot be written as simply as the probe writes its wave files, so that source is a
+# checked-in file: a quarter second of stereo, 440 Hz left and 880 Hz right.
+subprocess.run(['cp', str(Path(__file__).with_name('audio-asset-stereo.ogg')),
+                str(data / 'projects/audio/content/vorbis.ogg')], check=True)
 
 # The null OpenAL backend gives a real context and real buffers with no output device, which is
 # what lets this run on a machine with no sound card.

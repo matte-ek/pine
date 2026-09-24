@@ -26,3 +26,26 @@ bool Pine::Importer::AudioLoader::LoadAudio(const std::filesystem::path& file, A
 
     return false;
 }
+
+void Pine::Importer::AudioLoader::DownmixToMono(AudioData& audioData)
+{
+    const auto channels = audioData.Channels;
+
+    // Averages across channels. Accumulating in a wider type matters: summing eight channels of
+    // loud 16-bit samples overflows one, and the result of that is a burst of noise rather than a
+    // quieter clip.
+    for (int frame = 0; frame < audioData.SampleCount; frame++)
+    {
+        std::int32_t total = 0;
+
+        for (int channel = 0; channel < channels; channel++)
+        {
+            total += audioData.Samples[static_cast<std::size_t>(frame) * channels + channel];
+        }
+
+        audioData.Samples[frame] = static_cast<std::int16_t>(total / channels);
+    }
+
+    audioData.Samples.resize(audioData.SampleCount);
+    audioData.Channels = 1;
+}

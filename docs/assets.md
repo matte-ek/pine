@@ -239,27 +239,40 @@ to match the managed enum, and each managed enum name has to match its class in 
 
 ### Audio: what an `AudioFile` stores
 
-An `AudioFile` is a **decoded** clip. The source encoding exists only at import time: the importer
-(`Assets/AudioFile/Importer/`) decodes wave or Ogg Vorbis into interleaved signed 16-bit PCM, and
-that is what goes in the `.passet`, alongside the format, sample rate and per-channel sample count.
-Nothing in the runtime decodes anything - `AudioFile::LoadAssetData` uploads the stored PCM to an
-`Audio::IAudioBuffer` and that is the whole load path.
+An `AudioFile` stores its clip in one of two encodings, recorded in the payload's `Encoding` field
+(`AudioEncoding`, in `Assets/AudioFile/AudioFile.hpp`):
+
+- **Ogg Vorbis sources keep their own bytes.** The importer (`Assets/AudioFile/Importer/`) copies
+  the `.ogg` into the `.passet` unchanged and `AudioFile::LoadAssetData` decodes it with
+  `stb_vorbis` on every load, on the asset-loading worker thread. It is still decoded at import
+  too, so a file that does not decode fails its import, and so the format, sample rate and
+  per-channel sample count stored alongside it are real.
+- **Wave sources are stored as PCM**: decoded at import into interleaved signed 16-bit samples, and
+  uploaded as they are on load. There is no Vorbis *encoder* in the tree, so a wave clip cannot be
+  stored any smaller.
+
+Either way, the whole clip is decoded by the time it has loaded, and lives in one
+`Audio::IAudioBuffer`. A clip stored before `Encoding` existed has no such field and loads as PCM,
+which is what it is.
 
 - **Decoders** live in `Importer/AudioLoader/Formats/`, picked by file extension, and all produce
   the same `AudioLoader::AudioData`. Wave covers 8/16/24/32-bit PCM and 32/64-bit float, including
   `WAVE_FORMAT_EXTENSIBLE`; Ogg Vorbis goes through `stb_vorbis`. `.oga` is read as Vorbis and
   refused if it holds anything else. FLAC and Speex are not supported, and are deliberately **not**
   in the factory's extension list - claiming an extension and then failing the import is worse than
-  not claiming it.
+  not claiming it. `AudioLoader::DecodeVorbis` and `AudioLoader::DownmixToMono` are also what
+  `AudioFile` uses at load.
 - **`ForceMono`** is the only import setting. OpenAL pans and attenuates *mono* buffers only, so a
   stereo clip on a positioned `AudioSource` plays flat wherever its entity is; this is how a stereo
   source file is made usable for 3D sound. It is off by default, because it is the wrong thing to
   do to music. Anything above two channels has no format to be stored as and is folded down whether
-  or not it was asked for. Since it changes what gets decoded, it only takes effect on a re-import.
-- **Size.** PCM barely compresses, so a clip costs roughly `sampleCount * channels * 2` bytes on
-  disk and in the audio device - about 30 MB for a three minute stereo track. The payload records
-  its storage format explicitly so that streaming long clips can be added later without migrating
-  anything already imported.
+  or not it was asked for. The import settles the clip's stored `Format`, and that is what takes
+  effect, so ticking Force Mono needs a re-import. A PCM clip is folded at import; a Vorbis clip
+  keeps its source's stereo bytes and is folded to its `Format` on every load.
+- **Size.** A Vorbis clip costs about what its `.ogg` does on disk. In memory every clip costs its
+  decoded size, roughly `sampleCount * channels * 2` bytes (`AudioFile::GetSampleDataSize`): about
+  30 MB for a three minute stereo track. Streaming long clips is what would change that; see
+  `Audio/TODO.md`.
 
 `Engine/src/Pine/Audio/` is the other half: `IAudioAPI` (OpenAL) creates the `IAudioBuffer` a clip
 uploads into, and the voice pool and the `AudioSource`/`AudioListener` components play it. See

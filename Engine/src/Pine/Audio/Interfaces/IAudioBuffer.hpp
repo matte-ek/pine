@@ -3,8 +3,8 @@
 namespace Pine::Audio
 {
     // The sample layout of a block of PCM. Both of these are signed 16-bit samples, interleaved
-    // when there is more than one channel - that is the one representation the importer produces
-    // and the only one an AudioFile stores.
+    // when there is more than one channel - that is the one representation the decoders produce
+    // and the only one an AudioFile uploads.
     //
     // Serialized as an integer by AudioFile, so only ever append.
     enum class AudioFormat
