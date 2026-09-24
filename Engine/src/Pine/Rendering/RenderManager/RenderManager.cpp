@@ -14,7 +14,7 @@
 #include "Pine/Rendering/Common/Blur/Blur.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/PostProcessing/PostProcessing.hpp"
-#include "Pine/Rendering/Features/Bloom/Bloom.hpp"
+#include "Pine/Rendering/Features/PostProcessing/Bloom/Bloom.hpp"
 #include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 

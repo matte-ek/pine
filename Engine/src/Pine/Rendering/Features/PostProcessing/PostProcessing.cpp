@@ -9,7 +9,7 @@
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Common/QuadTarget/QuadTarget.hpp"
 #include "Pine/Rendering/Features/AmbientOcclusion/AmbientOcclusion.hpp"
-#include "Pine/Rendering/Features/Bloom/Bloom.hpp"
+#include "Pine/Rendering/Features/PostProcessing/Bloom/Bloom.hpp"
 #include "Pine/World/World.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 

@@ -46,7 +46,7 @@ includes = '''#include <cmath>
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Assets/Shader/Importer/ShaderImporter.hpp"
 #include "Pine/Assets/Terrain/Terrain.hpp"
-#include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
+#include "Pine/Rendering/Features/Terrain/TerrainRenderer/TerrainRenderer.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Rendering/Renderer3D/Specifications.hpp"
 #include "Other/TerrainSculpting/TerrainSculpting.hpp"

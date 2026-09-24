@@ -27,7 +27,7 @@ repo.
 |---|---|---|
 | `Terrain` asset | `Engine/src/Pine/Assets/Terrain/` | 445 lines |
 | `TerrainRendererComponent` | `Engine/src/Pine/World/Components/TerrainRenderer/` | 64 lines |
-| Render feature | `Engine/src/Pine/Rendering/Features/TerrainRenderer/` | 90 lines |
+| Render feature | `Engine/src/Pine/Rendering/Features/Terrain/TerrainRenderer/` | 90 lines |
 | PhysX cooking | `Engine/src/Pine/Physics/Physics3D/PhysicsTerrain/` | 80 lines |
 | Collider hook | `Collider.cpp:201-246` | — |
 | Editor UI | `AssetPropertiesRenderer.cpp:506`, `ComponentPropertiesRenderer.cpp:735`, `AssetDialogs.cpp:66` | — |

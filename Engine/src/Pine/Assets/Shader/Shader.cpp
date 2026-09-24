@@ -7,13 +7,13 @@
 #include <nlohmann/json.hpp>
 
 #include "Importer/ShaderImporter.hpp"
+#include "ShaderSpecificationRegistry/ShaderSpecificationRegistry.hpp"
 #include "Pine/Core/Serialization/Json/SerializationJson.hpp"
 #include "Pine/Core/Log/Log.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Graphics/Interfaces/IShaderProgram.hpp"
 #include "Pine/Threading/Threading.hpp"
-#include "Pine/Rendering/Renderer3D/Specifications.hpp"
 
 namespace
 {
@@ -38,23 +38,8 @@ bool Shader::CompileShader(
     // source starts with on line 1.
     const auto offset = shaderSource.find('\n') + 1;
 
-    // Array sizes and binding points shared between C++ and GLSL, injected rather than written twice.
-    //
-    // Hand-syncing them has already cost us once: MAX_INSTANCE_COUNT was 512 in Specifications.hpp
-    // while the shaders declared instances[128], so instances 128-511 read out of bounds with
-    // nothing reporting it. A UBO array size is exactly the kind of constant that gets bumped on
-    // one side only, so the shaders now read it from the one place it is defined.
-    const auto sharedDefines = fmt::format(
-        "#define MAX_INSTANCE_COUNT {}\n"
-        "#define DYNAMIC_LIGHT_COUNT {}\n"
-        "#define SHADOW_VIEW_COUNT {}\n"
-        "#define TERRAIN_DETAIL_INSTANCE_BINDING {}\n",
-        Renderer3D::Specifications::General::MAX_INSTANCE_COUNT,
-        Renderer3D::Specifications::General::DYNAMIC_LIGHT_COUNT,
-        Renderer3D::Specifications::Shadows::SHADOW_VIEW_COUNT,
-        Renderer3D::Specifications::StorageBuffers::TERRAIN_DETAIL_INSTANCES);
-
-    shaderSource = shaderSource.insert(offset, sharedDefines);
+    // Array sizes and binding points shared between C++ and GLSL.
+    shaderSource = shaderSource.insert(offset, ShaderSpecificationRegistry::GetDefines());
 
     // Insert any macros for pre-processor if we have to
     if (!versionMacros.empty())

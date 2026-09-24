@@ -16,7 +16,7 @@ layout(std140) uniform Lights
 
 layout(std140) uniform Material
 {
-    MaterialProperties matPropeties[8];
+    MaterialProperties matPropeties[MATERIAL_SLOT_COUNT];
 };
 
 layout(std140) uniform ShadowViews

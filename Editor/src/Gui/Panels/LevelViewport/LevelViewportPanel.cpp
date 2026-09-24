@@ -24,7 +24,7 @@
 #include "Gui/Panels/TerrainTools/TerrainToolsPanel.hpp"
 #include "Pine/Assets/Model/Model.hpp"
 #include "Pine/Assets/Terrain/Terrain.hpp"
-#include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
+#include "Pine/Rendering/Features/Terrain/TerrainRenderer/TerrainRenderer.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"

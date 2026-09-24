@@ -8,6 +8,7 @@
 #include "Pine/Graphics/TextureAtlas/TextureAtlas.hpp"
 #include "Pine/Input/Input.hpp"
 #include "Pine/Performance/Performance.hpp"
+#include "Pine/Rendering/Rendering.hpp"
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/Rendering/GraphicsSettings/GraphicsSettings.hpp"
 #include "Pine/Rendering/InternalResolution/InternalResolution.hpp"
@@ -96,6 +97,9 @@ bool Pine::Engine::Setup(const EngineConfiguration& engineConfiguration)
     // be able to register objects to the runtime.
     Script::Runtime::Setup();
     Script::Manager::Setup();
+
+    // Shaders compile as they load, so the constants they are compiled with go in first.
+    Rendering::Internal::RegisterShaderSpecifications();
 
     // Load engine assets, order is important, we want the shaders ready
     // before the other stuff.

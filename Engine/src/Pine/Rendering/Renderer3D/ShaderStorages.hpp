@@ -41,7 +41,7 @@ namespace Pine::Renderer3D::ShaderStorages
 
     struct MaterialData
     {
-        MaterialProperties Properties[8];
+        MaterialProperties Properties[Specifications::General::MATERIAL_SLOT_COUNT];
     };
 
     struct LightsData

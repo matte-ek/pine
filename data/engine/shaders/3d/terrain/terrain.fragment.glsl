@@ -21,9 +21,9 @@ layout(location = 0) out vec4 m_OutputColor;
 #include "shared/lightning/lightning.glsl"
 #include "shared/fog.glsl"
 
-uniform sampler2D layerDiffuse[4];
-uniform sampler2D layerSpecular[4];
-uniform sampler2D layerNormal[4];
+uniform sampler2D layerDiffuse[TERRAIN_LAYER_COUNT];
+uniform sampler2D layerSpecular[TERRAIN_LAYER_COUNT];
+uniform sampler2D layerNormal[TERRAIN_LAYER_COUNT];
 
 // Per-texel layer weights over the whole terrain, one texel per height sample. One texture rather
 // than one per chunk so that the blend filters across a chunk edge the same way it filters anywhere

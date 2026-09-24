@@ -6,6 +6,9 @@ namespace Pine::Renderer3D::Specifications
     {
         constexpr int DYNAMIC_LIGHT_COUNT = 32;
         constexpr int MAX_INSTANCE_COUNT = 512;
+
+        // Entries in the Material block. An object reads slot 0; a terrain chunk reads one per layer.
+        constexpr int MATERIAL_SLOT_COUNT = 8;
     }
 
     // How the light slots of a single object are laid out. Each slot holds an index into the light
@@ -78,6 +81,8 @@ namespace Pine::Renderer3D::Specifications
     namespace TerrainLayers
     {
         constexpr int COUNT = Samplers::COUNT;
+
+        static_assert(COUNT <= General::MATERIAL_SLOT_COUNT, "Each terrain layer needs a slot in the Material block.");
     }
 
     namespace Buffers

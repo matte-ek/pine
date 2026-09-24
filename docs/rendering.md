@@ -15,7 +15,7 @@ relative to `Engine/src/Pine/`.
 - **`RenderManager`** owns the contexts and the stage model — `RenderStage` (Pre/PostRender, RenderContext, Pre/PostRender2D, Pre/PostRender3D, PostProcessing) and `PipelineStage` (Prepass, Default). External code hooks in via `AddRenderCallback(fn(context, stage, dt))`. Right after the `PreRender` callback, and only while the world is running, `RenderManager::Run` dispatches the scripts' `OnRender` (see [scripting.md](scripting.md)), so anything a script moves there is drawn this frame.
 - Per context with `UseRenderPipeline` set (the default) it runs **`Rendering/Pipeline/Pipeline3D/`**, then **`Pipeline2D/`**, then bloom and post-processing. A context with it cleared, such as the editor's entity-selection context, gets only the clear and the `RenderContext` callback and draws for itself.
 - **`Rendering/SceneProcessor/`** (incl. `SceneLightsProcessor/`) walks the ECS component blocks to gather what to draw and light — this is the bridge from the ECS to the renderer.
-- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `Bloom`, `PostProcessing`, `Shadows`, `Skybox`, `RenderCulling`, `TerrainRenderer`, `TerrainDetail`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`) and the quality presets in `Rendering/GraphicsSettings/`. `Rendering/RenderGraph/` is an empty placeholder; pass order is the fixed sequence in `RenderManager::Run` and `Pipeline3D::Run`.
+- **`Rendering/Features/`** are the pluggable passes: `AmbientOcclusion`, `PostProcessing` (the final composite, with `Bloom` under it), `Shadows`, `Skybox`, `RenderCulling`, and `Terrain` (`TerrainRenderer`, `TerrainDetail`). A feature split into parts keeps them in subfolders, but their namespaces stay flat: `Features/Terrain/TerrainDetail/` is `Rendering::TerrainDetail`. Shared helpers live in `Rendering/Common/` (`Blur`, `QuadTarget`) and the quality presets in `Rendering/GraphicsSettings/`. `Rendering/RenderGraph/` is an empty placeholder; pass order is the fixed sequence in `RenderManager::Run` and `Pipeline3D::Run`.
 - **`Renderer2D/`** mirrors `Renderer3D/` for sprites/tilemaps.
 
 ## The shared scene buffers & internal resolution
@@ -468,7 +468,7 @@ was drawn last, and its shadow views with it.
 
 ## Terrain
 
-Terrain does **not** go through the object batch. `Rendering/Features/TerrainRenderer/` draws it
+Terrain does **not** go through the object batch. `Rendering/Features/Terrain/TerrainRenderer/` draws it
 directly, and `Pipeline3D` calls that feature from inside both `RenderDepthPrepass` and
 `RenderScene` rather than from `RenderBatch`. The reason is the shader override: a shadow or depth
 view renders the batch with `OverrideShader` set, and terrain has to honour that override the same
@@ -703,7 +703,7 @@ box has grown taller.
 ## Terrain detail
 
 Grass, ferns and pebbles scattered over a terrain wherever one of its layers is painted.
-`Rendering/Features/TerrainDetail/` draws it; the rule lives on the `Terrain` asset as a list of
+`Rendering/Features/Terrain/TerrainDetail/` draws it; the rule lives on the `Terrain` asset as a list of
 `TerrainDetailType`s: a model, the layer it grows on, a density per square unit at full layer
 weight, a scale range and a draw distance. The editor edits the list under the terrain's **Detail**
 header, and it is saved as the `DetailTypes` list in the terrain's payload. Terrains saved before
@@ -740,7 +740,7 @@ stalling one.
 (visible chunk, detail type, mesh), culled against the chunk's box grown by the model's reach.
 `Renderer3D::PrepareTerrainDetailMesh` draws them with their own shader,
 `engine/shaders/3d/terrain-detail`. It reads each copy's placement from a shader storage block at
-`Specifications::StorageBuffers::TERRAIN_DETAIL_INSTANCES`, which `Shader::CompileShader` injects as
+`Specifications::StorageBuffers::TERRAIN_DETAIL_INSTANCES`, which `Rendering::Internal::RegisterShaderSpecifications` registers as
 `TERRAIN_DETAIL_INSTANCE_BINDING`, instead of from `instances[gl_InstanceID]`. `instances[0]` still
 carries what every copy shares: the terrain's translation and the chunk's light slots
 (`writeLightIndices(0)`). The storage block is why `terrain-detail.vertex.glsl` is `#version 430`.
@@ -785,6 +785,7 @@ python3 Editor/src/DebugServer/Verification/verify-terrain-detail.py --build cma
 
 ## Notes
 - Shaders, materials, meshes and models are all **assets** (see [assets.md](assets.md)); the renderer pulls them from the asset system rather than owning GPU resources directly.
+- Numbers shared between C++ and GLSL (UBO array sizes, storage block bindings) are registered with `ShaderSpecificationRegistry::Register` in `Rendering::Internal::RegisterShaderSpecifications` (`Rendering/Rendering.cpp`), and `Shader::CompileShader` puts them after the `#version` line of every shader as `#define`s. Add a new one there, not as a literal in GLSL. `Engine::Setup` runs it before the engine assets load, because shaders compile as they load. Registering later asserts.
 - Screen-space effects live under `Rendering/Features/`, but there is no registration hook: `Bloom` and `PostProcessing` are set up, shut down and run directly from `RenderManager`, and `AmbientOcclusion` from `Pipeline3D`. A new pass is wired into whichever of those it belongs to.
 
 Related: [world-ecs.md](world-ecs.md) · [assets.md](assets.md)

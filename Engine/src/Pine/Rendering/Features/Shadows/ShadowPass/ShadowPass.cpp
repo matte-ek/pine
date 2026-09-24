@@ -8,7 +8,7 @@
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Features/Shadows/ShadowAtlas/ShadowAtlas.hpp"
 #include "Pine/Rendering/Features/Shadows/ShadowView/ShadowView.hpp"
-#include "Pine/Rendering/Features/TerrainRenderer/TerrainRenderer.hpp"
+#include "Pine/Rendering/Features/Terrain/TerrainRenderer/TerrainRenderer.hpp"
 #include "Pine/Rendering/Pipeline/Pipeline3D/Pipeline3D.hpp"
 #include "Pine/Rendering/Renderer3D/Renderer3D.hpp"
 #include "Pine/Rendering/SceneProcessor/SceneProcessor.hpp"
