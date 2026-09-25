@@ -3,14 +3,18 @@
 #include "Pine/Core/Math/Math.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <fmt/core.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <vector>
 
 #include "Gui/Gui.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
+#include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/Tileset/Tileset.hpp"
+#include "Pine/Core/String/String.hpp"
 #include "Pine/Game/Game.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 
@@ -50,6 +54,132 @@ namespace
         ImGui::SameLine();
 
         //ImGui::PopFont();
+    }
+
+    constexpr auto AssetPickerPopupId = "AssetPickerPopup";
+
+    // Only one popup can be open at a time, so every asset picker shares this buffer.
+    char m_AssetPickerSearchBuffer[64];
+
+    bool IsPickableAsset(const Pine::Asset* asset, Pine::AssetType restrictedType)
+    {
+        if (asset->IsPendingDelete())
+        {
+            return false;
+        }
+
+        if (restrictedType != Pine::AssetType::Invalid && asset->GetType() != restrictedType)
+        {
+            return false;
+        }
+
+        // The editor's own icons, shaders and gizmo models are never something to assign in a project.
+        return !Pine::String::StartsWith(asset->GetPath(), "editor/");
+    }
+
+    std::vector<Pine::Asset*> FindPickableAssets(Pine::AssetType restrictedType, const std::string& searchQuery)
+    {
+        std::vector<Pine::Asset*> assets;
+
+        for (const auto& [id, asset] : Pine::Assets::GetAll())
+        {
+            if (!IsPickableAsset(asset, restrictedType))
+            {
+                continue;
+            }
+
+            if (Pine::String::ToLower(asset->GetPath()).find(searchQuery) == std::string::npos)
+            {
+                continue;
+            }
+
+            assets.push_back(asset);
+        }
+
+        std::sort(assets.begin(), assets.end(), [](const Pine::Asset* a, const Pine::Asset* b)
+        {
+            return a->GetPath() < b->GetPath();
+        });
+
+        return assets;
+    }
+
+    // The list the asset picker's "..." button opens. Enter in the search box picks the first match.
+    AssetPickerResult RenderAssetPickerPopup(const Pine::Asset* currentAsset, Pine::AssetType restrictedType)
+    {
+        AssetPickerResult ret;
+
+        ImGui::SetNextWindowSize(ImVec2(450.f, 0.f));
+
+        if (!ImGui::BeginPopup(AssetPickerPopupId))
+        {
+            return ret;
+        }
+
+        if (ImGui::IsWindowAppearing())
+        {
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        ImGui::SetNextItemWidth(-1.f);
+
+        const bool searchSubmitted = ImGui::InputTextWithHint("##AssetPickerSearch",
+                                                              ICON_MD_SEARCH " Search...",
+                                                              m_AssetPickerSearchBuffer,
+                                                              IM_ARRAYSIZE(m_AssetPickerSearchBuffer),
+                                                              ImGuiInputTextFlags_EnterReturnsTrue);
+
+        const auto assets = FindPickableAssets(restrictedType, Pine::String::ToLower(m_AssetPickerSearchBuffer));
+
+        if (searchSubmitted && !assets.empty())
+        {
+            ret.hasResult = true;
+            ret.asset = assets.front();
+        }
+
+        ImGui::BeginChild("##AssetPickerList", ImVec2(-1.f, 300.f), ImGuiChildFlags_Borders);
+
+        if (assets.empty())
+        {
+            ImGui::TextDisabled("No matching assets");
+        }
+
+        for (const auto asset : assets)
+        {
+            const std::filesystem::path assetPath = asset->GetPath();
+
+            // With no type restriction the list mixes types, so name each asset's type too.
+            std::string details = assetPath.parent_path().string();
+
+            if (restrictedType == Pine::AssetType::Invalid)
+            {
+                details = fmt::format("{}  {}", Pine::AssetTypeToHumanString(asset->GetType()), details);
+            }
+
+            ImGui::PushID(asset);
+
+            if (ImGui::Selectable(assetPath.filename().string().c_str(), asset == currentAsset))
+            {
+                ret.hasResult = true;
+                ret.asset = asset;
+            }
+
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s", details.c_str());
+
+            ImGui::PopID();
+        }
+
+        ImGui::EndChild();
+
+        if (ret.hasResult || ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+
+        return ret;
     }
 }
 
@@ -364,7 +494,8 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
        assetFileName = std::filesystem::path(asset->GetPath()).filename().string();
     }
 
-    if (assetFileName.size() > 128)
+    // Leaves room for the terminator in the 128 byte buffer below.
+    if (assetFileName.size() >= 128)
     {
         return ret;
     }
@@ -409,7 +540,9 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
 
     if (ImGui::Button(" ... "))
     {
-        // TODO: Asset picker
+        m_AssetPickerSearchBuffer[0] = '\0';
+
+        ImGui::OpenPopup(AssetPickerPopupId);
     }
 
     ImGui::SameLine();
@@ -428,6 +561,11 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
     if (asset == nullptr)
     {
         Widgets::PopDisabled();
+    }
+
+    if (const auto pickedFromPopup = RenderAssetPickerPopup(asset, restrictedType); pickedFromPopup.hasResult)
+    {
+        ret = pickedFromPopup;
     }
 
     FinishWidget();
