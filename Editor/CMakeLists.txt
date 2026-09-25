@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(src ${CMAKE_SOURCE_DIR}/Engine/src)
 link_directories(lib)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_definitions(-D GLM_ENABLE_EXPERIMENTAL)
 

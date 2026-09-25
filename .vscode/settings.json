@@ -8,9 +8,9 @@
     "cmake.useCMakePresets": "always",
     "cmake.defaultConfigurePreset": "debug",
 
-    // The top-level CMakeLists uses GLOB_RECURSE, so a new source file is invisible until CMake
-    // is configured again. Re-running configure when a CMakeLists changes catches most of it;
-    // after adding a .cpp, run "CMake: Configure" (or the "CMake: configure" task) yourself.
+    // The CMakeLists glob their sources with CONFIGURE_DEPENDS, so a build notices an added or
+    // removed .cpp and re-runs configure by itself. These two cover opening the folder and
+    // editing a CMakeLists.
     "cmake.configureOnOpen": true,
     "cmake.configureOnEdit": true,
 

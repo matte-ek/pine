@@ -10,7 +10,7 @@
             "command": "cmake --preset debug",
             "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
-            "detail": "Re-run after adding or removing a source file -- the CMakeLists use GLOB_RECURSE."
+            "detail": "Builds re-run this by themselves when a source file is added or removed (CONFIGURE_DEPENDS)."
         },
         {
             "label": "Build Editor (debug)",
