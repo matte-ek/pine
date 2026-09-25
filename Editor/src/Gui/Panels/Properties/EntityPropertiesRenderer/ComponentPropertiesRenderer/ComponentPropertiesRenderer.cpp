@@ -9,6 +9,7 @@
 #include "IconsMaterialDesign.h"
 #include "Gui/Shared/Widgets/Widgets.hpp"
 #include "Other/Actions/Actions.hpp"
+#include "Other/Clipboard/ComponentClipboard/ComponentClipboard.hpp"
 #include "Pine/Assets/Assets.hpp"
 #include "Pine/Assets/AudioFile/AudioFile.hpp"
 #include "Pine/Game/Game.hpp"
@@ -21,6 +22,7 @@
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Components/Collider2D/Collider2D.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
+#include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Light/Light.hpp"
 #include "Pine/World/Components/ModelRenderer/ModelRenderer.hpp"
 #include "Pine/World/Components/RigidBody/RigidBody.hpp"
@@ -1073,13 +1075,58 @@ namespace
 
     // -----------------------------------------------------------------------------------------------------------------------
 
-    void RenderComponent(Pine::Component* component, int index)
+    // Puts the component's fields back to what "Add new component" would have given it.
+    void ResetComponent(Pine::Component* component)
+    {
+        const auto defaultComponent = Pine::Components::GetData(component->GetType()).m_Component;
+        const auto defaultData = defaultComponent->SaveData();
+
+        CreateComponentCommand updateCmd(component, CommandType::Update);
+
+        component->LoadData(defaultData);
+    }
+
+    void RenderComponentMenu(Pine::Component* component, const std::string& popupId)
+    {
+        if (!ImGui::BeginPopup(popupId.c_str()))
+        {
+            return;
+        }
+
+        if (ImGui::MenuItem(ICON_MD_CONTENT_COPY " Copy"))
+        {
+            Editor::Clipboard::Component::Copy(component);
+        }
+
+        if (ImGui::MenuItem(ICON_MD_CONTENT_PASTE " Paste Values", nullptr, false, Editor::Clipboard::Component::CanPasteValues(component)))
+        {
+            Editor::Clipboard::Component::PasteValues(component);
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem(ICON_MD_RESTART_ALT " Reset"))
+        {
+            ResetComponent(component);
+        }
+
+        ImGui::EndPopup();
+    }
+
+    // Returns false once the component has been removed from its entity.
+    bool RenderComponent(Pine::Component* component, int index)
     {
         const std::string displayText = std::string(Pine::ComponentTypeToString(component->GetType())) + "##" + std::to_string(index);
+        const std::string menuPopupId = "ComponentMenu##" + std::to_string(index);
 
-        if (ImGui::CollapsingHeader(displayText.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        const bool isHeaderOpen = ImGui::CollapsingHeader(displayText.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+        ImGui::OpenPopupOnItemClick(menuPopupId.c_str(), ImGuiPopupFlags_MouseButtonRight);
+
+        if (isHeaderOpen)
         {
             bool isActive = component->GetActive();
+            const float rowWidth = ImGui::GetContentRegionAvail().x;
 
             if (index == 0)
             {
@@ -1094,7 +1141,24 @@ namespace
                 component->SetActive(isActive);
             }
 
-            ImGui::SameLine(ImGui::GetContentRegionAvail().x - 38.f);
+            if (index == 0)
+            {
+                Widgets::PopDisabled();
+            }
+
+            ImGui::SameLine(rowWidth - 90.f);
+
+            if (ImGui::Button(std::string(ICON_MD_MORE_VERT "##" + std::to_string(index)).c_str()))
+            {
+                ImGui::OpenPopup(menuPopupId.c_str());
+            }
+
+            ImGui::SameLine(rowWidth - 38.f);
+
+            if (index == 0)
+            {
+                Widgets::PushDisabled();
+            }
 
             if (ImGui::Button(std::string(ICON_MD_DELETE "##" + std::to_string(index)).c_str()))
             {
@@ -1102,16 +1166,19 @@ namespace
 
                 component->GetParent()->RemoveComponent(component);
 
-                return;
+                return false;
             }
 
             if (index == 0)
             {
-                // Don't allow the user to disable/remove the Transform component, which should always be the first one.
                 Widgets::PopDisabled();
             }
 
             ImGui::Spacing();
+
+            // The widgets are identified by their labels, so without this two components of the same type
+            // on one entity would share them and the second would draw nothing.
+            ImGui::PushID(index);
 
             switch (component->GetType())
             {
@@ -1163,7 +1230,14 @@ namespace
                 default:
                     break;
             }
+
+            ImGui::PopID();
         }
+
+        // Outside the header's block, so a right-click still opens the menu on a collapsed header.
+        RenderComponentMenu(component, menuPopupId);
+
+        return true;
     }
 }
 
@@ -1174,7 +1248,8 @@ bool ComponentPropertiesRenderer::Render(Pine::Component* component, int index)
     // component's own widgets changed something", which is what the caller acts on.
     ClearItemUpdated();
 
-    RenderComponent(component, index);
+    const bool componentStillExists = RenderComponent(component, index);
 
-    return HasItemUpdated();
+    // A removed component has nothing left to copy to the other selected entities.
+    return componentStillExists && HasItemUpdated();
 }

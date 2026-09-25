@@ -1,12 +1,16 @@
 #include "EntityPropertiesRenderer.hpp"
 
 #include <stdexcept>
+#include <string>
+
+#include <fmt/format.h>
 
 #include "IconsMaterialDesign.h"
 #include "imgui.h"
 #include "ComponentPropertiesRenderer/ComponentPropertiesRenderer.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Other/Actions/Actions.hpp"
+#include "Other/Clipboard/ComponentClipboard/ComponentClipboard.hpp"
 #include "Pine/Assets/Asset/Asset.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Game/Game.hpp"
@@ -42,6 +46,42 @@ namespace
 
             ImGui::EndChild();
             ImGui::EndPopup();
+        }
+    }
+
+    std::string GetComponentPasteTooltip()
+    {
+        using namespace Editor;
+
+        if (!Clipboard::Component::HasData())
+        {
+            return "Paste a copied component as a new one. Copy one from a component's " ICON_MD_MORE_VERT " menu first.";
+        }
+
+        const auto typeName = Pine::ComponentTypeToHumanString(Clipboard::Component::GetType());
+
+        if (!Clipboard::Component::CanPasteAsNew())
+        {
+            return fmt::format("The copied {} cannot be added as a new component.", typeName);
+        }
+
+        return fmt::format("Paste the copied {} as a new component", typeName);
+    }
+
+    void HandleComponentPasteButton(Pine::Entity* entity, const float width)
+    {
+        ImGui::BeginDisabled(!Editor::Clipboard::Component::CanPasteAsNew());
+
+        if (ImGui::Button(ICON_MD_CONTENT_PASTE "##PasteComponent", ImVec2(width, 35.f)))
+        {
+            Editor::Clipboard::Component::PasteAsNew(entity);
+        }
+
+        ImGui::EndDisabled();
+
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        {
+            ImGui::SetTooltip("%s", GetComponentPasteTooltip().c_str());
         }
     }
 
@@ -90,7 +130,10 @@ namespace
         ImGui::Separator();
         ImGui::Spacing();
 
-        if (ImGui::Button("Add new component...", ImVec2(-1.f, 35.f)))
+        constexpr float pasteButtonWidth = 45.f;
+        const float addButtonWidth = ImGui::GetContentRegionAvail().x - pasteButtonWidth - ImGui::GetStyle().ItemSpacing.x;
+
+        if (ImGui::Button("Add new component...", ImVec2(addButtonWidth, 35.f)))
         {
             strcpy(componentSearchBuffer, "\0");
 
@@ -100,6 +143,9 @@ namespace
 
             ImGui::OpenPopup("AddComponentPopup");
         }
+
+        ImGui::SameLine();
+        HandleComponentPasteButton(entity, pasteButtonWidth);
 
         if (ImGui::BeginPopup("AddComponentPopup"))
         {
@@ -217,9 +263,11 @@ void EntityPropertiesPanel::Render(Pine::Entity* entity)
 
 	ImGui::Separator();
 
-	// Components
+	// Components. Iterates a copy, because the delete button removes from the entity's own list.
+	const auto components = entity->GetComponents();
+
 	int index = 0;
-	for (auto component : entity->GetComponents())
+	for (auto component : components)
 	{
 		bool updatedComponentData = ComponentPropertiesRenderer::Render(component, index);
 

@@ -73,6 +73,13 @@ So: an editor needs a project name as `argv[1]`, and must run with `data/` as th
   the brush is a shader version of the terrain shader (see [rendering.md](rendering.md)), not an
   overlay drawn on top, so it follows uneven ground exactly. `POST /terrain/sculpt` drives the same
   brush over HTTP, painting included.
+- **Component copy, paste and reset**: each component header in the Properties panel has a
+  `⋮` menu, also opened by right-clicking the header, with Copy, Paste Values (onto a component of
+  the same type) and Reset (to what "Add new component" gives). The paste button next to "Add new
+  component..." adds the copied component as a new one. The clipboard
+  (`Editor::Clipboard::Component`) holds a `SaveData()` snapshot taken at copy time, so like
+  `SaveData()` it leaves out the active flag. Every paste and reset is one undo step, and Paste
+  Values and Reset reach the other selected entities the same way a field edit does.
 - **Audio clip preview**: the Properties panel's audio clip section has a play/stop button and a
   progress bar, built on `Audio::PlayPreview` (see [audio.md](audio.md#previewing-a-clip)).
   `Panels::Properties::Render` stops the preview once the panel is no longer showing that clip.
