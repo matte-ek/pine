@@ -42,12 +42,13 @@ This is about how you write to the user. In code you write, follow the surroundi
 
 The user wants to follow the reasoning. When you report a trap, risk, or design problem, explain each one on its own:
 
-- **Where it comes from:** the specific code (function, file, line) that shows it,
-  and what that code does today.
+- **Where it comes from:** the specific code (function, file, line) that shows it, and what that code does today.
 - **How it fails:** a concrete sequence of events that leads to the wrong behaviour.
 - **Why it matters:** how likely it is and how bad, or say plainly that it's minor.
 - **Options:** the ways to handle it and what each one costs, then your recommendation.
 
-Prefer fewer traps explained well over a complete but compressed list. If there
-are many, explain the important ones fully and summarise the rest briefly.
-Length is fine here; compression is not.
+Please present with clear formatting for the terminal.
+
+## Other
+
+If you spot any "low-hanging fruit" bugs while working on a new feature, please feel free to fix them. Please just make sure to tell me about it afterwards, for 90% of the time I will probably appreciate it.
