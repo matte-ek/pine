@@ -23,6 +23,7 @@
 #include "Pine/Rendering/RenderManager/RenderManager.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 #include "Pine/World/Entities/Entities.hpp"
+#include "Utilities/Entity/EntityUtilities.hpp"
 
 namespace
 {
@@ -972,34 +973,7 @@ namespace
             }
         }
 
-        for (const auto entity : hierarchy)
-        {
-            Panels::EntityList::CancelEntityDrag(entity);
-            if (Selection::IsSelected(entity))
-            {
-                // AddEntity toggles an existing selection off without disturbing survivors.
-                Selection::AddEntity(entity);
-            }
-        }
-
-        const auto clearDeletedCamera = [&](Pine::RenderingContext* context)
-        {
-            if (context != nullptr && context->SceneCamera != nullptr
-                && deleted.count(context->SceneCamera->GetParent()) != 0)
-            {
-                context->SceneCamera = nullptr;
-            }
-        };
-        for (const auto context : Pine::RenderManager::GetRenderingContexts())
-        {
-            clearDeletedCamera(context);
-        }
-        clearDeletedCamera(Pine::RenderManager::GetDefaultRenderingContext());
-
-        if (!Pine::Entities::Delete(root))
-        {
-            throw std::runtime_error("Could not delete entity hierarchy.");
-        }
+        Editor::Utilities::Entity::DeleteHierarchy(root);
         return removed;
     }
 

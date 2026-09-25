@@ -80,6 +80,23 @@ So: an editor needs a project name as `argv[1]`, and must run with `data/` as th
   (`Editor::Clipboard::Component`) holds a `SaveData()` snapshot taken at copy time, so like
   `SaveData()` it leaves out the active flag. Every paste and reset is one undo step, and Paste
   Values and Reset reach the other selected entities the same way a field edit does.
+- **Clipboards** live together in `Other/Clipboard/`, one per kind of thing: `ComponentClipboard/`,
+  `EntityClipboard/` and `AssetClipboard/` (`Editor::Clipboard::Component`, `::Entity`, `::Asset`).
+  They hold data, not UI: `Editor::Commands` (Edit menu, entity list context menu, Ctrl+C/V/D) and
+  the Properties panel call them and handle selection themselves. The entity clipboard snapshots
+  each copied entity with `Entity::SaveData()`, so Cut and delete-after-copy paste safely, and
+  pastes through a `Blueprint`. An entity copied together with one of its ancestors is only copied
+  as part of that ancestor (`Utilities::Entity::GetTopmost`). `Clipboard::Entity::Duplicate` copies
+  and pastes without touching the clipboard. Paste, duplicate and delete are each one undo step. The
+  asset clipboard only remembers asset ids so far; nothing pastes assets yet.
+- **Entity undo** is `Actions::CreateDeleteEntityCommand`. It snapshots whole hierarchies with their
+  entity and component ids (`Actions::EntitySnapshot`) and restores them with those ids, back in
+  their place among their siblings and in the entity list, so later history entries that name them
+  still apply. It does not restore which camera the game view used.
+- **Deleting entities** goes through `Utilities::Entity::DeleteHierarchy` everywhere, the debug
+  server included. It drops the entities from the selection, cancels an entity-list drag holding
+  one, and clears any rendering context whose scene camera is on one of them, since all three keep
+  raw pointers.
 - **Audio clip preview**: the Properties panel's audio clip section has a play/stop button and a
   progress bar, built on `Audio::PlayPreview` (see [audio.md](audio.md#previewing-a-clip)).
   `Panels::Properties::Render` stops the preview once the panel is no longer showing that clip.

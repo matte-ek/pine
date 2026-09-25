@@ -1,6 +1,10 @@
 ﻿#pragma once
 #include "Pine/World/Components/Component/Component.hpp"
+#include "Pine/World/Entity/Entity.hpp"
+#include <cstdint>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace Editor::Actions
 {
@@ -83,11 +87,47 @@ namespace Editor::Actions
     public:
     };
 
+    // An entity and its children as they were, identities included, so that a deleted entity comes
+    // back as the same entity rather than as a copy of it. Later history entries find entities and
+    // components by id, and would otherwise lose track of anything that was deleted and restored.
+    struct EntitySnapshot
+    {
+        struct ComponentState
+        {
+            Pine::ComponentType Type = Pine::ComponentType::Transform;
+            Pine::UId Id;
+            Pine::ByteSpan Data;
+            bool Active = true;
+        };
+
+        Pine::UId Id;
+        std::string Name;
+        bool Active = true;
+        bool Static = false;
+        std::uint64_t Tags = 0;
+
+        std::vector<ComponentState> Components;
+        std::vector<EntitySnapshot> Children;
+
+        // Where it sat, so a restored entity goes back to the same place in its parent's children
+        // and in the entity list.
+        Pine::UId ParentId;
+        std::size_t SiblingIndex = 0;
+        std::size_t ListIndex = 0;
+    };
+
+    // Handles the creation and deletion of entities, each together with its children
     class CreateDeleteEntityCommand : public EditorCommand
     {
     private:
-        Pine::UId m_EntityId;
+        CommandType m_CommandType;
+
+        // Only the topmost entities: one whose ancestor is also in the command travels inside that
+        // ancestor's snapshot.
+        std::vector<EntitySnapshot> m_Entities;
     public:
+        CreateDeleteEntityCommand(const std::vector<Pine::Entity*>& entities, CommandType type);
+        void Apply(CommandState commandState) override;
     };
 
     // RAII wrappers to ease command creation

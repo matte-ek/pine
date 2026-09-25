@@ -1,7 +1,7 @@
 #include "EntityListPanel.hpp"
+#include "Gui/Shared/Commands/Commands.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "IconsMaterialDesign.h"
-#include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Entity/Entity.hpp"
@@ -352,10 +352,7 @@ void Panels::EntityList::Render()
 
         if (ImGui::MenuItem("Delete", nullptr, false, hasSelectedEntity))
         {
-            for (auto entity : Selection::GetSelectedEntities())
-                entity->Delete();
-
-            Selection::Clear();
+            Editor::Commands::Delete();
 
             ImGui::CloseCurrentPopup();
         }
@@ -367,22 +364,7 @@ void Panels::EntityList::Render()
 
         if (ImGui::MenuItem("Duplicate", nullptr, false, hasSelectedEntity))
         {
-            auto selectedEntities = Selection::GetSelectedEntities();
-
-            Selection::Clear();
-
-            for (auto selectedEntity : selectedEntities)
-            {
-                Pine::Blueprint temporaryBlueprint;
-
-                temporaryBlueprint.CreateFromEntity(selectedEntity);
-
-                auto entity = temporaryBlueprint.Spawn();
-
-                entity->SetName(entity->GetName() + " [Copy]");
-
-                Selection::Add(entity);
-            }
+            Editor::Commands::Duplicate();
 
             ImGui::CloseCurrentPopup();
         }

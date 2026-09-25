@@ -5,17 +5,32 @@
 #include "Gui/Shared/KeybindSystem/KeybindSystem.hpp"
 #include "Gui/Shared/Selection/Selection.hpp"
 #include "Other/Actions/Actions.hpp"
+#include "Other/Clipboard/AssetClipboard/AssetClipboard.hpp"
+#include "Other/Clipboard/EntityClipboard/EntityClipboard.hpp"
 #include "Pine/Assets/Assets.hpp"
-#include "Pine/Assets/Blueprint/Blueprint.hpp"
 #include "Pine/Assets/Level/Level.hpp"
 #include "Pine/World/World.hpp"
 #include "Utilities/Assets/AssetUtilities.hpp"
+#include "Utilities/Entity/EntityUtilities.hpp"
 #include "Utilities/Scripts/ScriptUtilities.hpp"
 
 namespace
 {
-    std::vector<Pine::Entity*> ClipboardEntities;
-    std::vector<Pine::Asset*> ClipboardAssets;
+    // Selects what a paste or duplicate made, leaving the selection alone when that was nothing.
+    void SelectEntities(const std::vector<Pine::Entity*>& entities)
+    {
+        if (entities.empty())
+        {
+            return;
+        }
+
+        Selection::Clear();
+
+        for (const auto entity : entities)
+        {
+            Selection::Add(entity);
+        }
+    }
 
     namespace Keybinds
     {
@@ -48,48 +63,36 @@ void Editor::Commands::Dispose()
 
 void Editor::Commands::Copy()
 {
-    ClipboardEntities = Selection::GetSelectedEntities();
-    ClipboardAssets = Selection::GetSelectedAssets();
+    Clipboard::Entity::Copy(Selection::GetSelectedEntities());
+    Clipboard::Asset::Copy(Selection::GetSelectedAssets());
 }
 
 void Editor::Commands::Paste()
 {
-    Selection::Clear();
-
-    for (auto& entity : ClipboardEntities)
-    {
-        Pine::Blueprint blueprint;
-
-        blueprint.CreateFromEntity(entity);
-        blueprint.GetEntity()->SetName(blueprint.GetEntity()->GetName());
-
-        auto spawnedEntity = blueprint.Spawn();
-
-        if (entity->GetParent() != nullptr)
-        {
-            entity->GetParent()->AddChild(spawnedEntity);
-        }
-
-        blueprint.Dispose();
-
-        Selection::Add(spawnedEntity);
-    }
+    SelectEntities(Clipboard::Entity::Paste());
 }
 
 void Editor::Commands::Duplicate()
 {
-    Copy();
-    Paste();
+    SelectEntities(Clipboard::Entity::Duplicate(Selection::GetSelectedEntities()));
 }
 
 void Editor::Commands::Delete()
 {
     if (!Selection::GetSelectedEntities().empty())
     {
-        for (auto entity : Selection::GetSelectedEntities())
+        // A copy of the selection, which DeleteHierarchy edits as it goes.
+        const auto entities = Utilities::Entity::GetTopmost(Selection::GetSelectedEntities());
+
+        // Captured before deleting, so undo can bring the entities back.
+        auto command = std::make_unique<Actions::CreateDeleteEntityCommand>(entities, Actions::CommandType::Delete);
+
+        for (const auto entity : entities)
         {
-            entity->Delete();
+            Utilities::Entity::DeleteHierarchy(entity);
         }
+
+        Actions::RegisterCommand(std::move(command));
     }
     else if (!Selection::GetSelectedAssets().empty())
     {
