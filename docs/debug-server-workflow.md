@@ -361,7 +361,7 @@ bloom, the grain/vignette look and the wind. It merges, so a request names only 
 post_json('/level/settings', {'properties': {
     'AmbientColor': {'x': 0.12, 'y': 0.13, 'z': 0.18},
     'FogColor': {'x': 0.2, 'y': 0.25, 'z': 0.3, 'w': 1.0},
-    'FogDistance': 80, 'FogIntensity': 0.35, 'Exposure': 1.4,
+    'FogDensity': 0.03, 'FogHeightFalloff': 0.1, 'Exposure': 1.4,
 }})
 ```
 

@@ -482,6 +482,42 @@ a chunk is not a component and has no transform to be lit at.
 `Pipeline3D::RenderBatch` rewrites that instance, so gizmos are lit by the slots of whatever object
 was drawn last, and its shadow views with it.
 
+## Fog
+
+Fog is **exponential height fog**, in `shared/fog.glsl`. `LevelSettings` holds `FogColor`, and
+`FogDensity` (per world unit, at `FogHeight`; 0 is no fog). `FogHeightFalloff` says how quickly
+the fog thins above `FogHeight`: by a factor of e every `1 / FogHeightFalloff` units, and 0 is the
+same fog at every height. `Pipeline3D` hands them to `Renderer3D::PrepareScene` as a
+`Renderer3D::SceneFog`, which uploads them to the `World` block (`fogSettings` = density, falloff,
+base height). The share of a ray's light that the fog replaces is `1 - exp(-opticalDepth)`, where
+the optical depth is the density integrated along the ray. With height falloff that integral has a
+closed form, so the cost is a few ALU ops per pixel.
+
+**Geometry and sky go through the same model.** Every lit shader (generic, terrain, terrain detail)
+ends with `ApplySurfaceFog`, and `skybox.fragment.glsl` ends with `ApplySkyFog`. The sky counts as
+infinitely far away:
+
+- A **rising ray** climbs out of the fog, so the sky overhead keeps most of its colour.
+- A **level or falling ray**, or any ray when the falloff is 0, passes through infinite fog, so the
+  sky there *is* `FogColor`.
+
+That is what blends distant geometry into the horizon without having to match `FogColor` to the
+skybox by hand. It also means **fog with no falloff hides the whole sky**.
+
+Fog is applied per surface in the forward shaders, not as a screen-space pass, so transparent
+surfaces are fogged correctly over whatever lies behind them.
+
+⚠ **The skybox program needs the `World` block attached.** `Skybox::Render` attaches `Matrix` and
+`World` itself, because the skybox is not drawn through `Renderer3D` and never gets the storage set
+up that `Renderer3D` gives other shaders. A new shader that includes `shared/fog.glsl` outside
+`Renderer3D` needs the same attachment. An unattached block stays on binding 0, which is the
+`Matrices` buffer, so the shader would read the projection matrix as its fog settings.
+
+⚠ **Nothing is drawn past the far plane, but the sky there is still fogged as if it were infinitely
+far.** With thin fog, the last visible geometry can therefore be noticeably less fogged than the
+sky band just above the horizon behind it. Raise the density or pull the far plane out if that
+band shows.
+
 ## Terrain
 
 Terrain does **not** go through the object batch. `Rendering/Features/Terrain/TerrainRenderer/` draws it

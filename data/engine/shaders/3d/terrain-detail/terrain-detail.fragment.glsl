@@ -64,5 +64,5 @@ void main(void)
     vec3 spotLights = CalculateSpotLights(surface);
 
     m_OutputColor = vec4(ambient + directionalLight + pointLights + spotLights, 1.0);
-    m_OutputColor.rgb = ApplyDistanceFog(m_OutputColor.rgb);
+    m_OutputColor.rgb = ApplySurfaceFog(m_OutputColor.rgb, vIn.cameraPos, vIn.worldPosition);
 }

@@ -13,9 +13,15 @@ namespace Pine
 
         Vector3f AmbientColor = Vector3f(0.05f, 0.05f, 0.05f);
 
+        // Exponential height fog. FogDensity is how much fog there is per world unit at FogHeight
+        // (0 = no fog), and the fog thins by a factor of e every 1 / FogHeightFalloff units above
+        // it, so a ray aimed at the sky leaves most of it behind. A falloff of 0 is the same fog at
+        // every height. Looking level from FogHeight, fog hides 95% of what lies 3 / FogDensity
+        // units away.
         Vector4f FogColor = Vector4f(0.0f, 0.0f, 0.0f, 1.0f);
-        float FogDistance = 30.f;
-        float FogIntensity = 0.f;
+        float FogDensity = 0.f;
+        float FogHeight = 0.f;
+        float FogHeightFalloff = 0.1f;
 
         // HDR exposure multiplier, applied before tone mapping in the post-process pass.
         // 1.0 = neutral; higher brightens the scene before it's tone-mapped to display range.
@@ -60,8 +66,9 @@ namespace Pine
             PINE_SERIALIZE_ASSET(Skybox);
             PINE_SERIALIZE_PRIMITIVE(AmbientColor, Serialization::DataType::Vec3);
             PINE_SERIALIZE_PRIMITIVE(FogColor, Serialization::DataType::Vec4);
-            PINE_SERIALIZE_PRIMITIVE(FogDistance, Serialization::DataType::Float32);
-            PINE_SERIALIZE_PRIMITIVE(FogIntensity, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(FogDensity, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(FogHeight, Serialization::DataType::Float32);
+            PINE_SERIALIZE_PRIMITIVE(FogHeightFalloff, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(Exposure, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(BloomThreshold, Serialization::DataType::Float32);
             PINE_SERIALIZE_PRIMITIVE(BloomIntensity, Serialization::DataType::Float32);

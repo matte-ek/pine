@@ -25,7 +25,6 @@ void main()
 	vOut.worldPosition = (transformationMatrix * vertexPosition).xyz;
 	vOut.uv = uv;
 	vOut.cameraPos = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-	vOut.cameraDistance = length(vOut.worldPosition - vOut.cameraPos);
 
 	writeLightIndices();
 

@@ -8,7 +8,7 @@ namespace Pine.Assets
     // next one. The editor puts them back when play mode stops; a running game keeps a change for
     // the rest of the session, including when the same level is loaded again.
     //
-    // Setters clamp to the editor's minimums: nothing below zero, and a fog distance of at least 0.01.
+    // Setters clamp to the editor's minimums: nothing below zero, except FogHeight, which is a position.
     public unsafe class LevelRenderingSettings
     {
         private readonly Level _level;
@@ -45,18 +45,28 @@ namespace Pine.Assets
             set => AssetBindings.LevelSetFogColor(_level.Id, &value);
         }
 
-        // Fog is linear: it starts at the camera and reaches FogIntensity at FogDistance world
-        // units. An intensity of 0 turns it off. The skybox is not fogged.
-        public float FogDistance
+        // Exponential height fog, over the skybox as well as geometry. FogDensity is how much fog
+        // there is per world unit at FogHeight, and 0 turns it off. Looking level from FogHeight,
+        // fog hides 95% of what lies 3 / FogDensity units away.
+        public float FogDensity
         {
-            get => AssetBindings.LevelGetFogDistance(_level.Id);
-            set => AssetBindings.LevelSetFogDistance(_level.Id, value);
+            get => AssetBindings.LevelGetFogDensity(_level.Id);
+            set => AssetBindings.LevelSetFogDensity(_level.Id, value);
         }
 
-        public float FogIntensity
+        // The world height at which the fog is FogDensity thick.
+        public float FogHeight
         {
-            get => AssetBindings.LevelGetFogIntensity(_level.Id);
-            set => AssetBindings.LevelSetFogIntensity(_level.Id, value);
+            get => AssetBindings.LevelGetFogHeight(_level.Id);
+            set => AssetBindings.LevelSetFogHeight(_level.Id, value);
+        }
+
+        // Above FogHeight, the fog thins by a factor of e every 1 / FogHeightFalloff units, so the
+        // sky overhead stays clear while the horizon fades out. 0 is the same fog at every height.
+        public float FogHeightFalloff
+        {
+            get => AssetBindings.LevelGetFogHeightFalloff(_level.Id);
+            set => AssetBindings.LevelSetFogHeightFalloff(_level.Id, value);
         }
 
         // HDR multiplier applied before tone mapping. 1 is neutral.

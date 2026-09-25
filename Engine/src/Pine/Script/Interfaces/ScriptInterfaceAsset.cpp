@@ -117,32 +117,46 @@ namespace
         settings->FogColor = glm::max(*color, Pine::Vector4f(0.f));
     }
 
-    float LevelGetFogDistance(Pine::UId id)
+    float LevelGetFogDensity(Pine::UId id)
     {
         const auto settings = GetLevelSettings(id);
         if (!settings) return 0.f;
-        return settings->FogDistance;
+        return settings->FogDensity;
     }
 
-    void LevelSetFogDistance(Pine::UId id, float distance)
+    void LevelSetFogDensity(Pine::UId id, float density)
     {
         const auto settings = GetLevelSettings(id);
         if (!settings) return;
-        settings->FogDistance = std::max(distance, 0.01f);
+        settings->FogDensity = std::max(density, 0.f);
     }
 
-    float LevelGetFogIntensity(Pine::UId id)
+    float LevelGetFogHeight(Pine::UId id)
     {
         const auto settings = GetLevelSettings(id);
         if (!settings) return 0.f;
-        return settings->FogIntensity;
+        return settings->FogHeight;
     }
 
-    void LevelSetFogIntensity(Pine::UId id, float intensity)
+    void LevelSetFogHeight(Pine::UId id, float height)
     {
         const auto settings = GetLevelSettings(id);
         if (!settings) return;
-        settings->FogIntensity = std::max(intensity, 0.f);
+        settings->FogHeight = height;
+    }
+
+    float LevelGetFogHeightFalloff(Pine::UId id)
+    {
+        const auto settings = GetLevelSettings(id);
+        if (!settings) return 0.f;
+        return settings->FogHeightFalloff;
+    }
+
+    void LevelSetFogHeightFalloff(Pine::UId id, float falloff)
+    {
+        const auto settings = GetLevelSettings(id);
+        if (!settings) return;
+        settings->FogHeightFalloff = std::max(falloff, 0.f);
     }
 
     float LevelGetExposure(Pine::UId id)
@@ -271,10 +285,12 @@ void Pine::Script::Interfaces::Asset::Setup()
     Bindings::Register("Pine.Assets.LevelRenderingSettings::SetAmbientColor", LevelSetAmbientColor);
     Bindings::Register("Pine.Assets.LevelRenderingSettings::GetFogColor", LevelGetFogColor);
     Bindings::Register("Pine.Assets.LevelRenderingSettings::SetFogColor", LevelSetFogColor);
-    Bindings::Register("Pine.Assets.LevelRenderingSettings::GetFogDistance", LevelGetFogDistance);
-    Bindings::Register("Pine.Assets.LevelRenderingSettings::SetFogDistance", LevelSetFogDistance);
-    Bindings::Register("Pine.Assets.LevelRenderingSettings::GetFogIntensity", LevelGetFogIntensity);
-    Bindings::Register("Pine.Assets.LevelRenderingSettings::SetFogIntensity", LevelSetFogIntensity);
+    Bindings::Register("Pine.Assets.LevelRenderingSettings::GetFogDensity", LevelGetFogDensity);
+    Bindings::Register("Pine.Assets.LevelRenderingSettings::SetFogDensity", LevelSetFogDensity);
+    Bindings::Register("Pine.Assets.LevelRenderingSettings::GetFogHeight", LevelGetFogHeight);
+    Bindings::Register("Pine.Assets.LevelRenderingSettings::SetFogHeight", LevelSetFogHeight);
+    Bindings::Register("Pine.Assets.LevelRenderingSettings::GetFogHeightFalloff", LevelGetFogHeightFalloff);
+    Bindings::Register("Pine.Assets.LevelRenderingSettings::SetFogHeightFalloff", LevelSetFogHeightFalloff);
     Bindings::Register("Pine.Assets.LevelRenderingSettings::GetExposure", LevelGetExposure);
     Bindings::Register("Pine.Assets.LevelRenderingSettings::SetExposure", LevelSetExposure);
     Bindings::Register("Pine.Assets.LevelRenderingSettings::GetBloomThreshold", LevelGetBloomThreshold);

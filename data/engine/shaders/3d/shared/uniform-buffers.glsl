@@ -28,6 +28,9 @@ layout(std140) uniform World
 {
     vec4 ambientColor;
     vec4 fogColor;
+
+    // x = density at the fog's base height (0 = no fog), y = height falloff, z = base height.
+    // See shared/fog.glsl.
     vec4 fogSettings;
 
     // xy = the direction the wind blows along the ground (x, z), z = strength, w = phase.

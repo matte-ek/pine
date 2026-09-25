@@ -59,6 +59,18 @@ namespace
 		m_WindPhase = std::fmod(m_WindPhase + deltaTime * gustsPerSecond * glm::two_pi<float>(), glm::two_pi<float>());
 	}
 
+	Renderer3D::SceneFog GetSceneFog(const LevelSettings& levelSettings)
+	{
+		Renderer3D::SceneFog fog;
+
+		fog.Color = levelSettings.FogColor;
+		fog.Density = levelSettings.FogDensity;
+		fog.Height = levelSettings.FogHeight;
+		fog.HeightFalloff = levelSettings.FogHeightFalloff;
+
+		return fog;
+	}
+
 	Renderer3D::SceneWind GetSceneWind(const LevelSettings& levelSettings)
 	{
 		const float directionRadians = glm::radians(levelSettings.WindDirection);
@@ -208,9 +220,7 @@ namespace
 
 		Renderer3D::PrepareScene(
 		    levelSettings.AmbientColor,
-		    levelSettings.FogColor,
-		    levelSettings.FogDistance,
-		    levelSettings.FogIntensity,
+		    GetSceneFog(levelSettings),
 		    GetSceneWind(levelSettings));
 
 		// Start from the pre-pass's depth, so hidden opaque fragments are rejected before shading. A

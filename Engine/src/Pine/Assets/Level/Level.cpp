@@ -44,8 +44,9 @@ bool Pine::Level::LoadAssetData(const ByteSpan& span)
     levelSerializer.Skybox.Read(m_LevelSettings.Skybox);
     levelSerializer.AmbientColor.Read(m_LevelSettings.AmbientColor);
     levelSerializer.FogColor.Read(m_LevelSettings.FogColor);
-    levelSerializer.FogIntensity.Read(m_LevelSettings.FogIntensity);
-    levelSerializer.FogDistance.Read(m_LevelSettings.FogDistance);
+    levelSerializer.FogDensity.Read(m_LevelSettings.FogDensity);
+    levelSerializer.FogHeight.Read(m_LevelSettings.FogHeight);
+    levelSerializer.FogHeightFalloff.Read(m_LevelSettings.FogHeightFalloff);
     levelSerializer.Exposure.Read(m_LevelSettings.Exposure);
     levelSerializer.BloomThreshold.Read(m_LevelSettings.BloomThreshold);
     levelSerializer.BloomIntensity.Read(m_LevelSettings.BloomIntensity);
@@ -79,8 +80,9 @@ Pine::ByteSpan Pine::Level::SaveAssetData()
     levelSerializer.Skybox.Write(m_LevelSettings.Skybox);
     levelSerializer.AmbientColor.Write(m_LevelSettings.AmbientColor);
     levelSerializer.FogColor.Write(m_LevelSettings.FogColor);
-    levelSerializer.FogIntensity.Write(m_LevelSettings.FogIntensity);
-    levelSerializer.FogDistance.Write(m_LevelSettings.FogDistance);
+    levelSerializer.FogDensity.Write(m_LevelSettings.FogDensity);
+    levelSerializer.FogHeight.Write(m_LevelSettings.FogHeight);
+    levelSerializer.FogHeightFalloff.Write(m_LevelSettings.FogHeightFalloff);
     levelSerializer.Exposure.Write(m_LevelSettings.Exposure);
     levelSerializer.BloomThreshold.Write(m_LevelSettings.BloomThreshold);
     levelSerializer.BloomIntensity.Write(m_LevelSettings.BloomIntensity);

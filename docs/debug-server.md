@@ -696,7 +696,7 @@ at 4 KiB.
 ```json
 {"properties": {"AmbientColor": {"x": 0.12, "y": 0.13, "z": 0.18},
                 "FogColor": {"x": 0.2, "y": 0.25, "z": 0.3, "w": 1.0},
-                "FogDistance": 80, "FogIntensity": 0.35, "Exposure": 1.4}}
+                "FogDensity": 0.03, "FogHeightFalloff": 0.1, "Exposure": 1.4}}
 ```
 
 **Omitted properties keep their current value**, so a request names only what it changes.
@@ -709,8 +709,9 @@ name — spelling is the engine's, matching the Level Properties panel.
 | `Skybox` | Texture3D asset, nullable | `{"path": …}` or `{"id": …}`; `null` clears it |
 | `AmbientColor` | vector3 | Linear. Lights the scene; it does **not** by itself make geometry visible |
 | `FogColor` | vector4 | Linear, with alpha |
-| `FogDistance` | number ≥ 0.01 | World units |
-| `FogIntensity` | number ≥ 0 | Panel span 0–1 |
+| `FogDensity` | number ≥ 0 | Per world unit at `FogHeight`; 0 is no fog. Hides 95% at 3 / density units |
+| `FogHeight` | number | World height at which the fog is `FogDensity` thick |
+| `FogHeightFalloff` | number ≥ 0 | Per world unit: thins by e every 1 / falloff units up; 0 is uniform and hides the sky |
 | `Exposure` | number ≥ 0 | HDR multiplier before tone mapping |
 | `BloomThreshold`, `BloomIntensity` | number ≥ 0 | Brightness extracted, and how strongly it composites |
 | `GrainStrength`, `VignetteStrength` | number ≥ 0 | Film look in the post-process pass |
@@ -718,11 +719,11 @@ name — spelling is the engine's, matching the Level Properties panel.
 | `WindStrength` | number ≥ 0 | How far a tip leans at most, as a share of its height; 0 is still |
 | `WindSpeed` | number ≥ 0 | Gusts per second |
 
-The only enforced bounds are those above: negative values are rejected (except for
-`WindDirection`, which is an angle), and `FogDistance` has a floor because it divides. The schema also advertises a `uiRange` per property — the
-span the Level Properties panel's sliders offer. **It is guidance, not a limit**, because
-those sliders deliberately let a value be typed past their ends, and the API does not
-impose a ceiling the editor does not have.
+The only enforced bounds are those above: negative values are rejected, except for
+`WindDirection`, which is an angle, and `FogHeight`, which is a position. The schema also
+advertises a `uiRange` per property — the span the Level Properties panel's sliders offer.
+**It is guidance, not a limit**, because those sliders deliberately let a value be typed past
+their ends, and the API does not impose a ceiling the editor does not have.
 
 **The Game camera is not here.** `LevelSettings` stores it, but it is written through
 `/level/camera`, which validates the camera and its perspective properties. Exposing it

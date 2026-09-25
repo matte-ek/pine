@@ -18,7 +18,6 @@ out VertexData
 	vec3 worldPosition;
 	vec3 cameraPos;
 	vec3 cameraDir;
-	float cameraDistance;
 	vec3 normalDir;
 
 	// Always world space, unlike normalDir which is rotated into tangent space for normal-mapped
@@ -104,7 +103,6 @@ in VertexData
 	vec3 worldPosition;
 	vec3 cameraPos;
 	vec3 cameraDir;
-	float cameraDistance;
 	vec3 normalDir;
 	vec3 worldNormal;
 	vec3 lightDir[8];

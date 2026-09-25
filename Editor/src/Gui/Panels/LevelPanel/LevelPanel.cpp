@@ -40,8 +40,10 @@ void Panels::LevelPanel::Render()
         Widgets::ColorPicker3("Ambient Color", currentLevel->GetLevelSettings().AmbientColor);
         Widgets::ColorPicker4("Fog Color", currentLevel->GetLevelSettings().FogColor);
 
-        Widgets::SliderFloat("Fog Intensity", &currentLevel->GetLevelSettings().FogIntensity, 0.0f, 1.0f);
-        Widgets::SliderFloat("Fog Distance", &currentLevel->GetLevelSettings().FogDistance, 1.0f, 250.0f);
+        // Logarithmic, since the useful densities and falloffs span a few orders of magnitude.
+        Widgets::SliderFloat("Fog Density", &currentLevel->GetLevelSettings().FogDensity, 0.0f, 0.5f, true);
+        Widgets::SliderFloat("Fog Height", &currentLevel->GetLevelSettings().FogHeight, -100.0f, 100.0f);
+        Widgets::SliderFloat("Fog Height Falloff", &currentLevel->GetLevelSettings().FogHeightFalloff, 0.0f, 1.0f, true);
 
         Widgets::SliderFloat("Exposure", &currentLevel->GetLevelSettings().Exposure, 0.0f, 8.0f);
 

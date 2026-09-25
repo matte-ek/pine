@@ -112,6 +112,9 @@ namespace Pine::Renderer3D::ShaderStorages
     {
         Vector4f AmbientColor = Vector4f(0.f);
         Vector4f FogColor = Vector4f(0.f);
+
+        // x = density at the fog's base height (0 = no fog), y = height falloff, z = base height,
+        // w = unused. See Renderer3D::SceneFog.
         Vector4f FogSettings = Vector4f(0.f);
 
         // xy = the direction the wind blows along the ground (x, z), z = strength, w = phase.

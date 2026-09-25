@@ -26,9 +26,11 @@ namespace
                 { "uiRange", { 0, 1 } } } },
             { "FogColor", { { "type", "vector4" }, { "minimum", 0 }, { "colorSpace", "linear" },
                 { "uiRange", { 0, 1 } } } },
-            { "FogDistance", { { "type", "number" }, { "minimum", 0.01f }, { "units", "world units" },
-                { "uiRange", { 1, 250 } } } },
-            { "FogIntensity", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 1 } } } },
+            { "FogDensity", { { "type", "number" }, { "minimum", 0 }, { "units", "per world unit" },
+                { "uiRange", { 0, 0.5f } } } },
+            { "FogHeight", { { "type", "number" }, { "units", "world units" }, { "uiRange", { -100, 100 } } } },
+            { "FogHeightFalloff", { { "type", "number" }, { "minimum", 0 }, { "units", "per world unit" },
+                { "uiRange", { 0, 1 } } } },
             { "Exposure", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 8 } } } },
             { "BloomThreshold", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 5 } } } },
             { "BloomIntensity", { { "type", "number" }, { "minimum", 0 }, { "uiRange", { 0, 2 } } } },
@@ -58,8 +60,9 @@ json Editor::DebugServer::LevelSettings::Read(const Pine::LevelSettings& setting
         { "Skybox", Values::AssetReference(settings.Skybox.Get()) },
         { "AmbientColor", Pine::SerializationJson::StoreVector3(settings.AmbientColor) },
         { "FogColor", Pine::SerializationJson::StoreVector4(settings.FogColor) },
-        { "FogDistance", settings.FogDistance },
-        { "FogIntensity", settings.FogIntensity },
+        { "FogDensity", settings.FogDensity },
+        { "FogHeight", settings.FogHeight },
+        { "FogHeightFalloff", settings.FogHeightFalloff },
         { "Exposure", settings.Exposure },
         { "BloomThreshold", settings.BloomThreshold },
         { "BloomIntensity", settings.BloomIntensity },
@@ -76,8 +79,9 @@ void Editor::DebugServer::LevelSettings::Apply(Pine::LevelSettings& settings, co
     settings.Skybox = dynamic_cast<Pine::Texture3D*>(Values::ResolvedAsset(state.at("Skybox")));
     settings.AmbientColor = Values::Vector3(state.at("AmbientColor"));
     settings.FogColor = Values::Vector4(state.at("FogColor"));
-    settings.FogDistance = state.at("FogDistance").get<float>();
-    settings.FogIntensity = state.at("FogIntensity").get<float>();
+    settings.FogDensity = state.at("FogDensity").get<float>();
+    settings.FogHeight = state.at("FogHeight").get<float>();
+    settings.FogHeightFalloff = state.at("FogHeightFalloff").get<float>();
     settings.Exposure = state.at("Exposure").get<float>();
     settings.BloomThreshold = state.at("BloomThreshold").get<float>();
     settings.BloomIntensity = state.at("BloomIntensity").get<float>();

@@ -3,6 +3,7 @@
 #include "Pine/Assets/Shader/Shader.hpp"
 #include "Pine/Graphics/Graphics.hpp"
 #include "Pine/Assets/Assets.hpp"
+#include "Pine/Core/Log/Log.hpp"
 #include "Pine/Performance/Performance.hpp"
 #include "Pine/Rendering/Renderer3D/ShaderStorages.hpp"
 
@@ -62,7 +63,17 @@ void Pine::Rendering::Skybox::Render(Texture3D* cubeMap)
 
     if (!m_Shader->IsRendererReady())
     {
-        assert(Pine::Renderer3D::ShaderStorages::Matrix.AttachShaderProgram(m_Shader->GetProgram()));
+        if (!Pine::Renderer3D::ShaderStorages::Matrix.AttachShaderProgram(m_Shader->GetProgram()))
+        {
+            PWarning("Skybox: Shader is missing 'Matrix' shader storage, expect rendering issues.");
+        }
+
+        // The sky is fogged with the level's fog, which lives in the World block.
+        if (!Pine::Renderer3D::ShaderStorages::World.AttachShaderProgram(m_Shader->GetProgram()))
+        {
+            PWarning("Skybox: Shader is missing 'World' shader storage, expect rendering issues.");
+        }
+
         m_Shader->SetRendererReady(true);
     }
 

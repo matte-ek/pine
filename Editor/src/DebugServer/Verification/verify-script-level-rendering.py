@@ -93,26 +93,28 @@ namespace Game
                 ReferenceEquals(rendering, level.Rendering) &&
                 rendering.AmbientColor.X == 0.1f && rendering.AmbientColor.Y == 0.2f && rendering.AmbientColor.Z == 0.3f &&
                 rendering.FogColor.X == 0.4f && rendering.FogColor.Y == 0.5f && rendering.FogColor.Z == 0.6f && rendering.FogColor.W == 1.0f &&
-                rendering.FogDistance == 45.0f &&
-                rendering.FogIntensity == 0.25f &&
+                rendering.FogDensity == 0.045f &&
+                rendering.FogHeight == 2.5f &&
+                rendering.FogHeightFalloff == 0.25f &&
                 rendering.Exposure == 1.5f &&
                 rendering.BloomThreshold == 2.0f &&
                 rendering.BloomIntensity == 0.75f &&
                 rendering.GrainStrength == 0.125f &&
                 rendering.VignetteStrength == 0.625f &&
-                other.Rendering.FogDistance == 40.0f;
+                other.Rendering.FogDensity == 0.4f;
 
             rendering.AmbientColor = new Vector3(0.05f, 0.04f, 0.03f);
             rendering.FogColor = new Vector4(0.02f, 0.02f, 0.03f, 1.0f);
-            rendering.FogDistance = 12.0f;
-            rendering.FogIntensity = 0.9f;
+            rendering.FogDensity = 0.12f;
+            rendering.FogHeight = -4.0f;
+            rendering.FogHeightFalloff = -0.5f;
             rendering.Exposure = 0.8f;
             rendering.BloomThreshold = 3.0f;
             rendering.BloomIntensity = 0.2f;
             rendering.GrainStrength = -0.5f;
             rendering.VignetteStrength = 0.9f;
 
-            other.Rendering.FogDistance = 7.0f;
+            other.Rendering.FogDensity = 0.7f;
         }
     }
 }

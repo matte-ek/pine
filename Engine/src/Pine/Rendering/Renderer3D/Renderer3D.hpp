@@ -151,7 +151,18 @@ namespace Pine::Renderer3D
         float Phase = 0.f;
     };
 
-    void PrepareScene(Vector3f ambientColor, Vector4f fogColor, float fogDistance, float fogIntensity, const SceneWind& wind = {});
+    // The level's height fog. See LevelSettings for what each value means. The default is no fog.
+    struct SceneFog
+    {
+        // sRGB, as authored.
+        Vector4f Color = Vector4f(0.f, 0.f, 0.f, 1.f);
+
+        float Density = 0.f;
+        float Height = 0.f;
+        float HeightFalloff = 0.f;
+    };
+
+    void PrepareScene(Vector3f ambientColor, const SceneFog& fog = {}, const SceneWind& wind = {});
 
     void UseRenderingContext(RenderingContext* renderingContext);
 }

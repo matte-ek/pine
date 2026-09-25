@@ -122,15 +122,17 @@ try:
     assert reply['level']['path'] == status['activeLevel'], (reply['level'], status)
 
     defaults = reply['properties']
-    expected_properties = {'Skybox', 'AmbientColor', 'FogColor', 'FogDistance', 'FogIntensity',
-                           'Exposure', 'BloomThreshold', 'BloomIntensity', 'GrainStrength',
-                           'VignetteStrength', 'WindDirection', 'WindStrength', 'WindSpeed'}
+    expected_properties = {'Skybox', 'AmbientColor', 'FogColor', 'FogDensity', 'FogHeight',
+                           'FogHeightFalloff', 'Exposure', 'BloomThreshold', 'BloomIntensity',
+                           'GrainStrength', 'VignetteStrength', 'WindDirection', 'WindStrength',
+                           'WindSpeed'}
     assert set(defaults) == expected_properties, sorted(defaults)
 
     # The engine's own defaults, so a caller can tell an authored value from an untouched one.
     assert defaults['Skybox'] is None
     assert near(defaults['AmbientColor'], vec(0.05, 0.05, 0.05)), defaults['AmbientColor']
     assert near(defaults['FogColor'], {'x': 0.0, 'y': 0.0, 'z': 0.0, 'w': 1.0}), defaults['FogColor']
+    assert near(defaults['FogDensity'], 0.0) and near(defaults['FogHeightFalloff'], 0.1)
     assert near(defaults['Exposure'], 1.0) and near(defaults['BloomIntensity'], 0.6)
     assert near(defaults['WindStrength'], 0.1) and near(defaults['WindSpeed'], 0.5)
 
@@ -158,18 +160,20 @@ try:
     # A supplied colour replaces the whole colour rather than one channel.
     settings({'AmbientColor': vec(0.4, 0.1, 0.1),
               'FogColor': {'x': 0.2, 'y': 0.25, 'z': 0.3, 'w': 1.0},
-              'FogDistance': 80, 'FogIntensity': 0.35})
+              'FogDensity': 0.04, 'FogHeight': -2.5, 'FogHeightFalloff': 0.2})
     after = read()
     assert near(after['AmbientColor'], vec(0.4, 0.1, 0.1)), after
     assert near(after['FogColor'], {'x': 0.2, 'y': 0.25, 'z': 0.3, 'w': 1.0}), after
-    assert near(after['FogDistance'], 80) and near(after['FogIntensity'], 0.35)
+    assert near(after['FogDensity'], 0.04) and near(after['FogHeightFalloff'], 0.2)
+    assert near(after['FogHeight'], -2.5), 'a fog height below zero is a valid height'
 
     # ------------------------------------------------------------------ rejection
 
     assert settings({'Exposure': -1}, 400)['path'] == '/properties/Exposure'
     assert settings({'WindStrength': -0.5}, 400)['path'] == '/properties/WindStrength'
     assert settings({'WindSpeed': -1}, 400)['path'] == '/properties/WindSpeed'
-    assert settings({'FogDistance': 0}, 400)['path'] == '/properties/FogDistance'
+    assert settings({'FogDensity': -0.1}, 400)['path'] == '/properties/FogDensity'
+    assert settings({'FogHeightFalloff': -1}, 400)['path'] == '/properties/FogHeightFalloff'
     assert settings({'Exposure': 'bright'}, 400)['path'] == '/properties/Exposure'
     assert settings({'Nonsense': 1}, 400)['path'] == '/properties/Nonsense'
     assert settings({'AmbientColor': {'x': 1, 'y': 1}}, 400)['path'] == '/properties/AmbientColor/z'
@@ -206,7 +210,7 @@ try:
 
     # Film grain is animated, so a capture is only reproducible with it turned off - which is
     # itself a write through the route under test.
-    settings({'GrainStrength': 0, 'VignetteStrength': 0, 'Exposure': 1, 'FogIntensity': 0,
+    settings({'GrainStrength': 0, 'VignetteStrength': 0, 'Exposure': 1, 'FogDensity': 0,
               'AmbientColor': vec(0.05, 0.05, 0.05)})
     dim = render('ambient-dim.png')
     assert render('ambient-dim-again.png') == dim, 'captures are not reproducible; cannot compare'
@@ -239,7 +243,7 @@ try:
     fetch('/level/save-as', {'path': 'levels/atmosphere'})
     assert fetch('/level/status')['unsavedChanges'] is False
 
-    settings({'Exposure': 4.5, 'BloomThreshold': 2.25, 'FogDistance': 120,
+    settings({'Exposure': 4.5, 'BloomThreshold': 2.25, 'FogDensity': 0.125, 'FogHeight': 3.5,
               'WindDirection': 135, 'WindStrength': 0.35, 'WindSpeed': 1.25})
     assert fetch('/level/status')['unsavedChanges'] is True, 'a settings change is not authored state'
 
@@ -253,6 +257,7 @@ try:
     assert near(reloaded['Exposure'], 4.5) and near(reloaded['BloomThreshold'], 2.25)
     assert near(reloaded['WindDirection'], 135) and near(reloaded['WindStrength'], 0.35)
     assert near(reloaded['WindSpeed'], 1.25)
+    assert near(reloaded['FogDensity'], 0.125) and near(reloaded['FogHeight'], 3.5)
 
     print('Level settings verification passed. Images in', args.output, flush=True)
 finally:

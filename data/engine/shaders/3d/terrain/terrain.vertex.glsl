@@ -17,7 +17,6 @@ void main()
 
 	vOut.worldPosition = (transformationMatrix * vertexPosition).xyz;
 	vOut.cameraPos = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-	vOut.cameraDistance = length(vOut.worldPosition - vOut.cameraPos);
 
 	// Terrain-local world units rather than a 0..1 span per chunk, so a layer's texture is
 	// continuous across a chunk edge and its uv scale means "repeats per world unit". The fragment

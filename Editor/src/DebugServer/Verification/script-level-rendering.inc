@@ -41,7 +41,7 @@
         check(otherLevel->GetPath() == "other",
             "The second level is registered under " + otherLevel->GetPath() + ", not the path the script uses");
 
-        otherLevel->GetLevelSettings().FogDistance = 40.f;
+        otherLevel->GetLevelSettings().FogDensity = 0.4f;
 
         // What the script has to read back. Different from every default, so a binding that
         // returns a fresh LevelSettings' value cannot pass.
@@ -49,8 +49,9 @@
 
         settings.AmbientColor = Pine::Vector3f(0.1f, 0.2f, 0.3f);
         settings.FogColor = Pine::Vector4f(0.4f, 0.5f, 0.6f, 1.f);
-        settings.FogDistance = 45.f;
-        settings.FogIntensity = 0.25f;
+        settings.FogDensity = 0.045f;
+        settings.FogHeight = 2.5f;
+        settings.FogHeightFalloff = 0.25f;
         settings.Exposure = 1.5f;
         settings.BloomThreshold = 2.f;
         settings.BloomIntensity = 0.75f;
@@ -101,8 +102,12 @@
         // Every property the script wrote, on the level the renderer reads.
         check(settings.AmbientColor == Pine::Vector3f(0.05f, 0.04f, 0.03f), "An ambient colour written from C# did not land");
         check(settings.FogColor == Pine::Vector4f(0.02f, 0.02f, 0.03f, 1.f), "A fog colour written from C# did not land");
-        check(settings.FogDistance == 12.f, "A fog distance written from C# did not land");
-        check(settings.FogIntensity == 0.9f, "A fog intensity written from C# did not land");
+        check(settings.FogDensity == 0.12f, "A fog density written from C# did not land");
+
+        // Both were written negative: a height is a position and lands as is, a falloff is clamped.
+        check(settings.FogHeight == -4.f, "A negative fog height written from C# did not land");
+        check(settings.FogHeightFalloff == 0.f, "A negative fog height falloff was not clamped to 0");
+
         check(settings.Exposure == 0.8f, "An exposure written from C# did not land");
         check(settings.BloomThreshold == 3.f, "A bloom threshold written from C# did not land");
         check(settings.BloomIntensity == 0.2f, "A bloom intensity written from C# did not land");
@@ -111,7 +116,7 @@
         // The script wrote a negative grain strength, which the binding clamps.
         check(settings.GrainStrength == 0.f, "A negative grain strength was not clamped to 0");
 
-        check(otherLevel->GetLevelSettings().FogDistance == 7.f, "A write to the second level did not land on it");
+        check(otherLevel->GetLevelSettings().FogDensity == 0.7f, "A write to the second level did not land on it");
 
         // One rendered frame, so the values have gone through the passes that read them.
         Pine::RenderManager::Run();
@@ -121,8 +126,9 @@
         // Stop has to put back what the level had before play, for every setting.
         check(settings.AmbientColor == authored.AmbientColor, "Stop did not restore the ambient colour");
         check(settings.FogColor == authored.FogColor, "Stop did not restore the fog colour");
-        check(settings.FogDistance == authored.FogDistance, "Stop did not restore the fog distance");
-        check(settings.FogIntensity == authored.FogIntensity, "Stop did not restore the fog intensity");
+        check(settings.FogDensity == authored.FogDensity, "Stop did not restore the fog density");
+        check(settings.FogHeight == authored.FogHeight, "Stop did not restore the fog height");
+        check(settings.FogHeightFalloff == authored.FogHeightFalloff, "Stop did not restore the fog height falloff");
         check(settings.Exposure == authored.Exposure, "Stop did not restore the exposure");
         check(settings.BloomThreshold == authored.BloomThreshold, "Stop did not restore the bloom threshold");
         check(settings.BloomIntensity == authored.BloomIntensity, "Stop did not restore the bloom intensity");

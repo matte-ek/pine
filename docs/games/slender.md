@@ -61,8 +61,8 @@ animation. That makes it a good first test of how Pine handles a large outdoor s
 - [x] **Post-processing that scripts can control.** For the static effect: grain and vignette
       strengths, along with exposure and bloom, are level settings that C# reads and writes
       through `Level.Active.Rendering` (see [scripting.md](../scripting.md)).
-- [x] **Level fog from C#.** For fog that thickens as the game goes on: fog colour, distance and
-      intensity are on `Level.Active.Rendering` too.
+- [x] **Level fog from C#.** For fog that thickens as the game goes on: fog colour, density, height
+      and height falloff are on `Level.Active.Rendering` too.
 - [ ] **Quitting the game from C#.** There is no binding for closing the application.
 
 ### Could come later

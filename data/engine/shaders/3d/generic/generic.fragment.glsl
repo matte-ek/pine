@@ -93,7 +93,7 @@ void main(void)
     m_OutputColor.a = surfaceAlpha;
 #endif
 
-    m_OutputColor.rgb = ApplyDistanceFog(m_OutputColor.rgb);
+    m_OutputColor.rgb = ApplySurfaceFog(m_OutputColor.rgb, vIn.cameraPos, vIn.worldPosition);
 
     #shader postFragment
 }

@@ -116,7 +116,6 @@ void main()
 
 	vOut.uv = uv;
 	vOut.cameraPos = cameraPosition;
-	vOut.cameraDistance = length(vOut.worldPosition - vOut.cameraPos);
 
 	// Every copy shares the draw's light slots, which live on instance 0.
 	writeLightIndices(0);

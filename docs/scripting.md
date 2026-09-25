@@ -174,8 +174,8 @@ exposure, bloom, grain and vignette), through `Pine.Assets.LevelRenderingSetting
 
 ```csharp
 var rendering = Level.Active.Rendering;
-rendering.FogDistance = 15f;
-rendering.FogIntensity = 1f;
+rendering.FogDensity = 0.2f;
+rendering.FogHeightFalloff = 0.1f;
 ```
 
 - **A write changes the level asset itself**, not a runtime copy. The renderer reads it each frame,
@@ -186,7 +186,8 @@ rendering.FogIntensity = 1f;
 - **The bindings find the level by `UId`, checking the active level first.** The editor's untitled
   level was never registered, so `Assets::GetAssetByUId` alone would not find it.
 - Setters clamp to the minimums the debug server's level-settings route enforces: nothing below
-  zero, and a fog distance of at least 0.01.
+  zero, except `FogHeight`, which is a position. What the fog values mean is in
+  [rendering.md](rendering.md#fog).
 - The skybox and the level's camera are not exposed.
 
 `verify-script-level-rendering.py` is the recipe for this API.

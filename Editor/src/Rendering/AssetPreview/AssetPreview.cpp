@@ -211,7 +211,7 @@ bool Editor::AssetPreview::Render(Pine::Asset *asset, const Options &options, Pi
     // therefore land roughly a 2.2 gamma too dark and anything reaching 1.0 hard-clips to white.
     // Both Options values are tuned by eye against that, and have to be retuned if this pass ever
     // resolves properly.
-    Pine::Renderer3D::PrepareScene(options.Ambient, Pine::Vector4f(1.0f), 0.f, 0.f);
+    Pine::Renderer3D::PrepareScene(options.Ambient);
     Pine::Renderer3D::SetCamera(cameraEntity->GetComponent<Pine::Camera>());
     Pine::Renderer3D::AddLight(lightEntity->GetComponent<Pine::Light>());
     Pine::Renderer3D::UploadLights();
