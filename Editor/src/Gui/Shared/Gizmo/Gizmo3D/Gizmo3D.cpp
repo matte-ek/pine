@@ -278,31 +278,32 @@ namespace
 
     void DrawCapsuleCollider(const ColliderGizmoRenderer& r, const Pine::Vector3f& center, const glm::quat& rotation, const float radius, const float halfHeight)
     {
-        // PhysX capsules are aligned along their local X axis.
-        const Pine::Vector3f axis = rotation * Pine::Vector3f(1, 0, 0);
-        const Pine::Vector3f up = rotation * Pine::Vector3f(0, 1, 0);
+        // PhysX capsules lie along their local X axis, but Collider::CreateCollisionShape turns
+        // the shape a quarter turn about Z, so the capsule stands along the entity's local Y.
+        const Pine::Vector3f axis = rotation * Pine::Vector3f(0, 1, 0);
+        const Pine::Vector3f side = rotation * Pine::Vector3f(1, 0, 0);
         const Pine::Vector3f forward = rotation * Pine::Vector3f(0, 0, 1);
 
         const Pine::Vector3f capA = center + axis * halfHeight;
         const Pine::Vector3f capB = center - axis * halfHeight;
 
-        const Pine::Vector3f rUp = up * radius;
+        const Pine::Vector3f rSide = side * radius;
         const Pine::Vector3f rForward = forward * radius;
         const Pine::Vector3f rAxis = axis * radius;
 
         // Rings around each cap center (perpendicular to the axis).
-        r.Circle(capA, rUp, rForward);
-        r.Circle(capB, rUp, rForward);
+        r.Circle(capA, rSide, rForward);
+        r.Circle(capB, rSide, rForward);
 
         // Hemisphere caps, bulging outward along the axis.
-        r.Arc(capA, rUp, rAxis);
+        r.Arc(capA, rSide, rAxis);
         r.Arc(capA, rForward, rAxis);
-        r.Arc(capB, rUp, -rAxis);
+        r.Arc(capB, rSide, -rAxis);
         r.Arc(capB, rForward, -rAxis);
 
         // Cylinder side lines connecting the two rings.
-        r.Line(capA + rUp, capB + rUp);
-        r.Line(capA - rUp, capB - rUp);
+        r.Line(capA + rSide, capB + rSide);
+        r.Line(capA - rSide, capB - rSide);
         r.Line(capA + rForward, capB + rForward);
         r.Line(capA - rForward, capB - rForward);
     }
