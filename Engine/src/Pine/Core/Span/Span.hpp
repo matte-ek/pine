@@ -46,6 +46,8 @@ namespace Pine
         {
             if (this != &other)
             {
+                delete[] data;
+
                 data = new std::byte[other.size];
                 size = other.size;
 
@@ -59,6 +61,8 @@ namespace Pine
         {
             if (this != &other)
             {
+                delete[] data;
+
                 data = other.data;
                 size = other.size;
 

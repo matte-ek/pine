@@ -133,6 +133,13 @@ void Pine::Light::LoadData(const ByteSpan& span)
     serializer.CastShadows.Read(m_CastShadows);
     serializer.SpotlightOuterAngle.Read(m_SpotlightOuterAngle);
     serializer.SpotlightInnerAngle.Read(m_SpotlightInnerAngle);
+
+    // The type and range may have changed, and both feed the per-object light slot cache (see
+    // SetLightType). A light still being loaded into a new entity has no parent to mark yet.
+    if (auto* parent = GetParent())
+    {
+        parent->SetDirty(true);
+    }
 }
 
 Pine::ByteSpan Pine::Light::SaveData()

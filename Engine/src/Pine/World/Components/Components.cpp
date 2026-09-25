@@ -270,17 +270,20 @@ Component* Components::FindById(const ComponentType type, const UId id)
 
     block.m_IterateDisabledObjects = true;
 
-    for (auto& iter : GetData(type))
+    Component* found = nullptr;
+
+    for (auto& iter : block)
     {
         if (iter.GetId() == id)
         {
-            return &iter;
+            found = &iter;
+            break;
         }
     }
 
     block.m_IterateDisabledObjects = false;
 
-    return nullptr;
+    return found;
 }
 
 std::uint32_t Components::GetFreeSlotCount(const ComponentType type)

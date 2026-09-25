@@ -105,6 +105,11 @@ reload, which replaces the assembly its class came from. So `ScriptComponent` ke
 - `Manager::ReloadGameAssembly()` pulls them before the old assembly goes, which is what carries
   them over a hot reload.
 
+`LoadData()` into a component that is already attached to an entity destroys its managed object and
+builds a new one from the loaded script and values. Editor undo, component paste and reset all load
+into attached components, and without the rebuild the old object, still of the old class and holding
+the old values, would be what the panel shows and what the next `SaveData()` captures.
+
 Stored values whose name no longer matches a field are **kept**, not dropped - otherwise a script
 that fails to compile, or a level loaded before its game assembly, would silently discard everything
 the author set. The debug server has no operation for script fields; they are authored in the

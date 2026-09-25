@@ -86,6 +86,16 @@ void Pine::ScriptComponent::OnDestroyed()
 
 void Pine::ScriptComponent::LoadData(const ByteSpan& span)
 {
+    // An attached component has a managed object built from the script and values being replaced,
+    // and that object is what scripts and the properties panel read, so it is rebuilt from the
+    // loaded ones. Editor undo, paste and reset all load into attached components.
+    const bool isAttached = !m_Standalone && m_Parent != nullptr;
+
+    if (isAttached)
+    {
+        DestroyInstance();
+    }
+
     ScriptSerializer scriptSerializer;
 
     scriptSerializer.Read(span);
@@ -117,6 +127,11 @@ void Pine::ScriptComponent::LoadData(const ByteSpan& span)
         }
 
         m_FieldValues.push_back(std::move(value));
+    }
+
+    if (isAttached)
+    {
+        CreateInstance();
     }
 }
 
