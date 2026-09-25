@@ -18,6 +18,22 @@ namespace Pine::Renderer3D
 {
     struct LightSlotData;
 
+    // How much of a mesh's material PrepareMesh sets up.
+    enum class MaterialSetupMode
+    {
+        // Bind the whole material, and draw with the shader version its rendering mode asks for.
+        Full,
+
+        // Bind nothing off the material. Every mesh draws through OverrideShader's default version.
+        None,
+
+        // As None, except that a Discard material binds what its alpha test reads - the diffuse
+        // map and its UV scale - and draws through OverrideShader's Discard version. For the
+        // depth-only shadow pass, whose shader declares that version. IgnoreShaderVersions has to
+        // stay off, or it forces the default version back.
+        Cutout
+    };
+
     struct RenderConfiguration
     {
         // Global material override
@@ -26,9 +42,7 @@ namespace Pine::Renderer3D
         // Global shader override
         Shader* OverrideShader = nullptr;
 
-        // If the renderer should skip setting up materials during mesh preparation, OverrideShader
-        // will still be accounted for though.
-        bool SkipMaterialInitialization = false;
+        MaterialSetupMode MaterialSetup = MaterialSetupMode::Full;
 
         // If shader versions specified from the meshes should be ignored and just use default instead.
         bool IgnoreShaderVersions = false;
@@ -61,9 +75,9 @@ namespace Pine::Renderer3D
     //
     // A sibling of PrepareMesh instead of an option on it: a terrain binds four of every texture
     // type and fills four of the material buffer's property slots, none of which the
-    // single-material path has anywhere to put. It honours OverrideShader and
-    // SkipMaterialInitialization exactly as PrepareMesh does, so the depth pre-pass and the shadow
-    // passes draw terrain through their own shader without knowing it is terrain.
+    // single-material path has anywhere to put. It honours OverrideShader and MaterialSetup as
+    // PrepareMesh does, so the depth pre-pass and the shadow passes draw terrain through their own
+    // shader without knowing it is terrain. Terrain has no cutout, so Cutout behaves as None.
     //
     // A null layer draws as an untextured white surface, and 'splatTransform' is what maps the
     // chunk mesh's terrain-local uv onto the splat texture - see Terrain::GetSplatTransform.

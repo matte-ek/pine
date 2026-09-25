@@ -196,7 +196,9 @@ Three limits worth knowing:
   or a single mesh that overlaps itself, composite in whatever order their centres imply. That is
   the usual limitation of a sorted blend pass and the reason engines keep transparent geometry
   simple.
-- **Transparent surfaces cast no shadows.** `ShadowPass` renders `Opaque` and `Discard` only.
+- **Transparent surfaces cast no shadows.** `ShadowPass` renders `Opaque` and `Discard` only, and
+  a `Discard` one casts the shape its alpha test leaves (see
+  [Cutouts in the shadow pass](#cutouts-in-the-shadow-pass)).
 - **Membership is decided per object, in `SceneProcessor`.** It resolves each mesh's material the
   same way the draw list does, override material included — a renderer made transparent by its
   override is what the blend pass would otherwise silently miss.
@@ -211,9 +213,10 @@ curtain. Cutout and two-sided are independent, and deliberately not inferred fro
 fence texture on a wall is `Discard` and still has an inside.
 
 **It is applied in `Pipeline3D::RenderBatch`**, per run, rather than in `Renderer3D::PrepareMesh`
-where the rest of a material's state is set. The pre-pass and the shadow pass prepare meshes with
-`SkipMaterialInitialization`, which returns before the material is read, and all three passes have
-to agree about which faces exist or the depth one writes describes geometry another does not draw.
+where the rest of a material's state is set. The pre-pass and the shadow pass prepare meshes with a
+`Renderer3D::MaterialSetupMode` other than `Full`, which sets up little or nothing of the material
+(see [Cutouts in the shadow pass](#cutouts-in-the-shadow-pass)), and all three passes have to agree
+about which faces exist or the depth one writes describes geometry another does not draw.
 Runs are already keyed by (mesh, material), so this costs one state change per boundary between a
 two-sided run and an ordinary one, and nothing at all in a scene with no two-sided materials. It is
 not part of the batch key.
@@ -472,6 +475,50 @@ nothing. Turning `CastShadows` back on has to restore the frame exactly. It runs
 directional light and once under a point light. Nothing moves in the point-light half, so it only
 passes if a flag change alone invalidates the light's cached tiles. It ends with a save and reload
 of both flags.
+
+### Cutouts in the shadow pass
+
+A `Discard` material casts the shadow of what its alpha test keeps, so a leaf card shadows as a
+leaf rather than as a rectangle. `ShadowPass::Render` draws with
+`RenderConfiguration::MaterialSetup` set to `MaterialSetupMode::Cutout`. For an `Opaque` run that
+behaves like `None`, the mode the pre-pass uses: the mesh goes through the shadow shader's default
+version and nothing is read off its material. For a `Discard` run, `Renderer3D::PrepareMesh` binds
+the material's diffuse map and uploads its UV scale (`BindCutoutMaterial`) and draws through the
+shadow shader's `VERSION_DISCARD`. That version samples the diffuse alpha and discards below
+`ALPHA_CUTOFF`.
+
+Three things hold this together:
+
+- **One cutoff for every alpha test.** `ALPHA_CUTOFF` lives in `shaders/3d/shared/common.glsl`,
+  and the generic, terrain-detail and shadow shaders all read it. A shadow drawn at a different
+  threshold from the surface would stop matching its outline. The shared include is not a tracked
+  source, so after changing the value, re-import each shader that tests alpha (see
+  [assets.md](assets.md#regenerating-a-passet-after-editing-source)).
+- **`IgnoreShaderVersions` stays off in the shadow pass.** `Renderer3D::SetShader` forces version 0
+  whenever it is set, which would silently put every cutout back to a solid quad.
+- **The cutout version binds its sampler in the GLSL** (`layout(binding = 0)`), not with
+  `#shader bind`. A bind directive applies to every version, and the default version never samples
+  the texture, so the uniform would be optimized out and every compile would warn.
+
+What it costs is limited to the `Discard` list. Opaque casters draw exactly as before. A cutout
+fragment goes from an empty shader to one texture fetch and a `discard`, and a shader that can
+discard loses some of the GPU's early depth rejection for that draw. The cost lands mostly on the
+cascades, which are redrawn every frame for each context. Local views pay it only when a tile is
+re-rendered. The scope to watch is `ShadowPass::Render` in `GET /stats`, on a release build.
+
+Terrain has no cutout, so `PrepareTerrainChunk` treats `Cutout` as `None`. Terrain detail does not
+go through the shadow pass at all.
+
+```sh
+python3 Editor/src/DebugServer/Verification/verify-cutout-shadows.py --build cmake-build-debug-agent
+```
+
+It imports two down-facing unit quads as self-contained GLBs, one with a solid diffuse map (which
+imports `Opaque`) and one with its left half clear (which imports `Discard`). Facing down keeps
+them out of the camera's view but in the sun's cascades, so a capture sees only the shadow. The
+cutout has to darken roughly half as many floor pixels as the solid quad; without the alpha test
+in the shadow pass the two come out equal. It covers the directional light only: a local view
+culls back faces, which culls a down-facing quad.
 
 ## Lighting
 

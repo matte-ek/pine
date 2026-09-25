@@ -86,6 +86,14 @@ struct BaseLightResult
     vec3 specular;
 };
 
+// The diffuse alpha below which a Discard material's fragment is cut out. Every alpha test reads
+// this one value, so a shadow keeps the outline of the surface that casts it.
+//
+// Half coverage, not "any alpha at all": filtered edge texels are blended towards the black of the
+// transparent texels next to them, and keeping those would draw a dark outline around every leaf,
+// since a cutout writes them fully opaque.
+const float ALPHA_CUTOFF = 0.5;
+
 // Mirrors 'MaterialProperties' in Renderer3D/ShaderStorages.hpp - same members, same order. A
 // field added on one side has to be added on the other, or every member after it reads the wrong
 // offset out of the uniform buffer.

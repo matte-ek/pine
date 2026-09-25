@@ -130,6 +130,27 @@ namespace
         materialData.Alpha = material->GetAlpha();
     }
 
+    void BindDiffuseTexture()
+    {
+        if (m_Material->GetDiffuse())
+            m_Material->GetDiffuse()->GetGraphicsTexture()->Bind(Renderer3D::Specifications::Samplers::BASE_DIFFUSE);
+        else
+            m_DefaultTexture->Bind(Renderer3D::Specifications::Samplers::BASE_DIFFUSE);
+    }
+
+    // Binds only what an alpha test reads off m_Material: its diffuse map and UV scale. For
+    // MaterialSetupMode::Cutout, whose depth-only shader has no use for the rest of BindMaterial.
+    void BindCutoutMaterial()
+    {
+        BindDiffuseTexture();
+
+        auto& materialData = Renderer3D::ShaderStorages::Material.Data().Properties[0];
+
+        materialData.UVScale = m_Material->GetTextureScale();
+
+        Renderer3D::ShaderStorages::Material.Upload();
+    }
+
     // Binds m_Material's textures and uploads its properties for the program already in use.
     void BindMaterial()
     {
@@ -143,11 +164,7 @@ namespace
 
         // Apply Textures
 
-        // Diffuse
-        if (m_Material->GetDiffuse())
-            m_Material->GetDiffuse()->GetGraphicsTexture()->Bind(Renderer3D::Specifications::Samplers::BASE_DIFFUSE);
-        else
-            m_DefaultTexture->Bind(Renderer3D::Specifications::Samplers::BASE_DIFFUSE);
+        BindDiffuseTexture();
 
         // Specular
         if (m_Material->GetSpecular())
@@ -178,6 +195,37 @@ namespace
         {
             m_HasTangentData->LoadInteger(m_Material->GetNormal() != nullptr);
         }
+    }
+
+    // PrepareMesh's path for every MaterialSetupMode but Full: the mesh draws through the override
+    // shader, and only a cutout under Cutout reads anything off its material.
+    void PrepareOverrideShaderMesh(Mesh* mesh, Material* overrideMaterial)
+    {
+        auto* overrideShader = m_RenderingConfiguration.OverrideShader;
+
+        if (overrideShader == nullptr)
+        {
+            return;
+        }
+
+        auto* material = m_RenderingConfiguration.MaterialSetup == Renderer3D::MaterialSetupMode::Cutout
+            ? Renderer3D::ResolveMaterial(mesh, overrideMaterial)
+            : nullptr;
+
+        const bool isCutout = material != nullptr && material->GetRenderingMode() == MaterialRenderingMode::Discard;
+
+        if (!isCutout)
+        {
+            Renderer3D::SetShader(overrideShader);
+
+            return;
+        }
+
+        Renderer3D::SetShader(overrideShader, static_cast<ShaderVersion>(Renderer3D::Specifications::ShaderVersions::Generic::Discard));
+
+        m_Material = material;
+
+        BindCutoutMaterial();
     }
 }
 
@@ -263,12 +311,9 @@ void Renderer3D::PrepareMesh(Mesh *mesh, Material* overrideMaterial)
     m_CurrentInstanceIndex = 0;
     m_Mesh = mesh;
 
-    if (m_RenderingConfiguration.SkipMaterialInitialization)
+    if (m_RenderingConfiguration.MaterialSetup != MaterialSetupMode::Full)
     {
-        if (m_RenderingConfiguration.OverrideShader)
-        {
-            SetShader(m_RenderingConfiguration.OverrideShader);
-        }
+        PrepareOverrideShaderMesh(mesh, overrideMaterial);
 
         return;
     }
@@ -419,8 +464,9 @@ void Renderer3D::PrepareTerrainChunk(Mesh* mesh,
     m_Mesh = mesh;
 
     // The depth pre-pass and the shadow passes draw with their own shader and read nothing off the
-    // surface, so there is no blend for them to set up - same early exit PrepareMesh takes.
-    if (m_RenderingConfiguration.SkipMaterialInitialization)
+    // surface, so there is no blend for them to set up - same early exit PrepareMesh takes. A
+    // terrain has no cutout, so Cutout exits here too.
+    if (m_RenderingConfiguration.MaterialSetup != MaterialSetupMode::Full)
     {
         if (m_RenderingConfiguration.OverrideShader)
         {
@@ -831,5 +877,5 @@ void Renderer3D::FrameReset()
     m_RenderingConfiguration.OverrideShader = nullptr;
     m_RenderingConfiguration.OverrideMaterial = nullptr;
     m_RenderingConfiguration.IgnoreShaderVersions = false;
-    m_RenderingConfiguration.SkipMaterialInitialization = false;
+    m_RenderingConfiguration.MaterialSetup = MaterialSetupMode::Full;
 }

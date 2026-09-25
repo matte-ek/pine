@@ -100,7 +100,7 @@ namespace
 
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = m_ObjectSolidShader3D;
         Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = true;
-        Pine::Renderer3D::GetRenderConfiguration().SkipMaterialInitialization = true;
+        Pine::Renderer3D::GetRenderConfiguration().MaterialSetup = Pine::Renderer3D::MaterialSetupMode::None;
 
         m_ObjectSolidShader3D->GetProgram()->Use();
         m_ObjectSolidShader3D->GetProgram()->GetUniformVariable("m_Color")->LoadVector3(Pine::Vector3f(1.f));
@@ -130,7 +130,7 @@ namespace
 
         Pine::Renderer3D::GetRenderConfiguration().OverrideShader = nullptr;
         Pine::Renderer3D::GetRenderConfiguration().IgnoreShaderVersions = false;
-        Pine::Renderer3D::GetRenderConfiguration().SkipMaterialInitialization = false;
+        Pine::Renderer3D::GetRenderConfiguration().MaterialSetup = Pine::Renderer3D::MaterialSetupMode::Full;
     }
 
     void RenderSelectedObjectsOutline(const Pine::RenderingContext* context)

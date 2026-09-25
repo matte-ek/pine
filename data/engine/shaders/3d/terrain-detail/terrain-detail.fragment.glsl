@@ -48,9 +48,7 @@ Surface CreateSurface()
 void main(void)
 {
 #ifdef VERSION_DISCARD
-    // Half coverage, for the same reason as the generic shader's Discard version: filtered edge
-    // texels are blended towards black, and keeping them would outline every blade.
-    if (texture(matSamplers.diffuse, vIn.uv * matPropeties[0].uvScale).w < 0.5f)
+    if (texture(matSamplers.diffuse, vIn.uv * matPropeties[0].uvScale).w < ALPHA_CUTOFF)
     {
         discard;
     }

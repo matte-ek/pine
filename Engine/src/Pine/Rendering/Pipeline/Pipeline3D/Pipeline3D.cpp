@@ -150,7 +150,7 @@ namespace
 
 		renderSettings.OverrideShader = m_DepthShader;
 		renderSettings.IgnoreShaderVersions = true;
-		renderSettings.SkipMaterialInitialization = true;
+		renderSettings.MaterialSetup = Renderer3D::MaterialSetupMode::None;
 
 		RenderTerrain(renderingContext);
 
@@ -165,7 +165,7 @@ namespace
 
 		renderSettings.OverrideShader = nullptr;
 		renderSettings.IgnoreShaderVersions = false;
-		renderSettings.SkipMaterialInitialization = false;
+		renderSettings.MaterialSetup = Renderer3D::MaterialSetupMode::Full;
 	}
 
 	// Everything with a Transparent material, blended over the scene that is already in the buffer.

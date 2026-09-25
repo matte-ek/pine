@@ -56,10 +56,7 @@ void main(void)
 #endif
 
 #ifdef VERSION_DISCARD
-    // Half coverage, not "any alpha at all": filtered edge texels are blended towards the black of
-    // the transparent texels next to them, and keeping those would draw a dark outline around every
-    // leaf, since this version writes them fully opaque.
-    if (diffuseAlpha < 0.5f)
+    if (diffuseAlpha < ALPHA_CUTOFF)
     {
         discard;
     }

@@ -71,9 +71,11 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
     Renderer3D::FrameReset();
     Renderer3D::UseRenderingContext(nullptr);
 
+    // Cutout rather than None, so a Discard material casts the shadow of its alpha-tested surface
+    // rather than of its whole quad. Shader versions stay enabled: Cutout draws through the shadow
+    // shader's Discard version.
     renderSettings.OverrideShader = m_ShadowShader;
-    renderSettings.IgnoreShaderVersions = true;
-    renderSettings.SkipMaterialInitialization = true;
+    renderSettings.MaterialSetup = Renderer3D::MaterialSetupMode::Cutout;
 
     // Scissor, because glViewport does not restrict glClear, and clearing the whole atlas would
     // wipe the cached tiles.
@@ -137,6 +139,5 @@ void Rendering::ShadowPass::Render(const ShadowView* views, const int count, con
     graphicsApi->SetFaceCullingMode(Graphics::FaceCullMode::Back);
 
     renderSettings.OverrideShader = nullptr;
-    renderSettings.IgnoreShaderVersions = false;
-    renderSettings.SkipMaterialInitialization = false;
+    renderSettings.MaterialSetup = Renderer3D::MaterialSetupMode::Full;
 }
