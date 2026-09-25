@@ -4,6 +4,7 @@
 #include "Pine/Core/Color/Color.hpp"
 #include "Pine/Core/Math/Math.hpp"
 #include "Pine/World/Entity/Entity.hpp"
+#include <optional>
 #include <string>
 
 namespace Pine
@@ -58,8 +59,9 @@ namespace Widgets
     AssetPickerResult AssetPicker(const std::string& str, const Pine::Asset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
     AssetPickerResult AssetPicker(const std::string& str, const std::string& id, const Pine::Asset* asset, Pine::AssetType restrictedType = Pine::AssetType::Invalid);
 
-    EntityPickerResult EntityPicker(const std::string& str, const std::string& id, const Pine::Entity* entity);
-    EntityPickerResult EntityPicker(const std::string& str, const Pine::Entity* entity);
+    // With 'requiredComponent' set, only entities that have that component can be picked or dropped.
+    EntityPickerResult EntityPicker(const std::string& str, const std::string& id, const Pine::Entity* entity, std::optional<Pine::ComponentType> requiredComponent = std::nullopt);
+    EntityPickerResult EntityPicker(const std::string& str, const Pine::Entity* entity, std::optional<Pine::ComponentType> requiredComponent = std::nullopt);
 
     int AssetIcon(const std::string& text, Pine::Graphics::ITexture *texture, bool showBackground, const char* bottomText, int size = 64);
     int AssetIcon(const std::string& text, const Pine::Texture2D* texture, bool showBackground, const char* bottomText, int size = 64);

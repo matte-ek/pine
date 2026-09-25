@@ -35,7 +35,7 @@ void Panels::LevelPanel::Render()
         const auto cameraParent = camera != nullptr ? camera->GetParent() : nullptr;
 
         const auto newSkybox = Widgets::AssetPicker("Skybox", currentLevel->GetLevelSettings().Skybox.Get(), Pine::AssetType::Texture3D);
-        const auto newCameraEntity = Widgets::EntityPicker("Camera", cameraParent);
+        const auto newCameraEntity = Widgets::EntityPicker("Camera", cameraParent, Pine::ComponentType::Camera);
 
         Widgets::ColorPicker3("Ambient Color", currentLevel->GetLevelSettings().AmbientColor);
         Widgets::ColorPicker4("Fog Color", currentLevel->GetLevelSettings().FogColor);

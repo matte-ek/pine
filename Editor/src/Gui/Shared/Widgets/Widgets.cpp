@@ -16,6 +16,7 @@
 #include "Pine/Assets/Tileset/Tileset.hpp"
 #include "Pine/Core/String/String.hpp"
 #include "Pine/Game/Game.hpp"
+#include "Pine/World/Entities/Entities.hpp"
 #include "Pine/World/Components/Collider/Collider.hpp"
 
 namespace
@@ -57,9 +58,27 @@ namespace
     }
 
     constexpr auto AssetPickerPopupId = "AssetPickerPopup";
+    constexpr auto EntityPickerPopupId = "EntityPickerPopup";
 
-    // Only one popup can be open at a time, so every asset picker shares this buffer.
-    char m_AssetPickerSearchBuffer[64];
+    // Only one popup can be open at a time, so every asset and entity picker shares this buffer.
+    char m_PickerSearchBuffer[64];
+
+    // The search box at the top of a picker popup. Returns true when Enter was pressed in it.
+    bool PickerSearchBox()
+    {
+        if (ImGui::IsWindowAppearing())
+        {
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        ImGui::SetNextItemWidth(-1.f);
+
+        return ImGui::InputTextWithHint("##PickerSearch",
+                                        ICON_MD_SEARCH " Search...",
+                                        m_PickerSearchBuffer,
+                                        IM_ARRAYSIZE(m_PickerSearchBuffer),
+                                        ImGuiInputTextFlags_EnterReturnsTrue);
+    }
 
     bool IsPickableAsset(const Pine::Asset* asset, Pine::AssetType restrictedType)
     {
@@ -116,20 +135,9 @@ namespace
             return ret;
         }
 
-        if (ImGui::IsWindowAppearing())
-        {
-            ImGui::SetKeyboardFocusHere();
-        }
+        const bool searchSubmitted = PickerSearchBox();
 
-        ImGui::SetNextItemWidth(-1.f);
-
-        const bool searchSubmitted = ImGui::InputTextWithHint("##AssetPickerSearch",
-                                                              ICON_MD_SEARCH " Search...",
-                                                              m_AssetPickerSearchBuffer,
-                                                              IM_ARRAYSIZE(m_AssetPickerSearchBuffer),
-                                                              ImGuiInputTextFlags_EnterReturnsTrue);
-
-        const auto assets = FindPickableAssets(restrictedType, Pine::String::ToLower(m_AssetPickerSearchBuffer));
+        const auto assets = FindPickableAssets(restrictedType, Pine::String::ToLower(m_PickerSearchBuffer));
 
         if (searchSubmitted && !assets.empty())
         {
@@ -166,6 +174,122 @@ namespace
 
             ImGui::SameLine();
             ImGui::TextDisabled("%s", details.c_str());
+
+            ImGui::PopID();
+        }
+
+        ImGui::EndChild();
+
+        if (ret.hasResult || ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+
+        return ret;
+    }
+
+    bool IsPickableEntity(const Pine::Entity* entity, std::optional<Pine::ComponentType> requiredComponent)
+    {
+        return !requiredComponent.has_value() || entity->HasComponent(requiredComponent.value());
+    }
+
+    struct PickableEntity
+    {
+        Pine::Entity* Entity = nullptr;
+
+        // The names of the entity's ancestors, to tell apart entities that share a name.
+        std::string ParentPath;
+    };
+
+    // Walks the hierarchy depth first, so the list keeps the order the Entity List shows.
+    void CollectPickableEntities(Pine::Entity* entity,
+                                 const std::string& parentPath,
+                                 std::optional<Pine::ComponentType> requiredComponent,
+                                 const std::string& searchQuery,
+                                 std::vector<PickableEntity>& pickableEntities)
+    {
+        // Editor-only entities, such as the Level view's camera, are temporary and not part of the scene.
+        if (entity->GetTemporary())
+        {
+            return;
+        }
+
+        const bool matchesSearch = Pine::String::ToLower(entity->GetName()).find(searchQuery) != std::string::npos;
+
+        if (matchesSearch && IsPickableEntity(entity, requiredComponent))
+        {
+            pickableEntities.push_back({entity, parentPath});
+        }
+
+        const std::string childrenPath = parentPath.empty() ? entity->GetName() : fmt::format("{}/{}", parentPath, entity->GetName());
+
+        for (const auto child : entity->GetChildren())
+        {
+            CollectPickableEntities(child, childrenPath, requiredComponent, searchQuery, pickableEntities);
+        }
+    }
+
+    std::vector<PickableEntity> FindPickableEntities(std::optional<Pine::ComponentType> requiredComponent, const std::string& searchQuery)
+    {
+        std::vector<PickableEntity> pickableEntities;
+
+        for (const auto entity : Pine::Entities::GetList())
+        {
+            // Children are reached through their root.
+            if (entity->GetParent() != nullptr)
+            {
+                continue;
+            }
+
+            CollectPickableEntities(entity, "", requiredComponent, searchQuery, pickableEntities);
+        }
+
+        return pickableEntities;
+    }
+
+    // The list the entity picker's "..." button opens. Enter in the search box picks the first match.
+    EntityPickerResult RenderEntityPickerPopup(const Pine::Entity* currentEntity, std::optional<Pine::ComponentType> requiredComponent)
+    {
+        EntityPickerResult ret;
+
+        ImGui::SetNextWindowSize(ImVec2(450.f, 0.f));
+
+        if (!ImGui::BeginPopup(EntityPickerPopupId))
+        {
+            return ret;
+        }
+
+        const bool searchSubmitted = PickerSearchBox();
+
+        const auto pickableEntities = FindPickableEntities(requiredComponent, Pine::String::ToLower(m_PickerSearchBuffer));
+
+        if (searchSubmitted && !pickableEntities.empty())
+        {
+            ret.hasResult = true;
+            ret.entity = pickableEntities.front().Entity;
+        }
+
+        ImGui::BeginChild("##EntityPickerList", ImVec2(-1.f, 300.f), ImGuiChildFlags_Borders);
+
+        if (pickableEntities.empty())
+        {
+            ImGui::TextDisabled("No matching entities");
+        }
+
+        for (const auto& [entity, parentPath] : pickableEntities)
+        {
+            ImGui::PushID(entity);
+
+            if (ImGui::Selectable(entity->GetName().c_str(), entity == currentEntity))
+            {
+                ret.hasResult = true;
+                ret.entity = entity;
+            }
+
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s", parentPath.c_str());
 
             ImGui::PopID();
         }
@@ -540,7 +664,7 @@ AssetPickerResult Widgets::AssetPicker(const std::string& str, const std::string
 
     if (ImGui::Button(" ... "))
     {
-        m_AssetPickerSearchBuffer[0] = '\0';
+        m_PickerSearchBuffer[0] = '\0';
 
         ImGui::OpenPopup(AssetPickerPopupId);
     }
@@ -788,7 +912,7 @@ bool Widgets::LayerSelection(const std::string& text, std::uint32_t& layers)
     return ret;
 }
 
-EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::string &id, const Pine::Entity *entity)
+EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::string &id, const Pine::Entity *entity, std::optional<Pine::ComponentType> requiredComponent)
 {
     EntityPickerResult ret;
 
@@ -808,7 +932,7 @@ EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::stri
 
     strcpy(buff, entityName.c_str());
 
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 100.f);
 
     ImGui::InputText(std::string("##EntityName" + str).c_str(), buff, 128, ImGuiInputTextFlags_ReadOnly);
 
@@ -823,7 +947,7 @@ EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::stri
         {
             auto droppedEntity = *static_cast<Pine::Entity**>(payload->Data);
 
-            if (droppedEntity)
+            if (droppedEntity && IsPickableEntity(droppedEntity, requiredComponent))
             {
                 ret.hasResult = true;
                 ret.entity = droppedEntity;
@@ -837,7 +961,9 @@ EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::stri
 
     if (ImGui::Button(" ... "))
     {
-        // TODO: Entity picker
+        m_PickerSearchBuffer[0] = '\0';
+
+        ImGui::OpenPopup(EntityPickerPopupId);
     }
 
     ImGui::SameLine();
@@ -858,6 +984,11 @@ EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::stri
         Widgets::PopDisabled();
     }
 
+    if (const auto pickedFromPopup = RenderEntityPickerPopup(entity, requiredComponent); pickedFromPopup.hasResult)
+    {
+        ret = pickedFromPopup;
+    }
+
     FinishWidget();
 
     if (!id.empty())
@@ -866,7 +997,7 @@ EntityPickerResult Widgets::EntityPicker(const std::string &str, const std::stri
     return ret;
 }
 
-EntityPickerResult Widgets::EntityPicker(const std::string &str, const Pine::Entity *entity)
+EntityPickerResult Widgets::EntityPicker(const std::string &str, const Pine::Entity *entity, std::optional<Pine::ComponentType> requiredComponent)
 {
-    return EntityPicker(str, "", entity);
+    return EntityPicker(str, "", entity, requiredComponent);
 }
