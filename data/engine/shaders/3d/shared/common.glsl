@@ -55,10 +55,15 @@ struct ShadowView
 	vec4 params;
 };
 
+// Mirrors ShaderStorages::InstanceData::Instance. std140 rounds the array stride up to 112 bytes,
+// which the C++ side matches with explicit padding after receiveShadows.
 struct Instance
 {
 	mat4 transformationMatrix;
 	ivec4 lightIndices[2];
+
+	// 1 when shadows darken this instance, 0 when it ignores them (ModelRenderer::GetReceiveShadows).
+	int receiveShadows;
 };
 
 struct Surface

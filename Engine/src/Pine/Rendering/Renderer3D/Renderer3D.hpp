@@ -106,8 +106,10 @@ namespace Pine::Renderer3D
     //
     // 'lightSlots' is the lights that reach whatever is being drawn; a null one leaves the
     // instance's light indices at whatever the previous draw wrote, so anything that wants to be
-    // lit has to pass its own.
-    bool AddInstance(const Matrix4f& transformationMatrix, LightSlotData* lightSlots = nullptr);
+    // lit has to pass its own. 'receiveShadows' is written every time.
+    bool AddInstance(const Matrix4f& transformationMatrix,
+                     LightSlotData* lightSlots = nullptr,
+                     bool receiveShadows = true);
 
     // Renders the prepared mesh with a single transform.
     //
@@ -118,7 +120,8 @@ namespace Pine::Renderer3D
     void RenderMesh(const Matrix4f& transformationMatrix,
                     LightSlotData* lightSlots = nullptr,
                     int writeStencilBuffer = 0x00,
-                    std::uint32_t indexCount = 0);
+                    std::uint32_t indexCount = 0,
+                    bool receiveShadows = true);
 
     // Renders the prepared mesh with the current instance batch, see Renderer3D::AddInstance(...)
     void RenderMeshInstanced();

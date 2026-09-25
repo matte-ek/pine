@@ -16,7 +16,9 @@ namespace
         return {
             { "Model", Values::AssetReference(renderer->GetModel()) },
             { "OverrideMaterial", Values::AssetReference(renderer->GetOverrideMaterial()) },
-            { "MeshIndex", renderer->GetModelMeshIndex() }
+            { "MeshIndex", renderer->GetModelMeshIndex() },
+            { "CastShadows", renderer->GetCastShadows() },
+            { "ReceiveShadows", renderer->GetReceiveShadows() }
         };
     }
 
@@ -34,6 +36,8 @@ namespace
         renderer->SetModel(static_cast<Pine::Model*>(Values::ResolvedAsset(state.at("Model"))));
         renderer->SetOverrideMaterial(static_cast<Pine::Material*>(Values::ResolvedAsset(state.at("OverrideMaterial"))));
         renderer->SetModelMeshIndex(state.at("MeshIndex").get<int>());
+        renderer->SetCastShadows(state.at("CastShadows").get<bool>());
+        renderer->SetReceiveShadows(state.at("ReceiveShadows").get<bool>());
         renderer->GetParent()->SetDirty(true);
     }
 }
@@ -47,7 +51,9 @@ Editor::DebugServer::Editing::Components::ModelRenderer::GetAdapter()
             { "Model", { { "type", "asset" }, { "assetType", "Model" }, { "nullable", true } } },
             { "OverrideMaterial", { { "type", "asset" }, { "assetType", "Material" }, { "nullable", true } } },
             { "MeshIndex", { { "type", "integer" }, { "minimum", -1 }, { "maximum", 2147483647 },
-                { "constraint", "-1 for all meshes, otherwise an index within Model" } } }
+                { "constraint", "-1 for all meshes, otherwise an index within Model" } } },
+            { "CastShadows", { { "type", "boolean" } } },
+            { "ReceiveShadows", { { "type", "boolean" } } }
         },
         Read, Validate, Apply, true
     };

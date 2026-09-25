@@ -93,7 +93,7 @@ namespace
 
         for (auto& modelRenderer : Components::Get<ModelRenderer>())
         {
-            if (!modelRenderer.GetModel())
+            if (!modelRenderer.GetModel() || !modelRenderer.GetCastShadows())
             {
                 continue;
             }

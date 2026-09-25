@@ -1299,7 +1299,7 @@ patch with the preceding state. `/edit/schema` is authoritative for this build.
 | Component | Properties |
 | --- | --- |
 | Transform | `LocalPosition`, `LocalRotation`, `LocalScale` |
-| ModelRenderer | `Model`, `OverrideMaterial`, `MeshIndex` |
+| ModelRenderer | `Model`, `OverrideMaterial`, `MeshIndex`, `CastShadows`, `ReceiveShadows` |
 | Light | `Type`, `Color`, `Intensity`, `Range`, `CastShadows`, `SpotlightOuterAngle`, `SpotlightInnerAngle` |
 | Camera | `Type`, `FieldOfView`, `NearPlane`, `FarPlane` |
 | Collider | `Type`, `Position`, `Size`, `Layer`, `LayerMask`, `IsTrigger`, `TriggerMask` |
@@ -1309,7 +1309,8 @@ Entity update properties are advertised separately at `entity.properties`: `name
 `active`, `static`.
 
 **ModelRenderer.** `MeshIndex` is `-1` for all meshes or an index within the selected
-model; clearing `Model` requires `MeshIndex` to be `-1` too.
+model; clearing `Model` requires `MeshIndex` to be `-1` too. `CastShadows` and
+`ReceiveShadows` are independent booleans, both `true` by default.
 
 **Light.** `Type` is `Directional`, `PointLight` or `SpotLight`. `Color` is linear
 RGB with every channel nonnegative, `Intensity` nonnegative, `Range` at least 0.01 world units. Spotlight half-angles

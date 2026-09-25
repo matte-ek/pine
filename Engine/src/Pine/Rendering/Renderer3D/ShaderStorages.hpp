@@ -13,12 +13,23 @@ namespace Pine::Renderer3D::ShaderStorages
         Matrix4f View;
     };
 
+    // Mirrors the Instance struct in shaders/3d/shared/common.glsl.
     struct InstanceData
     {
         struct Instance
         {
             Matrix4f TransformationMatrix;
             int LightIndices[8];
+
+            // 1 when shadows darken this instance, 0 when it ignores them.
+            int ReceiveShadows;
+
+            // std140 rounds the shader's array stride up to 112 bytes, so these three ints exist
+            // there whether or not they are named. Without them every instance after the first
+            // would be read from the wrong offset.
+            int Pad0;
+            int Pad1;
+            int Pad2;
         }Instances[Specifications::General::MAX_INSTANCE_COUNT];
     };
 

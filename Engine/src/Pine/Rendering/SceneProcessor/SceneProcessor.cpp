@@ -131,7 +131,14 @@ namespace
             const auto previousLodModel = hintData.LodModel;
             hintData.LodModel = SelectLodModel(modelRenderer, context.LodReferencePosition);
 
-            if (HasBoundsChanged(hintData) || hintData.LodModel != previousLodModel)
+            const bool castShadowsChanged = modelRenderer.GetCastShadows() != hintData.CastShadows;
+            hintData.CastShadows = modelRenderer.GetCastShadows();
+
+            // An object that casts nothing can move freely without invalidating any shadow view.
+            // Switching casting on or off is itself a change to every view the object is in.
+            const bool silhouetteChanged = HasBoundsChanged(hintData) || hintData.LodModel != previousLodModel;
+
+            if ((hintData.CastShadows && silhouetteChanged) || castShadowsChanged)
             {
                 context.MovedCasters.push_back(&modelRenderer);
             }

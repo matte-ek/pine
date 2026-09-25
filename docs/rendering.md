@@ -428,6 +428,51 @@ nothing refreshes, freezing its shadow in place instead of removing it.
 residency, importance and cache hits are invisible in the final image when they work and obvious
 there when they don't.
 
+### Per-object flags: `CastShadows` and `ReceiveShadows`
+
+A `ModelRenderer` carries two independent flags, both on by default and both saved with it
+(`ModelRenderer::GetCastShadows`, `ModelRenderer::GetReceiveShadows`). Levels and Blueprints saved
+before they existed load with both on.
+
+**Casting is decided when a shadow view culls.** Every shadow view, cascades and local views
+alike, culls with `RenderCulling::Candidates::ShadowCasters`, so a non-caster never enters the
+view's `VisibilitySet` and `ShadowPass::Render` has nothing to filter. `FitCasterNearZ` skips
+non-casters as well. Nothing else changes: a non-caster is still in the depth pre-pass, so it still
+occludes ambient occlusion.
+
+**A non-caster moving does not invalidate a cached tile.** `SceneProcessor` puts a renderer in
+`MovedCasters` only while it casts, or in the frame its `CastShadows` changes. It compares against
+`ModelRendererHintData::CastShadows`, which is last frame's value. Turning casting off has to
+re-render the views the object was in, just as a move does. `CasterSetChanged` still counts every
+renderer, so adding or removing a non-caster flushes every tile, like any other renderer.
+
+**Receiving is per instance.** `ReceiveShadows` rides in the `Instances` block beside the light
+indices (`receiveShadows` in `shared/common.glsl`, `InstanceData::Instance::ReceiveShadows` in
+`ShaderStorages.hpp`). `writeInstanceLighting()` in `shared/vertex-data.glsl` copies it into a flat
+varying, and `ComputeShadowFactor` and `SampleLocalShadow` return 1.0 for a surface that does not
+receive. A per-instance value rather than a shader version, so receivers and non-receivers of one
+mesh still draw in one instanced run. `Renderer3D::AddInstance` and `RenderMesh` write it on every
+call, defaulting to on, unlike the light indices, which a null `LightSlotData` leaves stale.
+Terrain and terrain detail always receive.
+
+⚠ **The `Instance` struct is 112 bytes per entry under std140**: 64 for the matrix, 32 for the
+light indices, and 16 for `receiveShadows` plus the three padding ints that follow it on the C++
+side. `MAX_INSTANCE_COUNT` (512) of them make 56 KB, against the 64 KB block limit common GPUs
+report. `LogDeviceLimits` in `OpenGL.cpp` logs an error at startup when the block outgrows the
+device. The editor's `editor/shaders/generic-solid` declares its own copy of the struct, which has
+to follow any change to it.
+
+```sh
+python3 Editor/src/DebugServer/Verification/verify-shadow-flags.py --build cmake-build-debug-agent
+```
+
+It builds a floor and a cube over `/edit`, and renders the same pose through `/render` with each
+flag off. Turning either flag off has to brighten a shadow-sized patch of the floor and darken
+nothing. Turning `CastShadows` back on has to restore the frame exactly. It runs once under a
+directional light and once under a point light. Nothing moves in the point-light half, so it only
+passes if a flag change alone invalidates the light's cached tiles. It ends with a save and reload
+of both flags.
+
 ## Lighting
 
 **Light slot layout.** An object gets a fixed set of light slots
@@ -448,7 +493,7 @@ material, so 6→7 was free in a way 7→8 is not.
 
 ⚠ **The C++ side derives from `Specifications::ObjectLightSlots`; the shaders do not.**
 `SceneLightsProcessing.cpp` and `Renderer3D::AddLight` use its constants, but the shader side is
-hard-coded: the unrolled subscripts in `shared/vertex-data.glsl` (`writeLightIndices`,
+hard-coded: the unrolled subscripts in `shared/vertex-data.glsl` (`writeInstanceLighting`,
 `writeLightDirections`) and `shared/lightning/lightning.glsl` (`CalculatePointLights`,
 `CalculateSpotLights`, which every lit shader calls rather than copying), plus the literal
 sizes in `ShaderStorages.hpp` (`LightIndices[8]`), `shared/common.glsl` (`ivec4 lightIndices[2]`)
@@ -794,7 +839,7 @@ stalling one.
 `Specifications::StorageBuffers::TERRAIN_DETAIL_INSTANCES`, which `Rendering::Internal::RegisterShaderSpecifications` registers as
 `TERRAIN_DETAIL_INSTANCE_BINDING`, instead of from `instances[gl_InstanceID]`. `instances[0]` still
 carries what every copy shares: the terrain's translation and the chunk's light slots
-(`writeLightIndices(0)`). The storage block is why `terrain-detail.vertex.glsl` is `#version 430`.
+(`writeInstanceLighting(0)`). The storage block is why `terrain-detail.vertex.glsl` is `#version 430`.
 Lighting, shadows and fog come from the same `shared/` includes the generic and terrain shaders
 use, so foliage-only shading belongs in this shader rather than in `generic`. Copies
 shrink into the ground between 80% and 100% of the draw distance instead of popping out.

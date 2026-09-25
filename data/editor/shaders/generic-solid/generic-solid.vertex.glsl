@@ -11,10 +11,12 @@ layout(std140) uniform Matrices
 	mat4 viewMatrix;
 };
 
+// A copy of the Instance struct in engine/shaders/3d/shared/common.glsl, which sets the array stride.
 struct Instance
 {
 	mat4 transformationMatrix;
 	ivec4 lightIndices[2];
+	int receiveShadows;
 };
 
 layout(std140) uniform Instances 

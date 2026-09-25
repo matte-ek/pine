@@ -27,11 +27,15 @@ out VertexData
 
 	vec3 lightDir[8];
 	flat int lightIndices[8];
+	flat int receiveShadows;
 }vOut;
 
-// Copies the light slots of one entry of the Instances block into the varyings.
-void writeLightIndices(int instanceIndex)
+// Copies how one entry of the Instances block is lit into the varyings: its light slots, and
+// whether shadows reach it.
+void writeInstanceLighting(int instanceIndex)
 {
+	vOut.receiveShadows = instances[instanceIndex].receiveShadows;
+
 	vOut.lightIndices[0] = instances[instanceIndex].lightIndices[0].x;
 	vOut.lightIndices[1] = instances[instanceIndex].lightIndices[0].y;
 	vOut.lightIndices[2] = instances[instanceIndex].lightIndices[0].z;
@@ -43,10 +47,10 @@ void writeLightIndices(int instanceIndex)
 	vOut.lightIndices[7] = instances[instanceIndex].lightIndices[1].w;
 }
 
-// The light slots of the instance being drawn.
-void writeLightIndices()
+// How the instance being drawn is lit.
+void writeInstanceLighting()
 {
-	writeLightIndices(gl_InstanceID);
+	writeInstanceLighting(gl_InstanceID);
 }
 
 // Pass everything directly in world space.
@@ -107,6 +111,7 @@ in VertexData
 	vec3 worldNormal;
 	vec3 lightDir[8];
 	flat int lightIndices[8];
+	flat int receiveShadows;
 }vIn;
 
 // The world normal of the face actually being shaded.

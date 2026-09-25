@@ -208,7 +208,10 @@ namespace
         {
             const auto position = candidate.LightPtr->GetParent()->GetTransform()->GetPosition();
 
-            Rendering::RenderCulling::Cull(position, candidate.LightPtr->GetRange(), m_GroupVisibility);
+            Rendering::RenderCulling::Cull(position,
+                                           candidate.LightPtr->GetRange(),
+                                           m_GroupVisibility,
+                                           Rendering::RenderCulling::Candidates::ShadowCasters);
 
             restrictTo = &m_GroupVisibility;
         }
@@ -223,7 +226,10 @@ namespace
             }
 
             m_Statistics.CastersDrawn +=
-                Rendering::RenderCulling::Cull(view.ViewFrustum, view.Visibility, restrictTo).VisibleObjectCount;
+                Rendering::RenderCulling::Cull(view.ViewFrustum,
+                                               view.Visibility,
+                                               Rendering::RenderCulling::Candidates::ShadowCasters,
+                                               restrictTo).VisibleObjectCount;
         }
     }
 
@@ -554,7 +560,7 @@ void Rendering::Shadows::RenderPassLight(Light* light, const SceneProcessor::Sce
     for (auto& view : cascadeViews)
     {
         m_Statistics.CascadeCastersDrawn +=
-            RenderCulling::Cull(view.ViewFrustum, view.Visibility).VisibleObjectCount;
+            RenderCulling::Cull(view.ViewFrustum, view.Visibility, RenderCulling::Candidates::ShadowCasters).VisibleObjectCount;
         m_Statistics.CascadeViewCount++;
     }
 

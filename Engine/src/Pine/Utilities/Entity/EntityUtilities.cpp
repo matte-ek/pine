@@ -15,6 +15,11 @@ bool Pine::Utilities::Entity::UnpackModel(const ModelRenderer *modelRenderer)
 
     auto parentEntity = modelRenderer->GetParent();
 
+    // Read before the removal: a child's new renderer can take the pool slot it frees.
+    const auto overrideMaterial = modelRenderer->GetOverrideMaterial();
+    const bool castShadows = modelRenderer->GetCastShadows();
+    const bool receiveShadows = modelRenderer->GetReceiveShadows();
+
     // Remove model renderer from parent (which currently renderers the full model)
     parentEntity->RemoveComponent(modelRenderer);
 
@@ -28,6 +33,9 @@ bool Pine::Utilities::Entity::UnpackModel(const ModelRenderer *modelRenderer)
 
         meshModelRenderer->SetModel(model);
         meshModelRenderer->SetModelMeshIndex(i);
+        meshModelRenderer->SetOverrideMaterial(overrideMaterial);
+        meshModelRenderer->SetCastShadows(castShadows);
+        meshModelRenderer->SetReceiveShadows(receiveShadows);
     }
 
     return true;

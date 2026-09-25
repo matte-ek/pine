@@ -15,6 +15,16 @@ namespace
     {
         return data.LodModel == nullptr;
     }
+
+    bool IsCandidate(const Pine::ModelRenderer& modelRenderer, const Pine::Rendering::RenderCulling::Candidates candidates)
+    {
+        if (candidates == Pine::Rendering::RenderCulling::Candidates::ShadowCasters)
+        {
+            return modelRenderer.GetCastShadows();
+        }
+
+        return true;
+    }
 }
 
 void Pine::Rendering::RenderCulling::VisibilitySet::Reset(const std::size_t capacity)
@@ -57,6 +67,7 @@ bool Pine::Rendering::RenderCulling::VisibilitySet::IsVisible(const std::uint32_
 Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cull(
     const Frustum& frustum,
     VisibilitySet& visibility,
+    const Candidates candidates,
     const VisibilitySet* restrictTo)
 {
     PINE_PF_SCOPE();
@@ -67,7 +78,7 @@ Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cu
 
     for (auto& modelRenderer : Components::Get<ModelRenderer>())
     {
-        if (!modelRenderer.GetModel())
+        if (!modelRenderer.GetModel() || !IsCandidate(modelRenderer, candidates))
         {
             continue;
         }
@@ -103,7 +114,8 @@ Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cu
 Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cull(
     const Vector3f& center,
     const float radius,
-    VisibilitySet& visibility)
+    VisibilitySet& visibility,
+    const Candidates candidates)
 {
     PINE_PF_SCOPE();
 
@@ -115,7 +127,7 @@ Pine::Rendering::RenderCulling::CullingResult Pine::Rendering::RenderCulling::Cu
 
     for (auto& modelRenderer : Components::Get<ModelRenderer>())
     {
-        if (!modelRenderer.GetModel())
+        if (!modelRenderer.GetModel() || !IsCandidate(modelRenderer, candidates))
         {
             continue;
         }

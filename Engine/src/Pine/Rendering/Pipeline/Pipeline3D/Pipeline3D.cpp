@@ -416,7 +416,8 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 
 			if (Renderer3D::AddInstance(
 			    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),
-			    &modelRenderer->GetRenderingHintData().Lights))
+			    &modelRenderer->GetRenderingHintData().Lights,
+			    modelRenderer->GetReceiveShadows()))
 			{
 				Renderer3D::RenderMeshInstanced();
 			}
@@ -439,7 +440,9 @@ void Pipeline3D::RenderBatch(const Rendering::DrawList& drawList, const BatchRas
 				Renderer3D::RenderMesh(
 				    modelRenderer->GetParent()->GetTransform()->GetTransformationMatrix(),
 				    &modelRenderer->GetRenderingHintData().Lights,
-				    modelRenderer->GetStencilBufferValue());
+				    modelRenderer->GetStencilBufferValue(),
+				    0,
+				    modelRenderer->GetReceiveShadows());
 			}
 		}
 

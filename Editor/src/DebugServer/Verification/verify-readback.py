@@ -122,7 +122,8 @@ edit([
         'LocalRotation': {'x': 0, 'y': 1, 'z': 0, 'w': 2},
         'LocalScale': {'x': 2, 'y': 0.5, 'z': 3}}},
     {'op': 'component.update', 'target': {'id': renderer_id}, 'properties': {
-        'Model': {'path': model['path']}, 'OverrideMaterial': {'path': material['path']}, 'MeshIndex': 0}},
+        'Model': {'path': model['path']}, 'OverrideMaterial': {'path': material['path']}, 'MeshIndex': 0,
+        'CastShadows': False, 'ReceiveShadows': False}},
     {'op': 'component.update', 'target': {'id': light_id}, 'properties': {
         'Type': 'SpotLight', 'Color': {'x': 0.25, 'y': 0.5, 'z': 1}, 'Intensity': 3.5,
         'Range': 22, 'CastShadows': False, 'SpotlightInnerAngle': 12, 'SpotlightOuterAngle': 35}}
@@ -133,7 +134,8 @@ assert component(configured, 'Transform')['properties']['LocalPosition'] == {'x'
 rotation = component(configured, 'Transform')['properties']['LocalRotation']
 assert math.isclose(sum(value * value for value in rotation.values()), 1, rel_tol=1e-6)
 assert component(configured, 'ModelRenderer')['properties'] == {
-    'Model': {'id': model['uid']}, 'OverrideMaterial': {'id': material['uid']}, 'MeshIndex': 0}
+    'Model': {'id': model['uid']}, 'OverrideMaterial': {'id': material['uid']}, 'MeshIndex': 0,
+    'CastShadows': False, 'ReceiveShadows': False}
 assert component(configured, 'Light')['properties'] == {
     'Type': 'SpotLight', 'Color': {'x': 0.25, 'y': 0.5, 'z': 1}, 'Intensity': 3.5,
     'Range': 22, 'CastShadows': False, 'SpotlightInnerAngle': 12, 'SpotlightOuterAngle': 35}
@@ -147,7 +149,8 @@ for light_type in schema['components']['Light']['properties']['Type']['values']:
     round_trip(state)
 
 edit([{'op': 'component.update', 'target': {'id': renderer_id},
-       'properties': {'Model': None, 'OverrideMaterial': None, 'MeshIndex': -1}}])
+       'properties': {'Model': None, 'OverrideMaterial': None, 'MeshIndex': -1,
+                      'CastShadows': True, 'ReceiveShadows': True}}])
 cleared = round_trip(entity(child))
 assert component(cleared, 'ModelRenderer')['properties'] == schema['components']['ModelRenderer']['defaults']
 

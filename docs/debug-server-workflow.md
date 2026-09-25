@@ -147,8 +147,8 @@ column blocks the aisle.
 stretching a wall along X smears its texture — obvious on anything tiling like brick,
 planks or panelling. Nothing will stop you:
 the API accepts any `LocalScale`, including negative and zero. And you cannot repair
-it through this API: `ModelRenderer` exposes only `Model`, `OverrideMaterial` and
-`MeshIndex`, and material authoring is not exposed at all. Materials do carry a single
+it through this API: none of `ModelRenderer`'s properties (`Model`, `OverrideMaterial`,
+`MeshIndex` and the two shadow flags) touch UVs, and material authoring is not exposed at all. Materials do carry a single
 `TextureScale` factor, but it is uniform, it lives on the shared Material asset rather
 than the renderer, and it is reachable only through the editor's asset properties panel
 — so it cannot rescue one stretched entity. Repeat the module along the axis instead,

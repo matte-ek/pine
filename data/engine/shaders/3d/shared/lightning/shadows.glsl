@@ -85,12 +85,13 @@ int SelectCubeFace(vec3 L)
     return L.z > 0.0 ? 4 : 5;
 }
 
-// The shadow term for one local light, or 1.0 when it is not casting.
+// The shadow term for one local light, or 1.0 when it is not casting or the surface does not
+// receive shadows.
 float SampleLocalShadow(int lightIndex, vec3 worldPosition, vec3 worldNormal)
 {
     int viewIndex = lights[lightIndex].shadowViewIndex;
 
-    if (viewIndex < 0)
+    if (viewIndex < 0 || vIn.receiveShadows == 0)
     {
         return 1.0;
     }
@@ -124,13 +125,14 @@ float SampleLocalShadow(int lightIndex, vec3 worldPosition, vec3 worldNormal)
     return SampleShadowView(viewIndex, samplePosition, 0);
 }
 
-// The directional light's shadow term. The cascade is chosen by camera distance. The directional
-// light is always lights[0]; see Renderer3D::AddLight.
+// The directional light's shadow term, or 1.0 when the surface does not receive shadows. The
+// cascade is chosen by camera distance. The directional light is always lights[0]; see
+// Renderer3D::AddLight.
 float ComputeShadowFactor()
 {
     int viewIndex = lights[0].shadowViewIndex;
 
-    if (viewIndex < 0)
+    if (viewIndex < 0 || vIn.receiveShadows == 0)
     {
         return 1.0;
     }

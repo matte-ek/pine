@@ -56,6 +56,26 @@ int Pine::ModelRenderer::GetModelMeshIndex() const
     return m_ModelMeshIndex;
 }
 
+void Pine::ModelRenderer::SetCastShadows(const bool value)
+{
+    m_CastShadows = value;
+}
+
+bool Pine::ModelRenderer::GetCastShadows() const
+{
+    return m_CastShadows;
+}
+
+void Pine::ModelRenderer::SetReceiveShadows(const bool value)
+{
+    m_ReceiveShadows = value;
+}
+
+bool Pine::ModelRenderer::GetReceiveShadows() const
+{
+    return m_ReceiveShadows;
+}
+
 Pine::Renderer3D::ModelRendererHintData& Pine::ModelRenderer::GetRenderingHintData()
 {
     return m_RenderingHintData;
@@ -70,6 +90,8 @@ void Pine::ModelRenderer::LoadData(const ByteSpan& span)
     serializer.Model.Read(m_Model);
     serializer.OverrideMaterial.Read(m_OverrideMaterial);
     serializer.MeshIndex.Read(m_ModelMeshIndex);
+    serializer.CastShadows.Read(m_CastShadows);
+    serializer.ReceiveShadows.Read(m_ReceiveShadows);
 }
 
 Pine::ByteSpan Pine::ModelRenderer::SaveData()
@@ -79,6 +101,8 @@ Pine::ByteSpan Pine::ModelRenderer::SaveData()
     serializer.Model.Write(m_Model);
     serializer.OverrideMaterial.Write(m_OverrideMaterial);
     serializer.MeshIndex.Write(m_ModelMeshIndex);
+    serializer.CastShadows.Write(m_CastShadows);
+    serializer.ReceiveShadows.Write(m_ReceiveShadows);
 
     return serializer.Write();
 }

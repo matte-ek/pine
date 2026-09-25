@@ -372,7 +372,10 @@ void Renderer3D::RenderTerrainDetail(const Matrix4f& terrainTransform,
     // Instance 0 carries what every copy shares; the shader reads nothing past it in this version.
     WriteInstanceLightIndices(0, lightSlots);
 
-    ShaderStorages::Instance.Data().Instances[0].TransformationMatrix = terrainTransform;
+    auto& instance = ShaderStorages::Instance.Data().Instances[0];
+
+    instance.TransformationMatrix = terrainTransform;
+    instance.ReceiveShadows = 1;
     ShaderStorages::Instance.Upload(sizeof(ShaderStorages::InstanceData::Instance));
 
     instances->Bind(Specifications::StorageBuffers::TERRAIN_DETAIL_INSTANCES);
@@ -492,12 +495,15 @@ void Renderer3D::PrepareTerrainChunk(Mesh* mesh,
     }
 }
 
-bool Renderer3D::AddInstance(const Matrix4f& transformationMatrix, LightSlotData* lightSlots)
+bool Renderer3D::AddInstance(const Matrix4f& transformationMatrix, LightSlotData* lightSlots, const bool receiveShadows)
 {
     const bool isFull = m_CurrentInstanceIndex == Specifications::General::MAX_INSTANCE_COUNT - 1;
     const int instanceId = m_CurrentInstanceIndex++;
 
-    ShaderStorages::Instance.Data().Instances[instanceId].TransformationMatrix = transformationMatrix;
+    auto& instance = ShaderStorages::Instance.Data().Instances[instanceId];
+
+    instance.TransformationMatrix = transformationMatrix;
+    instance.ReceiveShadows = receiveShadows ? 1 : 0;
 
     WriteInstanceLightIndices(instanceId, lightSlots);
 
@@ -507,11 +513,16 @@ bool Renderer3D::AddInstance(const Matrix4f& transformationMatrix, LightSlotData
 void Renderer3D::RenderMesh(const Matrix4f& transformationMatrix,
                             LightSlotData* lightSlots,
                             const int writeStencilBuffer,
-                            const std::uint32_t indexCount)
+                            const std::uint32_t indexCount,
+                            const bool receiveShadows)
 {
     WriteInstanceLightIndices(0, lightSlots);
 
-    ShaderStorages::Instance.Data().Instances[0].TransformationMatrix = transformationMatrix;
+    auto& instance = ShaderStorages::Instance.Data().Instances[0];
+
+    instance.TransformationMatrix = transformationMatrix;
+    instance.ReceiveShadows = receiveShadows ? 1 : 0;
+
     ShaderStorages::Instance.Upload(sizeof(ShaderStorages::InstanceData::Instance));
 
     if (writeStencilBuffer != 0)

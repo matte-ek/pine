@@ -18,6 +18,10 @@ namespace Pine.Core.Bindings
 
         public static delegate* unmanaged<uint, UId, void> SetModel;
         public static delegate* unmanaged<uint, ulong> GetModel;
+        public static delegate* unmanaged<uint, byte> ModelRendererGetCastShadows;
+        public static delegate* unmanaged<uint, byte, void> ModelRendererSetCastShadows;
+        public static delegate* unmanaged<uint, byte> ModelRendererGetReceiveShadows;
+        public static delegate* unmanaged<uint, byte, void> ModelRendererSetReceiveShadows;
 
         public static delegate* unmanaged<uint, Vector3*, int, void> RigidBodyApplyForce;
 
@@ -131,6 +135,10 @@ namespace Pine.Core.Bindings
 
             SetModel = (delegate* unmanaged<uint, UId, void>)Interop.Resolve("Pine.World.Components.ModelRenderer::SetModel");
             GetModel = (delegate* unmanaged<uint, ulong>)Interop.Resolve("Pine.World.Components.ModelRenderer::GetModel");
+            ModelRendererGetCastShadows = (delegate* unmanaged<uint, byte>)Interop.Resolve("Pine.World.Components.ModelRenderer::PineGetCastShadows");
+            ModelRendererSetCastShadows = (delegate* unmanaged<uint, byte, void>)Interop.Resolve("Pine.World.Components.ModelRenderer::PineSetCastShadows");
+            ModelRendererGetReceiveShadows = (delegate* unmanaged<uint, byte>)Interop.Resolve("Pine.World.Components.ModelRenderer::PineGetReceiveShadows");
+            ModelRendererSetReceiveShadows = (delegate* unmanaged<uint, byte, void>)Interop.Resolve("Pine.World.Components.ModelRenderer::PineSetReceiveShadows");
 
             RigidBodyApplyForce = (delegate* unmanaged<uint, Vector3*, int, void>)Interop.Resolve("Pine.World.Components.RigidBody::ApplyForce");
 

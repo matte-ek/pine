@@ -118,7 +118,7 @@ void main()
 	vOut.cameraPos = cameraPosition;
 
 	// Every copy shares the draw's light slots, which live on instance 0.
-	writeLightIndices(0);
+	writeInstanceLighting(0);
 
 	vec3 meshNormal = normalize((transformationMatrix * vec4(normal, 0.0)).xyz);
 	vec3 worldNormalDir = normalize(mix(meshNormal, GetGroundNormal(detail), GroundNormalWeight));

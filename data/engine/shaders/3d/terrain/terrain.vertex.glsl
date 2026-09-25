@@ -23,7 +23,7 @@ void main()
 	// stage derives the splat lookup from this same coordinate, so the two cannot drift apart.
 	vOut.uv = uv;
 
-	writeLightIndices();
+	writeInstanceLighting();
 
 	vec3 worldNormalDir = normalize((transformationMatrix * vec4(normal, 0.0)).xyz);
 

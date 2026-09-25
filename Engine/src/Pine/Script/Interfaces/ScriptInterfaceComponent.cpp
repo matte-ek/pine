@@ -56,6 +56,34 @@ namespace
         return model->GetScriptHandle()->Id;
     }
 
+    bool ModelRendererGetCastShadows(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::ModelRenderer>(internalId)->GetCastShadows();
+    }
+
+    void ModelRendererSetCastShadows(const std::uint32_t internalId, const bool castShadows)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::ModelRenderer>(internalId)->SetCastShadows(castShadows);
+    }
+
+    bool ModelRendererGetReceiveShadows(const std::uint32_t internalId)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return false;
+
+        return Pine::Components::GetByInternalId<Pine::ModelRenderer>(internalId)->GetReceiveShadows();
+    }
+
+    void ModelRendererSetReceiveShadows(const std::uint32_t internalId, const bool receiveShadows)
+    {
+        if (std::numeric_limits<std::uint32_t>::max() == internalId) return;
+
+        Pine::Components::GetByInternalId<Pine::ModelRenderer>(internalId)->SetReceiveShadows(receiveShadows);
+    }
+
     // -----------------------------------------------------
 
     void TransformGetPosition(const std::uint32_t internalId, Pine::Vector3f *position)
@@ -773,6 +801,10 @@ void Pine::Script::Interfaces::Component::Setup()
 
     Bindings::Register("Pine.World.Components.ModelRenderer::SetModel", SetModel);
     Bindings::Register("Pine.World.Components.ModelRenderer::GetModel", GetModel);
+    Bindings::Register("Pine.World.Components.ModelRenderer::PineGetCastShadows", ModelRendererGetCastShadows);
+    Bindings::Register("Pine.World.Components.ModelRenderer::PineSetCastShadows", ModelRendererSetCastShadows);
+    Bindings::Register("Pine.World.Components.ModelRenderer::PineGetReceiveShadows", ModelRendererGetReceiveShadows);
+    Bindings::Register("Pine.World.Components.ModelRenderer::PineSetReceiveShadows", ModelRendererSetReceiveShadows);
 
     Bindings::Register("Pine.World.Components.RigidBody::ApplyForce", RigidBodyApplyForce);
 

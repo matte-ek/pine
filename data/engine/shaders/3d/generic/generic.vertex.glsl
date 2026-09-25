@@ -26,7 +26,7 @@ void main()
 	vOut.uv = uv;
 	vOut.cameraPos = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
 
-	writeLightIndices();
+	writeInstanceLighting();
 
 	// Apply object transformation to our normal vector
 	vec3 worldNormalDir = normalize((transformationMatrix * vec4(normal, 0.0)).xyz);

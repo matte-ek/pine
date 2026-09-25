@@ -101,6 +101,23 @@ namespace
             modelRenderer->SetOverrideMaterial(dynamic_cast<Pine::Material *>(newOverrideMaterial));
         }
 
+        bool castShadows = modelRenderer->GetCastShadows();
+        bool receiveShadows = modelRenderer->GetReceiveShadows();
+
+        if (Widgets::Checkbox("Cast Shadows", &castShadows))
+        {
+            CreateComponentCommand updateCmd(modelRenderer, CommandType::Update);
+
+            modelRenderer->SetCastShadows(castShadows);
+        }
+
+        if (Widgets::Checkbox("Receive Shadows", &receiveShadows))
+        {
+            CreateComponentCommand updateCmd(modelRenderer, CommandType::Update);
+
+            modelRenderer->SetReceiveShadows(receiveShadows);
+        }
+
         if (modelRenderer->GetParent() != nullptr &&
             modelRenderer->GetModel() != nullptr &&
             modelRenderer->GetModelMeshIndex() == -1)

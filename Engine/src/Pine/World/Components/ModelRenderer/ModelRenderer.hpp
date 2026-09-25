@@ -49,6 +49,10 @@ namespace Pine
             // compares it against last frame's: a change of level moves no bounds, but it still
             // changes what the object casts into a cached shadow view.
             Model* LodModel = nullptr;
+
+            // Whether the object cast shadows last frame. Turning it on or off moves no bounds
+            // either, but it adds the object to or removes it from every shadow view it is in.
+            bool CastShadows = true;
         };
     }
 
@@ -62,6 +66,11 @@ namespace Pine
 
         int m_ModelMeshIndex = -1;
 
+        // Whether the object is drawn into shadow maps, and whether shadows darken it. Independent:
+        // a ground plane can receive without casting, a small prop can cast without receiving.
+        bool m_CastShadows = true;
+        bool m_ReceiveShadows = true;
+
         Renderer3D::ModelRendererHintData m_RenderingHintData;
 
         struct ModelRendererSerializer : Serialization::Serializer
@@ -69,6 +78,8 @@ namespace Pine
             PINE_SERIALIZE_ASSET(Model);
             PINE_SERIALIZE_ASSET(OverrideMaterial);
             PINE_SERIALIZE_PRIMITIVE(MeshIndex, Pine::Serialization::DataType::Int32);
+            PINE_SERIALIZE_PRIMITIVE(CastShadows, Pine::Serialization::DataType::Boolean);
+            PINE_SERIALIZE_PRIMITIVE(ReceiveShadows, Pine::Serialization::DataType::Boolean);
         };
     public:
         ModelRenderer();
@@ -87,6 +98,12 @@ namespace Pine
 
         void SetModelMeshIndex(int index);
         int GetModelMeshIndex() const;
+
+        void SetCastShadows(bool value);
+        bool GetCastShadows() const;
+
+        void SetReceiveShadows(bool value);
+        bool GetReceiveShadows() const;
 
         Renderer3D::ModelRendererHintData& GetRenderingHintData();
 

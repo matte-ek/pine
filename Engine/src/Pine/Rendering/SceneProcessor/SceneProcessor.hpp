@@ -69,9 +69,9 @@ namespace Pine::Rendering::SceneProcessor
 
         std::vector<Light*> Lights;
 
-        // Renderers whose world bounds or LOD level differ from last frame's. A list rather than a
-        // per-object flag, so a consumer asking "did anything move inside this volume" walks only
-        // the movers.
+        // Shadow casters whose world bounds or LOD level differ from last frame's, plus renderers
+        // that started or stopped casting. A list rather than a per-object flag, so a consumer
+        // asking "did anything move inside this volume" walks only the movers.
         std::vector<ModelRenderer*> MovedCasters;
 
         // Something was added, removed, disabled or had its model swapped this frame. Consumers
