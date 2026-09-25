@@ -118,9 +118,21 @@ runs and with it the overdraw, which measured anywhere from 725k to 880k across 
 build. An unordered pass has no particular cost, it has an arbitrary one. The ordered rows and the
 `BackToFront` bound are stable to within a percent.
 
-Timings are not in these tables on purpose: they were taken under a software rasterizer, where
-repeated runs of an identical build varied by more than the differences being measured. `GET /stats` on the debug server reports every profiler scope, so the same comparison is
-one request on real hardware.
+**The `Discard` pass is ordered, because the pre-pass cannot help it.** Alpha-tested materials are
+absent from the pre-pass (see below), so nothing has written depth for them when the scene pass
+reaches them, and in `Batched` order a far branch is as likely to be shaded first and painted over
+as not. `RenderScene` builds that list `FrontToBack` with `DiscardDepthBuckets` (16) instead. It
+matters most in foliage: a dense forest is mostly alpha-tested branch cards, layered many deep. The
+bucketing keeps it cheap in draw calls, since a forest repeats a handful of tree models. A context
+without a camera has nothing to measure from and keeps `Batched`. Whether a fragment that may
+discard is rejected before shading is up to the GPU, which may test depth early and defer only the
+write. The saving depends on the hardware and is not measured here.
+
+Timings are not in these tables on purpose: they were taken under a software rasterizer, before the
+headless Editor could render on the GPU, and repeated runs of an identical build varied by more
+than the differences being measured. `GET /stats` on the debug server reports every profiler scope,
+so the same comparison is one request. Under VirtualGL that gives rough figures only; see
+"Performance" in [`AGENTS.md`](../AGENTS.md) for how far to trust them.
 
 ### The depth pre-pass feeds the scene pass
 

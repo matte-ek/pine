@@ -35,6 +35,11 @@ namespace
 	// Scratch draw list, rebuilt and submitted by each pass in turn.
 	Rendering::DrawList m_DrawList;
 
+	// How finely the Discard pass orders by depth. In the opaque-pass measurements in
+	// docs/rendering.md, 16 buckets rejected as many fragments as an exact sort for 40% of its
+	// draw calls.
+	constexpr int DiscardDepthBuckets = 16;
+
 	PipelineConfiguration m_Configuration;
 
 	// Where the wind's gusts are in their cycle, in radians. Advanced by the frame time whether or
@@ -267,11 +272,22 @@ namespace
 
 		RenderBatch(m_DrawList);
 
-		// Render objects which require discarding
+		// Render objects which require discarding. Nearest first, since the pre-pass wrote no depth
+		// for them: in a forest of alpha-tested branches, a far branch drawn first is shaded and
+		// then painted over. Bucketed, so copies of one model still share a draw.
+		Rendering::DrawOrdering discardOrdering = { Rendering::DrawOrder::Batched };
+
+		if (context.SceneCamera != nullptr)
+		{
+			discardOrdering = { Rendering::DrawOrder::FrontToBack,
+			    context.SceneCamera->GetParent()->GetTransform()->GetPosition(),
+			    DiscardDepthBuckets };
+		}
+
 		m_DrawList.Build(m_SceneContext.RenderingBatch.OpaqueObjects,
 		    MaterialRenderingMode::Discard,
 		    context.Visibility,
-		    { Rendering::DrawOrder::Batched });
+		    discardOrdering);
 
 		RenderBatch(m_DrawList);
 
