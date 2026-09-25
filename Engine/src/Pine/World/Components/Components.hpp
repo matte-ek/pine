@@ -1,6 +1,8 @@
 #pragma once
 #include "Pine/World/Components/Component/Component.hpp"
 
+#include <algorithm>
+
 namespace Pine
 {
     template<typename T>
@@ -25,11 +27,17 @@ namespace Pine
         // The number of components the array currently can fit (capacity)
         std::uint32_t m_ComponentArrayAllocatedCount = 0;
 
+        // The number of slots currently in use
+        std::uint32_t m_OccupiedCount = 0;
+
         // Incrementing counter to hand out unique ids to every created component.
         std::uint64_t m_UniqueIdCount = 0;
 
-        // Cached version of GetHighestComponentIndex(), _should_ always be correct. Will be -1 if empty.
+        // One past the highest occupied slot, or -1 when the block is empty. Iteration stops here.
         int m_HighestComponentIndex = -1;
+
+        // The lowest free slot, or the capacity when every slot is taken.
+        std::uint32_t m_FirstFreeIndex = 0;
 
         // Sort of hacky, but it allows us to select what components we want to iterate through
         // I don't really like the placing of this either, problem for future me.
@@ -45,28 +53,48 @@ namespace Pine
             return ComponentDataBlockIterator<T>(m_HighestComponentIndex == -1 ? 0 : m_HighestComponentIndex, this, m_IterateDisabledObjects);
         }
 
-        __inline int GetHighestComponentIndex() const
-        {
-            int highestIndex = -1;
-
-            for (int i = 0; i < m_ComponentOccupationArraySize;i++)
-            {
-                if (m_ComponentOccupationArray[i])
-                    highestIndex = i + 1;
-            }
-
-            return highestIndex;
-        }
-
+        // The first free slot, or the capacity when the block is full.
         __inline std::uint32_t GetAvailableIndex() const
         {
-            for (std::uint32_t i = 0; i < m_ComponentOccupationArraySize;i++)
+            return m_FirstFreeIndex;
+        }
+
+        // Marking slots goes through these two so the counts and indices above follow along without
+        // rescanning the whole block, which would make every create and destroy cost the capacity.
+        void MarkOccupied(const std::uint32_t index)
+        {
+            m_ComponentOccupationArray[index] = true;
+            m_OccupiedCount++;
+
+            m_HighestComponentIndex = std::max(m_HighestComponentIndex, static_cast<int>(index) + 1);
+
+            while (m_FirstFreeIndex < m_ComponentArrayAllocatedCount && m_ComponentOccupationArray[m_FirstFreeIndex])
             {
-                if (!m_ComponentOccupationArray[i])
-                    return i;
+                m_FirstFreeIndex++;
+            }
+        }
+
+        void MarkFree(const std::uint32_t index)
+        {
+            m_ComponentOccupationArray[index] = false;
+            m_OccupiedCount--;
+
+            m_FirstFreeIndex = std::min(m_FirstFreeIndex, index);
+
+            // Only freeing the top slot moves the end of iteration, down to the next occupied slot.
+            if (static_cast<int>(index) + 1 != m_HighestComponentIndex)
+            {
+                return;
             }
 
-            return static_cast<std::uint32_t>(m_ComponentOccupationArraySize);
+            int highestIndex = static_cast<int>(index);
+
+            while (highestIndex > 0 && !m_ComponentOccupationArray[highestIndex - 1])
+            {
+                highestIndex--;
+            }
+
+            m_HighestComponentIndex = highestIndex == 0 ? -1 : highestIndex;
         }
 
         __inline T* GetComponent(const std::uint32_t index)
@@ -230,11 +258,9 @@ namespace Pine::Components
 
     Component* FindById(ComponentType type, UId id);
 
-    // Internal hints that may be set by the engine to optimize component iteration
-    void SetIgnoreHighestEntityIndexFlag(bool ignore);
-
-    // Internal hints that may be set by the engine to optimize component iteration
-    void RecomputeHighestComponentIndex();
+    // How many more components of a type fit in its block. Create() throws once it is full, so a
+    // caller that cannot let that exception escape checks this first.
+    std::uint32_t GetFreeSlotCount(ComponentType type);
 }
 
 namespace Pine

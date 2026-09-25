@@ -688,15 +688,7 @@ namespace
         std::map<Pine::ComponentType, std::size_t> availableComponents;
         for (const auto adapter : Adapters::GetAdapters())
         {
-            const auto& block = Pine::Components::GetData(adapter->Type);
-            auto& available = availableComponents[adapter->Type];
-            for (std::uint32_t index = 0; index < block.m_ComponentOccupationArraySize; index++)
-            {
-                if (!block.ComponentIndexValid(index))
-                {
-                    available++;
-                }
-            }
+            availableComponents[adapter->Type] = Pine::Components::GetFreeSlotCount(adapter->Type);
         }
 
         // A removal frees its slot only for subsequent operations, not earlier additions.

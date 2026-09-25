@@ -130,14 +130,7 @@ namespace
 
         for (const auto adapter : Adapters::GetAdapters())
         {
-            const auto& block = Pine::Components::GetData(adapter->Type);
-            for (std::size_t index = 0; index < block.m_ComponentOccupationArraySize; index++)
-            {
-                if (!block.ComponentIndexValid(index))
-                {
-                    counts[adapter->Type]++;
-                }
-            }
+            counts[adapter->Type] = Pine::Components::GetFreeSlotCount(adapter->Type);
         }
 
         for (const auto& id : affected)

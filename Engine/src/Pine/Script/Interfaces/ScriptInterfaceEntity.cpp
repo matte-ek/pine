@@ -1,4 +1,6 @@
 #include "Interfaces.hpp"
+#include "Pine/Core/Log/Log.hpp"
+#include "Pine/Engine/Engine.hpp"
 #include "Pine/World/Components/Components.hpp"
 #include "Pine/World/Components/Component/Component.hpp"
 #include "Pine/World/Entities/Entities.hpp"
@@ -213,18 +215,54 @@ namespace
         return component ? ComponentHandleOf(component)->Id : 0;
     }
 
+    // Creating past the end of a pool throws, and that exception must not unwind into the managed
+    // code that called the binding: it would take the process down. So the bindings that create
+    // check for room first, and C# gets null instead.
+    bool HasRoomForEntity()
+    {
+        if (Pine::Entities::GetFreeSlotCount() > 0)
+        {
+            return true;
+        }
+
+        PError(fmt::format("Cannot create an entity, all {} entity slots are in use.",
+            Pine::Engine::GetEngineConfiguration().m_MaxObjectCount));
+
+        return false;
+    }
+
+    bool HasRoomForComponent(const Pine::ComponentType type)
+    {
+        if (Pine::Components::GetFreeSlotCount(type) > 0)
+        {
+            return true;
+        }
+
+        PError(fmt::format("Cannot create a {} component, all {} of its slots are in use.",
+            Pine::ComponentTypeToString(type), Pine::Components::GetData(type).m_ComponentArrayAllocatedCount));
+
+        return false;
+    }
+
     std::uint64_t AddComponent(const std::uint32_t id, const int type)
     {
         if (std::numeric_limits<std::uint32_t>::max() == id) return 0;
         if (!IsComponentType(type)) return 0;
 
-        const auto component = Pine::Entities::GetByInternalId(id)->AddComponent(static_cast<Pine::ComponentType>(type));
+        const auto componentType = static_cast<Pine::ComponentType>(type);
+
+        if (!HasRoomForComponent(componentType)) return 0;
+
+        const auto component = Pine::Entities::GetByInternalId(id)->AddComponent(componentType);
 
         return component->GetComponentScriptHandle()->Id;
     }
 
     std::uint64_t CreateEntity(const char* name)
     {
+        // Every entity is created with a Transform.
+        if (!HasRoomForEntity() || !HasRoomForComponent(Pine::ComponentType::Transform)) return 0;
+
         return Pine::Entities::Create(name)->GetScriptHandle()->Id;
     }
 

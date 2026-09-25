@@ -26,6 +26,10 @@ namespace Pine::Entities
 
     const std::vector<Entity*>& GetList();
 
+    // How many more entities fit. Creating one past that throws, so a caller that cannot let that
+    // exception escape checks this first.
+    std::uint32_t GetFreeSlotCount();
+
     // Allows you to move the specified entity.
     // newIndex specifying the element index in the vector itself.
     void MoveEntity(const Entity* entity, std::size_t newIndex);

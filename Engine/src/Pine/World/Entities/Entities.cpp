@@ -1,6 +1,8 @@
 #include "Entities.hpp"
 #include "Pine/Engine/Engine.hpp"
 
+#include <algorithm>
+
 using namespace Pine;
 
 namespace
@@ -20,33 +22,42 @@ namespace
     // Array which holds if an element index in m_Entities is occupied, also the size of m_MaxEntityCount
     bool* m_EntityOccupationArray;
 
-    // Get the current highest element index of an entity
-    std::uint32_t GetHighestEntityIndex()
-    {
-        std::uint32_t highestIndex = 0;
-
-        for (std::uint32_t i = 0; i < m_MaxEntityCount;i++)
-        {
-            if (m_EntityOccupationArray[i])
-                highestIndex = i + 1;
-        }
-
-        return highestIndex;
-    }
-
-    // Cached version of GetHighestEntityIndex()
+    // One past the highest occupied slot in m_Entities, or zero when there are no entities.
     std::uint32_t m_HighestEntityIndex = 0;
 
-    // Gets the first available element index in m_Entities
-    std::uint32_t GetAvailableEntityIndex()
+    // The lowest free slot in m_Entities, or m_MaxEntityCount when every slot is taken.
+    std::uint32_t m_FirstFreeEntityIndex = 0;
+
+    // Marking slots goes through these two so the indices above follow along without rescanning
+    // the whole array, which would make every create and delete cost the capacity.
+    void MarkEntitySlotOccupied(const std::uint32_t index)
     {
-        for (std::uint32_t i = 0; i < m_MaxEntityCount;i++)
+        m_EntityOccupationArray[index] = true;
+
+        m_HighestEntityIndex = std::max(m_HighestEntityIndex, index + 1);
+
+        while (m_FirstFreeEntityIndex < m_MaxEntityCount && m_EntityOccupationArray[m_FirstFreeEntityIndex])
         {
-            if (!m_EntityOccupationArray[i])
-                return i;
+            m_FirstFreeEntityIndex++;
+        }
+    }
+
+    void MarkEntitySlotFree(const std::uint32_t index)
+    {
+        m_EntityOccupationArray[index] = false;
+
+        m_FirstFreeEntityIndex = std::min(m_FirstFreeEntityIndex, index);
+
+        // Only freeing the top slot moves the highest index, down to the next occupied slot.
+        if (index + 1 != m_HighestEntityIndex)
+        {
+            return;
         }
 
-        return m_MaxEntityCount;
+        while (m_HighestEntityIndex > 0 && !m_EntityOccupationArray[m_HighestEntityIndex - 1])
+        {
+            m_HighestEntityIndex--;
+        }
     }
 
     // The outwards facing entity list vector, with pointers to m_Entities. This allows us to move
@@ -65,7 +76,7 @@ namespace
     // Places a new entity in the first free slot. The caller is responsible for the id being unused.
     Entity* PlaceEntity(const UId id)
     {
-        const auto availableEntityIndex = GetAvailableEntityIndex();
+        const auto availableEntityIndex = m_FirstFreeEntityIndex;
 
         if (availableEntityIndex == m_MaxEntityCount)
         {
@@ -77,8 +88,7 @@ namespace
         // Call constructor on the entity
         new(entityPtr) Entity(id, availableEntityIndex);
 
-        // Mark the slot as occupied
-        m_EntityOccupationArray[availableEntityIndex] = true;
+        MarkEntitySlotOccupied(availableEntityIndex);
 
         m_EntityPointerList.push_back(entityPtr);
 
@@ -183,40 +193,36 @@ bool Entities::Delete(const Entity* entity)
         return false;
     }
 
-    const auto highestEntityIndex = GetHighestEntityIndex();
+    // Every entity in the pointer list lives in m_Entities, at the slot its internal id names.
+    const auto slot = entity->GetInternalId();
 
-    for (std::uint32_t i = 0; i < highestEntityIndex;i++)
+    if (slot >= m_MaxEntityCount || &m_Entities[slot] != entity)
     {
-        if (!m_EntityOccupationArray[i])
-            continue;
-
-        if (m_Entities[i].GetId() == entity->GetId())
-        {
-            m_Entities[i].~Entity();
-            m_EntityOccupationArray[i] = false;
-
-            return true;
-        }
+        // If we've reached this point, something has gone terribly wrong.
+        throw std::runtime_error("Failed to find entity pointer while removing entity.");
     }
 
-    // If we've reached this point, something has gone terribly wrong.
+    m_Entities[slot].~Entity();
+    MarkEntitySlotFree(slot);
 
-    throw std::runtime_error("Failed to find entity pointer while removing entity.");
+    return true;
 }
 
 void Entities::DeleteAll(const bool includeTemporary)
 {
     ++m_SceneGeneration;
 
+    const auto highestEntityIndex = m_HighestEntityIndex;
+
     if (includeTemporary)
     {
-        for (std::uint32_t i = 0; i < GetHighestEntityIndex();i++)
+        for (std::uint32_t i = 0; i < highestEntityIndex;i++)
         {
             if (!m_EntityOccupationArray[i])
                 continue;
 
             m_Entities[i].~Entity();
-            m_EntityOccupationArray[i] = false;
+            MarkEntitySlotFree(i);
         }
 
         m_EntityPointerList.clear();
@@ -225,10 +231,6 @@ void Entities::DeleteAll(const bool includeTemporary)
     }
 
     std::vector<Entity*> entitiesToRestore;
-
-    const auto highestEntityIndex = GetHighestEntityIndex();
-
-    Components::SetIgnoreHighestEntityIndexFlag(true);
 
     for (std::uint32_t i = 0; i < highestEntityIndex;i++)
     {
@@ -242,12 +244,9 @@ void Entities::DeleteAll(const bool includeTemporary)
         else
         {
             m_Entities[i].~Entity();
-            m_EntityOccupationArray[i] = false;
+            MarkEntitySlotFree(i);
         }
     }
-
-    Components::SetIgnoreHighestEntityIndexFlag(false);
-    Components::RecomputeHighestComponentIndex();
 
     m_EntityPointerList.clear();
 
@@ -260,6 +259,11 @@ void Entities::DeleteAll(const bool includeTemporary)
 const std::vector<Entity*>& Entities::GetList()
 {
     return m_EntityPointerList;
+}
+
+std::uint32_t Entities::GetFreeSlotCount()
+{
+    return m_MaxEntityCount - static_cast<std::uint32_t>(m_EntityPointerList.size());
 }
 
 std::uint64_t Entities::GetSceneGeneration()

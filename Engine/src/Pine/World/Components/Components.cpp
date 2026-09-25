@@ -110,8 +110,6 @@ namespace
         // Hopefully, all components specified in the enum are also created in this vector though.
         return *m_ComponentDataBlocks[static_cast<int>(type)]->m_ComponentArray;
     }
-
-    bool m_IgnoreSetHighestEntityIndexFlag = false;
 }
 
 void Components::Setup()
@@ -190,11 +188,7 @@ Component* Components::Create(ComponentType type, const bool standalone)
         component = componentDataBlock->GetComponent(newTargetSlot);
         componentLookupId = newTargetSlot;
 
-        // Mark the index as occupied
-        componentDataBlock->m_ComponentOccupationArray[newTargetSlot] = true;
-
-        // Store the new highest index
-        componentDataBlock->m_HighestComponentIndex = componentDataBlock->GetHighestComponentIndex();
+        componentDataBlock->MarkOccupied(newTargetSlot);
     }
 
     if (component == nullptr)
@@ -253,11 +247,7 @@ bool Components::Destroy(Component* targetComponent)
 
     // We don't have to free any memory or anything, so marking the slot as "available"
     // should be sufficient.
-    data.m_ComponentOccupationArray[internalId] = false;
-
-    // Store the new highest index
-    if (!m_IgnoreSetHighestEntityIndexFlag)
-        data.m_HighestComponentIndex = data.GetHighestComponentIndex();
+    data.MarkFree(internalId);
 
     return true;
 }
@@ -293,15 +283,9 @@ Component* Components::FindById(const ComponentType type, const UId id)
     return nullptr;
 }
 
-void Components::SetIgnoreHighestEntityIndexFlag(const bool ignore)
+std::uint32_t Components::GetFreeSlotCount(const ComponentType type)
 {
-    m_IgnoreSetHighestEntityIndexFlag = ignore;
-}
+    const auto& block = GetData(type);
 
-void Components::RecomputeHighestComponentIndex()
-{
-    for (const auto block : m_ComponentDataBlocks)
-    {
-        block->m_HighestComponentIndex = block->GetHighestComponentIndex();
-    }
+    return block.m_ComponentArrayAllocatedCount - block.m_OccupiedCount;
 }
