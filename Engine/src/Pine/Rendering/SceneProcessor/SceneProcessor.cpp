@@ -122,8 +122,6 @@ namespace
                 continue;
             }
 
-            context.CasterCount++;
-
             UpdateWorldBounds(modelRenderer);
 
             auto& hintData = modelRenderer.GetRenderingHintData();
@@ -133,6 +131,11 @@ namespace
 
             const bool castShadowsChanged = modelRenderer.GetCastShadows() != hintData.CastShadows;
             hintData.CastShadows = modelRenderer.GetCastShadows();
+
+            if (hintData.CastShadows)
+            {
+                context.CasterCount++;
+            }
 
             // An object that casts nothing can move freely without invalidating any shadow view.
             // Switching casting on or off is itself a change to every view the object is in.

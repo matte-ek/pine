@@ -78,9 +78,10 @@ namespace Pine::Rendering::SceneProcessor
         // should treat it as "assume everything moved".
         bool CasterSetChanged = false;
 
-        // How many renderers were gathered, which is what CasterSetChanged is derived from. Counts
-        // the ones hidden by distance too: those come and go through MovedCasters instead, which
-        // invalidates only the shadow views they are in.
+        // How many shadow-casting renderers were gathered, which is what CasterSetChanged is derived
+        // from. A renderer that casts nothing is left out, so adding or removing one invalidates no
+        // shadow view. Counts the ones hidden by distance too: those come and go through
+        // MovedCasters instead, which invalidates only the shadow views they are in.
         std::size_t CasterCount = 0;
 
         // A light moved, changed type, or was created or destroyed this frame, so every cached

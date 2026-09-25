@@ -458,8 +458,12 @@ occludes ambient occlusion.
 **A non-caster moving does not invalidate a cached tile.** `SceneProcessor` puts a renderer in
 `MovedCasters` only while it casts, or in the frame its `CastShadows` changes. It compares against
 `ModelRendererHintData::CastShadows`, which is last frame's value. Turning casting off has to
-re-render the views the object was in, just as a move does. `CasterSetChanged` still counts every
-renderer, so adding or removing a non-caster flushes every tile, like any other renderer.
+re-render the views the object was in, just as a move does.
+
+`CasterSetChanged` counts casters only, so adding or removing a non-caster invalidates nothing. The
+flip side is that turning `CastShadows` on or off changes the count too, and that flushes every
+cached tile in that frame rather than only the ones the object is in. Toggling is rare enough that
+this is not worth a second mechanism.
 
 **Receiving is per instance.** `ReceiveShadows` rides in the `Instances` block beside the light
 indices (`receiveShadows` in `shared/common.glsl`, `InstanceData::Instance::ReceiveShadows` in
