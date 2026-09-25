@@ -339,7 +339,7 @@ design:
   valid sources without a variant per caller.
 - `Rendering/Features/RenderCulling/` — `Cull(frustum, visibilitySet)` tests every `ModelRenderer`
   and fills a `VisibilitySet`: a bitset indexed by `Component::GetInternalId()` (the pool slot),
-  ~512 bytes per frustum at the default `m_MaxObjectCount`.
+  ~4 KB per frustum at the default `m_MaxObjectCount`.
 - **`RenderingContext` owns its `VisibilitySet`.** Two viewports looking different ways cull
   independently. Never store visibility on the component — a single flag there cannot represent more
   than one camera, and both stages of a context read the same set.

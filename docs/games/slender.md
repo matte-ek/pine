@@ -57,7 +57,7 @@ animation. That makes it a good first test of how Pine handles a large outdoor s
       instanced around the camera without entities (see
       [rendering.md](../rendering.md#terrain-detail)). Trees stay entities with a `ModelRenderer`
       and a `Collider`, since they need collision; `EngineConfiguration::m_MaxObjectCount`
-      (default 4096) caps those.
+      (default 32768) caps those.
 - [x] **Post-processing that scripts can control.** For the static effect: grain and vignette
       strengths, along with exposure and bloom, are level settings that C# reads and writes
       through `Level.Active.Rendering` (see [scripting.md](../scripting.md)).

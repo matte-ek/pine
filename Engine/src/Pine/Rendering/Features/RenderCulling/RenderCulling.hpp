@@ -16,7 +16,7 @@ namespace Pine::Rendering::RenderCulling
     //
     // Indexed by Component::GetInternalId(), the component's slot in its pool. That id is already
     // stable and unique per component type and is bounded by EngineConfiguration::m_MaxObjectCount,
-    // so a set is m_MaxObjectCount bits - 512 bytes at the default 4096 - and needs no per-frame
+    // so a set is m_MaxObjectCount bits - 4 KB at the default 32768 - and needs no per-frame
     // index bookkeeping of its own.
     class VisibilitySet
     {
